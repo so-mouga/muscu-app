@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
+import { usePasBoutons } from '../lib/pasBoutons'
 import type { Suggestion } from '../lib/progression'
 import type { Exercice, Objectif } from '../types'
 
@@ -23,6 +24,7 @@ export default function EditeurObjectif({ exo, auto, actuel, onValider, onAuto, 
   const [reps, setReps] = useState<number[]>(actuel?.reps ?? auto.reps)
   const [textes, setTextes] = useState<(string | null)[]>(() => charges.map(() => null))
 
+  const pas = usePasBoutons()(exo)
   const unite = exo.mode === 'elastique' ? 'niv.' : exo.mode === 'poids_corps' ? 'lest' : 'kg'
   const decaler = (dc: number, dr: number) => {
     if (dc) setCharges((c) => c.map((x) => arr(Math.max(0, (x ?? 0) + dc))))
@@ -45,11 +47,11 @@ export default function EditeurObjectif({ exo, auto, actuel, onValider, onAuto, 
         <div className="ligne entre wrap" style={{ gap: 6 }}>
           <span className="petit">Toutes les séries</span>
           <span className="ligne" style={{ gap: 6 }}>
-            <button className="btn petit" onClick={() => decaler(-exo.pas, 0)}>
-              −{kg(exo.pas)} {unite}
+            <button className="btn petit" onClick={() => decaler(-pas, 0)}>
+              −{kg(pas)} {unite}
             </button>
-            <button className="btn petit" onClick={() => decaler(exo.pas, 0)}>
-              +{kg(exo.pas)} {unite}
+            <button className="btn petit" onClick={() => decaler(pas, 0)}>
+              +{kg(pas)} {unite}
             </button>
             <button className="btn petit" onClick={() => decaler(0, -1)}>
               −1 rep
@@ -70,7 +72,7 @@ export default function EditeurObjectif({ exo, auto, actuel, onValider, onAuto, 
                 S{i + 1}
               </span>
               <span className="mini-stepper compact">
-                <button type="button" onClick={() => (setCharges((x) => x.map((v, k) => (k === i ? arr(Math.max(0, (v ?? 0) - exo.pas)) : v))), setTextes((t) => t.map((v, k) => (k === i ? null : v))))}>
+                <button type="button" onClick={() => (setCharges((x) => x.map((v, k) => (k === i ? arr(Math.max(0, (v ?? 0) - pas)) : v))), setTextes((t) => t.map((v, k) => (k === i ? null : v))))}>
                   −
                 </button>
                 <input
@@ -86,7 +88,7 @@ export default function EditeurObjectif({ exo, auto, actuel, onValider, onAuto, 
                     setCharges((x) => x.map((w, k) => (k === i ? (t.trim() === '' ? null : isNaN(v) ? w : v) : w)))
                   }}
                 />
-                <button type="button" onClick={() => (setCharges((x) => x.map((v, k) => (k === i ? arr((v ?? 0) + exo.pas) : v))), setTextes((t) => t.map((v, k) => (k === i ? null : v))))}>
+                <button type="button" onClick={() => (setCharges((x) => x.map((v, k) => (k === i ? arr((v ?? 0) + pas) : v))), setTextes((t) => t.map((v, k) => (k === i ? null : v))))}>
                   +
                 </button>
               </span>

@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db, exporterJSON, importerJSON, setReglage } from '../db'
+import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
 
 function telecharger(nom: string, contenu: string, type: string) {
   const url = URL.createObjectURL(new Blob([contenu], { type }))
@@ -27,6 +28,8 @@ async function partagerOuTelecharger(nom: string, contenu: string, type: string)
 
 export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
+  const pasBoutons = useLiveQuery(() => db.reglages.get('pasBoutons'), [])
+  const pasActuel = typeof pasBoutons?.valeur === 'number' ? pasBoutons.valeur : PAS_BOUTONS_DEFAUT
   const [persistant, setPersistant] = useState<boolean | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const jour = new Date().toISOString().slice(0, 10)
@@ -79,6 +82,22 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
     <div>
       <div className="entete">
         <h1>Réglages</h1>
+      </div>
+
+      <div className="carte pile">
+        <h3>Saisie de la charge</h3>
+        <div className="faible">Pas des boutons −/+ en séance et dans l’objectif de la prochaine fois.</div>
+        <div className="chips">
+          {PAS_BOUTONS.map((p) => (
+            <button key={p} className={pasActuel === p ? 'actif' : ''} onClick={() => setReglage('pasBoutons', p)}>
+              {p === 0 ? 'Pas de l’exercice' : `${String(p).replace('.', ',')} kg`}
+            </button>
+          ))}
+        </div>
+        <div className="faible">
+          La montée de charge automatique, elle, suit le pas propre à chaque exercice (fiche de l’exercice → Modifier), pour ne proposer que des charges
+          qui existent sur la machine. Élastiques : toujours 1 niveau.
+        </div>
       </div>
 
       <div className="carte pile">

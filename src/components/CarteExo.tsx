@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { db, uid } from '../db'
 import { chargeTexte, chrono, kg, reposApres, reposTexte, RIR, serieTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
+import { usePasBoutons } from '../lib/pasBoutons'
 import Vignette from './Vignette'
 import { vibrer } from '../lib/appareil'
 import type { Suggestion } from '../lib/progression'
@@ -310,10 +311,11 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
   const [demi, setDemi] = useState(edition?.demiReps ?? 6)
   const [zone, setZone] = useState<ZoneDemiReps>(edition?.zone ?? 'etiree')
   const [aideRpe, setAideRpe] = useState(false)
+  const pasBoutons = usePasBoutons()
 
   // Pendant le repos, la validation reste possible mais passe au second plan.
   const enRepos = !edition && reposRestant > 0
-  const pas = exo.pas
+  const pas = pasBoutons(exo)
   const unite = exo.mode === 'elastique' ? 'niveau' : exo.mode === 'poids_corps' ? 'kg de lest (− = assistance)' : exo.mode === 'par_main' ? 'kg par main' : 'kg'
   const arr = (x: number) => Math.round(x * 100) / 100
 
