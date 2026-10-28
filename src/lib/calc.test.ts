@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance } from '../types'
-import { e1rm, volumeParMuscle } from './calc'
+import { e1rm, lireDuree, reposApres, volumeParMuscle } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -53,5 +53,36 @@ describe('e1RM', () => {
   })
   it('poids du corps : poids du jour + lest', () => {
     expect(e1rm(EXERCICES.tractions, { ...serie, charge: 0, reps: 10, rpe: 10 }, 70)).toBe(93.3)
+  })
+})
+
+describe('repos', () => {
+  const plan = {
+    exoId: 'x',
+    repos: 150,
+    series: [
+      { repsMin: 8, repsMax: 10, rpe: 8, repos: 180 },
+      { repsMin: 8, repsMax: 10, rpe: 8 },
+      { repsMin: 8, repsMax: 10, rpe: 8 },
+    ],
+    chauffes: [],
+    finisseur: false,
+    charge: 50,
+  }
+  it('repos propre à la série, sinon repos par défaut', () => {
+    expect(reposApres(plan, 0, 3)).toBe(180)
+    expect(reposApres(plan, 1, 3)).toBe(150)
+  })
+  it('repos après l’exercice sur la dernière série (et les séries ajoutées)', () => {
+    expect(reposApres({ ...plan, reposApres: 240 }, 2, 3)).toBe(240)
+    expect(reposApres({ ...plan, reposApres: 240 }, 3, 4)).toBe(240)
+    expect(reposApres(plan, 2, 3)).toBe(150)
+  })
+  it('lecture des durées saisies', () => {
+    expect(lireDuree('2:30')).toBe(150)
+    expect(lireDuree('2,30')).toBe(150)
+    expect(lireDuree('3')).toBe(180)
+    expect(lireDuree('90')).toBe(90)
+    expect(lireDuree('abc')).toBeNull()
   })
 })

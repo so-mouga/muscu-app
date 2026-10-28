@@ -5,7 +5,7 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chrono, kg, chargeTexte } from '../lib/calc'
+import { chargeTexte, kg, reposTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, SeanceModele } from '../types'
 
@@ -32,7 +32,7 @@ export function resumePlan(exo: Exercice, p: ExoPlan): string {
   return [
     `${p.series.length} × ${reps}`,
     `RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}`,
-    chrono(p.repos),
+    reposTexte(p),
     chargeTexte(exo, p.charge),
     p.finisseur ? '★' : '',
   ]

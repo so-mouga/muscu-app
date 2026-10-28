@@ -4,7 +4,7 @@ import { useCatalogue } from './catalogue'
 import { db } from './db'
 import { transition, useRetour } from './lib/nav'
 import Accueil from './screens/Accueil'
-import Progression from './screens/Progression'
+import Exercices from './screens/Exercices'
 import Reglages from './screens/Reglages'
 import SeanceEnCours from './screens/SeanceEnCours'
 import Seances from './screens/Seances'
@@ -12,7 +12,7 @@ import Seances from './screens/Seances'
 const ONGLETS = [
   ['accueil', '🏠', 'Accueil'],
   ['seances', '📋', 'Programmes'],
-  ['progression', '📈', 'Progression'],
+  ['exercices', '💪', 'Exercices'],
   ['reglages', '⚙️', 'Réglages'],
 ] as const
 type Onglet = (typeof ONGLETS)[number][0]
@@ -39,7 +39,7 @@ export default function App() {
       <div key={onglet}>
         {onglet === 'accueil' && <Accueil catalogue={catalogue} />}
         {onglet === 'seances' && <Seances catalogue={catalogue} />}
-        {onglet === 'progression' && <Progression catalogue={catalogue} />}
+        {onglet === 'exercices' && <Exercices catalogue={catalogue} />}
         {onglet === 'reglages' && <Reglages catalogue={catalogue} />}
       </div>
       <nav className="onglets">

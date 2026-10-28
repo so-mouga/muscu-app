@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { db, uid } from '../db'
-import { chargeTexte, chrono, kg, RIR, serieTexte } from '../lib/calc'
+import { chargeTexte, chrono, kg, reposApres, reposTexte, RIR, serieTexte } from '../lib/calc'
+import { useRetour } from '../lib/nav'
+import Vignette from './Vignette'
 import { vibrer } from '../lib/appareil'
 import type { Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
@@ -47,6 +49,7 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
   const [editId, setEditId] = useState<string | null>(null)
+  const [photo, setPhoto] = useState(false)
   const enEdition = faites.find((s) => s.id === editId)
   const index = enEdition ? faites.indexOf(enEdition) : faites.length
   const termine = !enEdition && faites.length >= total
@@ -60,7 +63,8 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
     <div className="carte pile">
       <div>
         <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
-          <h2>
+          {exo.image && <Vignette exo={exo} taille={52} onClick={() => setPhoto(true)} />}
+          <h2 style={{ flex: 1 }}>
             {exo.nom}
             {plan.optionnel && (
               <span className="pastille" style={{ marginLeft: 8, verticalAlign: 'middle' }}>
@@ -74,7 +78,7 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
         </div>
         <div className="faible">
           {plan.series.length} × {plan.series[0].repsMin === plan.series[0].repsMax ? plan.series[0].repsMin : `${plan.series[0].repsMin}–${plan.series[0].repsMax}`} · RPE{' '}
-          {plan.series.map((p) => kg(p.rpe)).join(', ')} · repos {Math.floor(plan.repos / 60)}:{String(plan.repos % 60).padStart(2, '0')}
+          {plan.series.map((p) => kg(p.rpe)).join(', ')} · repos {reposTexte(plan)}
           {plan.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ finisseur</span>}
         </div>
       </div>
@@ -171,7 +175,7 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
           verrou={verrou}
           onFini={(s) => {
             if (enEdition) setEditId(null)
-            else onValide(s, plan.repos)
+            else onValide(s, reposApres(plan, index, total))
           }}
           onAnnulerEdition={() => setEditId(null)}
         />
@@ -190,6 +194,8 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
         </div>
       )}
 
+      {photo && exo.image && <Photo src={exo.image} titre={exo.nom} onFermer={() => setPhoto(false)} />}
+
       <textarea
         rows={2}
         placeholder="Note (réglage machine, sensation, douleur…)"
@@ -201,6 +207,19 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
           })
         }}
       />
+    </div>
+  )
+}
+
+function Photo({ src, titre, onFermer }: { src: string; titre: string; onFermer: () => void }) {
+  useRetour(true, onFermer)
+  return (
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal pile" onClick={onFermer}>
+        <h3>{titre}</h3>
+        <img src={src} alt={titre} className="photo-grande" />
+        <button className="btn discret plein">Fermer</button>
+      </div>
     </div>
   )
 }
@@ -326,7 +345,7 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
           {edition ? `Modifier la série ${index + 1}` : `Série ${index + 1}/${total}`}
         </h3>
         <span className="faible">
-          cible {p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`} reps · RPE {kg(p.rpe)}
+          cible {p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`} reps · RPE {kg(p.rpe)} · repos {chrono(reposApres(plan, index, total))}
         </span>
       </div>
 

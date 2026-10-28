@@ -2,7 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import CarteExo, { majSeance } from '../components/CarteExo'
-import ChoixExo, { Interrupteur } from '../components/ChoixExo'
+import ChoixExo from '../components/ChoixExo'
+import Interrupteur from '../components/Interrupteur'
 import Minuteur, { type EtatMinuteur } from '../components/Minuteur'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
@@ -218,7 +219,12 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {plans.map((p, i) => {
             const fait = nbFaites(p.exoId) >= p.series.length + (seance.ajustSeries[p.exoId] ?? 0)
             return (
-              <button key={p.exoId + i} className={(i === idx ? 'actif ' : '') + (fait ? 'fait' : '')} onClick={() => setIdx(i)}>
+              <button
+                key={p.exoId + i}
+                className={(i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (i === enCours ? 'en-cours' : '')}
+                onClick={() => setIdx(i)}
+                aria-label={i === enCours ? `Exercice ${i + 1}, en cours` : undefined}
+              >
                 {fait ? '✓' : i + 1}
               </button>
             )
@@ -227,6 +233,18 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             +
           </button>
         </div>
+        {enCours >= 0 && enCours !== idx && (
+          <div className="legende-pills">
+            <span>
+              <i style={{ background: 'var(--accent)' }} />
+              en cours : {exos[enCours]?.nom}
+            </span>
+            <span>
+              <i style={{ border: '2px solid var(--accent)' }} />
+              affiché
+            </span>
+          </div>
+        )}
       </div>
 
       {plan ? (

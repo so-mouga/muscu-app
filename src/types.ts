@@ -27,6 +27,10 @@ export interface Exercice {
   notes?: string
   /** Créé par l'utilisateur (sinon : bibliothèque préchargée). */
   perso?: boolean
+  /** Photo (data URL JPEG réduite), par exemple la machine ou le réglage. */
+  image?: string
+  /** Masqué de la bibliothèque ; l'historique garde son nom. */
+  supprime?: boolean
 }
 
 export interface SeriePlan {
@@ -35,11 +39,16 @@ export interface SeriePlan {
   rpe: number
   /** Charge de départ propre à la série (sinon `ExoPlan.charge`). */
   charge?: number
+  /** Repos après cette série, en secondes (sinon `ExoPlan.repos`). */
+  repos?: number
 }
 
 export interface ExoPlan {
   exoId: string
-  repos: number // secondes
+  /** Repos par défaut entre les séries, en secondes. */
+  repos: number
+  /** Repos après la dernière série, avant l'exercice suivant (sinon le repos de la série). */
+  reposApres?: number
   series: SeriePlan[]
   /** Liste cochable de chauffes : "25×8", ou texte libre "1 série facile de 4–5 reps". */
   chauffes: string[]

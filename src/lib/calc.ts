@@ -1,5 +1,5 @@
 import { EXERCICES, MUSCLES } from '../data/exercices'
-import type { Exercice, Muscle, Seance, Serie } from '../types'
+import type { Exercice, ExoPlan, Muscle, Seance, Serie } from '../types'
 
 export const RIR: Record<number, string> = {
   10: 'échec',
@@ -79,3 +79,25 @@ export function chrono(s: number): string {
 
 export const dateCourte = (iso: string) =>
   new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+
+/** Repos à lancer après la série `index` (0 = première) sur `total` séries prévues aujourd'hui. */
+export function reposApres(plan: ExoPlan, index: number, total: number): number {
+  if (index >= total - 1 && plan.reposApres !== undefined) return plan.reposApres
+  return plan.series[Math.min(index, plan.series.length - 1)]?.repos ?? plan.repos
+}
+
+/** « 2:30 », « 150 » (secondes) ou « 2 » (minutes) → secondes. null si illisible. */
+export function lireDuree(texte: string): number | null {
+  const t = texte.trim().replace(/[.,h']/g, ':')
+  const m = t.match(/^(\d+):(\d{1,2})$/)
+  if (m) return +m[1] * 60 + +m[2]
+  if (/^\d+$/.test(t)) return +t <= 15 ? +t * 60 : +t
+  return null
+}
+
+/** « 3:00 », ou « 2:00–3:00 » si le repos varie selon la série. */
+export function reposTexte(plan: ExoPlan): string {
+  const valeurs = [...new Set(plan.series.map((s) => s.repos ?? plan.repos))].sort((a, b) => a - b)
+  const t = valeurs.length > 1 ? `${chrono(valeurs[0])}–${chrono(valeurs[valeurs.length - 1])}` : chrono(valeurs[0] ?? plan.repos)
+  return plan.reposApres !== undefined ? `${t}, puis ${chrono(plan.reposApres)}` : t
+}

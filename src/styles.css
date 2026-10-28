@@ -768,3 +768,104 @@ html[data-sens='arriere']::view-transition-new(root) {
   background: #04140c;
   color: var(--ok);
 }
+
+/* Durée libre */
+.mini-stepper .duree {
+  width: 72px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 8px 4px;
+}
+.mini-stepper.compact button {
+  width: 34px;
+  height: 38px;
+  font-size: 18px;
+}
+.mini-stepper.compact .duree {
+  width: 58px;
+  padding: 7px 2px;
+}
+
+/* Vignettes d'exercice */
+.vignette {
+  display: inline-block;
+  background: var(--surface-2);
+  border: 1px solid var(--bord);
+}
+.vignette.vide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--texte-3);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.groupe-titre {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--texte-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 18px 0 8px;
+}
+.liste-btn .avec-vignette {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.photo-grande {
+  width: 100%;
+  border-radius: var(--rayon);
+  display: block;
+}
+
+/* Exercice en cours dans la barre (distinct de l'exercice affiché, entouré) */
+.pills button {
+  position: relative;
+}
+.pills button.en-cours {
+  background: var(--accent);
+  color: var(--accent-texte);
+  border-color: var(--accent);
+}
+.pills button.en-cours.actif {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+.pills button.en-cours::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--texte);
+  border: 2px solid var(--bg);
+  animation: pouls 1.6s ease-in-out infinite;
+}
+.pills {
+  padding-top: 4px;
+}
+@keyframes pouls {
+  50% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+}
+.legende-pills {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--texte-3);
+  margin-top: 6px;
+}
+.legende-pills i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 5px;
+  vertical-align: -1px;
+}

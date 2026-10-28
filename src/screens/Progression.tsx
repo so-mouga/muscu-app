@@ -1,50 +1,23 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import type { Catalogue } from '../catalogue'
-import { db, exoAvecReglages, setReglage } from '../db'
+import { nomMuscle } from '../components/ChoixExo'
+import { MODES } from '../components/FormExo'
 import { chargeTexte, dateCourte, e1rm, kg, serieTexte } from '../lib/calc'
-import { transition, useRetour } from '../lib/nav'
 import type { Exercice, Seance } from '../types'
 
-export default function Progression({ catalogue }: { catalogue: Catalogue }) {
-  const seances = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [], [])
-  const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
-  const [choisi, setChoisiEtat] = useState<string | null>(null)
-  const setChoisi = (id: string | null) => (transition(() => setChoisiEtat(id), id ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
-  useRetour(!!choisi, () => setChoisi(null))
-
-  if (choisi) return <Detail exo={exoAvecReglages(catalogue.exo(choisi), reglages)} seances={seances} onRetour={() => setChoisi(null)} />
-
-  // Exercices pratiqués, du plus récent au plus ancien
-  const vus: { id: string; date: string; n: number }[] = []
-  for (const s of seances)
-    for (const x of s.series) if (!vus.some((v) => v.id === x.exoId)) vus.push({ id: x.exoId, date: s.date, n: 0 })
-  for (const v of vus) v.n = seances.filter((s) => s.series.some((x) => x.exoId === v.id)).length
-
-  return (
-    <div>
-      <div className="entete">
-        <h1>Progression</h1>
-        <span className="faible">{seances.length} séances</span>
-      </div>
-      {vus.length === 0 && <div className="carte muted">Termine une première séance pour voir ta progression ici.</div>}
-      {vus.map((v) => (
-        <button key={v.id} className="liste-btn" onClick={() => setChoisi(v.id)}>
-          <span>
-            <strong>{catalogue.exo(v.id).nom}</strong>
-            <div className="faible">
-              {v.n} séance{v.n > 1 ? 's' : ''} · dernière {dateCourte(v.date)}
-            </div>
-          </span>
-          <span className="muted">›</span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function Detail({ exo, seances, onRetour }: { exo: Exercice; seances: Seance[]; onRetour: () => void }) {
-  const [pas, setPas] = useState(String(exo.pas).replace('.', ','))
+/** Fiche d'un exercice : photo, réglages, progression et historique. */
+export function Detail({
+  exo,
+  seances,
+  onRetour,
+  onModifier,
+  onSupprimer,
+}: {
+  exo: Exercice
+  seances: Seance[]
+  onRetour: () => void
+  onModifier: () => void
+  onSupprimer: () => void
+}) {
   const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
   const chrono = [...avec].reverse()
 
@@ -66,10 +39,6 @@ function Detail({ exo, seances, onRetour }: { exo: Exercice; seances: Seance[]; 
     s.series.filter((x) => x.exoId === exo.id && x.type === 'serie_longue').map((x) => ({ date: s.date, x }))
   )
 
-  const majPas = async () => {
-    const v = parseFloat(pas.replace(',', '.'))
-    if (v > 0) await setReglage(`pas:${exo.id}`, v)
-  }
 
   return (
     <div>
@@ -78,6 +47,36 @@ function Detail({ exo, seances, onRetour }: { exo: Exercice; seances: Seance[]; 
           ←
         </button>
         <h2 style={{ flex: 1 }}>{exo.nom}</h2>
+        <button className="btn" onClick={onModifier}>
+          Modifier
+        </button>
+      </div>
+
+      <div className="carte pile">
+        {exo.image && <img src={exo.image} alt={exo.nom} className="photo-grande" />}
+        <table>
+          <tbody>
+            <tr>
+              <td>Muscle</td>
+              <td>
+                {nomMuscle(exo.muscle)}
+                {exo.secondaires?.length ? ` (+ ${exo.secondaires.map((x) => nomMuscle(x.muscle).toLowerCase()).join(', ')})` : ''}
+              </td>
+            </tr>
+            <tr>
+              <td>Type</td>
+              <td>{exo.type === 'compose' ? 'composé (suivi e1RM)' : 'isolation'}</td>
+            </tr>
+            <tr>
+              <td>Charge</td>
+              <td>
+                {MODES.find((m) => m[0] === exo.mode)?.[1]} · pas {kg(exo.pas)}
+                {exo.mode === 'elastique' ? '' : ' kg'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        {exo.notes && <div className="petit muted">📝 {exo.notes}</div>}
       </div>
 
       <div className="carte">
@@ -146,17 +145,9 @@ function Detail({ exo, seances, onRetour }: { exo: Exercice; seances: Seance[]; 
         ))}
       </div>
 
-      <div className="carte pile">
-        <h3>Réglage</h3>
-        <div className="ligne">
-          <span className="petit" style={{ whiteSpace: 'nowrap' }}>
-            Pas de charge
-          </span>
-          <input inputMode="decimal" value={pas} onChange={(e) => setPas(e.target.value)} onBlur={majPas} />
-          <span className="faible">{exo.mode === 'elastique' ? 'niveau' : 'kg'}</span>
-        </div>
-        <div className="faible">Utilisé par les boutons −/+ et pour calculer la prochaine charge.</div>
-      </div>
+      <button className="btn discret danger plein" style={{ marginBottom: 24 }} onClick={onSupprimer}>
+        Supprimer l’exercice
+      </button>
     </div>
   )
 }
