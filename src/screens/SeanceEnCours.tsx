@@ -3,14 +3,15 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import CarteExo, { majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
+import EditeurObjectif from '../components/EditeurObjectif'
 import Interrupteur from '../components/Interrupteur'
 import Minuteur, { type EtatMinuteur } from '../components/Minuteur'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
 import { chargeTexte, duree, e1rm, estDure, kg } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
-import { suggere, type Suggestion } from '../lib/progression'
-import type { Reglage, Seance, Serie } from '../types'
+import { suggere, suggestionPour, type Suggestion } from '../lib/progression'
+import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
 
 function stocke<T>(cle: string, defaut: T): T {
@@ -111,7 +112,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   )
   const suggestions = useMemo(() => {
     if (!terminees) return [] as Suggestion[]
-    return plans.map((p, i) => suggere(exos[i], p, historiqueDe(terminees, p.exoId)))
+    return plans.map((p, i) => suggestionPour(exos[i], p, terminees))
   }, [terminees, exos, plans])
 
   if (!terminees || !reglages) return null
@@ -420,6 +421,8 @@ function FinSeance({
   const [energie, setEnergie] = useState(3)
   const [garder, setGarder] = useState(false)
   const [nomModele, setNomModele] = useState('')
+  const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
+  const [ajuste, setAjuste] = useState<string | null>(null)
   const dures = seance.series.filter(estDure).length
   const tonnage = seance.series.reduce((a, s) => a + s.charge * s.reps, 0)
   const finisseurs = seance.series.filter((s) => s.type === 'serie_longue').length
@@ -427,7 +430,8 @@ function FinSeance({
   const adaptee = !!modele && JSON.stringify(seance.exercices) !== JSON.stringify(modele.exercices)
   const libre = !modele && seance.exercices.length > 0
 
-  // « Prévoir la prochaine séance » : suggestions calculées avec cette séance incluse.
+  // « Prévoir la prochaine séance » : proposition automatique calculée avec cette séance incluse,
+  // remplaçable par un objectif fixé à la main.
   const avecCelleCi = [seance, ...terminees]
   const prochaines = seance.exercices
     .filter((p) => seance.series.some((s) => s.exoId === p.exoId))
@@ -443,7 +447,7 @@ function FinSeance({
       modeleId = 'm_' + uid()
       await db.modeles.put({ id: modeleId, nom: nomModele.trim() || 'Séance libre', sousTitre: '', exercices: structuredClone(seance.exercices) })
     }
-    await db.seances.update(seance.id, { enCours: false, fin: Date.now(), ressenti, energie, modeleId })
+    await db.seances.update(seance.id, { enCours: false, fin: Date.now(), ressenti, energie, modeleId, objectifs })
     oublierEtatLocal(seance.id)
   }
 
@@ -523,16 +527,52 @@ function FinSeance({
 
       {prochaines.length > 0 && (
         <div className="carte">
-          <h3 style={{ marginBottom: 8 }}>Prochaine fois</h3>
-          {prochaines.map(({ exo, s }) => (
-            <div key={exo.id} className="suggestion petit" style={{ marginBottom: 10 }}>
-              <strong>{exo.nom}</strong> : {chargeTexte(exo, s.charges[0])}
-              {s.charges.some((c) => c !== s.charges[0]) && ` → ${chargeTexte(exo, s.charges[s.charges.length - 1])}`} × {s.reps.join('/')}
-              <div className="muted">{s.message}</div>
-            </div>
-          ))}
+          <h3>Prochaine fois</h3>
+          <div className="faible" style={{ margin: '4px 0 12px' }}>
+            Proposé d’après tes reps et RPE d’aujourd’hui : au sommet de la fourchette au RPE visé → charge en hausse ; sinon +1 rep ; RPE trop
+            haut → on consolide. Touche un exercice pour fixer ton propre objectif.
+          </div>
+          {prochaines.map(({ exo, s }) => {
+            const o = objectifs[exo.id]
+            const charges = o?.charges ?? s.charges
+            const reps = o?.reps ?? s.reps
+            return (
+              <button key={exo.id} className="liste-btn" onClick={() => setAjuste(exo.id)}>
+                <span className="suggestion petit" style={{ borderColor: o ? 'var(--ok)' : undefined }}>
+                  <strong>{exo.nom}</strong>
+                  {o && <span className="pastille ok" style={{ marginLeft: 6 }}>✎ ton objectif</span>}
+                  <div>
+                    {chargeTexte(exo, charges[0])}
+                    {charges.some((c) => c !== charges[0]) && ` → ${chargeTexte(exo, charges[charges.length - 1])}`} × {reps.join('/')}
+                  </div>
+                  <div className="muted">{o ? 'Fixé par toi (remplace la proposition automatique).' : s.message}</div>
+                </span>
+                <span className="muted">✎</span>
+              </button>
+            )
+          })}
         </div>
       )}
+      {ajuste &&
+        (() => {
+          const p = prochaines.find((x) => x.exo.id === ajuste)!
+          return (
+            <EditeurObjectif
+              exo={p.exo}
+              auto={p.s}
+              actuel={objectifs[ajuste]}
+              onFermer={() => setAjuste(null)}
+              onValider={(o) => (setObjectifs((x) => ({ ...x, [ajuste]: o })), setAjuste(null))}
+              onAuto={() => {
+                setObjectifs((x) => {
+                  const { [ajuste]: _retire, ...reste } = x
+                  return reste
+                })
+                setAjuste(null)
+              }}
+            />
+          )
+        })()}
 
       <button className="btn primaire grand" onClick={enregistrer} disabled={seance.series.length === 0}>
         ENREGISTRER

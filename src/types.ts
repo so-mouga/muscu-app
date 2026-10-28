@@ -121,8 +121,16 @@ export interface Seance {
   courant?: string
   /** Séries ajoutées (+) ou retirées (−) par rapport au modèle, pour aujourd'hui. */
   ajustSeries: Record<string, number>
+  /** Objectifs fixés à la main en fin de séance pour la prochaine fois, par exercice. */
+  objectifs?: Record<string, Objectif>
   ressenti?: number
   energie?: number
+}
+
+export interface Objectif {
+  /** Charge par série (null = à calibrer). */
+  charges: (number | null)[]
+  reps: number[]
 }
 
 export interface Pesee {

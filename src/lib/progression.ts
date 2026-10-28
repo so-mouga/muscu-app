@@ -1,6 +1,6 @@
-import type { Exercice, ExoPlan, Serie } from '../types'
+import type { Exercice, ExoPlan, Seance, Serie } from '../types'
 
-export type Decision = 'augmenter' | 'plus_une_rep' | 'consolider' | 'baisser' | 'calibrer' | 'depart'
+export type Decision = 'augmenter' | 'plus_une_rep' | 'consolider' | 'baisser' | 'calibrer' | 'depart' | 'manuel'
 
 export interface Suggestion {
   decision: Decision
@@ -16,6 +16,7 @@ const EPS = 1e-9
 
 const estFinisseur = (s: Serie) => s.type === 'echec' || s.type === 'serie_longue'
 const arrondi = (x: number) => Math.round(x * 100) / 100
+const nombre = (x: number) => x.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
 
 interface Bilan {
   top: boolean
@@ -112,7 +113,7 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
           decision: 'consolider',
           charges: memesCharges(),
           reps: plan.series.map(() => haut),
-          message: `Sommet atteint, mais +${inc} kg = +${Math.round((inc / ref) * 100)} % : confirme une séance avant de monter.`,
+          message: `Sommet atteint, mais +${nombre(inc)} kg = +${Math.round((inc / ref) * 100)} % : confirme une séance avant de monter.`,
         }
       }
     }
@@ -121,7 +122,7 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
       decision: 'augmenter',
       charges: plan.series.map((_, i) => arrondi(chargeA(i) + increment(exo, chargeA(i)))),
       reps: plan.series.map(() => bas),
-      message: `↑ +${inc}${unite} : toutes les séries au sommet de la fourchette au RPE visé. Reps repartent à ${bas}.`,
+      message: `↑ +${nombre(inc)}${unite} : toutes les séries au sommet de la fourchette au RPE visé. Reps repartent à ${bas}.`,
     }
   }
 
@@ -154,7 +155,7 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
       reps: memesReps(),
       message: !b.garde
         ? `= Série d’échec trop courte (< ${bas - 3} reps) : on consolide.`
-        : `= RPE plus haut que prévu (+${arrondi(b.ecartMoyen)} en moyenne) : on consolide.`,
+        : `= RPE plus haut que prévu (+${nombre(arrondi(b.ecartMoyen))} en moyenne) : on consolide.`,
     }
   }
 
@@ -172,4 +173,29 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
     reps,
     message: `+1 rep sur ${candidates.length > 1 ? 'deux séries' : 'une série'}, même charge.`,
   }
+}
+
+/**
+ * Suggestion pour la prochaine séance d'un exercice : l'objectif fixé à la main en fin de
+ * dernière séance s'il existe, sinon la double progression automatique.
+ * `seances` : séances terminées, la plus récente en premier.
+ */
+export function suggestionPour(exo: Exercice, plan: ExoPlan, seances: Seance[]): Suggestion {
+  const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
+  const objectif = avec[0]?.objectifs?.[exo.id]
+  if (objectif) {
+    const n = plan.series.length
+    const ajuste = <T,>(a: T[]) => Array.from({ length: n }, (_, i) => a[Math.min(i, a.length - 1)])
+    return {
+      decision: 'manuel',
+      charges: ajuste(objectif.charges),
+      reps: ajuste(objectif.reps),
+      message: '✎ Objectif fixé par toi à la fin de la dernière séance.',
+    }
+  }
+  return suggere(
+    exo,
+    plan,
+    avec.map((s) => s.series.filter((x) => x.exoId === exo.id))
+  )
 }

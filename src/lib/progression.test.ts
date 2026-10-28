@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { suggere } from './progression'
+import { suggere, suggestionPour } from './progression'
 
 const planDe = (modele: string, exoId: string) => MODELES[modele].exercices.find((e) => e.exoId === exoId)!
 
@@ -104,5 +104,42 @@ describe('règles complémentaires', () => {
     const r = suggere(EXERCICES.squat_bulgare, planDe('bas_maison', 'squat_bulgare'), [seance(24, '10@8', '10@8', '10@8')])
     expect(r.decision).toBe('consolider')
     expect(r.charges).toEqual([24, 24, 24])
+  })
+})
+
+describe('objectif manuel', () => {
+  const seanceAvec = (series: Serie[], objectifs?: Record<string, { charges: (number | null)[]; reps: number[] }>) => ({
+    id: 's',
+    date: '2026-10-28',
+    nom: 'Haut A',
+    debut: 0,
+    enCours: false,
+    exercices: [],
+    chauffes: {},
+    notes: {},
+    ajustSeries: {},
+    series: series.map((x) => ({ ...x, exoId: 'butterfly' })),
+    objectifs,
+  })
+  const plan = planDe('haut_a', 'butterfly')
+
+  it('remplace la proposition automatique', () => {
+    const s = seanceAvec(seance(30, '14@8', '13@8', '12@9', '!10@10'), { butterfly: { charges: [32.5, 32.5, 32.5], reps: [12, 12, 12] } })
+    const r = suggestionPour(EXERCICES.butterfly, plan, [s])
+    expect(r.decision).toBe('manuel')
+    // Le plan a 4 séries : la dernière valeur saisie est reprise.
+    expect(r.charges).toEqual([32.5, 32.5, 32.5, 32.5])
+    expect(r.reps).toEqual([12, 12, 12, 12])
+  })
+
+  it('sans objectif, la double progression s’applique', () => {
+    const s = seanceAvec(seance(30, '14@8', '13@8', '12@9', '!10@10'))
+    expect(suggestionPour(EXERCICES.butterfly, plan, [s]).decision).toBe('plus_une_rep')
+  })
+
+  it('seul l’objectif de la dernière séance compte', () => {
+    const ancienne = seanceAvec(seance(30, '14@8'), { butterfly: { charges: [40], reps: [8] } })
+    const recente = seanceAvec(seance(30, '15@8', '15@8', '15@9', '!11@10'))
+    expect(suggestionPour(EXERCICES.butterfly, plan, [recente, ancienne]).decision).toBe('augmenter')
   })
 })

@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Catalogue } from '../catalogue'
 import Vignette from '../components/Vignette'
-import { db, exoAvecReglages, historiqueDe } from '../db'
+import { db, exoAvecReglages } from '../db'
 import { chargeTexte, dureeEstimee, kg, reposTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { suggere } from '../lib/progression'
+import { suggestionPour } from '../lib/progression'
 import type { SeanceModele } from '../types'
 
 interface Props {
@@ -43,7 +43,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
 
       {modele.exercices.map((p, i) => {
         const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
-        const sugg = terminees && suggere(exo, p, historiqueDe(terminees, p.exoId))
+        const sugg = terminees && suggestionPour(exo, p, terminees)
         return (
           <div key={p.exoId + i} className="carte pile">
             <div className="ligne" style={{ gap: 12 }}>
