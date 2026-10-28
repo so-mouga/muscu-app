@@ -9,13 +9,13 @@ interface Props {
   compact?: boolean
 }
 
-/** Durée libre : boutons −/+ par 15 s, ou saisie directe (« 2:30 », « 90 », « 3 »). */
-export default function ChoixDuree({ valeur, onChange, pas = 15, compact = false }: Props) {
+/** Durée libre : boutons −/+ par 5 s, ou saisie directe (« 2:30 », « 90 », « 3 »). */
+export default function ChoixDuree({ valeur, onChange, pas = 5, compact = false }: Props) {
   const [texte, setTexte] = useState<string | null>(null)
   const borne = (s: number) => Math.max(0, Math.min(15 * 60, s))
   return (
     <span className={'mini-stepper' + (compact ? ' compact' : '')}>
-      <button type="button" onClick={() => onChange(borne(valeur - pas))} aria-label="Moins 15 secondes">
+      <button type="button" onClick={() => onChange(borne(valeur - pas))} aria-label={`Moins ${pas} secondes`}>
         −
       </button>
       <input
@@ -30,7 +30,7 @@ export default function ChoixDuree({ valeur, onChange, pas = 15, compact = false
           setTexte(null)
         }}
       />
-      <button type="button" onClick={() => onChange(borne(valeur + pas))} aria-label="Plus 15 secondes">
+      <button type="button" onClick={() => onChange(borne(valeur + pas))} aria-label={`Plus ${pas} secondes`}>
         +
       </button>
     </span>

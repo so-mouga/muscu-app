@@ -53,6 +53,10 @@ export interface ExoPlan {
   /** Liste cochable de chauffes : "25×8", ou texte libre "1 série facile de 4–5 reps". */
   chauffes: string[]
   finisseur: boolean
+  /** Technique du finisseur (défaut : partielles = échec puis demi-reps). */
+  typeFinisseur?: TypeFinisseur
+  /** Zone des demi-reps du finisseur « partielles » (défaut : étirée). */
+  zone?: ZoneDemiReps
   /** Charge de départ (null = à calibrer). */
   charge: number | null
   optionnel?: boolean
@@ -81,6 +85,7 @@ export interface Programme {
 
 export type TypeSerie = 'normale' | 'echec' | 'serie_longue' | 'drop' | 'rest_pause'
 export type ZoneDemiReps = 'etiree' | 'milieu' | 'contractee'
+export type TypeFinisseur = 'partielles' | 'drop' | 'rest_pause' | 'echec'
 
 export interface Serie {
   id: string
@@ -95,6 +100,8 @@ export interface Serie {
   repsMax?: number
   demiReps?: number
   zone?: ZoneDemiReps
+  /** Drop set : charges baissées ; rest-pause : mini-séries après la pause. */
+  suite?: { charge: number; reps: number }[]
   note?: string
   douleur?: boolean
   heure: number

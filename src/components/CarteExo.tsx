@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { db, uid } from '../db'
-import { chargeTexte, chrono, kg, reposApres, reposTexte, RIR, serieTexte } from '../lib/calc'
+import { chargeTexte, chrono, ecartSerie, kg, lireChauffe, reposApres, reposTexte, RIR, serieTexte } from '../lib/calc'
+import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import { usePasBoutons } from '../lib/pasBoutons'
 import Vignette from './Vignette'
@@ -8,17 +9,12 @@ import { vibrer } from '../lib/appareil'
 import type { Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
 
-const TYPES: [TypeSerie, string][] = [
-  ['normale', 'Normale'],
-  ['echec', 'Échec'],
-  ['serie_longue', 'Série longue'],
-  ['drop', 'Drop set'],
-  ['rest_pause', 'Rest-pause'],
-]
-const ZONES: [ZoneDemiReps, string][] = [
-  ['etiree', 'étirée'],
-  ['milieu', 'milieu'],
-  ['contractee', 'contractée'],
+const TYPES: [TypeSerie, string, string][] = [
+  ['normale', 'Normale', 'Série classique, arrêtée avant l’échec.'],
+  ['echec', 'Échec', 'Poussée jusqu’à ne plus pouvoir faire une rep propre.'],
+  ['serie_longue', 'Partielles', 'Échec puis demi-reps sans reposer la charge.'],
+  ['drop', 'Drop set', 'Échec, charge baissée, puis à nouveau jusqu’à l’échec.'],
+  ['rest_pause', 'Rest-pause', 'Échec, courte pause, puis quelques reps de plus.'],
 ]
 const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
@@ -80,6 +76,9 @@ export default function CarteExo({
     return `${chargeTexte(exo, sugg.charges[j])} × ${sugg.reps[j] ?? p.repsMin} · RPE ${kg(p.rpe)}`
   }
 
+  // Même série à la séance précédente (la plus proche si elle en avait moins).
+  const avant = (n: number) => derniere?.[n]
+
   // Saisie collée sous la série concernée : celle en cours, ou une série faite qu'on corrige.
   const editeur = (
     <Editeur
@@ -127,15 +126,10 @@ export default function CarteExo({
         <div className="faible">
           {plan.series.length} × {plan.series[0].repsMin === plan.series[0].repsMax ? plan.series[0].repsMin : `${plan.series[0].repsMin}–${plan.series[0].repsMax}`} · RPE{' '}
           {plan.series.map((p) => kg(p.rpe)).join(', ')} · repos {reposTexte(plan)}
-          {plan.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ finisseur</span>}
+          {plan.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ {FINISSEURS[typeFinisseur(plan)].nom.toLowerCase()}</span>}
         </div>
       </div>
 
-      {derniere && (
-        <div className="petit muted">
-          Dernière fois : {derniere.map((s) => serieTexte(exo, s).replace(/^PDC /, '')).join(' · ')}
-        </div>
-      )}
       <div className="suggestion petit">
         <div>
           <strong>
@@ -148,35 +142,29 @@ export default function CarteExo({
       </div>
       {(plan.note || exo.notes) && <div className="faible">ℹ️ {plan.note ?? exo.notes}</div>}
 
-      {plan.chauffes.length > 0 && (
-        <div>
-          <div className="faible" style={{ marginBottom: 6 }}>
-            Chauffe (repos 1 min)
-          </div>
-          <div className="chauffes">
-            {plan.chauffes.map((c, i) => {
-              const cle = `${exo.id}:${i}`
-              const fait = !!seance.chauffes[cle]
-              return (
-                <button
-                  key={cle}
-                  className={fait ? 'fait' : ''}
-                  onClick={() => {
-                    vibrer()
-                    void majSeance(seance.id, (s) => {
-                      s.chauffes[cle] = !fait
-                    })
-                  }}
-                >
-                  {fait ? '☑' : '☐'} {c}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       <div>
+        {plan.chauffes.map((c, i) => {
+          const cle = `${exo.id}:${i}`
+          const fait = !!seance.chauffes[cle]
+          const l = lireChauffe(c)
+          return (
+            <button
+              key={cle}
+              className={'serie-chauffe' + (fait ? ' fait' : '')}
+              onClick={() => {
+                vibrer()
+                void majSeance(seance.id, (x) => {
+                  x.chauffes[cle] = !fait
+                })
+              }}
+            >
+              <span className="case">{fait ? '✓' : ''}</span>
+              <span>
+                <span className="faible">Échauffement {i + 1}</span> {l ? `${chargeTexte(exo, l.charge)} × ${l.reps}` : c}
+              </span>
+            </button>
+          )
+        })}
         {Array.from({ length: total }, (_, n) => {
           const s = faites[n]
           if (s) {
@@ -184,6 +172,7 @@ export default function CarteExo({
               <button key={s.id} className={'serie-faite' + (s.id === editId ? ' edition' : '')} onClick={() => setEditId(s.id === editId ? null : s.id)}>
                 <span>
                   <span className="ok-texte">✓</span> <span className="faible">S{n + 1}</span> {serieTexte(exo, s)}
+                  {avant(n) && <Ecart s={s} avant={avant(n)!} exo={exo} />}
                 </span>
                 <span className="faible">
                   {s.type === 'serie_longue' ? '★' : s.type !== 'normale' ? TYPES.find((t) => t[0] === s.type)?.[1] : ''}
@@ -205,6 +194,7 @@ export default function CarteExo({
               <span>
                 {n === enSaisie ? '▶' : '○'} <span className="faible">S{n + 1}</span> {cible(n)}
                 {plan.finisseur && n === total - 1 ? ' ★' : ''}
+                {avant(n) && <span className="avant">dernière fois : {serieTexte(exo, avant(n)!)}</span>}
               </span>
               <span className="faible">repos {chrono(reposApres(plan, n, total))}</span>
             </div>
@@ -280,6 +270,15 @@ export default function CarteExo({
   )
 }
 
+function Ecart({ s, avant, exo }: { s: Serie; avant: Serie; exo: Exercice }) {
+  const e = ecartSerie(s, avant)!
+  return (
+    <span className={'avant ' + e.sens}>
+      {e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓'} {e.texte} <span className="faible">(avant {serieTexte(exo, avant)})</span>
+    </span>
+  )
+}
+
 function Photo({ src, titre, onFermer }: { src: string; titre: string; onFermer: () => void }) {
   useRetour(true, onFermer)
   return (
@@ -331,7 +330,10 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
   const [options, setOptions] = useState(false)
   const [panneau, setPanneau] = useState(false)
   const [demi, setDemi] = useState(edition?.demiReps ?? 6)
-  const [zone, setZone] = useState<ZoneDemiReps>(edition?.zone ?? 'etiree')
+  const zone: ZoneDemiReps = edition?.zone ?? plan.zone ?? 'etiree'
+  const [suite, setSuite] = useState<{ charge: number; reps: number }[]>(edition?.suite ?? [])
+  const tf = typeFinisseur(plan)
+  const info = FINISSEURS[tf]
   const [aideRpe, setAideRpe] = useState(false)
   const pasBoutons = usePasBoutons()
 
@@ -378,32 +380,65 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
     onAnnulerEdition()
   }
 
+  const ouvrirPanneau = () => {
+    // Drop set : ~25 % de moins, arrondi au pas ; rest-pause : même charge, deux mini-séries.
+    if (tf === 'drop') setSuite([{ charge: Math.max(0, Math.round((charge * 0.75) / exo.pas) * exo.pas), reps: 6 }])
+    if (tf === 'rest_pause') setSuite([{ charge, reps: 4 }, { charge, reps: 2 }])
+    setPanneau(true)
+  }
+  const majSuite = (k: number, champ: 'charge' | 'reps', v: number) => setSuite((x) => x.map((y, j) => (j === k ? { ...y, [champ]: Math.max(0, arr(v)) } : y)))
+
   if (panneau) {
     return (
       <div className="pile">
-        <div className="bandeau-fin">★ Demi-reps · enchaîne sans repos</div>
-        <div className="stepper">
-          <button onClick={() => setDemi(Math.max(0, demi - 1))}>−</button>
-          <div className="valeur">
-            <input inputMode="numeric" value={demi} onChange={(e) => setDemi(parseInt(e.target.value) || 0)} />
-            <span className="unite">demi-reps (5–8)</span>
+        <div className="bandeau-fin">
+          ★ {info.nom} · {tf === 'partielles' ? 'enchaîne sans reposer la charge' : tf === 'drop' ? 'baisse la charge et repars, sans repos' : 'pose la charge 15 s, puis repars'}
+        </div>
+        {tf === 'partielles' && (
+          <>
+            <div className="stepper">
+              <button onClick={() => setDemi(Math.max(0, demi - 1))}>−</button>
+              <div className="valeur">
+                <input inputMode="numeric" value={demi} onChange={(e) => setDemi(parseInt(e.target.value) || 0)} />
+                <span className="unite">demi-reps (5–8), zone {ZONES.find((z) => z[0] === zone)?.[1]}</span>
+              </div>
+              <button onClick={() => setDemi(demi + 1)}>+</button>
+            </div>
+          </>
+        )}
+        {suite.map((x, k) => (
+          <div key={k} className="pile" style={{ gap: 6 }}>
+            <div className="faible">{tf === 'drop' ? 'Après la baisse' : `Après la pause ${k + 1}`}</div>
+            {tf === 'drop' && (
+              <div className="stepper">
+                <button onClick={() => majSuite(k, 'charge', x.charge - pas)}>−</button>
+                <div className="valeur">
+                  <strong>{kg(x.charge)}</strong>
+                  <span className="unite">{unite}</span>
+                </div>
+                <button onClick={() => majSuite(k, 'charge', x.charge + pas)}>+</button>
+              </div>
+            )}
+            <div className="stepper">
+              <button onClick={() => majSuite(k, 'reps', x.reps - 1)}>−</button>
+              <div className="valeur">
+                <strong>{x.reps}</strong>
+                <span className="unite">reps</span>
+              </div>
+              <button onClick={() => majSuite(k, 'reps', x.reps + 1)}>+</button>
+            </div>
           </div>
-          <button onClick={() => setDemi(demi + 1)}>+</button>
-        </div>
-        <div className="chips">
-          {ZONES.map(([z, nom]) => (
-            <button key={z} className={zone === z ? 'actif' : ''} onClick={() => setZone(z)}>
-              {nom}
-            </button>
-          ))}
-        </div>
-        <button className="btn finisseur grand" onClick={() => enregistrer(construire('serie_longue', { demiReps: demi, zone }))}>
+        ))}
+        <button
+          className="btn finisseur grand"
+          onClick={() => enregistrer(construire(info.typeSerie, tf === 'partielles' ? { demiReps: demi, zone } : { suite, rpe: 10 }))}
+        >
           VALIDER LE FINISSEUR
         </button>
         <button className="btn plein" onClick={() => enregistrer(construire('echec'))}>
-          Passer
+          Je me suis arrêté à l’échec
         </button>
-        <div className="faible">Série longue : uniquement sur la dernière série. Stoppe si douleur articulaire (pas une simple brûlure musculaire).</div>
+        <div className="faible">Stoppe si douleur articulaire (une brûlure musculaire, c’est normal).</div>
       </div>
     )
   }
@@ -417,7 +452,11 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
         </span>
       </div>
 
-      {finisseur && <div className="bandeau-fin">★ FINISSEUR · échec puis 5–8 demi-reps étirées</div>}
+      {finisseur && (
+        <div className="bandeau-fin">
+          ★ FINISSEUR · {info.nom} : {info.court}
+        </div>
+      )}
 
       <div className="stepper">
         <button onClick={() => (setCharge(arr(charge - pas)), setChargeTxt(null))}>−</button>
@@ -492,8 +531,9 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
           ✓ SÉRIE ENREGISTRÉE
         </button>
       ) : finisseur ? (
-        <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => setPanneau(true)}>
-          {enRepos ? `Échec atteint · repos ${chrono(reposRestant)}` : 'ÉCHEC ATTEINT'}
+        <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
+          {tf === 'echec' ? 'VALIDER (ÉCHEC)' : 'ÉCHEC ATTEINT'}
+          {enRepos ? ` · repos ${chrono(reposRestant)}` : ''}
         </button>
       ) : (
         <button
@@ -506,7 +546,7 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
 
       <div className="ligne entre">
         <button className="btn discret petit" onClick={() => setOptions(!options)}>
-          {options ? '▾' : '▸'} Type, douleur{edition?.type === 'serie_longue' ? ', demi-reps' : ''}
+          {options ? '▾' : '▸'} Autre type de série, douleur
         </button>
         {edition && (
           <div className="ligne">
@@ -521,49 +561,53 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
       </div>
 
       {options && (
-        <div className="pile">
-          <div className="chips">
-            {TYPES.map(([t, nom]) => (
-              <button
-                key={t}
-                className={type === t ? 'actif' : ''}
-                onClick={() => {
-                  setType(t)
-                  if (t === 'echec' || t === 'serie_longue') setRpe(10)
-                }}
-              >
-                {nom}
-              </button>
-            ))}
+        <div className="pile options-serie">
+          <div>
+            <div className="petit" style={{ marginBottom: 6 }}>
+              <strong>Type de série</strong> <span className="muted">— à changer seulement si ce n’était pas une série classique</span>
+            </div>
+            <div className="chips">
+              {TYPES.map(([t, nom]) => (
+                <button
+                  key={t}
+                  className={type === t ? 'actif' : ''}
+                  onClick={() => {
+                    setType(t)
+                    if (t !== 'normale') setRpe(10)
+                  }}
+                >
+                  {nom}
+                </button>
+              ))}
+            </div>
+            <div className="faible" style={{ marginTop: 4 }}>
+              {TYPES.find((t) => t[0] === type)?.[2]}
+            </div>
           </div>
           {type === 'serie_longue' && (
-            <>
-              {index !== total - 1 && <div className="faible" style={{ color: 'var(--alerte)' }}>Série longue : normalement sur la dernière série seulement.</div>}
-              <div className="ligne">
-                <span className="petit">Demi-reps</span>
-                <button className="btn" onClick={() => setDemi(Math.max(0, demi - 1))}>
-                  −
-                </button>
-                <strong>{demi}</strong>
-                <button className="btn" onClick={() => setDemi(demi + 1)}>
-                  +
-                </button>
-              </div>
-              <div className="chips">
-                {ZONES.map(([z, nom]) => (
-                  <button key={z} className={zone === z ? 'actif' : ''} onClick={() => setZone(z)}>
-                    {nom}
-                  </button>
-                ))}
-              </div>
-            </>
+            <div className="ligne">
+              <span className="petit">Demi-reps</span>
+              <button className="btn" onClick={() => setDemi(Math.max(0, demi - 1))}>
+                −
+              </button>
+              <strong>{demi}</strong>
+              <button className="btn" onClick={() => setDemi(demi + 1)}>
+                +
+              </button>
+            </div>
           )}
-          <div className="chips">
-            <button className={douleur ? 'actif' : ''} onClick={() => setDouleur(!douleur)}>
-              ⚠️ Douleur {douleur ? 'signalée' : ''}
-            </button>
+          <div>
+            <div className="petit" style={{ marginBottom: 6 }}>
+              <strong>Douleur articulaire ?</strong>{' '}
+              <span className="muted">— notée dans l’historique pour la surveiller. Une brûlure musculaire est normale : ne la signale pas.</span>
+            </div>
+            <div className="chips">
+              <button className={douleur ? 'actif' : ''} onClick={() => setDouleur(!douleur)}>
+                ⚠️ {douleur ? 'Douleur signalée' : 'Signaler une douleur'}
+              </button>
+            </div>
+            {douleur && <div className="faible">Allège ou passe l’exercice. Si elle persiste, consulte.</div>}
           </div>
-          {douleur && <div className="faible">Si la douleur est articulaire, allège ou passe l’exercice. Si elle persiste, consulte.</div>}
         </div>
       )}
     </div>

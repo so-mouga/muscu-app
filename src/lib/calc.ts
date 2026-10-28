@@ -23,6 +23,7 @@ export function chargeTexte(exo: Exercice, charge: number | null | undefined): s
 export function serieTexte(exo: Exercice, s: Serie): string {
   let t = `${chargeTexte(exo, s.charge)} × ${s.reps} @${kg(s.rpe)}`
   if (s.demiReps) t += ` + ${s.demiReps} demi-reps`
+  if (s.suite?.length) t += s.type === 'drop' ? s.suite.map((x) => ` ↘ ${kg(x.charge)}×${x.reps}`).join('') : ` + ${s.suite.map((x) => x.reps).join(' + ')}`
   return t
 }
 
@@ -132,4 +133,22 @@ export function tempsParExo(seance: Pick<Seance, 'debut' | 'series'>): Record<st
     prec = Math.max(prec, s.heure)
   }
   return t
+}
+
+/** Chauffe « 25×8 » → charge et reps ; texte libre → null. */
+export function lireChauffe(c: string): { charge: number; reps: number } | null {
+  const m = /^\s*([\d.,]+)\s*(?:kg)?\s*[×x*]\s*(\d+)\s*$/i.exec(c)
+  return m ? { charge: parseFloat(m[1].replace(',', '.')), reps: parseInt(m[2]) } : null
+}
+
+/** Comparaison avec la même série la dernière fois : plus lourd, ou plus de reps à charge égale = mieux. */
+export function ecartSerie(s: Serie, avant: Serie | undefined): { sens: 'mieux' | 'egal' | 'moins'; texte: string } | null {
+  if (!avant) return null
+  const dc = Math.round((s.charge - avant.charge) * 100) / 100
+  const dr = s.reps - avant.reps
+  const texte = [dc ? `${dc > 0 ? '+' : '−'}${kg(Math.abs(dc))} kg` : '', dr ? `${dr > 0 ? '+' : '−'}${Math.abs(dr)} rep${Math.abs(dr) > 1 ? 's' : ''}` : '']
+    .filter(Boolean)
+    .join(', ')
+  const sens = dc > 0 || (dc === 0 && dr > 0) ? 'mieux' : dc === 0 && dr === 0 ? 'egal' : 'moins'
+  return { sens, texte: texte || 'identique' }
 }

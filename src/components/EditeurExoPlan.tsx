@@ -1,21 +1,33 @@
 import { useState } from 'react'
-import { kg } from '../lib/calc'
+import { kg, lireChauffe } from '../lib/calc'
+import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
-import type { Exercice, ExoPlan } from '../types'
+import type { Exercice, ExoPlan, TypeFinisseur } from '../types'
 import ChoixDuree from './ChoixDuree'
 import Interrupteur from './Interrupteur'
 
 const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
+const PALIERS = [
+  [0.5, 8],
+  [0.7, 4],
+  [0.85, 2],
+  [0.9, 1],
+]
+
 /** Chauffe auto : ~50 % × 8, ~70 % × 4, ~85 % × 2, arrondie au pas. */
-export function chauffeAuto(charge: number, pas: number): string[] {
+export function chauffeAuto(charge: number, pas: number, n = 3): string[] {
   const arr = (x: number) => Math.round(x / pas) * pas
-  return [
-    [0.5, 8],
-    [0.7, 4],
-    [0.85, 2],
-  ].map(([pct, reps]) => `${kg(arr(charge * pct))}×${reps}`)
+  return PALIERS.slice(0, n).map(([pct, reps]) => `${kg(arr(charge * pct))}×${reps}`)
 }
+
+/** Ligne d'échauffement éditable : charge × reps, ou consigne libre (« 1 série facile »). */
+type LigneChauffe = { charge: string; reps: number } | { texte: string }
+const versLigne = (c: string): LigneChauffe => {
+  const l = lireChauffe(c)
+  return l ? { charge: kg(l.charge), reps: l.reps } : { texte: c }
+}
+const depuisLigne = (l: LigneChauffe) => ('texte' in l ? l.texte.trim() : l.charge.trim() ? `${l.charge.trim()}×${l.reps}` : '')
 
 function MiniStepper({ valeur, min = 0, max = 99, onChange }: { valeur: number; min?: number; max?: number; onChange: (v: number) => void }) {
   return (
@@ -48,7 +60,8 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
   const [chargeTxt, setChargeTxt] = useState(p.charge === null ? '' : kg(p.charge))
   const [chargesSerie, setChargesSerie] = useState(() => plan.series.map((s) => (s.charge === undefined ? '' : kg(s.charge))))
-  const [chauffeTxt, setChauffeTxt] = useState(p.chauffes.join(', '))
+  const [chauffes, setChauffes] = useState<LigneChauffe[]>(() => plan.chauffes.map(versLigne))
+  const [aideFin, setAideFin] = useState(false)
   const [detail, setDetail] = useState(() => plan.series.some((s) => s.charge !== undefined || s.repos !== undefined))
 
   const n = p.series.length
@@ -91,10 +104,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
           ...(s.repos !== undefined && s.repos !== p.repos ? { repos: s.repos } : {}),
         }
       }),
-      chauffes: chauffeTxt
-        .split(/[,;]/)
-        .map((c) => c.trim().replace(/x/gi, '×'))
-        .filter(Boolean),
+      chauffes: chauffes.map(depuisLigne).filter(Boolean),
       note: p.note?.trim() || undefined,
     })
   }
@@ -127,8 +137,12 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
         </div>
 
         <label className="champ">
-          <span>{libelleCharge} — vide = à calibrer</span>
-          <input inputMode="decimal" value={chargeTxt} placeholder="à calibrer" onChange={(e) => setChargeTxt(e.target.value)} />
+          <span>{libelleCharge}</span>
+          <input inputMode="decimal" value={chargeTxt} placeholder="je ne sais pas encore" onChange={(e) => setChargeTxt(e.target.value)} />
+          <span className="faible">
+            Sert seulement la toute première fois. Ensuite, l’appli repart de ce que tu as fait la dernière fois. Pas d’idée ? Laisse vide : tu
+            trouveras la bonne charge pendant la séance, dès la 1re série.
+          </span>
         </label>
 
         <div>
@@ -189,19 +203,57 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
           )}
         </div>
 
-        <div className="champ">
-          <span>Chauffe (cochée en séance, jamais comptée) — vide = aucune</span>
-          <div className="ligne">
-            <input value={chauffeTxt} placeholder="ex. 25×8, 35×4, 45×2" onChange={(e) => setChauffeTxt(e.target.value)} />
+        <div>
+          <div className="ligne entre">
+            <span>Séries d’échauffement</span>
+            <MiniStepper
+              valeur={chauffes.length}
+              max={4}
+              onChange={(k) =>
+                setChauffes((c) => {
+                  const base = lireCharge(chargeTxt)
+                  if (k < c.length) return c.slice(0, k)
+                  // Nouvelle ligne : palier suivant de la chauffe auto si la charge est connue.
+                  const auto = base ? chauffeAuto(base, exo.pas, k).map(versLigne) : []
+                  return [...c, ...Array.from({ length: k - c.length }, (_, j) => auto[c.length + j] ?? { charge: '', reps: 8 })]
+                })
+              }
+            />
+          </div>
+          <div className="faible" style={{ margin: '4px 0 6px' }}>
+            Séries légères avant les vraies, cochées pendant la séance. Elles ne comptent ni dans le volume ni dans la progression.
+          </div>
+          {chauffes.map((l, i) => (
+            <div key={i} className="ligne" style={{ marginBottom: 6, gap: 6 }}>
+              <span className="faible" style={{ width: 22, flex: '0 0 auto' }}>
+                É{i + 1}
+              </span>
+              {'texte' in l ? (
+                <input value={l.texte} onChange={(e) => setChauffes((c) => c.map((x, k) => (k === i ? { texte: e.target.value } : x)))} />
+              ) : (
+                <>
+                  <input
+                    inputMode="decimal"
+                    style={{ width: 70, padding: '8px 4px', textAlign: 'center', flex: '0 0 auto' }}
+                    placeholder={unite}
+                    value={l.charge}
+                    onChange={(e) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, charge: e.target.value } : x)))}
+                  />
+                  <span className="faible">{unite} ×</span>
+                  <MiniStepper valeur={l.reps} min={1} onChange={(v) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, reps: v } : x)))} />
+                </>
+              )}
+            </div>
+          ))}
+          {chauffes.length > 0 && lireCharge(chargeTxt)! > 0 && (
             <button
               type="button"
-              className="btn"
-              disabled={!(lireCharge(chargeTxt)! > 0)}
-              onClick={() => setChauffeTxt(chauffeAuto(lireCharge(chargeTxt)!, exo.pas).join(', '))}
+              className="btn discret petit"
+              onClick={() => setChauffes(chauffeAuto(lireCharge(chargeTxt)!, exo.pas, chauffes.length).map(versLigne))}
             >
-              Auto
+              Calculer depuis la charge de départ (50 %, 70 %, 85 %)
             </button>
-          </div>
+          )}
         </div>
 
         <Interrupteur
@@ -213,8 +265,44 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
             })
           }
           label="★ Finisseur sur la dernière série"
-          aide="Échec puis 5–8 demi-reps étirées. Plutôt sur de l’isolation."
+          aide="Une technique d’intensité sur la dernière série. Plutôt sur de l’isolation, un ou deux par séance."
         />
+        {p.finisseur && (
+          <div className="pile" style={{ gap: 8 }}>
+            <div className="chips">
+              {(Object.keys(FINISSEURS) as TypeFinisseur[]).map((t) => (
+                <button key={t} className={typeFinisseur(p) === t ? 'actif' : ''} onClick={() => maj((q) => (q.typeFinisseur = t))}>
+                  {FINISSEURS[t].nom}
+                </button>
+              ))}
+            </div>
+            <div className="suggestion petit">{FINISSEURS[typeFinisseur(p)].aide}</div>
+            {typeFinisseur(p) === 'partielles' && (
+              <div className="ligne entre wrap">
+                <span className="petit">Zone des demi-reps</span>
+                <div className="chips">
+                  {ZONES.map(([z, nom]) => (
+                    <button key={z} className={(p.zone ?? 'etiree') === z ? 'actif' : ''} onClick={() => maj((q) => (q.zone = z))}>
+                      {nom}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button type="button" className="btn discret petit" onClick={() => setAideFin(!aideFin)}>
+              {aideFin ? '▾' : '▸'} C’est quoi, chaque technique ?
+            </button>
+            {aideFin && (
+              <div className="pile petit" style={{ gap: 6 }}>
+                {Object.values(FINISSEURS).map((f) => (
+                  <div key={f.nom}>
+                    <strong>{f.nom}</strong> <span className="muted">— {f.aide}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" />
 
         <label className="champ">

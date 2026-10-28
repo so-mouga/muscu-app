@@ -14,7 +14,7 @@ export interface Suggestion {
 const SAUT_MAX = 0.1
 const EPS = 1e-9
 
-const estFinisseur = (s: Serie) => s.type === 'echec' || s.type === 'serie_longue'
+const estFinisseur = (s: Serie) => s.type !== 'normale'
 const arrondi = (x: number) => Math.round(x * 100) / 100
 const nombre = (x: number) => x.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
 

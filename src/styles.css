@@ -928,3 +928,138 @@ html[data-sens='arriere']::view-transition-new(root) {
   padding: 14px 14px;
   font-size: 16px;
 }
+
+/* Échauffement : lignes cochables avant les séries */
+.serie-chauffe {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  border: 1px dashed var(--bord);
+  background: transparent;
+  color: var(--texte-2);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.serie-chauffe .case {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--texte-3);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+.serie-chauffe.fait {
+  color: var(--texte-3);
+  text-decoration: line-through;
+}
+.serie-chauffe.fait .case {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #04140c;
+  text-decoration: none;
+}
+
+/* La même série à la séance précédente */
+.avant {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--texte-3);
+  margin-top: 2px;
+}
+.avant.mieux {
+  color: var(--ok);
+}
+.avant.moins {
+  color: var(--alerte);
+}
+.serie-prevue .avant {
+  opacity: 1;
+}
+.options-serie {
+  border-top: 1px solid var(--bord);
+  padding-top: 10px;
+}
+
+/* Accordéon par groupe musculaire */
+.groupe-repli {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--bord);
+  background: transparent;
+  color: var(--texte);
+  font-weight: 700;
+  text-align: left;
+}
+.groupe-repli .nb {
+  color: var(--texte-3);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* Récap de fin de séance */
+.recap-serie {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--bord);
+}
+.recap-serie:last-child {
+  border-bottom: none;
+}
+.prochaine {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: rgba(255, 138, 61, 0.08);
+  color: var(--texte);
+}
+.prochaine .label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.prochaine .modifier {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 14px;
+}
+.choix {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--bord);
+  background: var(--surface-2);
+  color: var(--texte);
+}
+.choix.actif {
+  border: 2px solid var(--accent);
+}

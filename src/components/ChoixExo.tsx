@@ -33,12 +33,23 @@ interface Props {
 export default function ChoixExo({ catalogue, titre, muscle, exclure = [], onChoix, onFermer }: Props) {
   const [recherche, setRecherche] = useState('')
   const [creation, setCreation] = useState(false)
+  // Groupes fermés par défaut ; celui du même muscle (remplacement) ouvert.
+  const [ouverts, setOuverts] = useState<Set<Muscle>>(() => new Set(muscle ? [muscle] : []))
+  const basculer = (m: Muscle) =>
+    setOuverts((o) => {
+      const n = new Set(o)
+      if (n.has(m)) n.delete(m)
+      else n.add(m)
+      return n
+    })
   useRetour(true, () => (creation ? (setCreation(false), 'rester') : onFermer()))
 
   const groupes = parMuscle(
     Object.values(catalogue.exercices).filter((e) => !exclure.includes(e.id)),
     recherche
   )
+  // Pendant une recherche, tout ce qui correspond est visible.
+  const ouvert = (m: Muscle) => !!recherche.trim() || ouverts.has(m)
   // Remplacement : le groupe du même muscle en tête.
   if (muscle) groupes.sort((a, b) => Number(b.muscle === muscle) - Number(a.muscle === muscle))
 
@@ -57,11 +68,14 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], onCho
             <div>
               {groupes.map((g) => (
                 <div key={g.muscle}>
-                  <div className="groupe-titre">
-                    {g.nom}
-                    {g.muscle === muscle ? ' · même muscle' : ''}
-                  </div>
-                  {g.exos.map((e) => (
+                  <button className="groupe-repli" onClick={() => basculer(g.muscle)} aria-expanded={ouvert(g.muscle)}>
+                    <span>
+                      {g.nom}
+                      {g.muscle === muscle ? ' · même muscle' : ''} <span className="nb">({g.exos.length})</span>
+                    </span>
+                    <span className="muted">{ouvert(g.muscle) ? '▾' : '▸'}</span>
+                  </button>
+                  {ouvert(g.muscle) && g.exos.map((e) => (
                     <button key={e.id} className="liste-btn" onClick={() => onChoix(e.id)}>
                       <span className="avec-vignette">
                         <Vignette exo={e} taille={40} />
