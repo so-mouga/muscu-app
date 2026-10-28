@@ -1,5 +1,7 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
-import { alarme } from '../lib/appareil'
+import { db } from '../db'
+import { alarme, tic } from '../lib/appareil'
 import { chrono } from '../lib/calc'
 
 export interface EtatMinuteur {
@@ -8,9 +10,16 @@ export interface EtatMinuteur {
   duree: number
   /** Début du repos (la fin bouge avec −15/+15, pas le début). */
   debut?: number
+  /** En pause : temps restant figé, en ms (la fin est recalculée à la reprise). */
+  pause?: number
   /** Séance à laquelle appartient ce repos : un autre séance ne le reprend jamais. */
   seanceId?: string
 }
+
+/** Secondes restantes d'un repos (en pause : le temps figé). */
+export const resteRepos = (e: EtatMinuteur, maintenant: number) => (e.pause ?? e.fin - maintenant) / 1000
+
+export const BIPS_DEFAUT = 5
 
 interface Props {
   etat: EtatMinuteur
@@ -24,13 +33,17 @@ interface Props {
 export default function Minuteur({ etat, onChange, ensuite, onAller }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
+  const dernierTic = useRef<number | null>(null)
+  const reglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
+  const bips = typeof reglage?.valeur === 'number' ? reglage.valeur : BIPS_DEFAUT
 
   useEffect(() => {
     const t = setInterval(() => setMaintenant(Date.now()), 250)
     return () => clearInterval(t)
   }, [])
 
-  const reste = (etat.fin - maintenant) / 1000
+  const enPause = etat.pause !== undefined
+  const reste = resteRepos(etat, maintenant)
   const fini = reste <= 0
 
   useEffect(() => {
@@ -41,23 +54,42 @@ export default function Minuteur({ etat, onChange, ensuite, onAller }: Props) {
     }
   }, [fini, etat.fin, maintenant])
 
+  // Décompte sonore des dernières secondes, une fois par seconde.
+  const seconde = Math.ceil(reste)
+  useEffect(() => {
+    if (enPause || fini || seconde > bips || dernierTic.current === seconde) return
+    dernierTic.current = seconde
+    tic(seconde === 1)
+  }, [seconde, bips, enPause, fini])
+
+  const decaler = (ms: number) => onChange(enPause ? { ...etat, pause: Math.max(0, etat.pause! + ms) } : { ...etat, fin: etat.fin + ms })
+  const basculerPause = () =>
+    onChange(enPause ? { ...etat, fin: Date.now() + etat.pause!, pause: undefined } : { ...etat, pause: Math.max(0, etat.fin - Date.now()) })
+
   return (
-    <div className={'minuteur' + (fini ? ' fini flash' : '')}>
+    <div className={'minuteur' + (fini ? ' fini flash' : '') + (enPause ? ' en-pause' : '')}>
       <div className="contenu">
         <div className="temps">
-          {fini ? chrono(reste) : chrono(Math.ceil(reste))}
+          {fini ? chrono(reste) : chrono(seconde)}
           <div className="faible" style={{ color: 'inherit', opacity: 0.7, fontSize: 12, fontWeight: 600 }}>
-            {fini ? 'Repos terminé — à toi' : `Repos ${chrono(etat.duree)}`}
+            {fini ? 'Repos terminé — à toi' : enPause ? 'En pause' : `Repos ${chrono(etat.duree)}`}
           </div>
         </div>
-        <button className="btn" onClick={() => onChange({ ...etat, fin: etat.fin - 15000 })}>
-          −15
-        </button>
-        <button className="btn" onClick={() => onChange({ ...etat, fin: etat.fin + 15000 })}>
-          +15
-        </button>
-        <button className="btn" onClick={() => onChange(null)}>
-          ✕
+        {!fini && (
+          <>
+            <button className="btn" onClick={basculerPause} aria-label={enPause ? 'Reprendre le repos' : 'Mettre en pause'}>
+              {enPause ? '▶' : '⏸'}
+            </button>
+            <button className="btn" onClick={() => decaler(-15000)}>
+              −15
+            </button>
+            <button className="btn" onClick={() => decaler(15000)}>
+              +15
+            </button>
+          </>
+        )}
+        <button className="btn texte" onClick={() => onChange(null)}>
+          {fini ? 'OK' : 'Passer'}
         </button>
       </div>
       {ensuite && (

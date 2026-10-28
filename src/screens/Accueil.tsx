@@ -7,7 +7,7 @@ import { dateISO, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import Apercu from './Apercu'
-import type { SeanceModele } from '../types'
+import type { Programme, SeanceModele } from '../types'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 const exercices = (n: number) => `${n} exercice${n > 1 ? 's' : ''}`
@@ -34,6 +34,7 @@ async function demarrer(modele?: SeanceModele) {
 
 export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
   const [choix, setChoix] = useState(false)
+  const [ouvert, setOuvert] = useState<string | null>(null)
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
   useRetour(choix, () => setChoix(false))
   const voir = (m: SeanceModele | null) => {
@@ -63,8 +64,12 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
   const prochaine = planning.find((e) => !faite(e) && e.jour >= jour) ?? planning.find((e) => !faite(e))
   const variante = duJour && catalogue.modeles.find((m) => m.varianteDe === duJour.modele.id)
   const proposee = duJour && !faite(duJour) ? duJour : prochaine
-  const duProgramme = [...new Set(actif.seances.map((e) => e.modeleId))].map((id) => catalogue.modele(id)).filter((m) => !!m)
-  const autres = catalogue.modeles.filter((m) => !duProgramme.includes(m))
+  const seancesDe = (p: Programme) => [...new Set(p.seances.map((e) => e.modeleId))].map((id) => catalogue.modele(id)).filter((m) => !!m)
+  // Programme actif en tête, puis les autres ; les séances d'aucun programme à la fin.
+  const programmes = [actif, ...catalogue.programmes.filter((p) => p.id !== actif.id)]
+  const dansUnProgramme = new Set(catalogue.programmes.flatMap((p) => p.seances.map((e) => e.modeleId)))
+  const horsProgramme = catalogue.modeles.filter((m) => !dansUnProgramme.has(m.id))
+  const groupeOuvert = ouvert ?? actif.id
 
   const volume = volumeParMuscle(semaine, catalogue.exercices)
 
@@ -165,34 +170,30 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginBottom: 4 }}>Choisir une séance</h2>
-            <div className="faible" style={{ marginBottom: 12 }}>
-              {actif.nom}
-            </div>
-            {duProgramme.map((m) => {
-              const jours = actif.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => JOURS[e.jour!])
-              return (
-                <button key={m.id} className="liste-btn" onClick={() => voir(m)}>
+            <h2 style={{ marginBottom: 12 }}>Choisir une séance</h2>
+            {[...programmes.map((p) => ({ id: p.id, nom: p.nom, actif: p.id === actif.id, prog: p, seances: seancesDe(p) })), ...(horsProgramme.length ? [{ id: 'hors', nom: 'Hors programme', actif: false, prog: null, seances: horsProgramme }] : [])].map((g) => (
+              <div key={g.id}>
+                <button className="groupe-repli" onClick={() => setOuvert(groupeOuvert === g.id ? '' : g.id)} aria-expanded={groupeOuvert === g.id}>
                   <span>
-                    <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
+                    {g.nom} {g.actif && <span className="pastille ok" style={{ marginLeft: 4 }}>actif</span>} <span className="nb">({g.seances.length})</span>
                   </span>
-                  <span className="faible">{realisees(m) ? '✓' : jours.join(', ')}</span>
+                  <span className="muted">{groupeOuvert === g.id ? '▾' : '▸'}</span>
                 </button>
-              )
-            })}
-            {autres.length > 0 && (
-              <div className="faible" style={{ margin: '12px 0 8px' }}>
-                Autres séances
+                {groupeOuvert === g.id &&
+                  g.seances.map((m) => {
+                    const jours = g.prog ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => JOURS[e.jour!]) : []
+                    return (
+                      <button key={m.id} className="liste-btn" onClick={() => voir(m)}>
+                        <span>
+                          <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
+                        </span>
+                        <span className="faible">{realisees(m) ? '✓' : jours.join(', ')}</span>
+                      </button>
+                    )
+                  })}
               </div>
-            )}
-            {autres.map((m) => (
-              <button key={m.id} className="liste-btn" onClick={() => voir(m)}>
-                <span>
-                  <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
-                </span>
-                <span className="faible">{realisees(m) ? '✓' : ''}</span>
-              </button>
             ))}
+            <div style={{ height: 8 }} />
             <button className="liste-btn" onClick={() => demarrer()}>
               <span>
                 <strong>Séance libre</strong> <span className="muted">— exercices ajoutés au fur et à mesure</span>

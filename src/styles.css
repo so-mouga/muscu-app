@@ -1063,3 +1063,50 @@ html[data-sens='arriere']::view-transition-new(root) {
 .choix.actif {
   border: 2px solid var(--accent);
 }
+
+/* Changement d'exercice en séance : seule la carte glisse */
+html[data-sens^='carte']::view-transition-old(root),
+html[data-sens^='carte']::view-transition-new(root) {
+  animation: none;
+}
+html[data-sens^='carte'] .carte-exo {
+  view-transition-name: carte-exo;
+}
+html[data-sens='carte-avant']::view-transition-old(carte-exo) {
+  animation: sortie-gauche 0.2s ease-in both;
+}
+html[data-sens='carte-avant']::view-transition-new(carte-exo) {
+  animation: entree-droite 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+html[data-sens='carte-arriere']::view-transition-old(carte-exo) {
+  animation: sortie-droite 0.2s ease-in both;
+}
+html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
+  animation: entree-gauche 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.minuteur.en-pause .temps {
+  opacity: 0.55;
+}
+.minuteur .btn.texte {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pills button.passe {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.exo-passe h2 {
+  color: var(--texte-3);
+}
+
+.recap-serie {
+  display: block;
+}
+.recap-serie .petit-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: 12px;
+  margin-top: 2px;
+}

@@ -126,6 +126,8 @@ export interface Seance {
   notes: Record<string, string>
   /** Exercice choisi comme « en cours » (« Faire maintenant », « Plus tard ») ; sinon déduit des séries. */
   courant?: string
+  /** Exercices sautés aujourd'hui (restent affichés, grisés ; le modèle ne change pas). */
+  passes?: string[]
   /** Séries ajoutées (+) ou retirées (−) par rapport au modèle, pour aujourd'hui. */
   ajustSeries: Record<string, number>
   /** Objectifs fixés à la main en fin de séance pour la prochaine fois, par exercice. */

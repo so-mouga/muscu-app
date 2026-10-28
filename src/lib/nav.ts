@@ -56,7 +56,8 @@ export function useRetour(actif: boolean, onRetour: () => 'rester' | void) {
 
 // --- Transitions entre écrans --------------------------------------------------
 
-export type Sens = 'avant' | 'arriere' | 'fondu'
+/** `carte-*` : seule la carte d'exercice glisse, l'en-tête de séance reste en place. */
+export type Sens = 'avant' | 'arriere' | 'fondu' | 'carte-avant' | 'carte-arriere'
 
 /** Applique un changement d'état avec une transition d'écran (View Transitions, si disponible). */
 export function transition(fn: () => void, sens: Sens = 'fondu') {

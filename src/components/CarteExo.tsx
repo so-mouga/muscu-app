@@ -36,6 +36,9 @@ interface Props {
   enCoursNom?: string
   onFaireMaintenant: () => void
   onAllerEnCours: () => void
+  /** Exercice sauté aujourd'hui. */
+  passe: boolean
+  onAnnulerPasser: () => void
 }
 
 /** Heure de la dernière validation : bloque un double appui avant même le rafraîchissement de l'écran. */
@@ -59,9 +62,11 @@ export default function CarteExo({
   enCoursNom,
   onFaireMaintenant,
   onAllerEnCours,
+  passe,
+  onAnnulerPasser,
 }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
-  const total = Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
+  const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
   const [editId, setEditId] = useState<string | null>(null)
   const [photo, setPhoto] = useState(false)
   const enEdition = faites.find((s) => s.id === editId)
@@ -107,7 +112,7 @@ export default function CarteExo({
     })
 
   return (
-    <div className="carte pile">
+    <div className={'carte pile carte-exo' + (passe ? ' exo-passe' : '')}>
       <div>
         <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
           {exo.image && <Vignette exo={exo} taille={52} onClick={() => setPhoto(true)} />}
@@ -213,9 +218,13 @@ export default function CarteExo({
       {termine && (
         <div className="pile">
           <div className="ligne entre">
-            <span className="pastille ok">✓ Exercice terminé</span>
-            <button className="btn discret petit" onClick={() => (ajuster(+1), onFaireMaintenant())}>
-              + série
+            {passe ? (
+              <span className="pastille">⤼ Passé aujourd’hui{faites.length ? ` après ${faites.length} série${faites.length > 1 ? 's' : ''}` : ''}</span>
+            ) : (
+              <span className="pastille ok">✓ Exercice terminé</span>
+            )}
+            <button className="btn discret petit" onClick={() => (passe ? onAnnulerPasser() : (ajuster(+1), onFaireMaintenant()))}>
+              {passe ? 'Le faire quand même' : '+ série'}
             </button>
           </div>
           <button className="btn primaire grand" onClick={onAllerEnCours}>

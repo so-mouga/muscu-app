@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db, exporterJSON, importerJSON, setReglage } from '../db'
 import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
+import { BIPS_DEFAUT } from '../components/Minuteur'
+import { debloquerSon, tic } from '../lib/appareil'
 
 function telecharger(nom: string, contenu: string, type: string) {
   const url = URL.createObjectURL(new Blob([contenu], { type }))
@@ -30,6 +32,8 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const pasBoutons = useLiveQuery(() => db.reglages.get('pasBoutons'), [])
   const pasActuel = typeof pasBoutons?.valeur === 'number' ? pasBoutons.valeur : PAS_BOUTONS_DEFAUT
+  const bipsReglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
+  const bips = typeof bipsReglage?.valeur === 'number' ? bipsReglage.valeur : BIPS_DEFAUT
   const [persistant, setPersistant] = useState<boolean | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const jour = new Date().toISOString().slice(0, 10)
@@ -97,6 +101,26 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
         <div className="faible">
           La montée de charge automatique, elle, suit le pas propre à chaque exercice (fiche de l’exercice → Modifier), pour ne proposer que des charges
           qui existent sur la machine. Élastiques : toujours 1 niveau.
+        </div>
+      </div>
+
+      <div className="carte pile">
+        <h3>Fin du repos</h3>
+        <div className="faible">Un bip à chaque seconde sur les dernières secondes du repos, pour te remettre en place avant la sonnerie.</div>
+        <div className="chips">
+          {[0, 3, 5, 10].map((n) => (
+            <button
+              key={n}
+              className={bips === n ? 'actif' : ''}
+              onClick={() => {
+                void setReglage('bipsRepos', n)
+                debloquerSon()
+                if (n) tic()
+              }}
+            >
+              {n ? `${n} dernières s` : 'Aucun bip'}
+            </button>
+          ))}
         </div>
       </div>
 

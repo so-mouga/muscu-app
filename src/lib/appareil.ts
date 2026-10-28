@@ -34,6 +34,12 @@ export function alarme() {
   bip(0.6, 1320, 0.4)
 }
 
+/** Tic du décompte des dernières secondes de repos. */
+export function tic(dernier = false) {
+  vibrer(dernier ? 60 : 25)
+  bip(0, dernier ? 990 : 660, 0.09)
+}
+
 export function vibrer(ms = 20) {
   try {
     navigator.vibrate?.(ms)

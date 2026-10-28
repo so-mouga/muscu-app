@@ -5,13 +5,13 @@ import CarteExo, { majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif from '../components/EditeurObjectif'
 import Interrupteur from '../components/Interrupteur'
-import Minuteur, { type EtatMinuteur } from '../components/Minuteur'
+import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
-import { chargeTexte, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, serieTexte, tempsParExo } from '../lib/calc'
+import { chargeTexte, chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, reposTexte, serieTexte, tempsParExo } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { suggere, suggestionPour, type Suggestion } from '../lib/progression'
-import type { ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
+import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
 
 function stocke<T>(cle: string, defaut: T): T {
@@ -80,7 +80,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   const setIdx = (i: number) => {
     if (i === idx) return
-    transition(() => setIdxEtat(i), i > idx ? 'avant' : 'arriere')
+    transition(() => setIdxEtat(i), i > idx ? 'carte-avant' : 'carte-arriere')
     range(`idx:${seance.id}`, i)
     window.scrollTo({ top: 0 })
   }
@@ -116,7 +116,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     }
   }, [])
 
-  const finRepos = minuteur && minuteur.fin <= maintenant ? minuteur.fin : null
+  const finRepos = minuteur && minuteur.pause === undefined && minuteur.fin <= maintenant ? minuteur.fin : null
   useEffect(() => {
     if (finRepos === null || reposTraite.current === finRepos) return
     reposTraite.current = finRepos
@@ -180,7 +180,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           while (series.length < restantes) series.push({ ...series[series.length - 1] })
           s.exercices.splice(c.i + 1, 0, { ...substitut, series: series.slice(0, restantes) })
         })
-        transition(() => setIdxEtat(c.i + 1), 'avant')
+        transition(() => setIdxEtat(c.i + 1), 'carte-avant')
         range(`idx:${seance.id}`, c.i + 1)
       }
       setToast(`🔁 ${catalogue.exo(ancien.exoId).nom} → ${exo.nom}`)
@@ -188,22 +188,21 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       await majSeance(seance.id, (s) => {
         s.exercices.push(planParDefaut(exo))
       })
-      transition(() => setIdxEtat(plans.length), 'avant')
+      transition(() => setIdxEtat(plans.length), 'carte-avant')
       range(`idx:${seance.id}`, plans.length)
     }
   }
 
-  /** Machine prise : l'exercice passe en fin de séance, on enchaîne sur le suivant. */
-  const plusTard = async (i: number) => {
+  /** Machine prise : un autre exercice prend sa place, celui-ci se fera à la place de l'autre. */
+  const echanger = async (i: number, j: number) => {
     setMachinePrise(false)
-    const etaitEnCours = i === enCours
     await majSeance(seance.id, (s) => {
-      const [p] = s.exercices.splice(i, 1)
-      s.exercices.push(p)
-      // L'exercice suivant prend la main, même si celui-ci avait déjà des séries.
-      if (etaitEnCours) s.courant = s.exercices[i]?.exoId
+      const a = s.exercices[i]
+      s.exercices[i] = s.exercices[j]
+      s.exercices[j] = a
+      s.courant = s.exercices[i].exoId
     })
-    setToast(`⏭ ${exos[i].nom} déplacé en fin de séance`)
+    setToast(`⇄ ${exos[j].nom} maintenant, ${exos[i].nom} à sa place`)
   }
 
   /** Changer d'ordre volontairement : cet exercice devient l'exercice en cours. */
@@ -214,22 +213,28 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   }
   const allerEnCours = () => (enCours >= 0 ? setIdx(enCours) : ouvrirFin(true))
 
-  /** Passer : sans série faite, l'exercice sort de la séance du jour ; sinon il s'arrête là. */
+  /** Passer : l'exercice reste dans la séance, grisé ; le modèle ne change pas. */
   const passer = async (i: number) => {
     setMachinePrise(false)
-    const p = plans[i]
-    const faites = nbFaites(p.exoId)
+    const id = plans[i].exoId
     await majSeance(seance.id, (s) => {
-      if (faites === 0) s.exercices.splice(i, 1)
-      else s.ajustSeries[p.exoId] = faites - p.series.length
+      s.passes = [...new Set([...(s.passes ?? []), id])]
+      if (s.courant === id) s.courant = undefined
     })
-    if (faites === 0 && idx >= plans.length - 1) setIdxEtat(Math.max(0, plans.length - 2))
-    else if (faites > 0 && i < plans.length - 1) setIdx(i + 1)
+    if (i < plans.length - 1) setIdx(i + 1)
     setToast(`${exos[i].nom} passé pour aujourd’hui`)
   }
+  const annulerPasser = async (i: number) => {
+    const id = plans[i].exoId
+    await majSeance(seance.id, (s) => {
+      s.passes = (s.passes ?? []).filter((x) => x !== id)
+      s.courant = id
+    })
+  }
+  const estPasse = (i: number) => !!seance.passes?.includes(plans[i].exoId)
 
   const nbFaites = (exoId: string) => seance.series.filter((s) => s.exoId === exoId).length
-  const totalDe = (i: number) => Math.max(nbFaites(plans[i].exoId), plans[i].series.length + (seance.ajustSeries[plans[i].exoId] ?? 0))
+  const totalDe = (i: number) => estPasse(i) ? nbFaites(plans[i].exoId) : Math.max(nbFaites(plans[i].exoId), plans[i].series.length + (seance.ajustSeries[plans[i].exoId] ?? 0))
   // Exercice en cours : celui choisi explicitement s'il n'est pas fini ; sinon celui de la dernière
   // série s'il en reste, sinon le prochain exercice pas fini.
   const enCours = (() => {
@@ -242,7 +247,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return ordre.find((j) => nbFaites(plans[j].exoId) < totalDe(j)) ?? -1
   })()
   const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance 💪'
-  const reposRestant = minuteur ? Math.max(0, Math.ceil((minuteur.fin - maintenant) / 1000)) : 0
+  const reposRestant = minuteur ? Math.max(0, Math.ceil(resteRepos(minuteur, maintenant))) : 0
 
   // Fin du repos : sans geste pendant le repos (téléphone posé), retour sur la série à faire.
   // Si l'utilisateur regardait autre chose, on ne le déplace pas : le minuteur propose « Reprendre ».
@@ -278,15 +283,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
         <div className="pills">
           {plans.map((p, i) => {
-            const fait = nbFaites(p.exoId) >= p.series.length + (seance.ajustSeries[p.exoId] ?? 0)
+            const passe = estPasse(i)
+            const fait = !passe && nbFaites(p.exoId) >= totalDe(i)
             return (
               <button
                 key={p.exoId + i}
-                className={(i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (i === enCours ? 'en-cours' : '')}
+                className={(i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (i === enCours ? 'en-cours' : '')}
                 onClick={() => setIdx(i)}
                 aria-label={i === enCours ? `Exercice ${i + 1}, en cours` : undefined}
               >
-                {fait ? '✓' : i + 1}
+                {fait ? '✓' : passe ? '–' : i + 1}
               </button>
             )
           })}
@@ -323,6 +329,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           consultation={idx !== enCours}
           enCoursNom={enCours >= 0 ? exos[enCours]?.nom : undefined}
           onFaireMaintenant={() => faireMaintenant(idx)}
+          passe={estPasse(idx)}
+          onAnnulerPasser={() => annulerPasser(idx)}
           onAllerEnCours={allerEnCours}
         />
       ) : (
@@ -355,9 +363,12 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       {machinePrise && plan && (
         <MachinePrise
           nom={exos[idx].nom}
-          dernier={idx === plans.length - 1}
           entame={nbFaites(plan.exoId) > 0}
-          onPlusTard={() => plusTard(idx)}
+          autres={plans
+            .map((_, j) => j)
+            .filter((j) => j !== idx && !estPasse(j) && nbFaites(plans[j].exoId) < totalDe(j))
+            .map((j) => ({ i: j, nom: exos[j].nom, entame: nbFaites(plans[j].exoId) > 0 }))}
+          onEchanger={(j) => echanger(idx, j)}
           onRemplacer={() => (setMachinePrise(false), setChoix({ mode: 'remplacer', i: idx }))}
           onPasser={() => passer(idx)}
           onFermer={() => setMachinePrise(false)}
@@ -388,22 +399,23 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
 function MachinePrise({
   nom,
-  dernier,
   entame,
-  onPlusTard,
+  autres,
+  onEchanger,
   onRemplacer,
   onPasser,
   onFermer,
 }: {
   nom: string
-  dernier: boolean
   entame: boolean
-  onPlusTard: () => void
+  autres: { i: number; nom: string; entame: boolean }[]
+  onEchanger: (j: number) => void
   onRemplacer: () => void
   onPasser: () => void
   onFermer: () => void
 }) {
-  useRetour(true, onFermer)
+  const [echange, setEchange] = useState(false)
+  useRetour(true, () => (echange ? (setEchange(false), 'rester') : onFermer()))
   const option = (titre: string, detail: string, fn: () => void, actif = true) =>
     actif && (
       <button className="liste-btn" onClick={fn}>
@@ -417,44 +429,49 @@ function MachinePrise({
   return (
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Machine prise</h2>
-        <div className="faible" style={{ margin: '4px 0 14px' }}>
-          {nom}
-        </div>
-        {option('⏭ Faire plus tard', 'Passe en fin de séance, tu y reviens quand la machine se libère.', onPlusTard, !dernier)}
-        {option(
-          '🔁 Remplacer',
-          entame ? 'Les séries restantes passent sur un autre exercice.' : 'Par un exercice du même muscle, avec son propre historique.',
-          onRemplacer
+        {echange ? (
+          <>
+            <h2>Échanger {nom}</h2>
+            <div className="faible" style={{ margin: '4px 0 14px' }}>
+              Quel exercice fais-tu maintenant ? {nom} prendra sa place dans la séance.
+            </div>
+            {autres.map((a) => (
+              <button key={a.i} className="liste-btn" onClick={() => onEchanger(a.i)}>
+                <span>
+                  <strong>{a.nom}</strong>
+                  <div className="faible">
+                    exercice {a.i + 1}
+                    {a.entame ? ' · déjà commencé' : ''}
+                  </div>
+                </span>
+                <span className="muted">⇄</span>
+              </button>
+            ))}
+            <button className="btn discret plein" onClick={() => setEchange(false)}>
+              Retour
+            </button>
+          </>
+        ) : (
+          <>
+            <h2>Machine prise</h2>
+            <div className="faible" style={{ margin: '4px 0 14px' }}>
+              {nom}
+            </div>
+            {option('⇄ Échanger', 'Faire un autre exercice de la séance maintenant ; celui-ci prend sa place.', () => setEchange(true), autres.length > 0)}
+            {option(
+              '🔁 Remplacer',
+              entame ? 'Les séries restantes passent sur un autre exercice.' : 'Par un exercice du même muscle, avec son propre historique.',
+              onRemplacer
+            )}
+            {option('✕ Passer', 'Sauter cet exercice aujourd’hui. Il reste grisé dans la séance, tu peux y revenir.', onPasser)}
+            <button className="btn discret plein" onClick={onFermer}>
+              Annuler
+            </button>
+          </>
         )}
-        {option('✕ Passer', entame ? 'Arrêter cet exercice ici pour aujourd’hui.' : 'Sauter cet exercice aujourd’hui (le modèle ne change pas).', onPasser)}
-        <button className="btn discret plein" onClick={onFermer}>
-          Annuler
-        </button>
       </div>
     </div>
   )
-}
-
-/** Ce qui a changé aujourd'hui par rapport à la séance enregistrée, en clair. */
-function changements(avant: ExoPlan[], apres: ExoPlan[], nom: (id: string) => string): string[] {
-  const ids = (l: ExoPlan[]) => l.map((p) => p.exoId)
-  const out: string[] = []
-  const retires = avant.filter((p) => !ids(apres).includes(p.exoId))
-  const ajoutes = apres.filter((p) => !ids(avant).includes(p.exoId))
-  if (retires.length && retires.length === ajoutes.length)
-    retires.forEach((r, i) => out.push(`${nom(r.exoId)} remplacé par ${nom(ajoutes[i].exoId)}`))
-  else {
-    retires.forEach((r) => out.push(`${nom(r.exoId)} retiré`))
-    ajoutes.forEach((a) => out.push(`${nom(a.exoId)} ajouté`))
-  }
-  for (const p of apres) {
-    const q = avant.find((x) => x.exoId === p.exoId)
-    if (q && q.series.length !== p.series.length) out.push(`${nom(p.exoId)} : ${p.series.length} séries au lieu de ${q.series.length}`)
-  }
-  const communs = (l: ExoPlan[], autre: ExoPlan[]) => ids(l).filter((id) => ids(autre).includes(id))
-  if (communs(avant, apres).join() !== communs(apres, avant).join()) out.push('Ordre des exercices changé')
-  return out
 }
 
 function FinSeance({
@@ -479,12 +496,10 @@ function FinSeance({
   const [ajuste, setAjuste] = useState<string | null>(null)
   const dures = seance.series.filter(estDure).length
   const tonnage = seance.series.reduce((a, s) => a + s.charge * s.reps, 0)
-  const finisseurs = seance.series.filter((s) => s.type === 'serie_longue').length
+  const finisseurs = seance.series.filter((s) => s.type === 'serie_longue' || s.type === 'drop' || s.type === 'rest_pause').length
   const chauffes = Object.values(seance.chauffes).filter(Boolean).length
-  const adaptee = !!modele && JSON.stringify(seance.exercices) !== JSON.stringify(modele.exercices)
   const libre = !modele && seance.exercices.length > 0
   const passe = tempsParExo(seance)
-  const modifs = adaptee && modele ? changements(modele.exercices, seance.exercices, (id) => catalogue.exo(id).nom) : []
 
   // « Prévoir la prochaine séance » : proposition automatique calculée avec cette séance incluse,
   // remplaçable par un objectif fixé à la main.
@@ -494,11 +509,14 @@ function FinSeance({
     .map((p) => {
       const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
       const i = seance.exercices.indexOf(p)
+      const avant = historiqueDe(terminees, p.exoId)
       return {
         exo,
+        plan: p,
+        record: Math.max(0, ...avant.flat().map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0)),
         s: suggere(exo, p, historiqueDe(avecCelleCi, p.exoId)),
         series: seance.series.filter((x) => x.exoId === p.exoId),
-        avant: historiqueDe(terminees, p.exoId)[0] ?? [],
+        avant: avant[0] ?? [],
         ms: passe[p.exoId] ?? 0,
         prevu: dureePrevueExo(seance.exercices, i),
       }
@@ -506,7 +524,6 @@ function FinSeance({
 
   const enregistrer = async () => {
     let modeleId = seance.modeleId
-    if (garder && adaptee && modele) await db.modeles.put({ ...modele, exercices: structuredClone(seance.exercices) })
     if (garder && libre) {
       modeleId = 'm_' + uid()
       await db.modeles.put({ id: modeleId, nom: nomModele.trim() || 'Séance libre', sousTitre: '', exercices: structuredClone(seance.exercices) })
@@ -561,39 +578,77 @@ function FinSeance({
           <div className="faible" style={{ marginBottom: 10 }}>
             Tes séries comparées à la dernière fois, puis l’objectif de la prochaine séance : l’appli le propose, tu peux le changer.
           </div>
-          {prochaines.map(({ exo, s, series, avant, ms, prevu }) => {
+          {prochaines.map(({ exo, plan, record, s, series, avant, ms, prevu }) => {
             const o = objectifs[exo.id]
             const charges = o?.charges ?? s.charges
             const reps = o?.reps ?? s.reps
+            const r0 = plan.series[0]
+            const ch = plan.chauffes.filter((_, k) => seance.chauffes[`${exo.id}:${k}`]).length
+            const volumeExo = series.reduce((a, x) => a + x.charge * x.reps, 0)
+            const meilleur = Math.max(0, ...series.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
             return (
               <div key={exo.id} className="carte pile recap">
-                <div className="ligne entre" style={{ alignItems: 'baseline' }}>
-                  <strong>{exo.nom}</strong>
-                  {ms > 0 && (
-                    <span className="faible" style={{ whiteSpace: 'nowrap' }}>
-                      ⏱ {duree(ms)} <span className="muted">/ prévu {duree(prevu * 1000)}</span>
-                    </span>
-                  )}
+                <div>
+                  <div className="ligne entre" style={{ alignItems: 'baseline' }}>
+                    <strong>{exo.nom}</strong>
+                    {ms > 0 && (
+                      <span className="faible" style={{ whiteSpace: 'nowrap' }}>
+                        ⏱ {duree(ms)} <span className="muted">/ prévu {duree(prevu * 1000)}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="faible">
+                    Visé : {plan.series.length} × {r0.repsMin === r0.repsMax ? r0.repsMin : `${r0.repsMin}–${r0.repsMax}`} · RPE{' '}
+                    {plan.series.map((x) => kg(x.rpe)).join(', ')} · repos {reposTexte(plan)}
+                  </div>
                 </div>
                 <div>
                   {series.map((x, k) => {
                     const e = ecartSerie(x, avant[k])
+                    const ecartRpe = x.rpeCible !== undefined ? x.rpe - x.rpeCible : 0
                     return (
                       <div key={x.id} className="recap-serie">
-                        <span>
-                          <span className="faible">S{k + 1}</span> {serieTexte(exo, x)}
-                        </span>
-                        {e ? (
-                          <span className={'avant ' + e.sens} style={{ display: 'inline', marginTop: 0 }}>
-                            {e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓'} {e.texte}
+                        <div className="ligne entre">
+                          <span>
+                            <span className="faible">S{k + 1}</span> {serieTexte(exo, x)}
+                            {x.douleur ? ' ⚠️' : ''}
                           </span>
-                        ) : (
-                          <span className="faible">{avant.length ? '' : '1re fois'}</span>
-                        )}
+                          {e ? (
+                            <span className={'avant ' + e.sens} style={{ display: 'inline', marginTop: 0 }}>
+                              {e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓'} {e.texte}
+                            </span>
+                          ) : (
+                            <span className="faible">{avant.length ? '' : '1re fois'}</span>
+                          )}
+                        </div>
+                        <div className="faible petit-info">
+                          {x.rpeCible !== undefined && (
+                            <span style={ecartRpe > 0.5 ? { color: 'var(--alerte)' } : undefined}>
+                              RPE visé {kg(x.rpeCible)}
+                              {ecartRpe ? ` (${ecartRpe > 0 ? '+' : '−'}${kg(Math.abs(ecartRpe))})` : ' ✓'}
+                            </span>
+                          )}
+                          {k > 0 && <span>⏱ {chrono((x.heure - series[k - 1].heure) / 1000)} depuis S{k}</span>}
+                          {avant[k] && <span>avant : {serieTexte(exo, avant[k])}</span>}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
+                <div className="ligne wrap" style={{ gap: 6 }}>
+                  {plan.chauffes.length > 0 && (
+                    <span className="pastille">
+                      Échauffement {ch}/{plan.chauffes.length}
+                    </span>
+                  )}
+                  {volumeExo > 0 && <span className="pastille">{kg(Math.round(volumeExo))} kg soulevés</span>}
+                  {meilleur > 0 && (
+                    <span className={'pastille' + (record && meilleur > record ? ' ok' : '')}>
+                      1RM estimé {kg(Math.round(meilleur * 2) / 2)} kg{record && meilleur > record ? ' · record 🏆' : ''}
+                    </span>
+                  )}
+                </div>
+                {seance.notes[exo.id] && <div className="faible">📝 {seance.notes[exo.id]}</div>}
                 <button className="prochaine" onClick={() => setAjuste(exo.id)}>
                   <span>
                     <span className="label">Prochaine fois</span>
@@ -618,29 +673,6 @@ function FinSeance({
         {echelle(energie, setEnergie, 'Énergie (1 = vidé, 5 = au top)')}
       </div>
 
-      {adaptee && modele && (
-        <div className="carte pile">
-          <div>
-            <h3>Tu as modifié la séance aujourd’hui</h3>
-            {modifs.length > 0 && (
-              <ul className="petit muted" style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-                {modifs.map((m) => (
-                  <li key={m}>{m}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="petit">Que faire de ces changements pour les prochaines « {modele.nom} » ?</div>
-          <button className={'choix' + (!garder ? ' actif' : '')} onClick={() => setGarder(false)}>
-            <strong>Seulement aujourd’hui</strong>
-            <span className="faible">La séance « {modele.nom} » reste comme avant.</span>
-          </button>
-          <button className={'choix' + (garder ? ' actif' : '')} onClick={() => setGarder(true)}>
-            <strong>Garder pour les prochaines fois</strong>
-            <span className="faible">La séance « {modele.nom} » est mise à jour avec ces changements.</span>
-          </button>
-        </div>
-      )}
       {libre && (
         <div className="carte pile">
           <Interrupteur
