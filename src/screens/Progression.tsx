@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { nomMuscle } from '../components/ChoixExo'
 import { MODES } from '../components/FormExo'
-import { chargeTexte, dateCourte, e1rm, kg, serieTexte } from '../lib/calc'
+import { chargeTexte, dateCourte, duree, e1rm, kg, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, Seance } from '../types'
 
 /** Fiche d'un exercice : photo, réglages, progression et historique. */
@@ -133,6 +133,7 @@ export function Detail({
           <div key={s.id} style={{ marginBottom: 10 }}>
             <div className="faible">
               {dateCourte(s.date)} · {s.nom}
+              {tempsParExo(s)[exo.id] > 0 && ` · ⏱ ${duree(tempsParExo(s)[exo.id])}`}
             </div>
             <div className="petit">
               {s.series

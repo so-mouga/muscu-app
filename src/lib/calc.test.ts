@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance } from '../types'
-import { e1rm, lireDuree, reposApres, volumeParMuscle } from './calc'
+import { e1rm, lireDuree, reposApres, volumeParMuscle, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -84,5 +84,19 @@ describe('repos', () => {
     expect(lireDuree('3')).toBe(180)
     expect(lireDuree('90')).toBe(90)
     expect(lireDuree('abc')).toBeNull()
+  })
+})
+
+describe('temps par exercice', () => {
+  const serie = (exoId: string, min: number) => ({ id: exoId + min, exoId, type: 'normale' as const, charge: 50, reps: 10, rpe: 8, heure: min * 60000 })
+
+  it('compte chaque intervalle pour l’exercice de la série validée', () => {
+    const t = tempsParExo({ debut: 0, series: [serie('a', 4), serie('a', 7), serie('b', 12), serie('b', 15)] })
+    expect(t).toEqual({ a: 7 * 60000, b: 8 * 60000 })
+  })
+
+  it('exercices entrecoupés : les intervalles s’additionnent', () => {
+    const t = tempsParExo({ debut: 0, series: [serie('b', 9), serie('a', 3), serie('a', 6)] })
+    expect(t).toEqual({ a: 6 * 60000, b: 3 * 60000 })
   })
 })

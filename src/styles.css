@@ -893,3 +893,38 @@ html[data-sens='arriere']::view-transition-new(root) {
   background: linear-gradient(transparent, var(--bg) 30%);
   z-index: 4;
 }
+
+/* Séries de l'exercice : faites, en cours (saisie collée dessous), à venir */
+.ok-texte {
+  color: var(--ok);
+}
+.serie-prevue {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.serie-prevue.a-venir {
+  opacity: 0.5;
+}
+.serie-prevue.en-cours {
+  color: var(--accent);
+  font-weight: 700;
+  background: transparent;
+  padding: 2px 0 8px;
+}
+.serie-bloc {
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  margin-bottom: 6px;
+  scroll-margin: 140px;
+}
+.serie-bloc > .serie-faite.edition {
+  outline: none;
+  background: transparent;
+  padding: 0 0 8px;
+}
+.minuteur .ensuite.reprendre {
+  padding: 14px 14px;
+  font-size: 16px;
+}

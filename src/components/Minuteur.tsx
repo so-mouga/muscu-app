@@ -6,6 +6,8 @@ export interface EtatMinuteur {
   /** Horodatage de fin : le temps restant ne dépend jamais d'un décompte en mémoire. */
   fin: number
   duree: number
+  /** Début du repos (la fin bouge avec −15/+15, pas le début). */
+  debut?: number
   /** Séance à laquelle appartient ce repos : un autre séance ne le reprend jamais. */
   seanceId?: string
 }
@@ -59,11 +61,11 @@ export default function Minuteur({ etat, onChange, ensuite, onAller }: Props) {
         </button>
       </div>
       {ensuite && (
-        <button className={'ensuite' + (onAller ? ' cliquable' : '')} onClick={onAller} disabled={!onAller}>
+        <button className={'ensuite' + (onAller ? ' cliquable' : '') + (fini && onAller ? ' reprendre' : '')} onClick={onAller} disabled={!onAller}>
           <span>
-            <span className="label">Ensuite</span> {ensuite}
+            <span className="label">{fini ? 'À toi' : 'Ensuite'}</span> {ensuite}
           </span>
-          {onAller && <span className="aller">Y aller ›</span>}
+          {onAller && <span className="aller">{fini ? 'Reprendre ›' : 'Y aller ›'}</span>}
         </button>
       )}
     </div>

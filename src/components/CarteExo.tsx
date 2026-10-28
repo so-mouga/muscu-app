@@ -71,6 +71,36 @@ export default function CarteExo({
   const enEdition = faites.find((s) => s.id === editId)
   const index = enEdition ? faites.indexOf(enEdition) : faites.length
   const termine = !enEdition && faites.length >= total
+  // Série à saisir maintenant (aucune quand l'exercice est fini ou seulement consulté).
+  const enSaisie = termine || consultation ? -1 : faites.length
+
+  const cible = (n: number) => {
+    const j = Math.min(n, sugg.charges.length - 1)
+    const p = plan.series[Math.min(n, plan.series.length - 1)]
+    return `${chargeTexte(exo, sugg.charges[j])} × ${sugg.reps[j] ?? p.repsMin} · RPE ${kg(p.rpe)}`
+  }
+
+  // Saisie collée sous la série concernée : celle en cours, ou une série faite qu'on corrige.
+  const editeur = (
+    <Editeur
+      key={`${exo.id}-${index}-${editId ?? ''}`}
+      seance={seance}
+      plan={plan}
+      exo={exo}
+      sugg={sugg}
+      index={index}
+      total={total}
+      faites={faites}
+      edition={enEdition}
+      reposRestant={reposRestant}
+      verrou={verrou}
+      onFini={(s) => {
+        if (enEdition) setEditId(null)
+        else onValide(s, reposApres(plan, index, total))
+      }}
+      onAnnulerEdition={() => setEditId(null)}
+    />
+  )
 
   const ajuster = (delta: number) =>
     majSeance(seance.id, (s) => {
@@ -146,27 +176,51 @@ export default function CarteExo({
         </div>
       )}
 
-      {faites.length > 0 && (
-        <div>
-          {faites.map((s, i) => (
-            <button
-              key={s.id}
-              className={'serie-faite' + (s.id === editId ? ' edition' : '')}
-              onClick={() => setEditId(s.id === editId ? null : s.id)}
-            >
+      <div>
+        {Array.from({ length: total }, (_, n) => {
+          const s = faites[n]
+          if (s) {
+            const ligne = (
+              <button key={s.id} className={'serie-faite' + (s.id === editId ? ' edition' : '')} onClick={() => setEditId(s.id === editId ? null : s.id)}>
+                <span>
+                  <span className="ok-texte">✓</span> <span className="faible">S{n + 1}</span> {serieTexte(exo, s)}
+                </span>
+                <span className="faible">
+                  {s.type === 'serie_longue' ? '★' : s.type !== 'normale' ? TYPES.find((t) => t[0] === s.type)?.[1] : ''}
+                  {s.douleur ? ' ⚠️' : ''} ✎
+                </span>
+              </button>
+            )
+            return s.id === editId ? (
+              <div key={s.id} className="serie-bloc">
+                {ligne}
+                {editeur}
+              </div>
+            ) : (
+              ligne
+            )
+          }
+          const ligne = (
+            <div key={n} className={'serie-prevue ' + (n === enSaisie ? 'en-cours' : 'a-venir')}>
               <span>
-                <span className="faible">S{i + 1}</span> {serieTexte(exo, s)}
+                {n === enSaisie ? '▶' : '○'} <span className="faible">S{n + 1}</span> {cible(n)}
+                {plan.finisseur && n === total - 1 ? ' ★' : ''}
               </span>
-              <span className="faible">
-                {s.type === 'serie_longue' ? '★' : s.type !== 'normale' ? TYPES.find((t) => t[0] === s.type)?.[1] : ''}
-                {s.douleur ? ' ⚠️' : ''} ✎
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+              <span className="faible">repos {chrono(reposApres(plan, n, total))}</span>
+            </div>
+          )
+          return n === enSaisie && !enEdition ? (
+            <div key={n} className="serie-bloc">
+              {ligne}
+              {editeur}
+            </div>
+          ) : (
+            ligne
+          )
+        })}
+      </div>
 
-      {termine ? (
+      {termine && (
         <div className="pile">
           <div className="ligne entre">
             <span className="pastille ok">✓ Exercice terminé</span>
@@ -178,27 +232,14 @@ export default function CarteExo({
             {enCoursNom ? `Continuer : ${enCoursNom} →` : 'Terminer la séance'}
           </button>
         </div>
-      ) : consultation && !enEdition ? (
+      )}
+      {!termine && consultation && !enEdition && (
         <div className="consultation pile">
           <div className="petit">
             👀 <strong>Consultation.</strong>{' '}
             <span className="muted">
               L’exercice en cours est <strong>{enCoursNom}</strong>.
             </span>
-          </div>
-          <div>
-            {Array.from({ length: total - faites.length }, (_, k) => {
-              const n = faites.length + k
-              const j = Math.min(n, sugg.charges.length - 1)
-              const p = plan.series[Math.min(n, plan.series.length - 1)]
-              return (
-                <div key={n} className="serie-prevue">
-                  <span className="faible">S{n + 1}</span> {chargeTexte(exo, sugg.charges[j])} × {sugg.reps[j] ?? p.repsMin} · RPE {kg(p.rpe)}
-                  {plan.finisseur && n === total - 1 ? ' ★' : ''}
-                  <span className="faible"> · repos {chrono(reposApres(plan, n, total))}</span>
-                </div>
-              )
-            })}
           </div>
           <button className="btn primaire grand" onClick={onAllerEnCours}>
             ↩ Revenir à {enCoursNom}
@@ -207,25 +248,6 @@ export default function CarteExo({
             Faire cet exercice maintenant
           </button>
         </div>
-      ) : (
-        <Editeur
-          key={`${exo.id}-${index}-${editId ?? ''}`}
-          seance={seance}
-          plan={plan}
-          exo={exo}
-          sugg={sugg}
-          index={index}
-          total={total}
-          faites={faites}
-          edition={enEdition}
-          reposRestant={reposRestant}
-          verrou={verrou}
-          onFini={(s) => {
-            if (enEdition) setEditId(null)
-            else onValide(s, reposApres(plan, index, total))
-          }}
-          onAnnulerEdition={() => setEditId(null)}
-        />
       )}
 
       {!termine && !enEdition && (
@@ -389,11 +411,9 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, repos
   return (
     <div className="pile">
       <div className="ligne entre">
-        <h3>
-          {edition ? `Modifier la série ${index + 1}` : `Série ${index + 1}/${total}`}
-        </h3>
+        {edition && <h3>Modifier la série {index + 1}</h3>}
         <span className="faible">
-          cible {p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`} reps · RPE {kg(p.rpe)} · repos {chrono(reposApres(plan, index, total))}
+          fourchette {p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`} reps · RPE {kg(p.rpe)}
         </span>
       </div>
 

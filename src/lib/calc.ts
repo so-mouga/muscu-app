@@ -69,6 +69,7 @@ export function volumeParMuscle(seances: Seance[], exercices: Record<string, Exe
 
 export function duree(ms: number): string {
   const min = Math.round(ms / 60000)
+  if (min < 1) return '< 1 min'
   return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`
 }
 
@@ -103,12 +104,32 @@ export function reposTexte(plan: ExoPlan): string {
 }
 
 /** Durée estimée : ~1 min par série (installation comprise), les repos prévus, ~1 min par chauffe. */
+/** Temps prévu (s) pour l'exercice `i` : chauffes, séries, repos entre les séries et repos qui le précède. */
+export function dureePrevueExo(plans: ExoPlan[], i: number): number {
+  const p = plans[i]
+  const n = p.series.length
+  let s = n * 60 + p.chauffes.length * 60
+  for (let k = 0; k < n - 1; k++) s += reposApres(p, k, n)
+  const prec = plans[i - 1]
+  if (prec) s += reposApres(prec, prec.series.length - 1, prec.series.length)
+  return s
+}
+
 export function dureeEstimee(m: SeanceModele): number {
-  let s = 0
-  m.exercices.forEach((p, i) => {
-    const n = p.series.length
-    s += n * 60 + p.chauffes.length * 60
-    for (let k = 0; k < n; k++) if (!(i === m.exercices.length - 1 && k === n - 1)) s += reposApres(p, k, n)
-  })
+  const s = m.exercices.reduce((a, _, i) => a + dureePrevueExo(m.exercices, i), 0)
   return Math.round(s / 300) * 5
+}
+
+/**
+ * Temps passé par exercice (ms) : chaque intervalle entre deux validations compte pour
+ * l'exercice de la série validée (mise en place, chauffe et repos qui la précèdent compris).
+ */
+export function tempsParExo(seance: Pick<Seance, 'debut' | 'series'>): Record<string, number> {
+  const t: Record<string, number> = {}
+  let prec = seance.debut
+  for (const s of [...seance.series].sort((a, b) => a.heure - b.heure)) {
+    t[s.exoId] = (t[s.exoId] ?? 0) + Math.max(0, s.heure - prec)
+    prec = Math.max(prec, s.heure)
+  }
+  return t
 }

@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import CarteExo, { majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
@@ -8,7 +8,7 @@ import Interrupteur from '../components/Interrupteur'
 import Minuteur, { type EtatMinuteur } from '../components/Minuteur'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
-import { chargeTexte, duree, e1rm, estDure, kg } from '../lib/calc'
+import { chargeTexte, duree, dureePrevueExo, e1rm, estDure, kg, tempsParExo } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { suggere, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
@@ -71,6 +71,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [machinePrise, setMachinePrise] = useState(false)
   const [verrou, setVerrou] = useState(false)
   const maintenant = useHorloge(1000)
+  const derniereTouche = useRef(0)
+  const repriseAuto = useRef<((finRepos: number) => void) | null>(null)
+  const reposTraite = useRef<number | null>(null)
 
   const plans = seance.exercices
   const idx = Math.max(0, Math.min(idxBrut, plans.length - 1))
@@ -100,6 +103,26 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return () => ecranAllume(false)
   }, [])
 
+  // Dernier geste hors minuteur : sert à savoir si l'utilisateur regarde autre chose pendant le repos.
+  useEffect(() => {
+    const noter = (e: Event) => {
+      if (!(e.target instanceof Element && e.target.closest('.minuteur'))) derniereTouche.current = Date.now()
+    }
+    window.addEventListener('pointerdown', noter, true)
+    window.addEventListener('keydown', noter, true)
+    return () => {
+      window.removeEventListener('pointerdown', noter, true)
+      window.removeEventListener('keydown', noter, true)
+    }
+  }, [])
+
+  const finRepos = minuteur && minuteur.fin <= maintenant ? minuteur.fin : null
+  useEffect(() => {
+    if (finRepos === null || reposTraite.current === finRepos) return
+    reposTraite.current = finRepos
+    repriseAuto.current?.(finRepos)
+  }, [finRepos])
+
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 4000)
@@ -121,7 +144,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     debloquerSon()
     setVerrou(true)
     setTimeout(() => setVerrou(false), 1500)
-    setMinuteur({ fin: Date.now() + repos * 1000, duree: repos })
+    setMinuteur({ debut: Date.now(), fin: Date.now() + repos * 1000, duree: repos })
     // Records (seulement s'il existe un historique pour comparer)
     const exo = exoAvecReglages(catalogue.exo(s.exoId), reglages)
     const avant = historiqueDe(terminees, s.exoId).flat()
@@ -220,6 +243,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   })()
   const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance 💪'
   const reposRestant = minuteur ? Math.max(0, Math.ceil((minuteur.fin - maintenant) / 1000)) : 0
+
+  // Fin du repos : sans geste pendant le repos (téléphone posé), retour sur la série à faire.
+  // Si l'utilisateur regardait autre chose, on ne le déplace pas : le minuteur propose « Reprendre ».
+  repriseAuto.current = (finR) => {
+    if (!minuteur || fin || enCours < 0 || Date.now() - finR > 60000) return
+    const debut = minuteur.debut ?? finR - minuteur.duree * 1000
+    if (derniereTouche.current > debut + 500) return
+    if (enCours !== idx) setIdx(enCours)
+    setTimeout(() => document.querySelector('.serie-bloc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
+  }
 
   if (fin) return <FinSeance seance={seance} terminees={terminees} reglages={reglages} catalogue={catalogue} onRetour={() => ouvrirFin(false)} />
 
@@ -429,6 +462,10 @@ function FinSeance({
   const chauffes = Object.values(seance.chauffes).filter(Boolean).length
   const adaptee = !!modele && JSON.stringify(seance.exercices) !== JSON.stringify(modele.exercices)
   const libre = !modele && seance.exercices.length > 0
+  const passe = tempsParExo(seance)
+  const temps = seance.exercices
+    .map((p, i) => ({ id: p.exoId, nom: catalogue.exo(p.exoId).nom, ms: passe[p.exoId] ?? 0, prevu: dureePrevueExo(seance.exercices, i) }))
+    .filter((t) => t.ms > 0)
 
   // « Prévoir la prochaine séance » : proposition automatique calculée avec cette séance incluse,
   // remplaçable par un objectif fixé à la main.
@@ -507,6 +544,28 @@ function FinSeance({
           </tbody>
         </table>
       </div>
+
+      {temps.length > 0 && (
+        <div className="carte">
+          <h3>Temps par exercice</h3>
+          <div className="faible" style={{ margin: '4px 0 8px' }}>
+            Depuis la fin de l’exercice précédent jusqu’à ta dernière série (mise en place, chauffe et repos compris).
+          </div>
+          <table>
+            <tbody>
+              {temps.map((t) => (
+                <tr key={t.id}>
+                  <td>{t.nom}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <strong>{duree(t.ms)}</strong>
+                    <span className="faible"> · prévu {duree(t.prevu * 1000)}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <div className="carte pile">
         {echelle(ressenti, setRessenti, 'Ressenti global (1 = dur, 5 = excellent)')}
