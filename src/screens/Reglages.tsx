@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { EXERCICES } from '../data/exercices'
+import type { Catalogue } from '../catalogue'
 import { db, exporterJSON, importerJSON, setReglage } from '../db'
 
 function telecharger(nom: string, contenu: string, type: string) {
@@ -25,7 +25,7 @@ async function partagerOuTelecharger(nom: string, contenu: string, type: string)
   telecharger(nom, contenu, type)
 }
 
-export default function Reglages() {
+export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const [persistant, setPersistant] = useState<boolean | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -53,7 +53,7 @@ export default function Reglages() {
       for (const x of s.series) {
         compte[x.exoId] = (compte[x.exoId] ?? 0) + 1
         lignes.push(
-          [s.date, s.nom, EXERCICES[x.exoId]?.nom ?? x.exoId, compte[x.exoId], x.type, String(x.charge).replace('.', ','), x.reps, String(x.rpe).replace('.', ','), x.demiReps ?? '', x.zone ?? ''].join(';')
+          [s.date, s.nom, catalogue.exo(x.exoId).nom, compte[x.exoId], x.type, String(x.charge).replace('.', ','), x.reps, String(x.rpe).replace('.', ','), x.demiReps ?? '', x.zone ?? ''].join(';')
         )
       }
     }
@@ -117,7 +117,7 @@ export default function Reglages() {
         <div className="faible">
           Les suggestions de charge sont des propositions : c’est toi qui décides. Les pas de charge se règlent par exercice dans Progression.
         </div>
-        <div className="faible">Version 0.1</div>
+        <div className="faible">Version 0.2</div>
       </div>
     </div>
   )

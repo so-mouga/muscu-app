@@ -14,6 +14,7 @@ describe('volume hebdomadaire', () => {
       chauffes: {},
       notes: {},
       ajustSeries: {},
+      exercices: m.exercices,
       series: m.exercices.flatMap((p) =>
         p.series.map((s, i) => ({
           id: `${p.exoId}${i}`,

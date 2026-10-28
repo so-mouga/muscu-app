@@ -26,13 +26,15 @@ interface Props {
   sugg: Suggestion
   derniere: Serie[] | undefined
   onValide: (s: Serie, repos: number) => void
+  onRemplacer: () => void
+  onRetirer: () => void
 }
 
 export function majSeance(id: string, fn: (s: Seance) => void) {
   return db.seances.where('id').equals(id).modify(fn)
 }
 
-export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide }: Props) {
+export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onRemplacer, onRetirer }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
   const [editId, setEditId] = useState<string | null>(null)
@@ -160,6 +162,17 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide }
               − retirer la série {index + 1}
             </button>
           )}
+        </div>
+      )}
+
+      {faites.length === 0 && (
+        <div className="ligne wrap">
+          <button className="btn plein" onClick={onRemplacer}>
+            🔁 Machine prise / remplacer
+          </button>
+          <button className="btn discret petit plein" onClick={onRetirer}>
+            Retirer cet exercice pour aujourd’hui
+          </button>
         </div>
       )}
 

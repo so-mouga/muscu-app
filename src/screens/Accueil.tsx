@@ -1,21 +1,25 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import type { Catalogue } from '../catalogue'
 import { MUSCLES } from '../data/exercices'
-import { MODELES, PROGRAMME } from '../data/programme'
 import { db, dernierPoids, uid } from '../db'
 import { dateISO, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
 import { debloquerSon } from '../lib/appareil'
+import { useRetour } from '../lib/nav'
 import type { SeanceModele } from '../types'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 
-async function demarrer(modele: SeanceModele) {
+/** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
+async function demarrer(modele?: SeanceModele) {
   debloquerSon()
   await db.seances.add({
     id: uid(),
     date: dateISO(),
-    modeleId: modele.id,
-    nom: modele.nom,
+    modeleId: modele?.id,
+    nom: modele?.nom ?? 'Séance libre',
+    sousTitre: modele?.sousTitre ?? 'exercices au choix',
+    exercices: structuredClone(modele?.exercices ?? []),
     debut: Date.now(),
     enCours: true,
     poidsCorps: await dernierPoids(),
@@ -26,8 +30,9 @@ async function demarrer(modele: SeanceModele) {
   })
 }
 
-export default function Accueil() {
+export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
   const [choix, setChoix] = useState(false)
+  useRetour(choix, () => setChoix(false))
   const aujourdhui = dateISO()
   const debutSemaine = lundi()
   const semaine = useLiveQuery(
@@ -39,16 +44,16 @@ export default function Accueil() {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
 
-  const planning = PROGRAMME.filter((m) => m.jour).sort((a, b) => a.jour! - b.jour!)
+  const planning = catalogue.modeles.filter((m) => m.jour).sort((a, b) => a.jour! - b.jour!)
   const faite = (m: SeanceModele) =>
-    semaine.some((s) => s.modeleId === m.id || MODELES[s.modeleId ?? '']?.varianteDe === m.id)
+    semaine.some((s) => s.modeleId === m.id || catalogue.modele(s.modeleId)?.varianteDe === m.id)
   const jour = jourSemaine()
   const duJour = planning.find((m) => m.jour === jour)
   const prochaine = planning.find((m) => !faite(m) && m.jour! >= jour) ?? planning.find((m) => !faite(m))
-  const variante = duJour && PROGRAMME.find((m) => m.varianteDe === duJour.id)
+  const variante = duJour && catalogue.modeles.find((m) => m.varianteDe === duJour.id)
   const proposee = duJour && !faite(duJour) ? duJour : prochaine
 
-  const volume = volumeParMuscle(semaine)
+  const volume = volumeParMuscle(semaine, catalogue.exercices)
 
   const exportVieux =
     nbSeances > 0 && (!dernierExport || Date.now() - (dernierExport.valeur as number) > 7 * 86400000)
@@ -140,7 +145,7 @@ export default function Accueil() {
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2 style={{ marginBottom: 12 }}>Choisir une séance</h2>
-            {PROGRAMME.map((m) => (
+            {catalogue.modeles.map((m) => (
               <button key={m.id} className="liste-btn" onClick={() => demarrer(m)}>
                 <span>
                   <strong>{m.nom}</strong> <span className="muted">— {m.sousTitre}</span>
@@ -148,6 +153,12 @@ export default function Accueil() {
                 <span className="faible">{faite(m) ? '✓' : m.jour ? JOURS[m.jour] : ''}</span>
               </button>
             ))}
+            <button className="liste-btn" onClick={() => demarrer()}>
+              <span>
+                <strong>Séance libre</strong> <span className="muted">— exercices ajoutés au fur et à mesure</span>
+              </span>
+              <span className="faible">+</span>
+            </button>
             <button className="btn discret plein" onClick={() => setChoix(false)}>
               Annuler
             </button>

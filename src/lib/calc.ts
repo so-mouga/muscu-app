@@ -55,11 +55,11 @@ export function lundi(d = new Date()): string {
   return dateISO(x)
 }
 
-export function volumeParMuscle(seances: Seance[]): Record<Muscle, number> {
+export function volumeParMuscle(seances: Seance[], exercices: Record<string, Exercice> = EXERCICES): Record<Muscle, number> {
   const v = Object.fromEntries(MUSCLES.map((m) => [m.id, 0])) as Record<Muscle, number>
   for (const seance of seances)
     for (const s of seance.series) {
-      const exo = EXERCICES[s.exoId]
+      const exo = exercices[s.exoId]
       if (!exo || !estDure(s)) continue
       v[exo.muscle] += 1
       for (const sec of exo.secondaires ?? []) v[sec.muscle] += sec.coef

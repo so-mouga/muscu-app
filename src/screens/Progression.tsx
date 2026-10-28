@@ -1,16 +1,19 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { EXERCICES } from '../data/exercices'
+import type { Catalogue } from '../catalogue'
 import { db, exoAvecReglages, setReglage } from '../db'
 import { chargeTexte, dateCourte, e1rm, kg, serieTexte } from '../lib/calc'
+import { transition, useRetour } from '../lib/nav'
 import type { Exercice, Seance } from '../types'
 
-export default function Progression() {
+export default function Progression({ catalogue }: { catalogue: Catalogue }) {
   const seances = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [], [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
-  const [choisi, setChoisi] = useState<string | null>(null)
+  const [choisi, setChoisiEtat] = useState<string | null>(null)
+  const setChoisi = (id: string | null) => (transition(() => setChoisiEtat(id), id ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
+  useRetour(!!choisi, () => setChoisi(null))
 
-  if (choisi) return <Detail exo={exoAvecReglages(choisi, reglages)} seances={seances} onRetour={() => setChoisi(null)} />
+  if (choisi) return <Detail exo={exoAvecReglages(catalogue.exo(choisi), reglages)} seances={seances} onRetour={() => setChoisi(null)} />
 
   // Exercices pratiqués, du plus récent au plus ancien
   const vus: { id: string; date: string; n: number }[] = []
@@ -28,7 +31,7 @@ export default function Progression() {
       {vus.map((v) => (
         <button key={v.id} className="liste-btn" onClick={() => setChoisi(v.id)}>
           <span>
-            <strong>{EXERCICES[v.id]?.nom ?? v.id}</strong>
+            <strong>{catalogue.exo(v.id).nom}</strong>
             <div className="faible">
               {v.n} séance{v.n > 1 ? 's' : ''} · dernière {dateCourte(v.date)}
             </div>

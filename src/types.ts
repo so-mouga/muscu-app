@@ -25,6 +25,8 @@ export interface Exercice {
   chargeMax?: number
   suivreE1rm: boolean
   notes?: string
+  /** Créé par l'utilisateur (sinon : bibliothèque préchargée). */
+  perso?: boolean
 }
 
 export interface SeriePlan {
@@ -56,6 +58,8 @@ export interface SeanceModele {
   jour?: number
   varianteDe?: string
   exercices: ExoPlan[]
+  /** Séance préchargée masquée par l'utilisateur. */
+  supprime?: boolean
 }
 
 export type TypeSerie = 'normale' | 'echec' | 'serie_longue' | 'drop' | 'rest_pause'
@@ -85,6 +89,9 @@ export interface Seance {
   date: string
   modeleId?: string
   nom: string
+  sousTitre?: string
+  /** Plan du jour, copié du modèle au démarrage puis modifiable sans toucher au modèle. */
+  exercices: ExoPlan[]
   debut: number
   fin?: number
   enCours: boolean
