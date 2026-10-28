@@ -31,6 +31,24 @@ function range(cle: string, v: unknown) {
 
 type Choix = { mode: 'ajouter' } | { mode: 'remplacer'; i: number }
 
+/** Heure courante, rafraîchie à intervalle régulier. */
+function useHorloge(ms: number) {
+  const [t, setT] = useState(Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setT(Date.now()), ms)
+    return () => clearInterval(id)
+  }, [ms])
+  return t
+}
+
+function chronoSeance(ms: number) {
+  const t = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(t / 3600)
+  const m = String(Math.floor((t % 3600) / 60)).padStart(h ? 2 : 1, '0')
+  const sec = String(t % 60).padStart(2, '0')
+  return h ? `${h}:${m}:${sec}` : `${m}:${sec}`
+}
+
 export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; catalogue: Catalogue }) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [])
@@ -39,6 +57,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [toast, setToast] = useState<string | null>(null)
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
+  const [machinePrise, setMachinePrise] = useState(false)
+  const [verrou, setVerrou] = useState(false)
+  const maintenant = useHorloge(1000)
 
   const plans = seance.exercices
   const idx = Math.max(0, Math.min(idxBrut, plans.length - 1))
@@ -83,6 +104,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   const valider = (s: Serie, repos: number) => {
     debloquerSon()
+    setVerrou(true)
+    setTimeout(() => setVerrou(false), 1500)
     setMinuteur({ fin: Date.now() + repos * 1000, duree: repos })
     // Records (seulement s'il existe un historique pour comparer)
     const exo = exoAvecReglages(catalogue.exo(s.exoId), reglages)
@@ -102,11 +125,27 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const exo = cree ?? catalogue.exo(exoId)
     if (c?.mode === 'remplacer') {
       // Le substitut garde son propre historique ; sans historique, il est « à calibrer ».
-      await majSeance(seance.id, (s) => {
-        const ancien = s.exercices[c.i]
-        s.exercices[c.i] = { ...ancien, exoId, charge: null, chauffes: [], finisseur: ancien.finisseur && exo.type === 'isolation', note: undefined }
-      })
-      setToast(`🔁 ${catalogue.exo(plans[c.i].exoId).nom} → ${exo.nom}`)
+      const ancien = plans[c.i]
+      const faites = nbFaites(ancien.exoId)
+      const substitut = { ...ancien, exoId, charge: null, chauffes: [], finisseur: ancien.finisseur && exo.type === 'isolation', note: undefined }
+      if (faites === 0) {
+        await majSeance(seance.id, (s) => {
+          s.exercices[c.i] = substitut
+        })
+      } else {
+        // En cours de route : les séries faites restent sur l'original, les restantes passent au substitut.
+        const total = ancien.series.length + (seance.ajustSeries[ancien.exoId] ?? 0)
+        const restantes = Math.max(1, total - faites)
+        await majSeance(seance.id, (s) => {
+          s.ajustSeries[ancien.exoId] = faites - ancien.series.length
+          const series = ancien.series.slice(Math.min(faites, ancien.series.length - 1))
+          while (series.length < restantes) series.push({ ...series[series.length - 1] })
+          s.exercices.splice(c.i + 1, 0, { ...substitut, series: series.slice(0, restantes) })
+        })
+        transition(() => setIdxEtat(c.i + 1), 'avant')
+        range(`idx:${seance.id}`, c.i + 1)
+      }
+      setToast(`🔁 ${catalogue.exo(ancien.exoId).nom} → ${exo.nom}`)
     } else {
       await majSeance(seance.id, (s) => {
         s.exercices.push(planParDefaut(exo))
@@ -116,17 +155,35 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     }
   }
 
-  const retirer = async (i: number) => {
-    if (!confirm(`Retirer « ${exos[i].nom} » de la séance d’aujourd’hui ?`)) return
+  /** Machine prise : l'exercice passe en fin de séance, on enchaîne sur le suivant. */
+  const plusTard = async (i: number) => {
+    setMachinePrise(false)
     await majSeance(seance.id, (s) => {
-      s.exercices.splice(i, 1)
+      const [p] = s.exercices.splice(i, 1)
+      s.exercices.push(p)
     })
-    if (idx >= plans.length - 1) setIdxEtat(Math.max(0, plans.length - 2))
+    setToast(`⏭ ${exos[i].nom} déplacé en fin de séance`)
   }
+
+  /** Passer : sans série faite, l'exercice sort de la séance du jour ; sinon il s'arrête là. */
+  const passer = async (i: number) => {
+    setMachinePrise(false)
+    const p = plans[i]
+    const faites = nbFaites(p.exoId)
+    await majSeance(seance.id, (s) => {
+      if (faites === 0) s.exercices.splice(i, 1)
+      else s.ajustSeries[p.exoId] = faites - p.series.length
+    })
+    if (faites === 0 && idx >= plans.length - 1) setIdxEtat(Math.max(0, plans.length - 2))
+    else if (faites > 0 && i < plans.length - 1) setIdx(i + 1)
+    setToast(`${exos[i].nom} passé pour aujourd’hui`)
+  }
+
+  const nbFaites = (exoId: string) => seance.series.filter((s) => s.exoId === exoId).length
+  const reposRestant = minuteur ? Math.max(0, Math.ceil((minuteur.fin - maintenant) / 1000)) : 0
 
   if (fin) return <FinSeance seance={seance} terminees={terminees} reglages={reglages} catalogue={catalogue} onRetour={() => ouvrirFin(false)} />
 
-  const nbFaites = (exoId: string) => seance.series.filter((s) => s.exoId === exoId).length
   const plan = plans[idx]
 
   return (
@@ -134,10 +191,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       <div className="entete colle">
         <div className="ligne entre" style={{ marginBottom: 10 }}>
           <div>
-            <div className="faible">
-              {seance.nom} · {duree(Date.now() - seance.debut)}
-            </div>
-            <h3>{seance.sousTitre}</h3>
+            <div className="faible">{seance.nom}</div>
+            <h3>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>⏱ {chronoSeance(maintenant - seance.debut)}</span>
+              <span className="muted" style={{ fontWeight: 400 }}>
+                {' '}
+                · {seance.sousTitre}
+              </span>
+            </h3>
           </div>
           <button className="btn" onClick={() => ouvrirFin(true)}>
             Terminer
@@ -167,8 +228,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           sugg={suggestions[idx]}
           derniere={historiqueDe(terminees, plan.exoId)[0]}
           onValide={valider}
-          onRemplacer={() => setChoix({ mode: 'remplacer', i: idx })}
-          onRetirer={() => retirer(idx)}
+          onMachinePrise={() => setMachinePrise(true)}
+          reposRestant={reposRestant}
+          verrou={verrou}
+          suivant={plans[idx + 1] ? exos[idx + 1]?.nom : undefined}
+          onSuivant={() => (idx < plans.length - 1 ? setIdx(idx + 1) : ouvrirFin(true))}
         />
       ) : (
         <div className="carte pile">
@@ -197,6 +261,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )}
 
+      {machinePrise && plan && (
+        <MachinePrise
+          nom={exos[idx].nom}
+          dernier={idx === plans.length - 1}
+          entame={nbFaites(plan.exoId) > 0}
+          onPlusTard={() => plusTard(idx)}
+          onRemplacer={() => (setMachinePrise(false), setChoix({ mode: 'remplacer', i: idx }))}
+          onPasser={() => passer(idx)}
+          onFermer={() => setMachinePrise(false)}
+        />
+      )}
       {choix && (
         <ChoixExo
           catalogue={catalogue}
@@ -209,6 +284,56 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       )}
       {toast && <div className="toast">{toast}</div>}
       {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} />}
+    </div>
+  )
+}
+
+function MachinePrise({
+  nom,
+  dernier,
+  entame,
+  onPlusTard,
+  onRemplacer,
+  onPasser,
+  onFermer,
+}: {
+  nom: string
+  dernier: boolean
+  entame: boolean
+  onPlusTard: () => void
+  onRemplacer: () => void
+  onPasser: () => void
+  onFermer: () => void
+}) {
+  useRetour(true, onFermer)
+  const option = (titre: string, detail: string, fn: () => void, actif = true) =>
+    actif && (
+      <button className="liste-btn" onClick={fn}>
+        <span>
+          <strong>{titre}</strong>
+          <div className="faible">{detail}</div>
+        </span>
+        <span className="muted">›</span>
+      </button>
+    )
+  return (
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Machine prise</h2>
+        <div className="faible" style={{ margin: '4px 0 14px' }}>
+          {nom}
+        </div>
+        {option('⏭ Faire plus tard', 'Passe en fin de séance, tu y reviens quand la machine se libère.', onPlusTard, !dernier)}
+        {option(
+          '🔁 Remplacer',
+          entame ? 'Les séries restantes passent sur un autre exercice.' : 'Par un exercice du même muscle, avec son propre historique.',
+          onRemplacer
+        )}
+        {option('✕ Passer', entame ? 'Arrêter cet exercice ici pour aujourd’hui.' : 'Sauter cet exercice aujourd’hui (le modèle ne change pas).', onPasser)}
+        <button className="btn discret plein" onClick={onFermer}>
+          Annuler
+        </button>
+      </div>
     </div>
   )
 }

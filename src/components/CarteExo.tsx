@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { db, uid } from '../db'
-import { chargeTexte, kg, RIR, serieTexte } from '../lib/calc'
+import { chargeTexte, chrono, kg, RIR, serieTexte } from '../lib/calc'
 import { vibrer } from '../lib/appareil'
 import type { Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
@@ -26,15 +26,24 @@ interface Props {
   sugg: Suggestion
   derniere: Serie[] | undefined
   onValide: (s: Serie, repos: number) => void
-  onRemplacer: () => void
-  onRetirer: () => void
+  onMachinePrise: () => void
+  /** Secondes de repos restantes (0 = pas de repos en cours). */
+  reposRestant: number
+  /** Juste après une validation : évite d'enregistrer deux fois sur un double appui. */
+  verrou: boolean
+  /** Nom de l'exercice suivant (absent sur le dernier). */
+  suivant?: string
+  onSuivant: () => void
 }
+
+/** Heure de la dernière validation : bloque un double appui avant même le rafraîchissement de l'écran. */
+let derniereValidation = 0
 
 export function majSeance(id: string, fn: (s: Seance) => void) {
   return db.seances.where('id').equals(id).modify(fn)
 }
 
-export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onRemplacer, onRetirer }: Props) {
+export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onMachinePrise, reposRestant, verrou, suivant, onSuivant }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
   const [editId, setEditId] = useState<string | null>(null)
@@ -50,9 +59,18 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
   return (
     <div className="carte pile">
       <div>
-        <div className="ligne entre">
-          <h2>{exo.nom}</h2>
-          {plan.optionnel && <span className="pastille">optionnel</span>}
+        <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
+          <h2>
+            {exo.nom}
+            {plan.optionnel && (
+              <span className="pastille" style={{ marginLeft: 8, verticalAlign: 'middle' }}>
+                optionnel
+              </span>
+            )}
+          </h2>
+          <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
+            Machine prise
+          </button>
         </div>
         <div className="faible">
           {plan.series.length} × {plan.series[0].repsMin === plan.series[0].repsMax ? plan.series[0].repsMin : `${plan.series[0].repsMin}–${plan.series[0].repsMax}`} · RPE{' '}
@@ -127,10 +145,15 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
       )}
 
       {termine ? (
-        <div className="ligne">
-          <span className="pastille ok">✓ Exercice terminé</span>
-          <button className="btn discret petit" onClick={() => ajuster(+1)}>
-            + série
+        <div className="pile">
+          <div className="ligne entre">
+            <span className="pastille ok">✓ Exercice terminé</span>
+            <button className="btn discret petit" onClick={() => ajuster(+1)}>
+              + série
+            </button>
+          </div>
+          <button className="btn primaire grand" onClick={onSuivant}>
+            {suivant ? `Suivant : ${suivant} →` : 'Terminer la séance'}
           </button>
         </div>
       ) : (
@@ -144,6 +167,8 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
           total={total}
           faites={faites}
           edition={enEdition}
+          reposRestant={reposRestant}
+          verrou={verrou}
           onFini={(s) => {
             if (enEdition) setEditId(null)
             else onValide(s, plan.repos)
@@ -162,17 +187,6 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
               − retirer la série {index + 1}
             </button>
           )}
-        </div>
-      )}
-
-      {faites.length === 0 && (
-        <div className="ligne wrap">
-          <button className="btn plein" onClick={onRemplacer}>
-            🔁 Machine prise / remplacer
-          </button>
-          <button className="btn discret petit plein" onClick={onRetirer}>
-            Retirer cet exercice pour aujourd’hui
-          </button>
         </div>
       )}
 
@@ -200,11 +214,13 @@ interface EditeurProps {
   total: number
   faites: Serie[]
   edition?: Serie
+  reposRestant: number
+  verrou: boolean
   onFini: (s: Serie) => void
   onAnnulerEdition: () => void
 }
 
-function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, onFini, onAnnulerEdition }: EditeurProps) {
+function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1
@@ -230,6 +246,8 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, onFin
   const [zone, setZone] = useState<ZoneDemiReps>(edition?.zone ?? 'etiree')
   const [aideRpe, setAideRpe] = useState(false)
 
+  // Pendant le repos, la validation reste possible mais passe au second plan.
+  const enRepos = !edition && reposRestant > 0
   const pas = exo.pas
   const unite = exo.mode === 'elastique' ? 'niveau' : exo.mode === 'poids_corps' ? 'kg de lest (− = assistance)' : exo.mode === 'par_main' ? 'kg par main' : 'kg'
   const arr = (x: number) => Math.round(x * 100) / 100
@@ -250,6 +268,10 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, onFin
   })
 
   const enregistrer = async (s: Serie) => {
+    if (!edition) {
+      if (Date.now() - derniereValidation < 1500) return
+      derniereValidation = Date.now()
+    }
     vibrer(40)
     await majSeance(seance.id, (x) => {
       const k = x.series.findIndex((y) => y.id === s.id)
@@ -378,13 +400,20 @@ function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, onFin
         </div>
       )}
 
-      {finisseur ? (
-        <button className="btn finisseur grand" onClick={() => setPanneau(true)}>
-          ÉCHEC ATTEINT
+      {verrou && !edition ? (
+        <button className="btn grand" disabled style={{ opacity: 1, color: 'var(--ok)' }}>
+          ✓ SÉRIE ENREGISTRÉE
+        </button>
+      ) : finisseur ? (
+        <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => setPanneau(true)}>
+          {enRepos ? `Échec atteint · repos ${chrono(reposRestant)}` : 'ÉCHEC ATTEINT'}
         </button>
       ) : (
-        <button className="btn primaire grand" onClick={() => enregistrer(construire(type, type === 'serie_longue' ? { demiReps: demi, zone } : { demiReps: undefined, zone: undefined }))}>
-          {edition ? 'METTRE À JOUR' : 'VALIDER LA SÉRIE'}
+        <button
+          className={'btn grand' + (enRepos ? '' : ' primaire')}
+          onClick={() => enregistrer(construire(type, type === 'serie_longue' ? { demiReps: demi, zone } : { demiReps: undefined, zone: undefined }))}
+        >
+          {edition ? 'METTRE À JOUR' : enRepos ? `Valider maintenant · repos ${chrono(reposRestant)}` : 'VALIDER LA SÉRIE'}
         </button>
       )}
 
