@@ -1,5 +1,5 @@
 import { EXERCICES, MUSCLES } from '../data/exercices'
-import type { Exercice, ExoPlan, Muscle, Seance, Serie } from '../types'
+import type { Exercice, ExoPlan, Muscle, Seance, SeanceModele, Serie } from '../types'
 
 export const RIR: Record<number, string> = {
   10: 'échec',
@@ -100,4 +100,15 @@ export function reposTexte(plan: ExoPlan): string {
   const valeurs = [...new Set(plan.series.map((s) => s.repos ?? plan.repos))].sort((a, b) => a - b)
   const t = valeurs.length > 1 ? `${chrono(valeurs[0])}–${chrono(valeurs[valeurs.length - 1])}` : chrono(valeurs[0] ?? plan.repos)
   return plan.reposApres !== undefined ? `${t}, puis ${chrono(plan.reposApres)}` : t
+}
+
+/** Durée estimée : ~1 min par série (installation comprise), les repos prévus, ~1 min par chauffe. */
+export function dureeEstimee(m: SeanceModele): number {
+  let s = 0
+  m.exercices.forEach((p, i) => {
+    const n = p.series.length
+    s += n * 60 + p.chauffes.length * 60
+    for (let k = 0; k < n; k++) if (!(i === m.exercices.length - 1 && k === n - 1)) s += reposApres(p, k, n)
+  })
+  return Math.round(s / 300) * 5
 }

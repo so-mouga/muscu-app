@@ -6,6 +6,8 @@ export interface EtatMinuteur {
   /** Horodatage de fin : le temps restant ne dépend jamais d'un décompte en mémoire. */
   fin: number
   duree: number
+  /** Séance à laquelle appartient ce repos : un autre séance ne le reprend jamais. */
+  seanceId?: string
 }
 
 interface Props {

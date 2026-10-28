@@ -869,3 +869,27 @@ html[data-sens='arriere']::view-transition-new(root) {
   margin-right: 5px;
   vertical-align: -1px;
 }
+
+/* Exercice consulté (pas en cours) */
+.consultation {
+  border: 1px dashed var(--bord);
+  border-radius: 12px;
+  padding: 12px;
+}
+.serie-prevue {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bouton Démarrer collé en bas de l'aperçu, au-dessus des onglets */
+.barre-demarrer {
+  position: sticky;
+  bottom: calc(68px + env(safe-area-inset-bottom));
+  padding: 12px 0;
+  background: linear-gradient(transparent, var(--bg) 30%);
+  z-index: 4;
+}

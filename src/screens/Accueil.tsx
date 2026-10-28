@@ -5,7 +5,8 @@ import { MUSCLES } from '../data/exercices'
 import { db, dernierPoids, uid } from '../db'
 import { dateISO, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
 import { debloquerSon } from '../lib/appareil'
-import { useRetour } from '../lib/nav'
+import { transition, useRetour } from '../lib/nav'
+import Apercu from './Apercu'
 import type { SeanceModele } from '../types'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
@@ -33,7 +34,13 @@ async function demarrer(modele?: SeanceModele) {
 
 export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
   const [choix, setChoix] = useState(false)
+  const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
   useRetour(choix, () => setChoix(false))
+  const voir = (m: SeanceModele | null) => {
+    setChoix(false)
+    transition(() => setApercuEtat(m), m ? 'avant' : 'arriere')
+    window.scrollTo({ top: 0 })
+  }
   const aujourdhui = dateISO()
   const debutSemaine = lundi()
   const semaine = useLiveQuery(
@@ -60,6 +67,8 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
   const autres = catalogue.modeles.filter((m) => !duProgramme.includes(m))
 
   const volume = volumeParMuscle(semaine, catalogue.exercices)
+
+  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} onDemarrer={() => demarrer(apercu)} onFermer={() => voir(null)} />
 
   const exportVieux =
     nbSeances > 0 && (!dernierExport || Date.now() - (dernierExport.valeur as number) > 7 * 86400000)
@@ -92,9 +101,14 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
               </h2>
               <div className="faible">{exercices(proposee.modele.exercices.length)}</div>
             </div>
-            <button className="btn primaire grand" onClick={() => demarrer(proposee.modele)}>
-              Démarrer
-            </button>
+            <div className="ligne">
+              <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => demarrer(proposee.modele)}>
+                Démarrer
+              </button>
+              <button className="btn grand" style={{ flex: 1 }} onClick={() => voir(proposee.modele)}>
+                Voir
+              </button>
+            </div>
           </>
         ) : (
           <div>Semaine complète 💪</div>
@@ -104,7 +118,7 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
             Autre séance
           </button>
           {variante && proposee === duJour && (
-            <button className="btn" onClick={() => demarrer(variante)}>
+            <button className="btn" onClick={() => voir(variante)}>
               🏠 Pas de salle
             </button>
           )}
@@ -158,7 +172,7 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
             {duProgramme.map((m) => {
               const jours = actif.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => JOURS[e.jour!])
               return (
-                <button key={m.id} className="liste-btn" onClick={() => demarrer(m)}>
+                <button key={m.id} className="liste-btn" onClick={() => voir(m)}>
                   <span>
                     <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
                   </span>
@@ -172,7 +186,7 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
               </div>
             )}
             {autres.map((m) => (
-              <button key={m.id} className="liste-btn" onClick={() => demarrer(m)}>
+              <button key={m.id} className="liste-btn" onClick={() => voir(m)}>
                 <span>
                   <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
                 </span>

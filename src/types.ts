@@ -117,6 +117,8 @@ export interface Seance {
   chauffes: Record<string, boolean>
   series: Serie[]
   notes: Record<string, string>
+  /** Exercice choisi comme « en cours » (« Faire maintenant », « Plus tard ») ; sinon déduit des séries. */
+  courant?: string
   /** Séries ajoutées (+) ou retirées (−) par rapport au modèle, pour aujourd'hui. */
   ajustSeries: Record<string, number>
   ressenti?: number

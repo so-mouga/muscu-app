@@ -30,6 +30,12 @@ function range(cle: string, v: unknown) {
   }
 }
 
+/** Minuteur et exercice affiché d'une séance terminée ou abandonnée. */
+function oublierEtatLocal(seanceId: string) {
+  range('minuteur', null)
+  range(`idx:${seanceId}`, null)
+}
+
 type Choix = { mode: 'ajouter' } | { mode: 'remplacer'; i: number }
 
 /** Heure courante, rafraîchie à intervalle régulier. */
@@ -54,7 +60,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [])
   const [idxBrut, setIdxEtat] = useState<number>(() => stocke(`idx:${seance.id}`, 0))
-  const [minuteur, setMinuteurEtat] = useState<EtatMinuteur | null>(() => stocke('minuteur', null))
+  const [minuteur, setMinuteurEtat] = useState<EtatMinuteur | null>(() => {
+    const m = stocke<EtatMinuteur | null>('minuteur', null)
+    return m?.seanceId === seance.id ? m : null
+  })
   const [toast, setToast] = useState<string | null>(null)
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
@@ -71,7 +80,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     range(`idx:${seance.id}`, i)
     window.scrollTo({ top: 0 })
   }
-  const setMinuteur = (m: EtatMinuteur | null) => (setMinuteurEtat(m), range('minuteur', m))
+  const setMinuteur = (m: EtatMinuteur | null) => {
+    const avecSeance = m && { ...m, seanceId: seance.id }
+    setMinuteurEtat(avecSeance)
+    range('minuteur', avecSeance)
+  }
   const ouvrirFin = (v: boolean) => (transition(() => setFin(v), v ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
 
   // Retour Android : fin → séance, puis exercice précédent. Ne quitte jamais une séance en cours.
@@ -159,12 +172,23 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   /** Machine prise : l'exercice passe en fin de séance, on enchaîne sur le suivant. */
   const plusTard = async (i: number) => {
     setMachinePrise(false)
+    const etaitEnCours = i === enCours
     await majSeance(seance.id, (s) => {
       const [p] = s.exercices.splice(i, 1)
       s.exercices.push(p)
+      // L'exercice suivant prend la main, même si celui-ci avait déjà des séries.
+      if (etaitEnCours) s.courant = s.exercices[i]?.exoId
     })
     setToast(`⏭ ${exos[i].nom} déplacé en fin de séance`)
   }
+
+  /** Changer d'ordre volontairement : cet exercice devient l'exercice en cours. */
+  const faireMaintenant = async (i: number) => {
+    await majSeance(seance.id, (s) => {
+      s.courant = plans[i].exoId
+    })
+  }
+  const allerEnCours = () => (enCours >= 0 ? setIdx(enCours) : ouvrirFin(true))
 
   /** Passer : sans série faite, l'exercice sort de la séance du jour ; sinon il s'arrête là. */
   const passer = async (i: number) => {
@@ -182,8 +206,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   const nbFaites = (exoId: string) => seance.series.filter((s) => s.exoId === exoId).length
   const totalDe = (i: number) => Math.max(nbFaites(plans[i].exoId), plans[i].series.length + (seance.ajustSeries[plans[i].exoId] ?? 0))
-  // Exercice en cours : celui de la dernière série s'il en reste, sinon le prochain exercice pas fini.
+  // Exercice en cours : celui choisi explicitement s'il n'est pas fini ; sinon celui de la dernière
+  // série s'il en reste, sinon le prochain exercice pas fini.
   const enCours = (() => {
+    const choisi = seance.courant ? plans.findIndex((p) => p.exoId === seance.courant) : -1
+    if (choisi >= 0 && nbFaites(plans[choisi].exoId) < totalDe(choisi)) return choisi
     const derniere = seance.series.reduce<Serie | null>((a, s) => (!a || s.heure > a.heure ? s : a), null)
     const i0 = derniere ? plans.findIndex((p) => p.exoId === derniere.exoId) : -1
     if (i0 >= 0 && nbFaites(plans[i0].exoId) < totalDe(i0)) return i0
@@ -259,8 +286,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onMachinePrise={() => setMachinePrise(true)}
           reposRestant={reposRestant}
           verrou={verrou}
-          suivant={plans[idx + 1] ? exos[idx + 1]?.nom : undefined}
-          onSuivant={() => (idx < plans.length - 1 ? setIdx(idx + 1) : ouvrirFin(true))}
+          consultation={idx !== enCours}
+          enCoursNom={enCours >= 0 ? exos[enCours]?.nom : undefined}
+          onFaireMaintenant={() => faireMaintenant(idx)}
+          onAllerEnCours={allerEnCours}
         />
       ) : (
         <div className="carte pile">
@@ -415,17 +444,13 @@ function FinSeance({
       await db.modeles.put({ id: modeleId, nom: nomModele.trim() || 'Séance libre', sousTitre: '', exercices: structuredClone(seance.exercices) })
     }
     await db.seances.update(seance.id, { enCours: false, fin: Date.now(), ressenti, energie, modeleId })
-    try {
-      localStorage.removeItem('minuteur')
-      localStorage.removeItem(`idx:${seance.id}`)
-    } catch {
-      /* rien */
-    }
+    oublierEtatLocal(seance.id)
   }
 
   const abandonner = async () => {
     if (!confirm(seance.series.length ? 'Supprimer cette séance et ses séries ?' : 'Annuler la séance ?')) return
     await db.seances.delete(seance.id)
+    oublierEtatLocal(seance.id)
   }
 
   const echelle = (v: number, set: (n: number) => void, label: string) => (

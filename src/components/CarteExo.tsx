@@ -33,9 +33,12 @@ interface Props {
   reposRestant: number
   /** Juste après une validation : évite d'enregistrer deux fois sur un double appui. */
   verrou: boolean
-  /** Nom de l'exercice suivant (absent sur le dernier). */
-  suivant?: string
-  onSuivant: () => void
+  /** Cet exercice n'est pas l'exercice en cours : on le regarde, on n'y ajoute pas de série. */
+  consultation: boolean
+  /** Nom de l'exercice en cours (absent quand tout est fait). */
+  enCoursNom?: string
+  onFaireMaintenant: () => void
+  onAllerEnCours: () => void
 }
 
 /** Heure de la dernière validation : bloque un double appui avant même le rafraîchissement de l'écran. */
@@ -45,7 +48,21 @@ export function majSeance(id: string, fn: (s: Seance) => void) {
   return db.seances.where('id').equals(id).modify(fn)
 }
 
-export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onMachinePrise, reposRestant, verrou, suivant, onSuivant }: Props) {
+export default function CarteExo({
+  seance,
+  plan,
+  exo,
+  sugg,
+  derniere,
+  onValide,
+  onMachinePrise,
+  reposRestant,
+  verrou,
+  consultation,
+  enCoursNom,
+  onFaireMaintenant,
+  onAllerEnCours,
+}: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
   const [editId, setEditId] = useState<string | null>(null)
@@ -152,12 +169,41 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
         <div className="pile">
           <div className="ligne entre">
             <span className="pastille ok">✓ Exercice terminé</span>
-            <button className="btn discret petit" onClick={() => ajuster(+1)}>
+            <button className="btn discret petit" onClick={() => (ajuster(+1), onFaireMaintenant())}>
               + série
             </button>
           </div>
-          <button className="btn primaire grand" onClick={onSuivant}>
-            {suivant ? `Suivant : ${suivant} →` : 'Terminer la séance'}
+          <button className="btn primaire grand" onClick={onAllerEnCours}>
+            {enCoursNom ? `Continuer : ${enCoursNom} →` : 'Terminer la séance'}
+          </button>
+        </div>
+      ) : consultation && !enEdition ? (
+        <div className="consultation pile">
+          <div className="petit">
+            👀 <strong>Consultation.</strong>{' '}
+            <span className="muted">
+              L’exercice en cours est <strong>{enCoursNom}</strong>.
+            </span>
+          </div>
+          <div>
+            {Array.from({ length: total - faites.length }, (_, k) => {
+              const n = faites.length + k
+              const j = Math.min(n, sugg.charges.length - 1)
+              const p = plan.series[Math.min(n, plan.series.length - 1)]
+              return (
+                <div key={n} className="serie-prevue">
+                  <span className="faible">S{n + 1}</span> {chargeTexte(exo, sugg.charges[j])} × {sugg.reps[j] ?? p.repsMin} · RPE {kg(p.rpe)}
+                  {plan.finisseur && n === total - 1 ? ' ★' : ''}
+                  <span className="faible"> · repos {chrono(reposApres(plan, n, total))}</span>
+                </div>
+              )
+            })}
+          </div>
+          <button className="btn primaire grand" onClick={onAllerEnCours}>
+            ↩ Revenir à {enCoursNom}
+          </button>
+          <button className="btn plein" onClick={onFaireMaintenant}>
+            Faire cet exercice maintenant
           </button>
         </div>
       ) : (
