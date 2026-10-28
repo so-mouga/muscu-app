@@ -8,7 +8,16 @@ export interface EtatMinuteur {
   duree: number
 }
 
-export default function Minuteur({ etat, onChange }: { etat: EtatMinuteur; onChange: (e: EtatMinuteur | null) => void }) {
+interface Props {
+  etat: EtatMinuteur
+  onChange: (e: EtatMinuteur | null) => void
+  /** Ce qui vient après le repos, ex. « Butterfly · série 3/4 ». */
+  ensuite?: string
+  /** Présent quand l'écran affiché n'est pas l'exercice en cours : y revenir en un appui. */
+  onAller?: () => void
+}
+
+export default function Minuteur({ etat, onChange, ensuite, onAller }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
 
@@ -47,6 +56,14 @@ export default function Minuteur({ etat, onChange }: { etat: EtatMinuteur; onCha
           ✕
         </button>
       </div>
+      {ensuite && (
+        <button className={'ensuite' + (onAller ? ' cliquable' : '')} onClick={onAller} disabled={!onAller}>
+          <span>
+            <span className="label">Ensuite</span> {ensuite}
+          </span>
+          {onAller && <span className="aller">Y aller ›</span>}
+        </button>
+      )}
     </div>
   )
 }

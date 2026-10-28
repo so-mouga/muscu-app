@@ -180,6 +180,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   }
 
   const nbFaites = (exoId: string) => seance.series.filter((s) => s.exoId === exoId).length
+  const totalDe = (i: number) => Math.max(nbFaites(plans[i].exoId), plans[i].series.length + (seance.ajustSeries[plans[i].exoId] ?? 0))
+  // Exercice en cours : celui de la dernière série s'il en reste, sinon le prochain exercice pas fini.
+  const enCours = (() => {
+    const derniere = seance.series.reduce<Serie | null>((a, s) => (!a || s.heure > a.heure ? s : a), null)
+    const i0 = derniere ? plans.findIndex((p) => p.exoId === derniere.exoId) : -1
+    if (i0 >= 0 && nbFaites(plans[i0].exoId) < totalDe(i0)) return i0
+    const ordre = [...plans.keys()].slice(i0 + 1).concat([...plans.keys()].slice(0, i0 + 1))
+    return ordre.find((j) => nbFaites(plans[j].exoId) < totalDe(j)) ?? -1
+  })()
+  const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance 💪'
   const reposRestant = minuteur ? Math.max(0, Math.ceil((minuteur.fin - maintenant) / 1000)) : 0
 
   if (fin) return <FinSeance seance={seance} terminees={terminees} reglages={reglages} catalogue={catalogue} onRetour={() => ouvrirFin(false)} />
@@ -245,7 +255,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       )}
 
       {plan && (
-        <div className="ligne entre" style={{ marginBottom: 80 }}>
+        <div className="ligne entre" style={{ marginBottom: 150 }}>
           <button className="btn" disabled={idx === 0} onClick={() => setIdx(idx - 1)}>
             ← Précédent
           </button>
@@ -283,7 +293,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         />
       )}
       {toast && <div className="toast">{toast}</div>}
-      {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} />}
+      {minuteur && (
+        <Minuteur
+          etat={minuteur}
+          onChange={setMinuteur}
+          ensuite={ensuite}
+          onAller={enCours >= 0 && enCours !== idx ? () => setIdx(enCours) : enCours < 0 ? () => ouvrirFin(true) : undefined}
+        />
+      )}
     </div>
   )
 }

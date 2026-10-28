@@ -729,3 +729,42 @@ html[data-sens='arriere']::view-transition-new(root) {
   transform: translateX(18px);
   background: var(--accent-texte);
 }
+
+/* Minuteur : ce qui vient ensuite */
+.minuteur .ensuite {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  max-width: 528px;
+  margin: 8px auto 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 1;
+}
+.minuteur .ensuite .label {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.65;
+  margin-right: 4px;
+}
+.minuteur .ensuite.cliquable {
+  background: var(--accent);
+  color: var(--accent-texte);
+}
+.minuteur .ensuite .aller {
+  flex: 0 0 auto;
+  font-weight: 800;
+}
+.minuteur.fini .ensuite {
+  background: rgba(0, 0, 0, 0.15);
+}
+.minuteur.fini .ensuite.cliquable {
+  background: #04140c;
+  color: var(--ok);
+}

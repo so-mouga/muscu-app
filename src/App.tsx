@@ -11,7 +11,7 @@ import Seances from './screens/Seances'
 
 const ONGLETS = [
   ['accueil', '🏠', 'Accueil'],
-  ['seances', '📋', 'Séances'],
+  ['seances', '📋', 'Programmes'],
   ['progression', '📈', 'Progression'],
   ['reglages', '⚙️', 'Réglages'],
 ] as const

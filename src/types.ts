@@ -62,6 +62,14 @@ export interface SeanceModele {
   supprime?: boolean
 }
 
+/** Un programme regroupe des séances (de la bibliothèque) et leur planning. */
+export interface Programme {
+  id: string
+  nom: string
+  description?: string
+  seances: { modeleId: string; /** 1 = lundi … 7 = dimanche */ jour?: number }[]
+}
+
 export type TypeSerie = 'normale' | 'echec' | 'serie_longue' | 'drop' | 'rest_pause'
 export type ZoneDemiReps = 'etiree' | 'milieu' | 'contractee'
 
