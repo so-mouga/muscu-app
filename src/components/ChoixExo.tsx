@@ -42,7 +42,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
   const [creation, setCreation] = useState(false)
   const [zone, setZone] = useState<Zone | 'tous'>(() => MUSCLES.find((m) => m.id === muscle)?.zone ?? 'tous')
   const [choisis, setChoisis] = useState<string[]>([])
-  // « Tous » : groupes fermés (sauf celui du muscle remplacé) ; une zone choisie : ses groupes ouverts.
+  // Groupes fermés par défaut, sauf celui du muscle remplacé ou le seul groupe d'une zone.
   const [bascules, setBascules] = useState<Set<Muscle>>(() => new Set())
   const basculer = (m: Muscle) =>
     setBascules((o) => {
@@ -58,7 +58,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
     Object.values(catalogue.exercices).filter((e) => !exclure.includes(e.id)),
     recherche
   ).filter((g) => recherche.trim() || zone === 'tous' || zoneDe(g.muscle) === zone)
-  const ouvertParDefaut = (m: Muscle) => zone !== 'tous' || m === muscle
+  const ouvertParDefaut = (m: Muscle) => m === muscle || (zone !== 'tous' && groupes.length === 1)
   // Pendant une recherche, tout ce qui correspond est visible.
   const ouvert = (m: Muscle) => !!recherche.trim() || ouvertParDefaut(m) !== bascules.has(m)
   // Remplacement : le groupe du même muscle en tête.

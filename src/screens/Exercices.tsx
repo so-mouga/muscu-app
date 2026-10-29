@@ -23,6 +23,15 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
   const [choisi, setChoisiEtat] = useState<string | null>(null)
   const [formulaire, setFormulaire] = useState<{ exo?: Exercice } | null>(null)
   const [relier, setRelier] = useState(false)
+  /** Groupes de muscles dépliés (accordéon). */
+  const [ouverts, setOuverts] = useState<Set<string>>(() => new Set())
+  const basculer = (m: string) =>
+    setOuverts((o) => {
+      const n = new Set(o)
+      if (n.has(m)) n.delete(m)
+      else n.add(m)
+      return n
+    })
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState<Filtre>('tous')
 
@@ -119,7 +128,10 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
   const groupes =
     filtre === 'recents'
       ? [{ muscle: 'recents', nom: 'Faits récemment', exos: recents.filter((e) => parMuscle([e], recherche).length) }]
-      : parMuscle(tous, recherche).filter((g) => filtre === 'tous' || MUSCLES.find((m) => m.id === g.muscle)?.zone === filtre)
+      : parMuscle(tous, recherche).filter((g) => recherche.trim() || filtre === 'tous' || MUSCLES.find((m) => m.id === g.muscle)?.zone === filtre)
+
+  // Fermés par défaut ; ouverts pendant une recherche, pour « Récents » ou quand il n'y a qu'un groupe.
+  const ouvert = (m: string) => !!recherche.trim() || (m === 'recents' || groupes.length === 1) !== ouverts.has(m)
 
   const ligne = (e: Exercice) => {
     const h = historique.get(e.id)
@@ -166,13 +178,16 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
 
       {groupes.map((g) => (
         <div key={g.muscle}>
-          <div className="groupe-titre ligne" style={{ gap: 8 }}>
-            {g.muscle !== 'recents' && <IconeMuscle muscle={g.muscle as Muscle} taille={26} />}
-            <span>
-              {g.nom} <span style={{ fontWeight: 400 }}>· {g.exos.length}</span>
+          <button className="groupe-repli" onClick={() => basculer(g.muscle)} aria-expanded={ouvert(g.muscle)}>
+            <span className="ligne" style={{ gap: 8 }}>
+              {g.muscle !== 'recents' && <IconeMuscle muscle={g.muscle as Muscle} taille={26} />}
+              <span>
+                {g.nom} <span className="nb">({g.exos.length})</span>
+              </span>
             </span>
-          </div>
-          {g.exos.map(ligne)}
+            <span className="muted">{ouvert(g.muscle) ? '▾' : '▸'}</span>
+          </button>
+          {ouvert(g.muscle) && g.exos.map(ligne)}
         </div>
       ))}
       {groupes.every((g) => g.exos.length === 0) && <div className="carte muted" style={{ marginTop: 12 }}>Aucun exercice.</div>}
