@@ -156,3 +156,9 @@ describe('exercices en temps', () => {
     expect(e1rm(gainage, serie(0, 45))).toBeNull()
   })
 })
+
+describe('schéma du plan', () => {
+  const plan = (reps: [number, number][]) => ({ exoId: 'x', repos: 90, series: reps.map(([repsMin, repsMax]) => ({ repsMin, repsMax, rpe: 8 })), chauffes: [], finisseur: false, charge: null })
+  it('identiques : 3 × 8–12', () => expect(schemaPlan(EXERCICES.butterfly, plan([[8, 12], [8, 12], [8, 12]]))).toBe('3 × 8–12'))
+  it('différentes : série par série', () => expect(schemaPlan(EXERCICES.butterfly, plan([[12, 12], [10, 10], [8, 8]]))).toBe('12 / 10 / 8'))
+})

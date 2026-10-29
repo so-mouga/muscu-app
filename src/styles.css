@@ -2156,3 +2156,11 @@ button.pastille.cliquable {
 .corps-semaine strong {
   color: var(--texte);
 }
+.serie-plan {
+  padding: 6px 0 0;
+  border-top: 1px solid var(--bord);
+}
+.serie-plan {
+  padding: 6px 0 0;
+  border-top: 1px solid var(--bord);
+}

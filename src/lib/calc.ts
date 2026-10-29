@@ -29,8 +29,12 @@ export const qte = (exo: Exercice, n: number | string) => (enTemps(exo) ? `${n} 
 /** Fourchette visée : « 8–12 » ou « 30–45 s ». */
 export const fourchette = (exo: Exercice, min: number, max: number) => qte(exo, min === max ? min : `${min}–${max}`)
 
-/** « 3 × 8–12 » ou « 3 × 30–45 s ». */
-export const schemaPlan = (exo: Exercice, p: ExoPlan) => `${p.series.length} × ${fourchette(exo, p.series[0].repsMin, p.series[0].repsMax)}`
+/** « 3 × 8–12 », « 3 × 30–45 s », ou série par série quand elles diffèrent : « 12 / 10 / 8 ». */
+export function schemaPlan(exo: Exercice, p: ExoPlan): string {
+  const f = p.series.map((s) => (s.repsMin === s.repsMax ? `${s.repsMin}` : `${s.repsMin}–${s.repsMax}`))
+  if (f.every((x) => x === f[0])) return `${p.series.length} × ${fourchette(exo, p.series[0].repsMin, p.series[0].repsMax)}`
+  return qte(exo, f.join(' / '))
+}
 
 /** Charge et quantité : « 30 kg × 12 », « PDC +10 kg × 45 s », ou juste « 45 s » au poids du corps. */
 export const chargeQte = (exo: Exercice, charge: number | null | undefined, n: number | string) =>

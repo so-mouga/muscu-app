@@ -43,6 +43,25 @@ function MiniStepper({ valeur, min = 0, max = 99, pas = 1, onChange }: { valeur:
   )
 }
 
+/** Petit champ numérique (reps d'une série) : la valeur n'est prise qu'une fois le nombre complet. */
+function NombreCourt({ valeur, onChange }: { valeur: number; onChange: (v: number) => void }) {
+  const [texte, setTexte] = useState<string | null>(null)
+  return (
+    <input
+      inputMode="numeric"
+      style={{ width: 52, padding: '8px 4px', textAlign: 'center', flex: '0 0 auto' }}
+      value={texte ?? String(valeur)}
+      onFocus={(e) => e.target.select()}
+      onChange={(e) => {
+        setTexte(e.target.value)
+        const v = parseInt(e.target.value)
+        if (v > 0) onChange(v)
+      }}
+      onBlur={() => setTexte(null)}
+    />
+  )
+}
+
 const lireCharge = (t: string) => {
   const v = parseFloat(t.replace(',', '.'))
   return t.trim() === '' || isNaN(v) ? undefined : v
@@ -62,7 +81,9 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
   const [chargesSerie, setChargesSerie] = useState(() => plan.series.map((s) => (s.charge === undefined ? '' : kg(s.charge))))
   const [chauffes, setChauffes] = useState<LigneChauffe[]>(() => plan.chauffes.map(versLigne))
   const [aideFin, setAideFin] = useState(false)
-  const [detail, setDetail] = useState(() => plan.series.some((s) => s.charge !== undefined || s.repos !== undefined))
+  const [detail, setDetail] = useState(() =>
+    plan.series.some((s) => s.charge !== undefined || s.repos !== undefined || s.repsMin !== plan.series[0].repsMin || s.repsMax !== plan.series[0].repsMax)
+  )
 
   const n = p.series.length
   const temps = exo.mesure === 'temps'
@@ -97,7 +118,8 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
       charge: chargeGenerale ?? null,
       series: p.series.map((s, i) => {
         const { charge: _c, repos: _r, ...base } = s
-        if (!detail) return base
+        // Sans réglage série par série : les mêmes reps pour toutes (celles affichées en haut).
+        if (!detail) return { ...base, repsMin: p.series[0].repsMin, repsMax: p.series[0].repsMax }
         const charge = lireCharge(chargesSerie[i] ?? '')
         return {
           ...base,
@@ -124,11 +146,17 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
           <MiniStepper valeur={n} min={1} max={10} onChange={setNombre} />
         </div>
         <div className="ligne entre">
-          <span>{temps ? 'Secondes min' : 'Reps min'}</span>
+          <span>
+            {temps ? 'Secondes min' : 'Reps min'}
+            {detail && <span className="faible"> · toutes les séries</span>}
+          </span>
           <MiniStepper valeur={repsMin} min={1} max={temps ? 600 : 99} pas={temps ? 5 : 1} onChange={(v) => setReps(v, Math.max(v, repsMax))} />
         </div>
         <div className="ligne entre">
-          <span>{temps ? 'Secondes max' : 'Reps max'}</span>
+          <span>
+            {temps ? 'Secondes max' : 'Reps max'}
+            {detail && <span className="faible"> · toutes les séries</span>}
+          </span>
           <MiniStepper valeur={repsMax} min={repsMin} max={temps ? 600 : 99} pas={temps ? 5 : 1} onChange={(v) => setReps(repsMin, v)} />
         </div>
 
@@ -151,15 +179,27 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
             on={detail}
             onChange={setDetail}
             label="Régler série par série"
-            aide="Charge et repos différents selon la série (ex. 1re série plus légère)."
+            aide="Reps, charge et repos différents selon la série (ex. 12 / 10 / 8 en montant la charge)."
           />
           <div className="faible" style={{ margin: '6px 0' }}>
-            {detail ? `Série · RPE · charge (${unite}) · repos après` : 'RPE visé par série'}
+            {detail ? `Par série : ${temps ? 'secondes' : 'reps'} min–max, puis RPE · charge (${unite}) · repos après` : 'RPE visé par série'}
           </div>
           {p.series.map((s, i) => (
-            <div key={i} className="ligne" style={{ marginBottom: 6, gap: 6 }}>
+            <div key={i} className={detail ? 'serie-plan' : undefined}>
+            {detail && (
+              <div className="ligne" style={{ gap: 6 }}>
+                <span className="faible" style={{ width: 22, flex: '0 0 auto' }}>
+                  S{i + 1}
+                </span>
+                <NombreCourt valeur={s.repsMin} onChange={(v) => maj((q) => ((q.series[i].repsMin = v), (q.series[i].repsMax = Math.max(v, q.series[i].repsMax))))} />
+                <span className="faible">–</span>
+                <NombreCourt valeur={s.repsMax} onChange={(v) => maj((q) => ((q.series[i].repsMax = v), (q.series[i].repsMin = Math.min(v, q.series[i].repsMin))))} />
+                <span className="faible">{temps ? 's' : 'reps'}</span>
+              </div>
+            )}
+            <div className="ligne" style={{ marginBottom: 6, gap: 6 }}>
               <span className="faible" style={{ width: 22, flex: '0 0 auto' }}>
-                S{i + 1}
+                {detail ? '' : `S${i + 1}`}
               </span>
               <select
                 value={s.rpe}
@@ -185,6 +225,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
                   <ChoixDuree compact valeur={s.repos ?? p.repos} onChange={(v) => maj((q) => (q.series[i].repos = v))} />
                 </>
               )}
+            </div>
             </div>
           ))}
         </div>
