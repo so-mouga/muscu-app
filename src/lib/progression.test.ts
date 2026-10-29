@@ -189,6 +189,13 @@ describe('séance incomplète', () => {
     const r = pareil(EXERCICES.butterfly, plan, [incomplete, avant])
     expect(r.reps).toEqual([9, 11, 10, 9])
   })
+  it('charge des séries pas faites = dernière série faite (pas de retour au poids du corps)', () => {
+    const plan = planDe('haut_a', 'butterfly')
+    const r = pareil(EXERCICES.butterfly, plan, [seance(40, '8@8', '8@8')])
+    expect(r.charges).toEqual([40, 40, 40, 40])
+    expect(r.reps.slice(0, 2)).toEqual([8, 8])
+  })
+
   it('sans fois d’avant : le programme pour les séries manquantes', () => {
     const plan = planDe('haut_a', 'butterfly')
     const r = pareil(EXERCICES.butterfly, plan, [seance(30, '9@8')])

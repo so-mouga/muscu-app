@@ -177,18 +177,20 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
 
 /**
  * Refaire exactement la dernière séance : même charge et mêmes reps, série par série.
- * Une série pas faite la dernière fois (séance incomplète) reprend la fois d'avant, sinon le
- * programme : une séance écourtée ne fait jamais baisser les autres séries.
+ * Séance incomplète : une série pas faite prend la charge de la dernière série faite, et les reps
+ * de la fois d'avant (sinon du programme). Une séance écourtée ne fausse jamais les autres séries.
  * C'est l'utilisateur qui décide de monter (objectif fixé en fin de séance).
  */
 export function pareil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Suggestion {
   const depart = suggere(exo, plan, [])
-  if (!historique.some((h) => h.length > 0)) return suggere(exo, plan, historique)
-  const de = (i: number) => historique.find((h) => h[i])?.[i]
+  const derniere = historique.find((h) => h.length > 0)
+  if (!derniere) return suggere(exo, plan, historique)
+  const avant = (i: number) => historique.find((h) => h[i])?.[i]
+  const chargeFaite = derniere[derniere.length - 1].charge
   return {
     decision: 'pareil',
-    charges: plan.series.map((_, i) => de(i)?.charge ?? depart.charges[i]),
-    reps: plan.series.map((_, i) => de(i)?.reps ?? depart.reps[i]),
+    charges: plan.series.map((_, i) => derniere[i]?.charge ?? chargeFaite),
+    reps: plan.series.map((_, i) => derniere[i]?.reps ?? avant(i)?.reps ?? depart.reps[i]),
     message: '= Comme la dernière fois.',
   }
 }

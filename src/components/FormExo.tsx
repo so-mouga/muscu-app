@@ -23,7 +23,8 @@ interface Props {
 
 export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnregistre, onAnnuler }: Props) {
   const [nom, setNom] = useState(initial?.nom ?? nomInitial)
-  const [muscle, setMuscle] = useState<Muscle>(initial?.muscle ?? muscleInitial ?? 'pecs')
+  // Pas de muscle par défaut : un exercice de jambes ne doit pas finir dans « Pecs » par inattention.
+  const [muscle, setMuscle] = useState<Muscle | ''>(initial?.muscle ?? muscleInitial ?? '')
   const [secondaires, setSecondaires] = useState(initial?.secondaires ?? [])
   const [mode, setMode] = useState<ModeCharge>(initial?.mode ?? 'machine')
   const [pas, setPas] = useState(String(initial?.pas ?? 2.5).replace('.', ','))
@@ -49,6 +50,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
   }
 
   const enregistrer = async () => {
+    if (!muscle) return
     const p = parseFloat(pas.replace(',', '.'))
     const exo: Exercice = {
       ...initial,
@@ -105,6 +107,11 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
       <label className="champ">
         <span>Muscle principal</span>
         <select value={muscle} onChange={(e) => setMuscle(e.target.value as Muscle)}>
+          {!muscle && (
+            <option value="" disabled>
+              Choisis le muscle travaillé…
+            </option>
+          )}
           {MUSCLES.map((m) => (
             <option key={m.id} value={m.id}>
               {m.nom}
@@ -168,7 +175,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ex. siège cran 4, dossier 2" />
       </label>
 
-      <button className="btn primaire grand" disabled={!nom.trim() || chargement} onClick={enregistrer}>
+      <button className="btn primaire grand" disabled={!nom.trim() || !muscle || chargement} onClick={enregistrer}>
         {initial ? 'ENREGISTRER' : 'CRÉER'}
       </button>
       <button type="button" className="btn discret plein" onClick={onAnnuler}>

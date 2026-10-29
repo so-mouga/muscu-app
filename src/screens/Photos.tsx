@@ -32,7 +32,7 @@ export default function Photos() {
   return (
     <>
       <button className="btn primaire grand" style={{ marginBottom: 12 }} onClick={() => setPrise(true)}>
-        📸 Nouvelle séance photo
+        {dates[0]?.[0] === dateISO() ? '📸 Refaire / compléter les photos du jour' : '📸 Nouvelle séance photo'}
       </button>
       <div className="faible" style={{ marginBottom: 12 }}>
         3 poses : face, profil, dos. Même endroit, même lumière, même heure : c’est ce qui rend la comparaison fiable. Les photos restent sur ce téléphone.
@@ -204,14 +204,30 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
   const [avantCam, setAvantCam] = useState(false)
   const [etape, setEtape] = useState(0)
   const [fantome, setFantome] = useState(true)
-  const [delai, setDelai] = useState(10)
+  // Dernier retardateur choisi, retenu d'une séance photo à l'autre.
+  const [delai, setDelaiEtat] = useState(() => {
+    try {
+      return Number(localStorage.getItem('retardateurPhoto') ?? 10)
+    } catch {
+      return 10
+    }
+  })
+  const setDelai = (d: number) => {
+    setDelaiEtat(d)
+    try {
+      localStorage.setItem('retardateurPhoto', String(d))
+    } catch {
+      /* stockage indisponible */
+    }
+  }
   const [decompte, setDecompte] = useState<number | null>(null)
   const [apercu, setApercu] = useState<string | null>(null)
   const [faites, setFaites] = useState<Partial<Record<Pose, string>>>({})
   const date = dateISO()
   const pose = POSES[etape]
-  // Dernière photo de cette pose (avant aujourd'hui) : le fantôme pour se placer.
-  const precedente = photos.filter((p) => p.pose === pose?.id && p.date < date).sort((a, b) => b.date.localeCompare(a.date))[0]
+  // Dernière photo de cette pose (y compris plus tôt aujourd'hui) : le repère pour se placer pareil.
+  const precedente = photos.filter((p) => p.pose === pose?.id && p.date <= date).sort((a, b) => b.date.localeCompare(a.date))[0]
+  const duJour = (p: Pose) => photos.some((x) => x.date === date && x.pose === p)
 
   useEffect(() => {
     let annule = false
@@ -276,6 +292,8 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
   }
 
   const suivante = (garder: boolean) => {
+    // Une photo de cette pose existe déjà aujourd'hui : on demande avant de la remplacer.
+    if (garder && duJour(pose.id) && !confirm(`Remplacer ta photo « ${pose.nom} » d’aujourd’hui par celle-ci ?`)) garder = false
     const f = garder && apercu ? { ...faites, [pose.id]: apercu } : faites
     setFaites(f)
     setApercu(null)
@@ -366,11 +384,15 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
               <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
             </label>
           ) : (
-            <button className="btn primaire grand" disabled={decompte !== null} onClick={() => (delai ? setDecompte(delai) : capturer())}>
-              {decompte !== null ? `Photo dans ${decompte} s…` : '📸 PRENDRE LA PHOTO'}
+            <button className="btn primaire grand" onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}>
+              {decompte !== null ? `Photo dans ${decompte} s · appuie pour annuler` : '📸 PRENDRE LA PHOTO'}
             </button>
           )}
-          {precedente && fantome && <div className="faible">En transparence, ta photo du {dateCourte(precedente.date)} : cale-toi dessus.</div>}
+          {precedente && fantome && (
+            <div className="faible">
+              En transparence, ta photo {precedente.date === date ? 'prise plus tôt aujourd’hui' : `du ${dateCourte(precedente.date)}`} : cale-toi dessus.
+            </div>
+          )}
         </div>
       )}
     </div>

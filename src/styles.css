@@ -1501,7 +1501,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 
 /* Plein écran pendant le repos : tout tient dans l'écran, sans défilement. */
 .focus.fixe {
-  --anneau: clamp(120px, calc(100dvh - 560px), 210px);
+  --anneau: clamp(120px, calc(100dvh - 600px), 210px);
   position: fixed;
   inset: 0;
   max-width: 560px;
@@ -1982,7 +1982,34 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
   mask-image: linear-gradient(to right, #000 85%, transparent);
 }
-.focus-avancement .faible,
-.focus-avancement strong + .faible {
-  white-space: nowrap;
+/* En-tête du plein écran : infos sur une ligne, actions sur la suivante. */
+.focus-haut {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.focus-boutons {
+  display: flex;
+  gap: 6px;
+}
+.focus-boutons .btn {
+  flex: 1;
+  min-height: 38px;
+  padding: 6px 4px;
+  font-size: 14px;
+}
+.pills.en-focus {
+  margin-bottom: 0;
+}
+.focus.fixe .minuteur.grand {
+  flex-shrink: 0;
+}
+button.pastille.cliquable {
+  border: 1px solid var(--bord);
+  padding: 5px 10px;
+  font-size: 13px;
+}
+/* Le bouton Enregistrer collé en bas ne doit pas cacher les derniers champs. */
+.page-dessus .saisie-mesures {
+  padding-bottom: 96px;
 }

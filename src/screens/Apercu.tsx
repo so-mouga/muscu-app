@@ -24,7 +24,9 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
   // Les déloads ne servent pas de référence pour la progression.
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours && !s.deload).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
-  const series = modele.exercices.reduce((a, p) => a + p.series.length, 0)
+  // En-tête : la séance telle qu'elle sera faite (allégée en déload).
+  const prevu = deload ? { ...modele, exercices: modele.exercices.map(planDeload) } : modele
+  const series = prevu.exercices.reduce((a, p) => a + p.series.length, 0)
   const habituelle = terminees && dureeHabituelle(modele.id, terminees)
   const nbHabituelles = terminees ? seancesHabituelles(modele.id, terminees).length : 0
   /** Exercice dont on règle l'objectif (index dans la séance). */
@@ -43,13 +45,13 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
       </div>
 
       <div className="ligne wrap" style={{ marginBottom: 12 }}>
-        <span className="pastille">≈ {minutes(dureeEstimee(modele))} prévues</span>
+        <span className="pastille">≈ {minutes(dureeEstimee(prevu))} prévues</span>
         {habituelle && <span className="pastille">⏱ {minutes(habituelle)} d’habitude</span>}
         <span className="pastille">
           {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''}
         </span>
         <span className="pastille">{series} séries</span>
-        {modele.exercices.some((p) => p.finisseur) && <span className="pastille fin">★ {modele.exercices.filter((p) => p.finisseur).length} finisseur(s)</span>}
+        {prevu.exercices.some((p) => p.finisseur) && <span className="pastille fin">★ {prevu.exercices.filter((p) => p.finisseur).length} finisseur(s)</span>}
       </div>
 
       <div className="faible" style={{ marginBottom: 12 }}>

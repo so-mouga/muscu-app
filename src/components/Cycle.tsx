@@ -240,6 +240,11 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
   useRetour(!modifier && !bilan, onFermer)
   const seances = useLiveQuery(() => db.seances.filter((s) => s.cycleId === cycle.id && !s.enCours).toArray(), [cycle.id], [])
   const etat = etatCycle(cycle)
+  // Chaque séance va dans la semaine de sa date réelle (une semaine mise en pause après coup garde les siennes).
+  const semaineDe = (date: string) => {
+    const e = etatCycle(cycle, date)
+    return e.pause ? 'pause' : e.n
+  }
   const prevues = semaineType(cycle.programme).map((e) => cycle.modeles.find((m) => m.id === e.modeleId)).filter((m) => !!m)
 
   // Lignes : chaque semaine du cycle, avec les semaines de pause intercalées.
@@ -273,13 +278,24 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
 
       <div className="carte">
         {lignes.map((x) => {
-          if ('pause' in x)
+          if ('pause' in x) {
+            const pendant = seances.filter((s) => lundi(new Date(s.date + 'T12:00:00')) === x.pause)
             return (
               <div key={x.pause} className="ligne-semaine pause">
                 <span className="faible">⏸ Pause · sem. du {debutSemaine(x.pause)}</span>
+                {pendant.length > 0 && (
+                  <div className="ligne wrap" style={{ gap: 4 }}>
+                    {pendant.map((s) => (
+                      <span key={s.id} className="pastille ok">
+                        ✓ {s.nom}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )
-          const faites = seances.filter((s) => s.semaine === x.n)
+          }
+          const faites = seances.filter((s) => semaineDe(s.date) === x.n)
           const deload = cycle.deloads.includes(x.n)
           const courante = x.n === etat.n && !etat.pause
           const restantes = [...faites]
@@ -317,11 +333,22 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
 
       {!etat.fini && etat.n >= 1 && (
         <div className="carte pile">
-          <button className="btn plein" disabled={etat.pause} onClick={() => db.cycles.put(deloadMaintenant(cycle))}>
+          <button
+            className="btn plein"
+            disabled={etat.pause}
+            onClick={() =>
+              confirm(`Passer la semaine ${etat.n} en déload ? Les séances seront allégées et la fin du cycle reculera d’une semaine.`) &&
+              db.cycles.put(deloadMaintenant(cycle))
+            }
+          >
             🧘 Déload maintenant
           </button>
           <div className="faible">Tu te sens cuit ? Cette semaine devient un déload, la suite du cycle est décalée d’une semaine.</div>
-          <button className="btn plein" disabled={etat.pause} onClick={() => db.cycles.put(mettreEnPause(cycle))}>
+          <button
+            className="btn plein"
+            disabled={etat.pause}
+            onClick={() => confirm('Mettre cette semaine en pause ? Elle ne comptera pas et tout le reste du cycle glissera d’une semaine.') && db.cycles.put(mettreEnPause(cycle))}
+          >
             ⏸ Mettre cette semaine en pause
           </button>
           <div className="faible">Vacances, maladie : la semaine ne compte pas, tout le reste du cycle glisse d’une semaine.</div>
@@ -359,7 +386,10 @@ export function BilanCycle({ cycle, catalogue, onFermer }: { cycle: Cycle; catal
   const ecoulees = etat.fini ? cycle.semaines : Math.min(cycle.semaines, Math.max(0, etat.n - 1))
   const normales = Array.from({ length: ecoulees }, (_, i) => i + 1).filter((n) => !cycle.deloads.includes(n))
   const duCycle = toutes.filter((s) => s.cycleId === cycle.id)
-  const travail = duCycle.filter((s) => !s.deload && s.semaine !== undefined && normales.includes(s.semaine))
+  const travail = duCycle.filter((s) => {
+    const e = etatCycle(cycle, s.date)
+    return !s.deload && !e.pause && normales.includes(e.n)
+  })
   const prevues = semaineType(cycle.programme).length * normales.length
   const volume = volumeParMuscle(travail, catalogue.exercices)
   const moyen = Object.fromEntries(Object.entries(volume).map(([m, v]) => [m, normales.length ? Math.round((v / normales.length) * 10) / 10 : 0])) as typeof volume

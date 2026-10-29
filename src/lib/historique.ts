@@ -72,3 +72,20 @@ export function parSemaine(seances: Seance[]): { lundi: string; seances: Seance[
 export function meilleureSerie(series: Serie[]): Serie | undefined {
   return series.reduce<Serie | undefined>((a, s) => (!a || s.charge > a.charge || (s.charge === a.charge && s.reps > a.reps) ? s : a), undefined)
 }
+
+/**
+ * Créneaux du planning faits cette semaine (indices dans `planning`). Une séance faite coche le
+ * créneau de la même séance le plus proche avant son jour, sinon le prochain : faite jeudi, elle
+ * coche le créneau du jeudi, pas celui du lundi.
+ */
+export function creneauxFaits(planning: { id: string; jour: number }[], faites: { id: string; jour: number }[]): Set<number> {
+  const pris = new Set<number>()
+  for (const f of [...faites].sort((a, b) => a.jour - b.jour)) {
+    const libres = planning.map((p, i) => ({ ...p, i })).filter((p) => p.id === f.id && !pris.has(p.i))
+    const avant = libres.filter((p) => p.jour <= f.jour).sort((a, b) => b.jour - a.jour)[0]
+    const apres = libres.filter((p) => p.jour > f.jour).sort((a, b) => a.jour - b.jour)[0]
+    const c = avant ?? apres
+    if (c) pris.add(c.i)
+  }
+  return pris
+}

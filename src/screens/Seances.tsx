@@ -6,6 +6,7 @@ import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
+import { useQuestion } from '../components/Question'
 import { cibles, copieSeances, etatCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
@@ -38,7 +39,7 @@ export function resumePlan(exo: Exercice, p: ExoPlan): string {
   return [
     schemaPlan(exo, p),
     `RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}`,
-    reposTexte(p),
+    `repos ${reposTexte(p)}`,
     chargeTexte(exo, p.charge),
     p.finisseur ? '★' : '',
   ]
@@ -226,6 +227,7 @@ function EditeurProgramme({
   const { p, initial, nouveau } = vue
   const [choix, setChoix] = useState(false)
   const [lancer, setLancer] = useState(false)
+  const [question, demander] = useQuestion()
   const modifie = JSON.stringify(p) !== JSON.stringify(initial)
   const actif = catalogue.actif.id === p.id
   const enBase = catalogue.programmes.some((x) => x.id === p.id)
@@ -249,7 +251,12 @@ function EditeurProgramme({
     if (activer) await setReglage('programmeActif', finale.id)
     // Programme du cycle en cours : on demande avant de toucher au cycle.
     const c = catalogue.cycle
-    if (c && c.programmeId === finale.id && modifie && confirm('Appliquer aussi ces changements au cycle en cours ?\n\nSinon, ils serviront au prochain cycle.'))
+    if (c && c.programmeId === finale.id && modifie && (await demander({
+        titre: 'Appliquer au cycle en cours ?',
+        texte: `« ${finale.nom} » est le programme du cycle en cours. Tes changements sont enregistrés dans le programme ; tu choisis s’ils s’appliquent dès maintenant au cycle, ou seulement au prochain.`,
+        oui: 'Appliquer au cycle en cours',
+        non: 'Seulement pour le prochain cycle',
+      })))
       await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele) })
     onFermer()
   }
@@ -350,9 +357,10 @@ function EditeurProgramme({
         </div>
       )}
 
+      {/* Pendant un cycle, c'est le cycle qui pilote : un nouveau programme est créé sans être activé. */}
       {modifie || nouveau || !enBase ? (
-        <button className="btn primaire grand" disabled={!valide} onClick={() => enregistrer(nouveau && !actif)}>
-          {nouveau ? 'CRÉER ET ACTIVER' : 'ENREGISTRER'}
+        <button className="btn primaire grand" disabled={!valide} onClick={() => enregistrer(nouveau && !actif && !catalogue.cycle)}>
+          {nouveau ? (catalogue.cycle ? 'CRÉER' : 'CRÉER ET ACTIVER') : 'ENREGISTRER'}
         </button>
       ) : null}
       {!valide && <div className="faible" style={{ marginTop: 6 }}>Il faut un nom et au moins une séance.</div>}
@@ -378,6 +386,7 @@ function EditeurProgramme({
       )}
 
       {lancer && <LancerCycle catalogue={catalogue} programme={p} onFermer={() => setLancer(false)} />}
+      {question}
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(ev) => ev.stopPropagation()}>
@@ -433,6 +442,7 @@ function Editeur({
   const [choix, setChoix] = useState(false)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [infos, setInfos] = useState<Exercice | null>(null)
+  const [question, demander] = useQuestion()
   // Programmes qui contiennent la séance ; une nouvelle séance va par défaut dans le programme actif.
   const progsInitiaux = catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === initial.id)).map((p) => p.id)
   const [progs, setProgs] = useState<string[]>(nouvelle ? [catalogue.actif.id] : progsInitiaux)
@@ -469,7 +479,15 @@ function Editeur({
     await db.modeles.put(finale)
     // Séance du cycle en cours : on demande avant de toucher au cycle.
     const c = catalogue.cycle
-    if (c?.modeles.some((x) => x.id === finale.id) && confirm('Cette séance fait partie du cycle en cours. Appliquer aussi les changements au cycle ?\n\nSinon, ils serviront au prochain cycle.'))
+    if (
+      c?.modeles.some((x) => x.id === finale.id) &&
+      (await demander({
+        titre: 'Appliquer au cycle en cours ?',
+        texte: `« ${finale.nom} » fait partie du cycle en cours. La séance est enregistrée dans ta bibliothèque ; tu choisis si le cycle la prend dès maintenant, ou seulement au prochain cycle.`,
+        oui: 'Appliquer au cycle en cours',
+        non: 'Seulement pour le prochain cycle',
+      }))
+    )
       await db.cycles.update(c.id, { modeles: c.modeles.map((x) => (x.id === finale.id ? structuredClone(finale) : x)) })
     if (!pourProgramme)
       for (const p of catalogue.programmes) {
@@ -530,6 +548,7 @@ function Editeur({
                 </option>
               ))}
           </select>
+          <span className="faible">Séance de repli proposée sur l’accueil (« 🏠 Pas de salle ») quand tu ne peux pas aller à la salle ce jour-là.</span>
         </label>
         {!pourProgramme && (
           <div className="champ">
@@ -580,7 +599,7 @@ function Editeur({
               <button className="icone" disabled={i === m.exercices.length - 1} onClick={() => deplacer(i, 1)} aria-label="Descendre">
                 ↓
               </button>
-              <button className="icone" onClick={() => maj((x) => x.exercices.splice(i, 1))} aria-label="Retirer">
+              <button className="icone" onClick={() => confirm(`Retirer « ${exo.nom} » de la séance ?`) && maj((x) => x.exercices.splice(i, 1))} aria-label="Retirer">
                 ✕
               </button>
             </div>
@@ -654,6 +673,7 @@ function Editeur({
         />
       )}
       {infos && <InfosExo exo={infos} onFermer={() => setInfos(null)} />}
+      {question}
       {editIdx !== null && m.exercices[editIdx] && (
         <EditeurExoPlan
           key={editIdx}

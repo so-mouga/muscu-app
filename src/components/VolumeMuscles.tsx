@@ -22,7 +22,7 @@ export default function VolumeMuscles({ volume, cibles }: Props) {
           return (
             <div key={m.id} className="ligne entre petit" style={{ marginBottom: 8 }}>
               <span>{m.nom}</span>
-              <span className="muted">{kg(v)} · sans objectif</span>
+              <span className="muted">{kg(v)} · suivi seulement</span>
             </div>
           )
         const pct = Math.min(100, (v / m.cible) * 100)

@@ -11,8 +11,10 @@ export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourd
   const moyenne = recentes.length ? recentes.reduce((a, p) => a + p.poids, 0) / recentes.length : null
 
   const enregistrer = async () => {
-    const poids = parseFloat(valeur.replace(',', '.'))
-    if (!(poids > 30 && poids < 250)) return
+    // Nombre complet seulement (« 72,3 ») : un champ mal tapé (« 71,572,3 ») est refusé, pas tronqué.
+    const t = valeur.trim().replace(',', '.')
+    const poids = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
+    if (!(poids > 30 && poids < 250)) return alert('Poids non reconnu : tape par exemple 72,3')
     await db.pesees.put({ date: aujourdhui, poids })
     // Séances faites sans poids noté : on leur donne celui-ci, pour le 1RM des exercices au poids du corps.
     await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
@@ -30,14 +32,20 @@ export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourd
       {duJour ? (
         <div className="muted">
           {kg(duJour.poids)} kg noté aujourd’hui{' '}
-          <button className="btn discret petit" onClick={() => setValeur(String(duJour.poids))}>
+          <button className="btn discret petit" onClick={() => setValeur(String(duJour.poids).replace('.', ','))}>
             modifier
           </button>
         </div>
       ) : null}
       {(!duJour || valeur) && (
         <div className="ligne">
-          <input inputMode="decimal" enterKeyHint="done" placeholder="ex. 70,4" value={valeur} onChange={(e) => setValeur(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void enregistrer()} />
+          <input
+            inputMode="decimal"
+            enterKeyHint="done"
+            placeholder="ex. 70,4"
+            autoFocus={!!duJour}
+            onFocus={(e) => e.target.select()}
+            value={valeur} onChange={(e) => setValeur(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void enregistrer()} />
           <button className="btn primaire" onClick={enregistrer}>
             OK
           </button>

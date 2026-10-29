@@ -66,7 +66,8 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <FormExo
           initial={formulaire.exo}
-          muscleInitial={MUSCLES.find((m) => m.zone === filtre)?.id}
+          // Muscle proposé seulement quand la zone filtrée n'en a qu'un (Pecs, Abdos).
+          muscleInitial={MUSCLES.filter((m) => m.zone === filtre).length === 1 ? MUSCLES.find((m) => m.zone === filtre)?.id : undefined}
           nomInitial={formulaire.exo ? undefined : recherche}
           onAnnuler={() => setFormulaire(null)}
           onEnregistre={(exo) => {

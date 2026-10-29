@@ -335,25 +335,56 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const reposEnCours = !!minuteur && !(minuteur.pause === undefined && minuteur.fin <= maintenant)
   const vueRepos = reposEnCours && !saisie && !corrige
   const derniereSerie = seance.series.reduce<Serie | null>((a, x) => (!a || x.heure > a.heure ? x : a), null)
+  // Pastilles des exercices : les mêmes en plein écran (un appui sur un autre exercice ramène à la carte complète).
+  const pastilles = (enFocus: boolean) => (
+    <div className={'pills' + (enFocus ? ' en-focus' : '')} ref={enFocus ? undefined : pills} onScroll={enFocus ? undefined : marquerDebord}>
+      {plans.map((p, i) => {
+        const passe = estPasse(i)
+        const fait = !passe && nbFaites(p.exoId) >= totalDe(i)
+        return (
+          <button
+            key={p.exoId + i}
+            className={(i === (enFocus ? enCours : idx) ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (i === enCours ? 'en-cours' : '')}
+            onClick={() => (enFocus ? i !== enCours && (setFocus(false), setIdx(i)) : setIdx(i))}
+            aria-label={i === enCours ? `Exercice ${i + 1}, en cours` : undefined}
+          >
+            {fait ? '✓' : passe ? '–' : i + 1}
+          </button>
+        )
+      })}
+      {!enFocus && (
+        <button onClick={() => setChoix({ mode: 'ajouter' })} aria-label="Ajouter un exercice">
+          +
+        </button>
+      )}
+    </div>
+  )
   const avancementCompact = (
-    <div className="ligne focus-avancement">
-      <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait`}>
-        <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
-      </Anneau>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div>
-          <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait 💪'}</strong>
-          {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
-        </div>
-        <div className="faible">
-          ⏱ {chronoSeance(maintenant - seance.debut)} · 🔥 ≈ {kcal} kcal
+    <div className="focus-haut">
+      <div className="ligne focus-avancement">
+        <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait`}>
+          <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
+        </Anneau>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div>
+            <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait 💪'}</strong>
+            {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
+          </div>
+          <div className="faible">
+            ⏱ {chronoSeance(maintenant - seance.debut)} · 🔥 ≈ {kcal} kcal
+          </div>
         </div>
       </div>
-      <div className="pile" style={{ gap: 6 }}>
-        <button className="btn" onClick={() => setFocus(false)}>
+      <div className="focus-boutons">
+        <button className="btn petit" onClick={() => setFocus(false)}>
           ⌄ Réduire
         </button>
-        <button className="btn discret petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
+        {enCours >= 0 && (
+          <button className="btn petit" onClick={() => (setFocus(false), setIdx(enCours), setMachinePrise(true))}>
+            Machine prise
+          </button>
+        )}
+        <button className="btn petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
           Terminer
         </button>
       </div>
@@ -444,6 +475,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return (
       <div className={'focus apparait' + (vueRepos && !correction ? ' fixe' : '')}>
         {avancementCompact}
+        {/* Hors repos : la barre des exercices reste accessible. */}
+        {!vueRepos && !correction && pastilles(true)}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
         {correction ? (
           correction
@@ -487,11 +520,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </button>
           </div>
         )}
-        {!correction && (
-          <button className="btn discret plein" style={{ marginBottom: 24 }} onClick={() => setFocus(false)}>
-            Carte complète (machine prise, photo…) ›
-          </button>
-        )}
         {toast && <div className="toast">{toast}</div>}
         {objectifDe !== null && plans[objectifDe] && (
           <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />
@@ -522,25 +550,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </button>
         </div>
         {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
-        <div className="pills" ref={pills} onScroll={marquerDebord}>
-          {plans.map((p, i) => {
-            const passe = estPasse(i)
-            const fait = !passe && nbFaites(p.exoId) >= totalDe(i)
-            return (
-              <button
-                key={p.exoId + i}
-                className={(i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (i === enCours ? 'en-cours' : '')}
-                onClick={() => setIdx(i)}
-                aria-label={i === enCours ? `Exercice ${i + 1}, en cours` : undefined}
-              >
-                {fait ? '✓' : passe ? '–' : i + 1}
-              </button>
-            )
-          })}
-          <button onClick={() => setChoix({ mode: 'ajouter' })} aria-label="Ajouter un exercice">
-            +
-          </button>
-        </div>
+        {pastilles(false)}
         {enCours >= 0 && enCours !== idx && (
           <div className="legende-pills">
             <span>

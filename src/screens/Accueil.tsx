@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { dateISO, duree, dureeTexte, jourSemaine, lundi, volumeParMuscle } from '../lib/calc'
-import { dureeReelle } from '../lib/historique'
+import { creneauxFaits, dureeReelle } from '../lib/historique'
 import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
@@ -93,8 +93,16 @@ export default function Accueil({
   // Séances faites cette semaine pour un modèle (sa variante maison compte aussi).
   const realisees = (m: SeanceModele) =>
     semaine.filter((s) => s.modeleId === m.id || catalogue.modele(s.modeleId)?.varianteDe === m.id).length
-  // Une même séance peut revenir deux fois dans la semaine : la k-ième est faite s'il y en a eu au moins k.
-  const faite = (e: EntreePlanning) => realisees(e.modele) > planning.filter((x) => x.modele.id === e.modele.id && x.jour < e.jour).length
+  // Chaque séance faite coche le créneau le plus proche de son jour (une séance peut revenir deux fois).
+  const idPlanning = (id?: string) => planning.find((e) => e.modele.id === id || catalogue.modele(id)?.varianteDe === e.modele.id)?.modele.id
+  const coches = creneauxFaits(
+    planning.map((e) => ({ id: e.modele.id, jour: e.jour })),
+    semaine.flatMap((s) => {
+      const id = idPlanning(s.modeleId)
+      return id ? [{ id, jour: jourSemaine(new Date(s.date + 'T12:00:00')) }] : []
+    })
+  )
+  const faite = (e: EntreePlanning) => coches.has(planning.indexOf(e))
   const jour = jourSemaine()
   const duJour = planning.find((e) => e.jour === jour)
   const prochaine = planning.find((e) => !faite(e) && e.jour >= jour) ?? planning.find((e) => !faite(e))
@@ -237,9 +245,9 @@ export default function Accueil({
         </div>
         <div className="ligne wrap" style={{ marginBottom: 14 }}>
           {planning.map((e) => (
-            <span key={e.modele.id + e.jour} className={'pastille' + (faite(e) ? ' ok' : e.jour === jour ? ' accent' : '')}>
+            <button key={e.modele.id + e.jour} className={'pastille cliquable' + (faite(e) ? ' ok' : e.jour === jour ? ' accent' : '')} onClick={() => voir(e.modele)}>
               {JOURS[e.jour]} · {e.modele.nom} {faite(e) ? '✓' : ''}
-            </span>
+            </button>
           ))}
           {activitesSemaine.map((a) => (
             <span key={a.id} className="pastille activite">
@@ -248,7 +256,10 @@ export default function Accueil({
           ))}
         </div>
         <VolumeMuscles volume={volume} cibles={cycle ? cibles(cycle) : undefined} />
-        <div className="faible">Séries dures (RPE ≥ 7). Triceps : développés et dips comptés à 0,5.</div>
+        <div className="faible">
+          Séries dures (RPE ≥ 7). Triceps et avant d’épaule : développés et dips comptés à 0,5. « Suivi seulement » : pas d’objectif pour ce muscle, tu peux
+          en fixer un dans les réglages du cycle.
+        </div>
       </div>
 
 

@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance, Serie } from '../types'
 import { delies, relies, repere } from './equivalents'
-import { bilan, meilleureSerie, parSemaine, recordsParSeance } from './historique'
+import { bilan, creneauxFaits, meilleureSerie, parSemaine, recordsParSeance } from './historique'
 
 const exoId = Object.values(EXERCICES).find((e) => e.suivreE1rm && e.mode !== 'poids_corps')!.id
 const serie = (charge: number, reps: number, rpe = 8): Serie => ({ id: `${charge}-${reps}`, exoId, type: 'normale', charge, reps, rpe, heure: 0 })
@@ -58,5 +58,22 @@ describe('équivalents', () => {
     const s2 = seance('s2', '2026-10-27', [serie(60, 8), serie(57.5, 10)])
     expect(repere('autre', relies({}, 'autre', exoId), [s2, s1])).toMatchObject({ exoId, charge: 60, reps: 8 })
     expect(repere('autre', {}, [s2])).toBeNull()
+  })
+})
+
+describe('créneaux de la semaine', () => {
+  const planning = [
+    { id: 'A', jour: 1 },
+    { id: 'B', jour: 2 },
+    { id: 'A', jour: 4 },
+  ]
+  it('faite jeudi : coche le jeudi, pas le lundi', () => {
+    expect([...creneauxFaits(planning, [{ id: 'A', jour: 4 }])]).toEqual([2])
+  })
+  it('faite en avance (dimanche → lundi suivant impossible) : le prochain créneau', () => {
+    expect([...creneauxFaits(planning, [{ id: 'B', jour: 1 }])]).toEqual([1])
+  })
+  it('deux fois : les deux créneaux', () => {
+    expect([...creneauxFaits(planning, [{ id: 'A', jour: 1 }, { id: 'A', jour: 3 }])].sort()).toEqual([0, 2])
   })
 })

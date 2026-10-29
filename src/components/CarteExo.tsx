@@ -157,6 +157,23 @@ export default function CarteExo({
         </div>
       </div>
 
+      {/* Exercice seulement consulté : on le dit tout de suite, avec de quoi le faire maintenant. */}
+      {!termine && consultation && !enEdition && (
+        <div className="consultation pile">
+          <div className="petit">
+            👀 <strong>Consultation.</strong>{' '}
+            <span className="muted">
+              L’exercice en cours est <strong>{enCoursNom}</strong>.
+            </span>
+          </div>
+          <button className="btn primaire grand" onClick={onAllerEnCours}>
+            ↩ Revenir à {enCoursNom}
+          </button>
+          <button className="btn plein" onClick={onFaireMaintenant}>
+            Faire cet exercice maintenant
+          </button>
+        </div>
+      )}
       <div className={'suggestion petit' + (battre ? ' a-battre' : '')}>
         <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
           <strong>
@@ -271,22 +288,6 @@ export default function CarteExo({
           </div>
           <button className="btn primaire grand" onClick={onAllerEnCours}>
             {enCoursNom ? `Continuer : ${enCoursNom} →` : 'Terminer la séance'}
-          </button>
-        </div>
-      )}
-      {!termine && consultation && !enEdition && (
-        <div className="consultation pile">
-          <div className="petit">
-            👀 <strong>Consultation.</strong>{' '}
-            <span className="muted">
-              L’exercice en cours est <strong>{enCoursNom}</strong>.
-            </span>
-          </div>
-          <button className="btn primaire grand" onClick={onAllerEnCours}>
-            ↩ Revenir à {enCoursNom}
-          </button>
-          <button className="btn plein" onClick={onFaireMaintenant}>
-            Faire cet exercice maintenant
           </button>
         </div>
       )}
@@ -414,7 +415,13 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     ...extra,
   })
 
+  // Garde-fous : au moins 1 rep, et une confirmation si la charge dépasse de loin la cible (faute de frappe).
+  const reference = Math.max(0, ...sugg.charges.map((c) => c ?? 0), ...faites.map((x) => x.charge))
+  const chargeSuspecte = (c: number) => (reference > 0 ? c > reference * 1.5 && c - reference >= 20 : c > 300)
+
   const enregistrer = async (s: Serie) => {
+    if (s.reps <= 0 && !edition) return
+    if (chargeSuspecte(s.charge) && !confirm(`Valider ${chargeTexte(exo, s.charge)} ? C’est bien plus que d’habitude (${chargeTexte(exo, reference)}).`)) return
     if (!edition) {
       if (performance.now() - derniereValidation < 1500) return
       derniereValidation = performance.now()
@@ -626,9 +633,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       ) : (
         <button
           className={'btn grand' + (enRepos ? '' : ' primaire')}
+          disabled={reps <= 0}
           onClick={() => enregistrer(construire(type, type === 'serie_longue' ? { demiReps: demi, zone } : { demiReps: undefined, zone: undefined }))}
         >
-          {edition ? 'METTRE À JOUR' : 'VALIDER LA SÉRIE'}
+          {reps <= 0 ? (temps ? 'INDIQUE LE TEMPS TENU' : 'INDIQUE AU MOINS 1 REP') : edition ? 'METTRE À JOUR' : 'VALIDER LA SÉRIE'}
         </button>
       )}
 

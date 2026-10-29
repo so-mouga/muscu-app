@@ -42,10 +42,11 @@ export default function SilhouetteMesures({ active, onChoix, remplies }: Props) 
         const { y, x1, x2 } = m.trait
         return (
           <g key={m.id} onClick={() => onChoix?.(m.id)} style={{ cursor: onChoix ? 'pointer' : undefined }}>
-            <rect x={x1 - 6} y={y - 10} width={x2 - x1 + 12} height={20} fill="transparent" />
+            {/* Zone d'appui bien plus grande que le trait et le repère */}
+            <rect x={x1 - 8} y={y - 14} width={x2 - x1 + 24} height={28} fill="transparent" />
             <line x1={x1} y1={y} x2={x2} y2={y} stroke={on ? 'var(--accent)' : 'var(--texte-3)'} strokeWidth={on ? 3 : 1.6} strokeDasharray={on ? undefined : '4 3'} />
-            <circle cx={x2} cy={y} r={on ? 7 : 6} fill={on ? 'var(--accent)' : remplies?.has(m.id) ? 'var(--texte-2)' : 'var(--surface)'} stroke={on ? 'var(--accent)' : 'var(--texte-3)'} strokeWidth={1.5} />
-            <text x={x2} y={y + 3} textAnchor="middle" fontSize={8} fontWeight={700} fill={on ? 'var(--accent-texte)' : remplies?.has(m.id) ? 'var(--bg)' : 'var(--texte-2)'}>
+            <circle cx={x2} cy={y} r={on ? 10 : 8.5} fill={on ? 'var(--accent)' : remplies?.has(m.id) ? 'var(--texte-2)' : 'var(--surface)'} stroke={on ? 'var(--accent)' : 'var(--texte-3)'} strokeWidth={1.5} />
+            <text x={x2} y={y + 3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill={on ? 'var(--accent-texte)' : remplies?.has(m.id) ? 'var(--bg)' : 'var(--texte-2)'}>
               {k + 1}
             </text>
           </g>
