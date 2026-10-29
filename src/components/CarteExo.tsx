@@ -43,8 +43,9 @@ interface Props {
   focus?: boolean
 }
 
-/** Heure de la dernière validation : bloque un double appui avant même le rafraîchissement de l'écran. */
-let derniereValidation = 0
+/** Instant de la dernière validation (horloge monotone, insensible aux changements d'heure du
+ * téléphone) : bloque un double appui avant même le rafraîchissement de l'écran. */
+let derniereValidation = -Infinity
 
 /** Objectif de la série `n` : « 60 kg × 10 · RPE 8 ». */
 export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number): string {
@@ -377,15 +378,22 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   const enregistrer = async (s: Serie) => {
     if (!edition) {
-      if (Date.now() - derniereValidation < 1500) return
-      derniereValidation = Date.now()
+      if (performance.now() - derniereValidation < 1500) return
+      derniereValidation = performance.now()
     }
     vibrer(40)
-    await majSeance(seance.id, (x) => {
-      const k = x.series.findIndex((y) => y.id === s.id)
-      if (k >= 0) x.series[k] = s
-      else x.series.push(s)
-    })
+    try {
+      const n = await majSeance(seance.id, (x) => {
+        const k = x.series.findIndex((y) => y.id === s.id)
+        if (k >= 0) x.series[k] = s
+        else x.series.push(s)
+      })
+      if (n === 0) throw new Error('séance introuvable')
+    } catch (e) {
+      derniereValidation = -Infinity
+      alert(`La série n’a pas été enregistrée : ${(e as Error).message}\n(version ${__VERSION__})`)
+      return
+    }
     onFini(s)
   }
 
