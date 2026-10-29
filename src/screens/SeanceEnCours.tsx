@@ -336,28 +336,25 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const reposEnCours = !!minuteur && !(minuteur.pause === undefined && minuteur.fin <= maintenant)
   const vueRepos = reposEnCours && !saisie && !corrige
   const derniereSerie = seance.series.reduce<Serie | null>((a, x) => (!a || x.heure > a.heure ? x : a), null)
-  // Pastilles des exercices : les mêmes en plein écran (un appui sur un autre exercice ramène à la carte complète).
-  const pastilles = (enFocus: boolean) => (
-    <div className={'pills' + (enFocus ? ' en-focus' : '')} ref={enFocus ? undefined : pills} onScroll={enFocus ? undefined : marquerDebord}>
+  const pastilles = (
+    <div className="pills" ref={pills} onScroll={marquerDebord}>
       {plans.map((p, i) => {
         const passe = estPasse(i)
         const fait = !passe && nbFaites(p.exoId) >= totalDe(i)
         return (
           <button
             key={p.exoId + i}
-            className={(i === (enFocus ? enCours : idx) ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (i === enCours ? 'en-cours' : '')}
-            onClick={() => (enFocus ? i !== enCours && (setFocus(false), setIdx(i)) : setIdx(i))}
+            className={(i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (i === enCours ? 'en-cours' : '')}
+            onClick={() => setIdx(i)}
             aria-label={i === enCours ? `Exercice ${i + 1}, en cours` : undefined}
           >
             {fait ? '✓' : passe ? '–' : i + 1}
           </button>
         )
       })}
-      {!enFocus && (
-        <button onClick={() => setChoix({ mode: 'ajouter' })} aria-label="Ajouter un exercice">
-          +
-        </button>
-      )}
+      <button onClick={() => setChoix({ mode: 'ajouter' })} aria-label="Ajouter un exercice">
+        +
+      </button>
     </div>
   )
   const avancementCompact = (
@@ -445,7 +442,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )
     })()
-    const planFocus = plans[enCours]
     // Correction : seulement la série concernée, rien d'autre.
     const correction = (() => {
       const serie = corrige ? seance.series.find((x) => x.id === corrige) : undefined
@@ -476,8 +472,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return (
       <div className={'focus apparait' + (vueRepos && !correction ? ' fixe' : '')}>
         {avancementCompact}
-        {/* Hors repos : la barre des exercices reste accessible. */}
-        {!vueRepos && !correction && pastilles(true)}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
         {correction ? (
           correction
@@ -492,27 +486,50 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             )}
           </>
         ) : enCours >= 0 ? (
-          <CarteExo
-            key={planFocus.exoId + enCours}
-            seance={seance}
-            plan={planFocus}
-            exo={exos[enCours]}
-            sugg={suggestions[enCours]}
-            derniere={historiqueDe(terminees, planFocus.exoId)[0]}
-            onValide={valider}
-            onMachinePrise={() => undefined}
-            reposRestant={reposRestant}
-            verrou={verrou}
-            consultation={false}
-            enCoursNom={exos[enCours]?.nom}
-            onFaireMaintenant={() => faireMaintenant(enCours)}
-            passe={estPasse(enCours)}
-            onAnnulerPasser={() => annulerPasser(enCours)}
-            onAllerEnCours={() => undefined}
-            focus
-            repere={repereDe(planFocus.exoId)}
-            onObjectif={!seance.deload && historiqueDe(terminees, planFocus.exoId).length ? () => setObjectifDe(enCours) : undefined}
-          />
+          // Saisie en plein écran : l'essentiel seulement (exercice, cible, dernière fois, saisie, Valider).
+          (() => {
+            const p = plans[enCours]
+            const exo = exos[enCours]
+            const n = nbFaites(p.exoId)
+            const t = totalDe(enCours)
+            const derniereFois = historiqueDe(terminees, p.exoId)[0]
+            const plus = hausse(exo, suggestions[enCours], derniereFois, n)
+            return (
+              <div className="focus-bloc pile saisie-focus">
+                <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="faible">
+                      Série {n + 1}/{t}
+                      {p.finisseur && n === t - 1 ? ' · ★ finisseur' : ''}
+                    </div>
+                    <h2>{exo.nom}</h2>
+                  </div>
+                  <BoutonInfos onClick={() => setInfos(exo.id)} />
+                </div>
+                <div>
+                  <strong className="cible-focus">{cibleSerie(exo, p, suggestions[enCours], n)}</strong>
+                  {plus && <span className="badge-hausse">↑ {plus}</span>}
+                  {derniereFois?.[n] && <div className="faible">Dernière fois : {serieTexte(exo, derniereFois[n])}</div>}
+                  {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
+                </div>
+                <Editeur
+                  key={`${p.exoId}-${n}-${suggestions[enCours].charges.join()}`}
+                  seance={seance}
+                  plan={p}
+                  exo={exo}
+                  sugg={suggestions[enCours]}
+                  index={n}
+                  total={t}
+                  faites={seance.series.filter((x) => x.exoId === p.exoId)}
+                  reposRestant={reposRestant}
+                  verrou={verrou}
+                  compact
+                  onFini={(s) => valider(s, reposApres(p, n, t))}
+                  onAnnulerEdition={() => undefined}
+                />
+              </div>
+            )
+          })()
         ) : (
           <div className="focus-bloc pile">
             <h2>Toutes les séries sont faites 💪</h2>
@@ -551,7 +568,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </button>
         </div>
         {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
-        {pastilles(false)}
+        {pastilles}
         {enCours >= 0 && enCours !== idx && (
           <div className="legende-pills">
             <span>

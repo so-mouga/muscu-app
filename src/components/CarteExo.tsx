@@ -42,8 +42,6 @@ interface Props {
   /** Exercice sauté aujourd'hui. */
   passe: boolean
   onAnnulerPasser: () => void
-  /** Mode plein écran : sans « Machine prise » (reste sur l'écran normal). */
-  focus?: boolean
   /** Exercice jamais fait : dernière perf d'un équivalent relié, pour s'orienter. */
   repere?: string
   /** Régler l'objectif sur place (absent quand l'exercice n'a pas d'historique). */
@@ -81,7 +79,6 @@ export default function CarteExo({
   onAllerEnCours,
   passe,
   onAnnulerPasser,
-  focus,
   repere,
   onObjectif,
 }: Props) {
@@ -148,11 +145,9 @@ export default function CarteExo({
             )}
           </h2>
           <BoutonInfos onClick={() => setInfos(true)} />
-          {!focus && (
-            <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
-              Machine prise
-            </button>
-          )}
+          <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
+            Machine prise
+          </button>
         </div>
         <div className="faible">
           {schemaPlan(exo, plan)} · RPE{' '}
@@ -375,9 +370,11 @@ interface EditeurProps {
   verrou: boolean
   onFini: (s: Serie) => void
   onAnnulerEdition: () => void
+  /** Plein écran : sans la ligne de fourchette (la cible est déjà affichée au-dessus). */
+  compact?: boolean
 }
 
-export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition }: EditeurProps) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1
@@ -539,13 +536,15 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   return (
     <div className="pile">
-      <div className="ligne entre">
-        {edition && <h3>Modifier la série {index + 1}</h3>}
-        <span className="faible">
-          fourchette {fourchette(exo, p.repsMin, p.repsMax)}
-          {enTemps(exo) ? '' : ' reps'} · RPE {kg(p.rpe)}
-        </span>
-      </div>
+      {(!compact || edition) && (
+        <div className="ligne entre">
+          {edition && <h3>Modifier la série {index + 1}</h3>}
+          <span className="faible">
+            fourchette {fourchette(exo, p.repsMin, p.repsMax)}
+            {enTemps(exo) ? '' : ' reps'} · RPE {kg(p.rpe)}
+          </span>
+        </div>
+      )}
 
       {finisseur && (
         <div className="bandeau-fin">

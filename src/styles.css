@@ -1998,9 +1998,6 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   padding: 6px 4px;
   font-size: 14px;
 }
-.pills.en-focus {
-  margin-bottom: 0;
-}
 .focus.fixe .minuteur.grand {
   flex-shrink: 0;
 }
@@ -2097,4 +2094,13 @@ button.pastille.cliquable {
   color: var(--texte);
   font-size: 18px;
   font-weight: 700;
+}
+/* Saisie en plein écran : l'essentiel, sans la carte complète */
+.saisie-focus {
+  gap: 12px;
+}
+.cible-focus {
+  font-size: 22px;
+  font-weight: 800;
+  margin-right: 6px;
 }
