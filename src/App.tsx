@@ -5,14 +5,14 @@ import { db } from './db'
 import { transition, useRetour } from './lib/nav'
 import Accueil from './screens/Accueil'
 import Exercices from './screens/Exercices'
-import Historique from './screens/Historique'
+import Historique, { type VueProgression } from './screens/Historique'
 import Reglages from './screens/Reglages'
 import SeanceEnCours from './screens/SeanceEnCours'
 import Seances from './screens/Seances'
 
 const ONGLETS = [
   ['accueil', '🏠', 'Accueil'],
-  ['historique', '📅', 'Historique'],
+  ['historique', '📈', 'Progression'],
   ['seances', '📋', 'Programmes'],
   ['exercices', '💪', 'Exercices'],
   ['reglages', '⚙️', 'Réglages'],
@@ -23,6 +23,22 @@ export default function App() {
   const [onglet, setOngletEtat] = useState<Onglet>('accueil')
   /** Séance ouverte dans l'historique. */
   const [detail, setDetailEtat] = useState<string | null>(null)
+  /** Partie de Progression affichée (mémorisée d'une ouverture à l'autre). */
+  const [vue, setVueEtat] = useState<VueProgression>(() => {
+    try {
+      return (localStorage.getItem('vueProgression') as VueProgression | null) ?? 'seances'
+    } catch {
+      return 'seances'
+    }
+  })
+  const setVue = (v: VueProgression) => {
+    setVueEtat(v)
+    try {
+      localStorage.setItem('vueProgression', v)
+    } catch {
+      /* stockage indisponible */
+    }
+  }
   const enCours = useLiveQuery(() => db.seances.filter((s) => s.enCours).first(), [], null)
   const catalogue = useCatalogue()
 
@@ -35,7 +51,7 @@ export default function App() {
   const setDetail = (id: string | null) => {
     transition(() => {
       setDetailEtat(id)
-      if (id) setOngletEtat('historique')
+      if (id) (setOngletEtat('historique'), setVue('seances'))
     }, id ? 'avant' : 'arriere')
     window.scrollTo({ top: 0 })
   }
@@ -48,8 +64,8 @@ export default function App() {
   return (
     <>
       <div key={onglet}>
-        {onglet === 'accueil' && <Accueil catalogue={catalogue} onVoirSeance={setDetail} />}
-        {onglet === 'historique' && <Historique catalogue={catalogue} detail={detail} onDetail={setDetail} />}
+        {onglet === 'accueil' && <Accueil catalogue={catalogue} onVoirSeance={setDetail} onMesures={() => (setVue('mesures'), setOnglet('historique'))} />}
+        {onglet === 'historique' && <Historique catalogue={catalogue} detail={detail} onDetail={setDetail} vue={vue} onVue={setVue} />}
         {onglet === 'seances' && <Seances catalogue={catalogue} />}
         {onglet === 'exercices' && <Exercices catalogue={catalogue} />}
         {onglet === 'reglages' && <Reglages catalogue={catalogue} />}

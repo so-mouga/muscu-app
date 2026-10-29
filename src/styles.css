@@ -246,9 +246,13 @@ select {
   min-width: 0;
   max-width: 187px;
   background: none;
-  padding: 12px 0 14px;
+  padding: 12px 1px 14px;
   color: var(--texte-3);
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 600;
 }
 .onglets button.actif {
@@ -1795,4 +1799,17 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .btn.actif-btn {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Saisie par-dessus un onglet (mensurations) */
+.page-dessus {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 0 max(16px, calc((100vw - 528px) / 2)) calc(24px + env(safe-area-inset-bottom));
+}
+.liste-btn.rappel {
+  border-color: var(--alerte);
 }

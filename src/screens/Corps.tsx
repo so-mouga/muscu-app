@@ -8,9 +8,6 @@ import { db } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import type { Mesure } from '../types'
-import Photos from './Photos'
-
-type Onglet = 'mesures' | 'photos' | 'poids'
 
 const cm = (v: number) => `${kg(v)} cm`
 const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(Math.round(d * 10) / 10))
@@ -18,44 +15,26 @@ const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(
 /** Valeurs d'une clé dans le temps (prises qui la contiennent, de la plus ancienne à la plus récente). */
 const serie = (mesures: Mesure[], cle: string) => mesures.filter((m) => m.valeurs[cle] !== undefined).map((m) => ({ date: m.date, valeur: m.valeurs[cle] }))
 
-/** Page Corps : mensurations (silhouette, évolution), photos de progression et poids. */
-export default function Corps({ onFermer }: { onFermer: () => void }) {
-  const [onglet, setOnglet] = useState<Onglet>('mesures')
+/** Onglet Mesures de Progression : silhouette, évolution, et la saisie par-dessus l'écran. */
+export function Mesures() {
   const [saisie, setSaisie] = useState<Mesure | 'nouvelle' | null>(null)
-  useRetour(!saisie, onFermer)
   const mesures = useLiveQuery(() => db.mesures.orderBy('date').toArray(), [], [])
-  const pesees = useLiveQuery(() => db.pesees.orderBy('date').reverse().toArray(), [], [])
-
-  if (saisie)
-    return <SaisieMesures initial={saisie === 'nouvelle' ? undefined : saisie} derniere={mesures[mesures.length - 1]} onFermer={() => setSaisie(null)} />
-
   return (
-    <div>
-      <div className="entete">
-        <button className="btn" onClick={onFermer} aria-label="Retour">
-          ←
-        </button>
-        <h1 style={{ flex: 1 }}>Corps</h1>
-      </div>
-      <div className="segments" role="tablist">
-        {(
-          [
-            ['mesures', 'Mensurations'],
-            ['photos', 'Photos'],
-            ['poids', 'Poids'],
-          ] as [Onglet, string][]
-        ).map(([id, nom]) => (
-          <button key={id} role="tab" aria-selected={onglet === id} className={onglet === id ? 'actif' : ''} onClick={() => setOnglet(id)}>
-            {nom}
-          </button>
-        ))}
-      </div>
-
-      {onglet === 'mesures' && <Mensurations mesures={mesures} onSaisir={setSaisie} />}
-      {onglet === 'photos' && <Photos />}
-      {onglet === 'poids' && <OngletPoids pesees={pesees} />}
-    </div>
+    <>
+      <Mensurations mesures={mesures} onSaisir={setSaisie} />
+      {saisie && (
+        <div className="page-dessus">
+          <SaisieMesures initial={saisie === 'nouvelle' ? undefined : saisie} derniere={mesures[mesures.length - 1]} onFermer={() => setSaisie(null)} />
+        </div>
+      )}
+    </>
   )
+}
+
+/** Onglet Poids de Progression. */
+export function OngletPoids() {
+  const pesees = useLiveQuery(() => db.pesees.orderBy('date').reverse().toArray(), [], [])
+  return <ListePoids pesees={pesees} />
 }
 
 function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: Mesure | 'nouvelle') => void }) {
@@ -279,7 +258,7 @@ function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; dern
   )
 }
 
-function OngletPoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
+function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
   const points = [...pesees].reverse().map((p) => ({ date: p.date, valeur: p.poids }))
   return (
     <>

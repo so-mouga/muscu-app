@@ -9,6 +9,8 @@ import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, type 
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
 import type { Reglage, Seance, Serie } from '../types'
+import { Mesures, OngletPoids } from './Corps'
+import Photos from './Photos'
 import { planParDefaut } from './Seances'
 
 const JOURS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
@@ -19,14 +21,25 @@ const dateLongue = (s: Seance) =>
 const jourCourt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
+export type VueProgression = 'seances' | 'mesures' | 'photos' | 'poids'
+
+const VUES: [VueProgression, string][] = [
+  ['seances', 'Séances'],
+  ['mesures', 'Mesures'],
+  ['photos', 'Photos'],
+  ['poids', 'Poids'],
+]
+
 interface Props {
   catalogue: Catalogue
+  vue: VueProgression
+  onVue: (v: VueProgression) => void
   /** Séance ouverte en détail (aussi depuis l'accueil). */
   detail: string | null
   onDetail: (id: string | null) => void
 }
 
-export default function Historique({ catalogue, detail, onDetail }: Props) {
+export default function Historique({ catalogue, detail, onDetail, vue, onVue }: Props) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const [semaines, setSemaines] = useState(6)
@@ -46,6 +59,30 @@ export default function Historique({ catalogue, detail, onDetail }: Props) {
       />
     )
 
+  const haut = (
+    <>
+      <div className="entete">
+        <h1>Progression</h1>
+      </div>
+      <div className="segments" role="tablist">
+        {VUES.map(([id, nom]) => (
+          <button key={id} role="tab" aria-selected={vue === id} className={vue === id ? 'actif' : ''} onClick={() => onVue(id)}>
+            {nom}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+  if (vue !== 'seances')
+    return (
+      <div>
+        {haut}
+        {vue === 'mesures' && <Mesures />}
+        {vue === 'photos' && <Photos />}
+        {vue === 'poids' && <OngletPoids />}
+      </div>
+    )
+
   const groupes = parSemaine(terminees)
   const cetteSemaine = lundi()
   const precedente = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') - 7 * 86400000))
@@ -53,9 +90,7 @@ export default function Historique({ catalogue, detail, onDetail }: Props) {
 
   return (
     <div>
-      <div className="entete">
-        <h1>Historique</h1>
-      </div>
+      {haut}
 
       {terminees.length === 0 ? (
         <div className="carte pile">

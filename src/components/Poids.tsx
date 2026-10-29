@@ -3,8 +3,8 @@ import { db } from '../db'
 import { kg } from '../lib/calc'
 import type { Pesee } from '../types'
 
-/** Poids du jour (moyenne sur 7 jours) ; sur l'accueil, avec le lien vers la page Corps. */
-export default function Poids({ pesees, aujourdhui, onCorps, derniereMesure }: { pesees: Pesee[]; aujourdhui: string; onCorps?: () => void; derniereMesure?: string }) {
+/** Poids du jour, avec la moyenne sur 7 jours. */
+export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourdhui: string }) {
   const duJour = pesees.find((p) => p.date === aujourdhui)
   const [valeur, setValeur] = useState('')
   const recentes = pesees.filter((p) => Date.parse(p.date) > Date.now() - 7 * 86400000)
@@ -40,28 +40,6 @@ export default function Poids({ pesees, aujourdhui, onCorps, derniereMesure }: {
         </div>
       )}
       <div className="faible">Sert aussi au calcul de l’e1RM des tractions et dips. Seule la moyenne compte, pas la variation d’un jour.</div>
-      {onCorps && <LienCorps onCorps={onCorps} derniereMesure={derniereMesure} />}
     </div>
-  )
-}
-
-/** Rappel des mensurations au-delà de 3 semaines, et accès à la page Corps. */
-function LienCorps({ onCorps, derniereMesure }: { onCorps: () => void; derniereMesure?: string }) {
-  const jours = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure + 'T12:00:00')) / 86400000) : null
-  const enRetard = jours === null || jours > 21
-  return (
-    <button className="liste-btn" style={{ marginBottom: 0 }} onClick={onCorps}>
-      <span>
-        <strong>📏 Mensurations et photos</strong>
-        <div className="faible" style={enRetard ? { color: 'var(--alerte)' } : undefined}>
-          {jours === null
-            ? 'Pas encore prises : un repère utile en plus du poids'
-            : jours === 0
-              ? 'Prises aujourd’hui'
-              : `Il y a ${jours} jour${jours > 1 ? 's' : ''}${enRetard ? ' · pense à les reprendre' : ''}`}
-        </div>
-      </span>
-      <span className="muted">›</span>
-    </button>
   )
 }

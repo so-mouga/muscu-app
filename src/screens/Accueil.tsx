@@ -8,9 +8,7 @@ import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import VolumeMuscles from '../components/VolumeMuscles'
-import Poids from '../components/Poids'
 import Apercu from './Apercu'
-import Corps from './Corps'
 import type { Programme, SeanceModele } from '../types'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
@@ -44,12 +42,10 @@ async function creerSeance(modele?: SeanceModele) {
   })
 }
 
-export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalogue; onVoirSeance: (id: string) => void }) {
+export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalogue: Catalogue; onVoirSeance: (id: string) => void; onMesures: () => void }) {
   const [choix, setChoix] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
-  const [corps, setCorpsEtat] = useState(false)
-  const voirCorps = (v: boolean) => (transition(() => setCorpsEtat(v), v ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   useRetour(choix, () => setChoix(false))
   const voir = (m: SeanceModele | null) => {
@@ -57,14 +53,12 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
     transition(() => setApercuEtat(m), m ? 'avant' : 'arriere')
     window.scrollTo({ top: 0 })
   }
-  const aujourdhui = dateISO()
   const debutSemaine = lundi()
   const semaine = useLiveQuery(
     () => db.seances.where('date').aboveOrEqual(debutSemaine).filter((s) => !s.enCours).toArray(),
     [debutSemaine],
     []
   )
-  const pesees = useLiveQuery(() => db.pesees.orderBy('date').reverse().limit(14).toArray(), [], [])
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
@@ -101,8 +95,11 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
         }).length
       : 0
 
-  if (corps) return <Corps onFermer={() => voirCorps(false)} />
   if (apercu) return <Apercu modele={apercu} catalogue={catalogue} onDemarrer={() => demarrer(apercu)} onFermer={() => voir(null)} />
+
+  // Rappel des mensurations : seulement après 3 semaines sans en prendre.
+  const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
+  const mesuresEnRetard = nbSeances > 0 && (joursMesure === null || joursMesure > 21)
 
   const exportVieux =
     nbSeances > 0 && (!dernierExport || Date.now() - (dernierExport.valeur as number) > 7 * 86400000)
@@ -116,6 +113,16 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
           <div className="faible">Programme : {actif.nom}</div>
         </div>
       </div>
+
+      {mesuresEnRetard && (
+        <button className="liste-btn rappel" onClick={onMesures}>
+          <span>
+            📏 {derniereMesure ? 'Pense à reprendre tes mensurations' : 'Prends tes premières mensurations'}
+            {joursMesure !== null && <span className="faible"> · il y a {joursMesure} jours</span>}
+          </span>
+          <span className="muted">›</span>
+        </button>
+      )}
 
       {exportVieux && (
         <div className="carte petit" style={{ borderColor: 'var(--alerte)' }}>
@@ -199,7 +206,6 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
         <div className="faible">Séries dures (RPE ≥ 7). Triceps : développés et dips comptés à 0,5.</div>
       </div>
 
-      <Poids pesees={pesees} aujourdhui={aujourdhui} onCorps={() => voirCorps(true)} derniereMesure={derniereMesure?.date} />
 
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
