@@ -10,6 +10,17 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Filet de sécurité : si l'appli ne s'affiche pas (fichier introuvable…), on recharge une fois sans cache.
+      setTimeout(function () {
+        if (document.getElementById('root').children.length) return
+        try {
+          if (sessionStorage.getItem('secours')) return
+          sessionStorage.setItem('secours', '1')
+        } catch (e) {}
+        location.replace(location.pathname + '?v=' + Date.now())
+      }, 6000)
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
