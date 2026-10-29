@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import Anneau from '../components/Anneau'
-import CarteExo, { cibleSerie, Ecart, majSeance } from '../components/CarteExo'
+import CarteExo, { cibleSerie, Ecart, Editeur, majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif from '../components/EditeurObjectif'
 import Interrupteur from '../components/Interrupteur'
@@ -311,8 +311,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const reposEnCours = !!minuteur && !(minuteur.pause === undefined && minuteur.fin <= maintenant)
   const vueRepos = reposEnCours && !saisie && !corrige
   const derniereSerie = seance.series.reduce<Serie | null>((a, x) => (!a || x.heure > a.heure ? x : a), null)
-  const iCorrige = corrige ? plans.findIndex((p) => p.exoId === seance.series.find((x) => x.id === corrige)?.exoId) : -1
-  const iFocus = iCorrige >= 0 ? iCorrige : enCours
   const avancementCompact = (
     <div className="ligne focus-avancement">
       <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait`}>
@@ -381,13 +379,41 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )
     })()
-    const planFocus = plans[iFocus]
+    const planFocus = plans[enCours]
+    // Correction : seulement la série concernée, rien d'autre.
+    const correction = (() => {
+      const serie = corrige ? seance.series.find((x) => x.id === corrige) : undefined
+      const i = serie ? plans.findIndex((p) => p.exoId === serie.exoId) : -1
+      if (!serie || i < 0) return null
+      const faites = seance.series.filter((x) => x.exoId === serie.exoId)
+      return (
+        <div className="focus-bloc pile">
+          <div className="faible">{exos[i].nom}</div>
+          <Editeur
+            seance={seance}
+            plan={plans[i]}
+            exo={exos[i]}
+            sugg={suggestions[i]}
+            index={faites.indexOf(serie)}
+            total={totalDe(i)}
+            faites={faites}
+            edition={serie}
+            reposRestant={0}
+            verrou={false}
+            onFini={() => setCorrige(null)}
+            onAnnulerEdition={() => setCorrige(null)}
+          />
+        </div>
+      )
+    })()
 
     return (
       <div className="focus apparait">
         {avancementCompact}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
-        {vueRepos ? (
+        {correction ? (
+          correction
+        ) : vueRepos ? (
           <>
             {derniereInfo}
             {prochaine}
@@ -397,26 +423,25 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               </button>
             )}
           </>
-        ) : planFocus ? (
+        ) : enCours >= 0 ? (
           <CarteExo
-            key={planFocus.exoId + iFocus + (corrige ?? '')}
+            key={planFocus.exoId + enCours}
             seance={seance}
             plan={planFocus}
-            exo={exos[iFocus]}
-            sugg={suggestions[iFocus]}
+            exo={exos[enCours]}
+            sugg={suggestions[enCours]}
             derniere={historiqueDe(terminees, planFocus.exoId)[0]}
             onValide={valider}
             onMachinePrise={() => undefined}
             reposRestant={reposRestant}
             verrou={verrou}
-            consultation={iFocus !== enCours}
-            enCoursNom={enCours >= 0 ? exos[enCours]?.nom : undefined}
-            onFaireMaintenant={() => faireMaintenant(iFocus)}
-            passe={estPasse(iFocus)}
-            onAnnulerPasser={() => annulerPasser(iFocus)}
-            onAllerEnCours={() => (enCours >= 0 ? setCorrige(null) : (setFocus(false), ouvrirFin(true)))}
+            consultation={false}
+            enCoursNom={exos[enCours]?.nom}
+            onFaireMaintenant={() => faireMaintenant(enCours)}
+            passe={estPasse(enCours)}
+            onAnnulerPasser={() => annulerPasser(enCours)}
+            onAllerEnCours={() => undefined}
             focus
-            editInitial={corrige ?? undefined}
           />
         ) : (
           <div className="focus-bloc pile">
@@ -426,14 +451,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </button>
           </div>
         )}
-        {corrige && (
-          <button className="btn plein" onClick={() => setCorrige(null)}>
-            ← Retour
+        {!correction && (
+          <button className="btn discret plein" style={{ marginBottom: 24 }} onClick={() => setFocus(false)}>
+            Carte complète (machine prise, photo…) ›
           </button>
         )}
-        <button className="btn discret plein" style={{ marginBottom: 24 }} onClick={() => setFocus(false)}>
-          Carte complète (machine prise, photo…) ›
-        </button>
         {toast && <div className="toast">{toast}</div>}
       </div>
     )
@@ -531,7 +553,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       )}
 
       {plan && (
-        <div className="ligne entre" style={{ marginBottom: 150 }}>
+        <div className="ligne entre" style={{ marginBottom: 110 }}>
           <button className="btn" disabled={idx === 0} onClick={() => setIdx(idx - 1)}>
             ← Précédent
           </button>

@@ -25,7 +25,7 @@ export const BIPS_DEFAUT = 5
 interface Props {
   etat: EtatMinuteur
   onChange: (e: EtatMinuteur | null) => void
-  /** Ce qui vient après le repos, ex. « Butterfly · série 3/4 ». */
+  /** Ce qui vient après le repos, ex. « Butterfly · série 3/4 » (affiché quand on regarde un autre exercice). */
   ensuite?: string
   /** Présent quand l'écran affiché n'est pas l'exercice en cours : y revenir en un appui. */
   onAller?: () => void
@@ -94,12 +94,14 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
     </>
   )
 
+  // Part du repos restante (le cercle se vide) ; la fin bouge avec −15/+15, le début non.
+  const total = etat.debut ? (etat.pause !== undefined ? maintenant - etat.debut + etat.pause : etat.fin - etat.debut) / 1000 : etat.duree
+  const part = fini ? 0 : reste / Math.max(1, total)
+
   if (variante === 'grand') {
-    // Part du repos écoulée ; la fin bouge avec −15/+15, le début non.
-    const total = etat.debut ? (etat.pause !== undefined ? maintenant - etat.debut + etat.pause : etat.fin - etat.debut) / 1000 : etat.duree
     return (
       <div className={'minuteur grand' + (fini ? ' fini' : '') + (enPause ? ' en-pause' : '')}>
-        <Anneau valeur={fini ? 1 : 1 - reste / Math.max(1, total)} taille={210} epaisseur={10}>
+        <Anneau valeur={part} taille={210} epaisseur={10}>
           <div className="temps-grand">{temps}</div>
           <div className="libelle">{libelle}</div>
         </Anneau>
@@ -112,20 +114,20 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
   return (
     <div className={'minuteur' + (bandeau ? ' bandeau' : '') + (fini ? ' fini flash' : '') + (enPause ? ' en-pause' : '')}>
       <div className="contenu">
-        <button className="temps" onClick={onAgrandir} disabled={!onAgrandir} aria-label={onAgrandir ? 'Plein écran' : undefined}>
-          {temps} {onAgrandir && <span className="agrandir">⤢</span>}
-          <div className="faible" style={{ color: 'inherit', opacity: 0.7, fontSize: 12, fontWeight: 600 }}>
-            {libelle}
-          </div>
+        <button className="temps" onClick={onAgrandir} disabled={!onAgrandir} aria-label={onAgrandir ? `${libelle}, ${temps}. Plein écran` : undefined}>
+          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? '#04140c' : 'var(--accent)'}>
+            <span className="temps-petit">{temps}</span>
+          </Anneau>
+          <span className="libelle-petit">{fini ? 'À toi !' : enPause ? 'En pause' : 'Repos'}</span>
         </button>
         {boutons}
       </div>
-      {ensuite && !bandeau && (
-        <button className={'ensuite' + (onAller ? ' cliquable' : '') + (fini && onAller ? ' reprendre' : '')} onClick={onAller} disabled={!onAller}>
+      {ensuite && !bandeau && onAller && (
+        <button className={'ensuite cliquable' + (fini ? ' reprendre' : '')} onClick={onAller}>
           <span>
             <span className="label">{fini ? 'À toi' : 'Ensuite'}</span> {ensuite}
           </span>
-          {onAller && <span className="aller">{fini ? 'Reprendre ›' : 'Y aller ›'}</span>}
+          <span className="aller">{fini ? 'Reprendre ›' : 'Y aller ›'}</span>
         </button>
       )}
     </div>

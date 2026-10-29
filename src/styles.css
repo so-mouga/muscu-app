@@ -441,7 +441,7 @@ select {
   z-index: 20;
   background: var(--surface);
   border-top: 1px solid var(--bord);
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
   view-transition-name: minuteur;
   animation: monte 0.25s ease-out;
 }
@@ -454,9 +454,21 @@ select {
 }
 .minuteur .temps {
   flex: 1;
-  font-size: 30px;
-  font-weight: 800;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-variant-numeric: tabular-nums;
+}
+.temps-petit {
+  font-size: 14px;
+  font-weight: 800;
+}
+.libelle-petit {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.75;
+  white-space: nowrap;
 }
 .minuteur.fini {
   background: var(--ok);
@@ -1140,11 +1152,6 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   color: inherit;
   background: none;
   padding: 0;
-}
-.minuteur .temps .agrandir {
-  font-size: 16px;
-  opacity: 0.55;
-  vertical-align: middle;
 }
 
 /* Mode plein écran */

@@ -41,8 +41,6 @@ interface Props {
   onAnnulerPasser: () => void
   /** Mode plein écran : sans « Machine prise » (reste sur l'écran normal). */
   focus?: boolean
-  /** Série à ouvrir en correction dès l'affichage. */
-  editInitial?: string
 }
 
 /** Heure de la dernière validation : bloque un double appui avant même le rafraîchissement de l'écran. */
@@ -76,11 +74,10 @@ export default function CarteExo({
   passe,
   onAnnulerPasser,
   focus,
-  editInitial,
 }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
-  const [editId, setEditId] = useState<string | null>(editInitial ?? null)
+  const [editId, setEditId] = useState<string | null>(null)
   const [photo, setPhoto] = useState(false)
   const enEdition = faites.find((s) => s.id === editId)
   const index = enEdition ? faites.indexOf(enEdition) : faites.length
@@ -327,7 +324,7 @@ interface EditeurProps {
   onAnnulerEdition: () => void
 }
 
-function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition }: EditeurProps) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1

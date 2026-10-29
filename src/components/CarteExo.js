@@ -26,10 +26,10 @@ export function cibleSerie(exo, plan, sugg, n) {
 export function majSeance(id, fn) {
     return db.seances.where('id').equals(id).modify(fn);
 }
-export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onMachinePrise, reposRestant, verrou, consultation, enCoursNom, onFaireMaintenant, onAllerEnCours, passe, onAnnulerPasser, focus, editInitial, }) {
+export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onMachinePrise, reposRestant, verrou, consultation, enCoursNom, onFaireMaintenant, onAllerEnCours, passe, onAnnulerPasser, focus, }) {
     const faites = seance.series.filter((s) => s.exoId === exo.id);
     const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0));
-    const [editId, setEditId] = useState(editInitial ?? null);
+    const [editId, setEditId] = useState(null);
     const [photo, setPhoto] = useState(false);
     const enEdition = faites.find((s) => s.id === editId);
     const index = enEdition ? faites.indexOf(enEdition) : faites.length;
@@ -82,7 +82,7 @@ function Photo({ src, titre, onFermer }) {
     useRetour(true, onFermer);
     return (_jsx("div", { className: "modal-fond", onClick: onFermer, children: _jsxs("div", { className: "modal pile", onClick: onFermer, children: [_jsx("h3", { children: titre }), _jsx("img", { src: src, alt: titre, className: "photo-grande" }), _jsx("button", { className: "btn discret plein", children: "Fermer" })] }) }));
 }
-function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition }) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition }) {
     const p = plan.series[Math.min(index, plan.series.length - 1)];
     const i = Math.min(index, sugg.charges.length - 1);
     const finisseur = !edition && plan.finisseur && index === total - 1;
