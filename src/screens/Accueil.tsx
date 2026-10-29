@@ -2,13 +2,15 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { dateISO, duree, dureeTexte, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
+import { dateISO, duree, dureeTexte, jourSemaine, lundi, volumeParMuscle } from '../lib/calc'
 import { dureeReelle } from '../lib/historique'
 import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import VolumeMuscles from '../components/VolumeMuscles'
+import Poids from '../components/Poids'
 import Apercu from './Apercu'
+import Corps from './Corps'
 import type { Programme, SeanceModele } from '../types'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
@@ -46,6 +48,9 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
   const [choix, setChoix] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
+  const [corps, setCorpsEtat] = useState(false)
+  const voirCorps = (v: boolean) => (transition(() => setCorpsEtat(v), v ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
+  const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   useRetour(choix, () => setChoix(false))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
@@ -96,6 +101,7 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
         }).length
       : 0
 
+  if (corps) return <Corps onFermer={() => voirCorps(false)} />
   if (apercu) return <Apercu modele={apercu} catalogue={catalogue} onDemarrer={() => demarrer(apercu)} onFermer={() => voir(null)} />
 
   const exportVieux =
@@ -193,7 +199,7 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
         <div className="faible">Séries dures (RPE ≥ 7). Triceps : développés et dips comptés à 0,5.</div>
       </div>
 
-      <Poids pesees={pesees} aujourdhui={aujourdhui} />
+      <Poids pesees={pesees} aujourdhui={aujourdhui} onCorps={() => voirCorps(true)} derniereMesure={derniereMesure?.date} />
 
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
@@ -235,46 +241,6 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function Poids({ pesees, aujourdhui }: { pesees: { date: string; poids: number }[]; aujourdhui: string }) {
-  const duJour = pesees.find((p) => p.date === aujourdhui)
-  const [valeur, setValeur] = useState('')
-  const recentes = pesees.filter((p) => Date.parse(p.date) > Date.now() - 7 * 86400000)
-  const moyenne = recentes.length ? recentes.reduce((a, p) => a + p.poids, 0) / recentes.length : null
-
-  const enregistrer = async () => {
-    const poids = parseFloat(valeur.replace(',', '.'))
-    if (!(poids > 30 && poids < 250)) return
-    await db.pesees.put({ date: aujourdhui, poids })
-    setValeur('')
-  }
-
-  return (
-    <div className="carte pile">
-      <div className="ligne entre">
-        <h3>Poids du jour</h3>
-        {moyenne !== null && <span className="faible">moyenne 7 j : {kg(Math.round(moyenne * 10) / 10)} kg</span>}
-      </div>
-      {duJour ? (
-        <div className="muted">
-          {kg(duJour.poids)} kg noté aujourd’hui{' '}
-          <button className="btn discret petit" onClick={() => setValeur(String(duJour.poids))}>
-            modifier
-          </button>
-        </div>
-      ) : null}
-      {(!duJour || valeur) && (
-        <div className="ligne">
-          <input inputMode="decimal" placeholder="ex. 70,4" value={valeur} onChange={(e) => setValeur(e.target.value)} />
-          <button className="btn primaire" onClick={enregistrer}>
-            OK
-          </button>
-        </div>
-      )}
-      <div className="faible">Sert aussi au calcul de l’e1RM des tractions et dips. Seule la moyenne compte, pas la variation d’un jour.</div>
     </div>
   )
 }

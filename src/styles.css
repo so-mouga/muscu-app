@@ -1556,3 +1556,243 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .ligne-exo > .btn-infos {
   margin-right: 4px;
 }
+
+/* Page Corps : mensurations */
+.mesures-haut {
+  display: grid;
+  grid-template-columns: 44% 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.silhouette-mesures {
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+}
+.silhouette-mesures text {
+  pointer-events: none;
+}
+.valeur-mesure {
+  font-size: 22px;
+}
+.ligne-mesure {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
+  padding: 9px 0;
+  background: none;
+  text-align: left;
+  border-bottom: 1px solid var(--bord);
+}
+.ligne-mesure:last-child {
+  border-bottom: none;
+}
+.ligne-mesure.active {
+  color: var(--accent);
+}
+.ecart-mesure {
+  color: var(--texte-2);
+  font-weight: 600;
+}
+.saisie-mesures {
+  display: grid;
+  grid-template-columns: 30% 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.saisie-silhouette {
+  position: sticky;
+  top: calc(8px + env(safe-area-inset-top));
+}
+.mesure-saisie {
+  padding: 12px;
+  gap: 8px;
+}
+.mesure-saisie.active {
+  border-color: var(--accent);
+}
+.num-mesure {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 800;
+}
+.mesure-saisie.active .num-mesure {
+  background: var(--accent);
+  color: var(--accent-texte);
+}
+.champ-mesure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.champ-mesure input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Photos de progression */
+.vignettes-poses {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.vignettes-poses button,
+.vignettes-poses .vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  padding: 0;
+}
+.vignettes-poses img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.vignettes-poses .vide {
+  aspect-ratio: 3 / 4;
+  justify-content: center;
+  border: 1px dashed var(--bord);
+  border-radius: 10px;
+}
+.comparaison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.comparaison figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.comparaison img,
+.comparaison .vide {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.comparaison .vide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--bord);
+}
+.superposition {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.superposition img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.superposition .trait-curseur {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  pointer-events: none;
+}
+.superposition input[type='range'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  margin: 0;
+}
+.superposition .etiquette {
+  position: absolute;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+.superposition .etiquette.g {
+  left: 8px;
+}
+.superposition .etiquette.d {
+  right: 8px;
+}
+.prise-photo {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top)) 16px calc(12px + env(safe-area-inset-bottom));
+  background: #000;
+  color: #fff;
+}
+.prise-haut {
+  gap: 8px;
+}
+.viseur {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #111;
+}
+.viseur video,
+.viseur img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.viseur .fantome {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.viseur .decompte {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 120px;
+  font-weight: 800;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.viseur .erreur-camera {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+.btn.actif-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+}
