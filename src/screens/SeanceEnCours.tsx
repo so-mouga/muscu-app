@@ -12,6 +12,7 @@ import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
 import { calories, chargeTexte, e1rm, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
+import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggere, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
@@ -78,6 +79,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
   const [machinePrise, setMachinePrise] = useState(false)
+  /** Après un remplacement : proposer de relier les deux exercices. */
+  const [lien, setLien] = useState<{ a: string; b: string } | null>(null)
   const [verrou, setVerrou] = useState(false)
   const maintenant = useHorloge(1000)
   const derniereTouche = useRef(0)
@@ -159,6 +162,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   if (!terminees || !reglages) return null
 
+  const equivalents = lireEquivalents(reglages)
+  /** Exercice jamais fait : la dernière perf d'un équivalent relié (séance du jour comprise). */
+  const repereDe = (exoId: string) => {
+    if (historiqueDe(terminees, exoId).length) return undefined
+    const r = repere(exoId, equivalents, [seance, ...terminees])
+    if (!r) return undefined
+    const ref = catalogue.exo(r.exoId)
+    return `${ref.nom}, ${chargeTexte(ref, r.charge)} × ${r.reps} @${kg(r.rpe)} (${r.date})`
+  }
+
   const valider = (s: Serie, repos: number) => {
     debloquerSon()
     // Verrou levé quand la série est écrite (voir plus haut), au pire après 8 s.
@@ -204,6 +217,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         range(`idx:${seance.id}`, c.i + 1)
       }
       setToast(`🔁 ${catalogue.exo(ancien.exoId).nom} → ${exo.nom}`)
+      if (!(equivalents[ancien.exoId] ?? []).includes(exoId)) setLien({ a: ancien.exoId, b: exoId })
     } else {
       await majSeance(seance.id, (s) => {
         s.exercices.push(planParDefaut(exo))
@@ -431,6 +445,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             onAnnulerPasser={() => annulerPasser(enCours)}
             onAllerEnCours={() => undefined}
             focus
+            repere={repereDe(planFocus.exoId)}
           />
         ) : (
           <div className="focus-bloc pile">
@@ -521,6 +536,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           passe={estPasse(idx)}
           onAnnulerPasser={() => annulerPasser(idx)}
           onAllerEnCours={allerEnCours}
+          repere={repereDe(plan.exoId)}
         />
       ) : (
         <div className="carte pile">
@@ -568,10 +584,37 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           catalogue={catalogue}
           titre={choix.mode === 'remplacer' ? `Remplacer ${exos[choix.i].nom}` : 'Ajouter un exercice'}
           muscle={choix.mode === 'remplacer' ? exos[choix.i].muscle : undefined}
+          equivalents={choix.mode === 'remplacer' ? equivalents[plans[choix.i].exoId] : undefined}
           exclure={plans.map((p) => p.exoId)}
           onChoix={choisir}
           onFermer={() => setChoix(null)}
         />
+      )}
+      {lien && (
+        <div className="modal-fond" onClick={() => setLien(null)}>
+          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+            <h2>Relier ces deux exercices ?</h2>
+            <div>
+              <strong>{catalogue.exo(lien.a).nom}</strong> ⇄ <strong>{catalogue.exo(lien.b).nom}</strong>
+            </div>
+            <div className="faible">
+              La prochaine fois que l’un est pris, l’autre te sera proposé en premier, et tu verras ta dernière perf sur l’un la première fois que tu fais
+              l’autre. Chacun garde sa propre progression.
+            </div>
+            <button
+              className="btn primaire grand"
+              onClick={() => {
+                void modifierEquivalents((eq) => relies(eq, lien.a, lien.b))
+                setLien(null)
+              }}
+            >
+              Relier
+            </button>
+            <button className="btn discret plein" onClick={() => setLien(null)}>
+              Pas cette fois
+            </button>
+          </div>
+        </div>
       )}
       {toast && <div className="toast">{toast}</div>}
       {minuteur && (

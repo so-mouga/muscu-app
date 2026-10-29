@@ -1,5 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance, Serie } from '../types'
+import { delies, relies, repere } from './equivalents'
 import { bilan, meilleureSerie, parSemaine, recordsParSeance } from './historique'
 
 const exoId = Object.values(EXERCICES).find((e) => e.suivreE1rm && e.mode !== 'poids_corps')!.id
@@ -30,5 +31,19 @@ describe('historique', () => {
 
   it('meilleure série : la plus lourde', () => {
     expect(meilleureSerie(b.series)?.charge).toBe(62.5)
+  })
+})
+
+describe('équivalents', () => {
+  it('lien dans les deux sens, retiré dans les deux sens', () => {
+    const eq = relies({}, 'a', 'b')
+    expect(eq).toEqual({ a: ['b'], b: ['a'] })
+    expect(delies(eq, 'b', 'a')).toEqual({ a: [], b: [] })
+  })
+  it('repère : la meilleure série la plus récente d’un équivalent', () => {
+    const s1 = seance('s1', '2026-10-20', [serie(55, 10)])
+    const s2 = seance('s2', '2026-10-27', [serie(60, 8), serie(57.5, 10)])
+    expect(repere('autre', relies({}, 'autre', exoId), [s2, s1])).toMatchObject({ exoId, charge: 60, reps: 8 })
+    expect(repere('autre', {}, [s2])).toBeNull()
   })
 })

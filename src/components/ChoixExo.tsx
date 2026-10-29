@@ -25,12 +25,14 @@ interface Props {
   /** Muscle de l'exercice remplacé : son groupe passe en premier. */
   muscle?: Muscle
   exclure?: string[]
+  /** Exercices équivalents (remplacement) : proposés en tête, en un appui. */
+  equivalents?: string[]
   /** `exo` est fourni quand il vient d'être créé (pas encore dans le catalogue). */
   onChoix: (exoId: string, exo?: Exercice) => void
   onFermer: () => void
 }
 
-export default function ChoixExo({ catalogue, titre, muscle, exclure = [], onChoix, onFermer }: Props) {
+export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equivalents = [], onChoix, onFermer }: Props) {
   const [recherche, setRecherche] = useState('')
   const [creation, setCreation] = useState(false)
   // Groupes fermés par défaut ; celui du même muscle (remplacement) ouvert.
@@ -53,6 +55,25 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], onCho
   // Remplacement : le groupe du même muscle en tête.
   if (muscle) groupes.sort((a, b) => Number(b.muscle === muscle) - Number(a.muscle === muscle))
 
+  const ligne = (e: Exercice, detail?: string) => (
+    <button key={e.id} className="liste-btn" onClick={() => onChoix(e.id)}>
+      <span className="avec-vignette">
+        <Vignette exo={e} taille={40} />
+        <span>
+          <strong>{e.nom}</strong>
+          <div className="faible">
+            {detail ?? (e.type === 'compose' ? 'composé' : 'isolation')}
+            {e.perso ? ' · perso' : ''}
+          </div>
+        </span>
+      </span>
+      <span className="muted">+</span>
+    </button>
+  )
+  const equivalentsVisibles = recherche.trim()
+    ? []
+    : equivalents.filter((id) => !exclure.includes(id) && catalogue.exercices[id] && !catalogue.exercices[id].supprime)
+
   return (
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -65,6 +86,14 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], onCho
             <button className="btn primaire plein" onClick={() => setCreation(true)}>
               + Créer un exercice{recherche ? ` « ${recherche} »` : ''}
             </button>
+            {equivalentsVisibles.length > 0 && (
+              <div>
+                <div className="faible" style={{ marginBottom: 4 }}>
+                  ⇄ Équivalents
+                </div>
+                {equivalentsVisibles.map((id) => ligne(catalogue.exercices[id], 'équivalent relié'))}
+              </div>
+            )}
             <div>
               {groupes.map((g) => (
                 <div key={g.muscle}>
@@ -75,21 +104,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], onCho
                     </span>
                     <span className="muted">{ouvert(g.muscle) ? '▾' : '▸'}</span>
                   </button>
-                  {ouvert(g.muscle) && g.exos.map((e) => (
-                    <button key={e.id} className="liste-btn" onClick={() => onChoix(e.id)}>
-                      <span className="avec-vignette">
-                        <Vignette exo={e} taille={40} />
-                        <span>
-                          <strong>{e.nom}</strong>
-                          <div className="faible">
-                            {e.type === 'compose' ? 'composé' : 'isolation'}
-                            {e.perso ? ' · perso' : ''}
-                          </div>
-                        </span>
-                      </span>
-                      <span className="muted">+</span>
-                    </button>
-                  ))}
+                  {ouvert(g.muscle) && g.exos.map((e) => ligne(e))}
                 </div>
               ))}
               {groupes.length === 0 && <div className="muted">Aucun exercice trouvé.</div>}

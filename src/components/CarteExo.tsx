@@ -41,6 +41,8 @@ interface Props {
   onAnnulerPasser: () => void
   /** Mode plein écran : sans « Machine prise » (reste sur l'écran normal). */
   focus?: boolean
+  /** Exercice jamais fait : dernière perf d'un équivalent relié, pour s'orienter. */
+  repere?: string
 }
 
 /** Instant de la dernière validation (horloge monotone, insensible aux changements d'heure du
@@ -75,6 +77,7 @@ export default function CarteExo({
   passe,
   onAnnulerPasser,
   focus,
+  repere,
 }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
@@ -154,6 +157,11 @@ export default function CarteExo({
         </div>
         <div className="muted">{sugg.message}</div>
       </div>
+      {repere && (
+        <div className="faible">
+          📌 Repère, sur l’équivalent : <strong>{repere}</strong>. Les charges ne se comparent pas d’une machine à l’autre : ajuste au ressenti.
+        </div>
+      )}
       {(plan.note || exo.notes) && <div className="faible">ℹ️ {plan.note ?? exo.notes}</div>}
 
       <div>

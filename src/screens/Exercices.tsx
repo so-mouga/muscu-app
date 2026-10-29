@@ -2,11 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { parMuscle } from '../components/ChoixExo'
+import ChoixExo from '../components/ChoixExo'
 import FormExo from '../components/FormExo'
 import Vignette from '../components/Vignette'
 import { MUSCLES } from '../data/exercices'
 import { db, exoAvecReglages } from '../db'
-import { dateCourte } from '../lib/calc'
+import { chargeTexte, dateCourte } from '../lib/calc'
+import { delies, lireEquivalents, modifierEquivalents, relies } from '../lib/equivalents'
+import { meilleureSerie } from '../lib/historique'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, Muscle } from '../types'
 import { Detail } from './Progression'
@@ -18,6 +21,7 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const [choisi, setChoisiEtat] = useState<string | null>(null)
   const [formulaire, setFormulaire] = useState<{ exo?: Exercice } | null>(null)
+  const [relier, setRelier] = useState(false)
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState<Filtre>('tous')
 
@@ -66,9 +70,38 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
 
   if (choisi) {
     const exo = exoAvecReglages(catalogue.exo(choisi), reglages)
+    const eq = lireEquivalents(reglages)
+    const liste = (eq[exo.id] ?? []).map((id) => {
+      const autre = catalogue.exo(id)
+      const s = seances.find((x) => x.series.some((y) => y.exoId === id))
+      const m = s && meilleureSerie(s.series.filter((y) => y.exoId === id))
+      return { exo: autre, derniere: s && m ? `${chargeTexte(autre, m.charge)} × ${m.reps} (${dateCourte(s.date)})` : undefined }
+    })
     return (
       <>
-        <Detail exo={exo} seances={seances} onRetour={() => setChoisi(null)} onModifier={() => setFormulaire({ exo })} onSupprimer={() => supprimer(exo)} />
+        <Detail
+          exo={exo}
+          seances={seances}
+          onRetour={() => setChoisi(null)}
+          onModifier={() => setFormulaire({ exo })}
+          onSupprimer={() => supprimer(exo)}
+          equivalents={liste}
+          onRelier={() => setRelier(true)}
+          onDelier={(id) => void modifierEquivalents((x) => delies(x, exo.id, id))}
+        />
+        {relier && (
+          <ChoixExo
+            catalogue={catalogue}
+            titre={`Relier à ${exo.nom}`}
+            muscle={exo.muscle}
+            exclure={[exo.id, ...(eq[exo.id] ?? [])]}
+            onFermer={() => setRelier(false)}
+            onChoix={(id) => {
+              setRelier(false)
+              void modifierEquivalents((x) => relies(x, exo.id, id))
+            }}
+          />
+        )}
         {form}
       </>
     )

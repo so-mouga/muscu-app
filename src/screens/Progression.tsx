@@ -11,12 +11,19 @@ export function Detail({
   onRetour,
   onModifier,
   onSupprimer,
+  equivalents,
+  onRelier,
+  onDelier,
 }: {
   exo: Exercice
   seances: Seance[]
   onRetour: () => void
   onModifier: () => void
   onSupprimer: () => void
+  /** Exercices reliés, avec leur dernière meilleure série. */
+  equivalents: { exo: Exercice; derniere?: string }[]
+  onRelier: () => void
+  onDelier: (id: string) => void
 }) {
   const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
   const chrono = [...avec].reverse()
@@ -77,6 +84,29 @@ export function Detail({
           </tbody>
         </table>
         {exo.notes && <div className="petit muted">📝 {exo.notes}</div>}
+      </div>
+
+      <div className="carte pile">
+        <div>
+          <h3>Équivalents</h3>
+          <div className="faible">
+            Exercices qui le remplacent quand la machine est prise. Ils sont proposés en premier, et chacun garde sa propre progression.
+          </div>
+        </div>
+        {equivalents.map((e) => (
+          <div key={e.exo.id} className="ligne entre">
+            <span>
+              ⇄ <strong>{e.exo.nom}</strong>
+              {e.derniere && <div className="faible">dernière fois : {e.derniere}</div>}
+            </span>
+            <button className="btn discret petit" onClick={() => onDelier(e.exo.id)}>
+              Délier
+            </button>
+          </div>
+        ))}
+        <button className="btn plein" onClick={onRelier}>
+          + Relier un exercice
+        </button>
       </div>
 
       <div className="carte">
