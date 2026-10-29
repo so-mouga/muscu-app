@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import type { Catalogue } from '../catalogue'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages } from '../db'
-import { chargeTexte, dureeEstimee, kg, reposTexte } from '../lib/calc'
+import { chargeTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
 import type { SeanceModele } from '../types'
@@ -19,6 +19,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const series = modele.exercices.reduce((a, p) => a + p.series.length, 0)
+  const habituelle = terminees && dureeHabituelle(modele.id, terminees)
 
   return (
     <div>
@@ -33,12 +34,17 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
       </div>
 
       <div className="ligne wrap" style={{ marginBottom: 12 }}>
-        <span className="pastille">≈ {dureeEstimee(modele)} min</span>
+        <span className="pastille">≈ {minutes(dureeEstimee(modele))} prévues</span>
+        {habituelle && <span className="pastille">⏱ {minutes(habituelle)} d’habitude</span>}
         <span className="pastille">
           {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''}
         </span>
         <span className="pastille">{series} séries</span>
         {modele.exercices.some((p) => p.finisseur) && <span className="pastille fin">★ {modele.exercices.filter((p) => p.finisseur).length} finisseur(s)</span>}
+      </div>
+
+      <div className="faible" style={{ marginBottom: 12 }}>
+        Prévu : 1 min par série et par échauffement, plus les repos.{habituelle ? ' D’habitude : tes 3 dernières séances.' : ''}
       </div>
 
       {modele.exercices.map((p, i) => {

@@ -1,0 +1,19 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useLiveQuery } from 'dexie-react-hooks';
+import Vignette from '../components/Vignette';
+import { db, exoAvecReglages } from '../db';
+import { chargeTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte } from '../lib/calc';
+import { useRetour } from '../lib/nav';
+import { suggestionPour } from '../lib/progression';
+export default function Apercu({ modele, catalogue, onDemarrer, onFermer }) {
+    useRetour(true, onFermer);
+    const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), []);
+    const reglages = useLiveQuery(() => db.reglages.toArray(), [], []);
+    const series = modele.exercices.reduce((a, p) => a + p.series.length, 0);
+    const habituelle = terminees && dureeHabituelle(modele.id, terminees);
+    return (_jsxs("div", { children: [_jsxs("div", { className: "entete", children: [_jsx("button", { className: "btn", onClick: onFermer, "aria-label": "Retour", children: "\u2190" }), _jsxs("div", { style: { flex: 1 }, children: [_jsx("h2", { children: modele.nom }), modele.sousTitre && _jsx("div", { className: "faible", children: modele.sousTitre })] })] }), _jsxs("div", { className: "ligne wrap", style: { marginBottom: 12 }, children: [_jsxs("span", { className: "pastille", children: ["\u2248 ", minutes(dureeEstimee(modele)), " pr\u00E9vues"] }), habituelle && _jsxs("span", { className: "pastille", children: ["\u23F1 ", minutes(habituelle), " d\u2019habitude"] }), _jsxs("span", { className: "pastille", children: [modele.exercices.length, " exercice", modele.exercices.length > 1 ? 's' : ''] }), _jsxs("span", { className: "pastille", children: [series, " s\u00E9ries"] }), modele.exercices.some((p) => p.finisseur) && _jsxs("span", { className: "pastille fin", children: ["\u2605 ", modele.exercices.filter((p) => p.finisseur).length, " finisseur(s)"] })] }), _jsxs("div", { className: "faible", style: { marginBottom: 12 }, children: ["Pr\u00E9vu : 1 min par s\u00E9rie et par \u00E9chauffement, plus les repos.", habituelle ? ' D’habitude : tes 3 dernières séances.' : ''] }), modele.exercices.map((p, i) => {
+                const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages);
+                const sugg = terminees && suggestionPour(exo, p, terminees);
+                return (_jsxs("div", { className: "carte pile", children: [_jsxs("div", { className: "ligne", style: { gap: 12 }, children: [_jsx(Vignette, { exo: exo, taille: 44 }), _jsxs("div", { style: { flex: 1, minWidth: 0 }, children: [_jsxs("strong", { children: [i + 1, ". ", exo.nom] }), p.optionnel && _jsx("span", { className: "faible", children: " (optionnel)" }), _jsxs("div", { className: "faible", children: [p.series.length, " \u00D7 ", p.series[0].repsMin === p.series[0].repsMax ? p.series[0].repsMin : `${p.series[0].repsMin}–${p.series[0].repsMax}`, " \u00B7 RPE", ' ', p.series.map((x) => kg(x.rpe)).join(', '), " \u00B7 repos ", reposTexte(p), p.finisseur && _jsx("span", { style: { color: 'var(--finisseur)' }, children: " \u00B7 \u2605 finisseur" })] })] })] }), sugg && (_jsxs("div", { className: "suggestion petit", children: [_jsxs("strong", { children: [chargeTexte(exo, sugg.charges[0]), sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`, " \u00D7 ", sugg.reps.join('/')] }), _jsx("div", { className: "muted", children: sugg.message })] })), p.chauffes.length > 0 && _jsxs("div", { className: "faible", children: ["Chauffe : ", p.chauffes.join(' · ')] }), (p.note || exo.notes) && _jsxs("div", { className: "faible", children: ["\u2139\uFE0F ", p.note ?? exo.notes] })] }, p.exoId + i));
+            }), _jsx("div", { className: "barre-demarrer", children: _jsx("button", { className: "btn primaire grand", onClick: onDemarrer, children: "D\u00C9MARRER" }) })] }));
+}

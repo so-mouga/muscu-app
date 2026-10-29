@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance } from '../types'
-import { e1rm, lireDuree, reposApres, volumeParMuscle, tempsParExo } from './calc'
+import { calories, dureeHabituelle, e1rm, lireDuree, reposApres, volumeParMuscle, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -98,5 +98,18 @@ describe('temps par exercice', () => {
   it('exercices entrecoupés : les intervalles s’additionnent', () => {
     const t = tempsParExo({ debut: 0, series: [serie('b', 9), serie('a', 3), serie('a', 6)] })
     expect(t).toEqual({ a: 6 * 60000, b: 3 * 60000 })
+  })
+})
+
+describe('durée habituelle et calories', () => {
+  const s = (debut: number, min: number, modeleId = 'a') =>
+    ({ id: String(debut), modeleId, debut, fin: debut + min * 60000, series: [{}] }) as unknown as Seance
+  it('médiane des 3 dernières séances du même modèle', () => {
+    expect(dureeHabituelle('a', [s(1, 50), s(2, 70), s(3, 62), s(4, 120, 'b'), s(0, 300)])).toBe(60)
+    expect(dureeHabituelle('z', [s(1, 50)])).toBeNull()
+  })
+  it('5 MET × poids × heures', () => {
+    expect(calories(3600000, 80)).toBe(400)
+    expect(calories(1800000)).toBe(188)
   })
 })

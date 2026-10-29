@@ -121,6 +121,34 @@ export function dureeEstimee(m: SeanceModele): number {
   return Math.round(s / 300) * 5
 }
 
+/** Durée réelle habituelle (min) d'une séance : médiane des 3 dernières fois, arrondie à 5 min. */
+export function dureeHabituelle(modeleId: string, terminees: Seance[]): number | null {
+  const d = terminees
+    .filter((s) => s.modeleId === modeleId && s.fin && s.series.length > 0)
+    .sort((a, b) => b.debut - a.debut)
+    .slice(0, 3)
+    .map((s) => s.fin! - s.debut)
+    .sort((a, b) => a - b)
+  if (!d.length) return null
+  return Math.max(5, Math.round(d[Math.floor(d.length / 2)] / 300000) * 5)
+}
+
+/** « 55 min », « 1 h 05 ». */
+export const minutes = (n: number) => (n < 60 ? `${n} min` : `${Math.floor(n / 60)} h ${String(n % 60).padStart(2, '0')}`)
+
+/** Durée affichée sur une séance : la durée réelle habituelle si elle existe, sinon l'estimation du plan. */
+export function dureeTexte(m: SeanceModele, terminees: Seance[] | undefined): string {
+  const h = terminees && dureeHabituelle(m.id, terminees)
+  return h ? `≈ ${minutes(h)} d’habitude` : `≈ ${minutes(dureeEstimee(m))}`
+}
+
+/** Muscu soutenue ≈ 5 MET ; poids par défaut 75 kg quand aucune pesée n'existe. */
+export const MET_MUSCU = 5
+export const POIDS_DEFAUT = 75
+export function calories(ms: number, poids?: number): number {
+  return Math.round((MET_MUSCU * (poids ?? POIDS_DEFAUT) * ms) / 3600000)
+}
+
 /**
  * Temps passé par exercice (ms) : chaque intervalle entre deux validations compte pour
  * l'exercice de la série validée (mise en place, chauffe et repos qui la précèdent compris).

@@ -44,6 +44,13 @@ interface Props {
 /** Heure de la dernière validation : bloque un double appui avant même le rafraîchissement de l'écran. */
 let derniereValidation = 0
 
+/** Objectif de la série `n` : « 60 kg × 10 · RPE 8 ». */
+export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number): string {
+  const j = Math.min(n, sugg.charges.length - 1)
+  const p = plan.series[Math.min(n, plan.series.length - 1)]
+  return `${chargeTexte(exo, sugg.charges[j])} × ${sugg.reps[j] ?? p.repsMin} · RPE ${kg(p.rpe)}`
+}
+
 export function majSeance(id: string, fn: (s: Seance) => void) {
   return db.seances.where('id').equals(id).modify(fn)
 }
@@ -75,11 +82,7 @@ export default function CarteExo({
   // Série à saisir maintenant (aucune quand l'exercice est fini ou seulement consulté).
   const enSaisie = termine || consultation ? -1 : faites.length
 
-  const cible = (n: number) => {
-    const j = Math.min(n, sugg.charges.length - 1)
-    const p = plan.series[Math.min(n, plan.series.length - 1)]
-    return `${chargeTexte(exo, sugg.charges[j])} × ${sugg.reps[j] ?? p.repsMin} · RPE ${kg(p.rpe)}`
-  }
+  const cible = (n: number) => cibleSerie(exo, plan, sugg, n)
 
   // Même série à la séance précédente (la plus proche si elle en avait moins).
   const avant = (n: number) => derniere?.[n]
@@ -256,7 +259,7 @@ export default function CarteExo({
           </button>
           {total > faites.length && (
             <button className="btn discret petit" onClick={() => ajuster(-1)}>
-              − retirer la série {index + 1}
+              − retirer une série
             </button>
           )}
         </div>

@@ -1110,3 +1110,127 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   font-size: 12px;
   margin-top: 2px;
 }
+
+/* Anneau d'avancement */
+.anneau {
+  position: relative;
+  flex: 0 0 auto;
+}
+.anneau svg circle {
+  transition: stroke-dashoffset 0.4s ease;
+}
+.anneau-centre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.anneau-pct {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Minuteur : bouton du temps (agrandir) */
+.minuteur .temps {
+  text-align: left;
+  color: inherit;
+  background: none;
+  padding: 0;
+}
+.minuteur .temps .agrandir {
+  font-size: 16px;
+  opacity: 0.55;
+  vertical-align: middle;
+}
+
+/* Minuteur plein écran */
+.minuteur.grand {
+  top: 0;
+  overflow-y: auto;
+  padding: calc(12px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+  border-top: none;
+  background: var(--bg);
+  animation: monte 0.25s ease-out;
+}
+.minuteur.grand.fini {
+  background: var(--ok);
+}
+.minuteur.grand.fini .detail-grand > * {
+  background: rgba(0, 0, 0, 0.12);
+  border-color: transparent;
+}
+.minuteur.grand.fini .faible,
+.minuteur.grand.fini .pastille {
+  color: inherit;
+}
+.contenu-grand {
+  max-width: 528px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.contenu-grand .reduire {
+  align-self: flex-end;
+  min-height: 40px;
+}
+.temps-grand {
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+}
+.contenu-grand .libelle {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+.boutons-grand {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.boutons-grand .btn {
+  min-height: 52px;
+  min-width: 64px;
+  font-size: 17px;
+}
+.grand-btn {
+  width: 100%;
+  min-height: 58px;
+  font-size: 18px;
+  font-weight: 800;
+}
+.minuteur.grand.fini .grand-btn {
+  background: #04140c;
+  color: var(--ok);
+}
+.detail-grand {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.prochaine-grand,
+.avancement-grand {
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-radius: var(--rayon);
+  padding: 14px 16px;
+}
+.prochaine-grand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cible-grand {
+  font-size: 22px;
+  font-weight: 800;
+}
+.avancement-grand {
+  gap: 14px;
+}

@@ -5,9 +5,9 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, kg, reposTexte } from '../lib/calc'
+import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
-import type { Exercice, ExoPlan, Programme, SeanceModele } from '../types'
+import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -55,6 +55,7 @@ async function sauverProgramme(p: Programme, catalogue: Catalogue) {
 export default function Seances({ catalogue }: { catalogue: Catalogue }) {
   const [pile, setPile] = useState<Vue[]>([])
   const masquees = useLiveQuery(() => db.modeles.filter((m) => !!m.supprime).toArray(), [], [])
+  const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
 
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
@@ -72,6 +73,8 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
         catalogue={catalogue}
         initial={vue.m}
         nouvelle={vue.nouvelle}
+        // Ouverte depuis un programme : c'est lui qui gère son contenu.
+        pourProgramme={pile[pile.length - 2]?.type === 'programme'}
         onFermer={(enregistree) =>
           fermer((reste) => {
             // Séance créée depuis un programme : on l'ajoute au brouillon du programme.
@@ -89,6 +92,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
         key={vue.initial.id}
         catalogue={catalogue}
         vue={vue}
+        terminees={terminees}
         setP={(p) => setPile((x) => x.map((v) => (v === vue ? { ...vue, p } : v)))}
         onOuvrirSeance={(m) => ouvrirSeance(m)}
         onNouvelleSeance={() => nouvelleSeance(true)}
@@ -138,7 +142,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
               <span>
                 <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
                 <div className="faible">
-                  {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''}
+                  {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {dureeTexte(m, terminees)}
                   {m.varianteDe ? ` · variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : ''}
                   {progs.length ? ` · ${progs.join(', ')}` : ' · dans aucun programme'}
                 </div>
@@ -166,6 +170,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
 
 function EditeurProgramme({
   catalogue,
+  terminees,
   vue,
   setP,
   onOuvrirSeance,
@@ -173,6 +178,7 @@ function EditeurProgramme({
   onFermer,
 }: {
   catalogue: Catalogue
+  terminees: Seance[] | undefined
   vue: Extract<Vue, { type: 'programme' }>
   setP: (p: Programme) => void
   onOuvrirSeance: (m: SeanceModele) => void
@@ -250,7 +256,7 @@ function EditeurProgramme({
               <strong>{m!.nom}</strong>
               <div className="faible">
                 {m!.sousTitre ? m!.sousTitre + ' · ' : ''}
-                {m!.exercices.length} exo{m!.exercices.length > 1 ? "s" : ""} ›
+                {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)} ›
               </div>
             </button>
             <select
@@ -350,18 +356,24 @@ function Editeur({
   catalogue,
   initial,
   nouvelle,
+  pourProgramme,
   onFermer,
 }: {
   catalogue: Catalogue
   initial: SeanceModele
   nouvelle: boolean
+  /** Ouverte depuis un programme : pas de choix de programme ici. */
+  pourProgramme: boolean
   /** Reçoit la séance quand elle vient d'être enregistrée. */
   onFermer: (enregistree?: SeanceModele) => void
 }) {
   const [m, setM] = useState(initial)
   const [choix, setChoix] = useState(false)
   const [editIdx, setEditIdx] = useState<number | null>(null)
-  const modifie = JSON.stringify(m) !== JSON.stringify(initial)
+  // Programmes qui contiennent la séance ; une nouvelle séance va par défaut dans le programme actif.
+  const progsInitiaux = catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === initial.id)).map((p) => p.id)
+  const [progs, setProgs] = useState<string[]>(nouvelle ? [catalogue.actif.id] : progsInitiaux)
+  const modifie = JSON.stringify(m) !== JSON.stringify(initial) || (!pourProgramme && [...progs].sort().join() !== [...progsInitiaux].sort().join())
   const prechargee = !!MODELES[m.id]
   const modifieeEnBase = useLiveQuery(() => db.modeles.get(m.id), [m.id])
 
@@ -388,6 +400,12 @@ function Editeur({
   const enregistrer = async () => {
     const finale = { ...m, nom: m.nom.trim(), sousTitre: m.sousTitre.trim() }
     await db.modeles.put(finale)
+    if (!pourProgramme)
+      for (const p of catalogue.programmes) {
+        const dedans = p.seances.some((e) => e.modeleId === finale.id)
+        if (progs.includes(p.id) && !dedans) await sauverProgramme({ ...p, seances: [...p.seances, { modeleId: finale.id }] }, catalogue)
+        if (!progs.includes(p.id) && dedans) await sauverProgramme({ ...p, seances: p.seances.filter((e) => e.modeleId !== finale.id) }, catalogue)
+      }
     onFermer(finale)
   }
   const dupliquer = async () => {
@@ -442,10 +460,36 @@ function Editeur({
               ))}
           </select>
         </label>
+        {!pourProgramme && (
+          <div className="champ">
+            <span>Programme{catalogue.programmes.length > 1 ? 's' : ''}</span>
+            <div className="chips">
+              {catalogue.programmes.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={progs.includes(p.id) ? 'actif' : ''}
+                  onClick={() => setProgs((x) => (x.includes(p.id) ? x.filter((y) => y !== p.id) : [...x, p.id]))}
+                >
+                  {progs.includes(p.id) ? '✓ ' : ''}
+                  {p.nom}
+                </button>
+              ))}
+            </div>
+            <span className="faible">
+              {progs.length === 0
+                ? 'Dans aucun programme : tu la retrouveras dans « Autre séance → Hors programme ».'
+                : 'Le jour de la semaine se règle dans le programme (onglet Programmes).'}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="carte">
-        <h3>Exercices</h3>
+        <div className="ligne entre">
+          <h3>Exercices</h3>
+          {m.exercices.length > 0 && <span className="faible">≈ {minutes(dureeEstimee(m))}</span>}
+        </div>
         {m.exercices.length === 0 && <div className="muted petit" style={{ marginTop: 8 }}>Aucun exercice pour l’instant.</div>}
         {m.exercices.map((p, i) => {
           const exo = catalogue.exo(p.exoId)

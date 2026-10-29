@@ -3,7 +3,7 @@ import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { MUSCLES } from '../data/exercices'
 import { db, dernierPoids, uid } from '../db'
-import { dateISO, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
+import { dateISO, dureeTexte, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import Apercu from './Apercu'
@@ -52,6 +52,7 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
   const pesees = useLiveQuery(() => db.pesees.orderBy('date').reverse().limit(14).toArray(), [], [])
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
+  const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
 
   const { planning, actif } = catalogue
   // Séances faites cette semaine pour un modèle (sa variante maison compte aussi).
@@ -104,7 +105,9 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
               <h2>
                 {proposee.modele.nom} {proposee.modele.sousTitre && <span className="muted">— {proposee.modele.sousTitre}</span>}
               </h2>
-              <div className="faible">{exercices(proposee.modele.exercices.length)}</div>
+              <div className="faible">
+                {exercices(proposee.modele.exercices.length)} · {dureeTexte(proposee.modele, terminees)}
+              </div>
             </div>
             <div className="ligne">
               <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => demarrer(proposee.modele)}>
@@ -186,6 +189,7 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
                       <button key={m.id} className="liste-btn" onClick={() => voir(m)}>
                         <span>
                           <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
+                          <div className="faible">{dureeTexte(m, terminees)}</div>
                         </span>
                         <span className="faible">{realisees(m) ? '✓' : jours.join(', ')}</span>
                       </button>

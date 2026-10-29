@@ -1,14 +1,31 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
-import CarteExo, { majSeance } from '../components/CarteExo'
+import Anneau from '../components/Anneau'
+import CarteExo, { cibleSerie, majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif from '../components/EditeurObjectif'
 import Interrupteur from '../components/Interrupteur'
 import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
-import { chargeTexte, chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, reposTexte, serieTexte, tempsParExo } from '../lib/calc'
+import {
+  calories,
+  chargeTexte,
+  chrono,
+  duree,
+  dureePrevueExo,
+  e1rm,
+  ecartSerie,
+  estDure,
+  kg,
+  minutes,
+  POIDS_DEFAUT,
+  reposApres,
+  reposTexte,
+  serieTexte,
+  tempsParExo,
+} from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { suggere, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
@@ -66,6 +83,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return m?.seanceId === seance.id ? m : null
   })
   const [toast, setToast] = useState<string | null>(null)
+  // Minuteur en plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
+  const [grand, setGrandEtat] = useState<boolean>(() => stocke('minuteurGrand', false))
+  const setGrand = (v: boolean) => (setGrandEtat(v), range('minuteurGrand', v))
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
   const [machinePrise, setMachinePrise] = useState(false)
@@ -246,6 +266,19 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const ordre = [...plans.keys()].slice(i0 + 1).concat([...plans.keys()].slice(0, i0 + 1))
     return ordre.find((j) => nbFaites(plans[j].exoId) < totalDe(j)) ?? -1
   })()
+  // Avancement : séries faites sur le total prévu (un exercice passé ne compte que ses séries faites).
+  const totalSeries = plans.reduce((a, _, i) => a + totalDe(i), 0)
+  const seriesFaites = plans.reduce((a, p) => a + nbFaites(p.exoId), 0)
+  const avancement = totalSeries ? seriesFaites / totalSeries : 0
+  const restantes = totalSeries - seriesFaites
+  // Temps restant : ~1 min par série et le repos qui la suit.
+  const resteSec = plans.reduce((a, p, i) => {
+    const t = totalDe(i)
+    for (let k = nbFaites(p.exoId); k < t; k++) a += 60 + reposApres(p, k, t)
+    return a
+  }, 0)
+  const kcal = calories(maintenant - seance.debut, seance.poidsCorps)
+
   const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance 💪'
   const reposRestant = minuteur ? Math.max(0, Math.ceil(resteRepos(minuteur, maintenant))) : 0
 
@@ -263,13 +296,72 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   const plan = plans[idx]
 
+  const saisir = () => {
+    setMinuteur(null)
+    if (enCours >= 0 && enCours !== idx) setIdx(enCours)
+    setTimeout(() => document.querySelector('.serie-bloc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
+  }
+
+  // Vue plein écran du minuteur : la prochaine série et l'avancement de la séance.
+  const detailGrand = (() => {
+    const avancementSeance = (
+      <div className="ligne avancement-grand">
+        <Anneau valeur={avancement} taille={56} epaisseur={5}>
+          <strong>{Math.round(avancement * 100)}%</strong>
+        </Anneau>
+        <div>
+          <div>
+            <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Toutes les séries sont faites'}</strong>
+            {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
+          </div>
+          <div className="faible">
+            ⏱ {chronoSeance(maintenant - seance.debut)} · 🔥 ≈ {kcal} kcal
+          </div>
+        </div>
+      </div>
+    )
+    if (enCours < 0) return <div className="detail-grand">{avancementSeance}</div>
+    const p = plans[enCours]
+    const exo = exos[enCours]
+    const n = nbFaites(p.exoId)
+    const t = totalDe(enCours)
+    const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
+    return (
+      <div className="detail-grand">
+        <div className="prochaine-grand">
+          <div className="faible">{enCours === idx ? 'Prochaine série' : 'Prochaine série · autre exercice'}</div>
+          <h2>{exo.nom}</h2>
+          <div className="ligne wrap" style={{ gap: 6 }}>
+            <span className="pastille accent">
+              Série {n + 1}/{t}
+            </span>
+            {p.finisseur && n === t - 1 && <span className="pastille fin">★ finisseur</span>}
+          </div>
+          <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n)}</div>
+          {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
+          {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
+          {(p.note || exo.notes) && <div className="faible">ℹ️ {p.note ?? exo.notes}</div>}
+        </div>
+        {avancementSeance}
+      </div>
+    )
+  })()
+
   return (
     <div className="apparait">
       <div className="entete colle">
         <div className="ligne entre" style={{ marginBottom: 10 }}>
-          <div>
-            <div className="faible">{seance.nom}</div>
-            <h3>
+          {totalSeries > 0 && (
+            <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait, reste ${restantes} séries`}>
+              <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
+            </Anneau>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="faible">
+              {seance.nom}
+              {totalSeries > 0 && (restantes > 0 ? ` · reste ${restantes} série${restantes > 1 ? 's' : ''}` : ' · tout est fait 💪')}
+            </div>
+            <h3 style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <span style={{ fontVariantNumeric: 'tabular-nums' }}>⏱ {chronoSeance(maintenant - seance.debut)}</span>
               <span className="muted" style={{ fontWeight: 400 }}>
                 {' '}
@@ -391,6 +483,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onChange={setMinuteur}
           ensuite={ensuite}
           onAller={enCours >= 0 && enCours !== idx ? () => setIdx(enCours) : enCours < 0 ? () => ouvrirFin(true) : undefined}
+          grand={grand}
+          onGrand={setGrand}
+          detail={detailGrand}
+          onSaisir={enCours >= 0 ? saisir : () => (setMinuteur(null), ouvrirFin(true))}
         />
       )}
     </div>
@@ -565,10 +661,15 @@ function FinSeance({
         <h2>{seance.nom}</h2>
         <div className="ligne wrap" style={{ marginTop: 8 }}>
           <span className="pastille">⏱ {duree(Date.now() - seance.debut)}</span>
+          <span className="pastille">🔥 ≈ {calories(Date.now() - seance.debut, seance.poidsCorps)} kcal</span>
           <span className="pastille">{dures} séries dures</span>
           <span className="pastille">{kg(Math.round(tonnage))} kg soulevés</span>
           {finisseurs > 0 && <span className="pastille fin">★ {finisseurs} finisseur(s)</span>}
           {chauffes > 0 && <span className="pastille">{chauffes} échauffement(s)</span>}
+        </div>
+        <div className="faible" style={{ marginTop: 8 }}>
+          Calories estimées d’après la durée et {seance.poidsCorps ? `ton poids (${kg(seance.poidsCorps)} kg)` : `un poids de ${POIDS_DEFAUT} kg : note ton poids sur l’accueil pour affiner`}.
+          C’est un ordre de grandeur, pas une mesure.
         </div>
       </div>
 
