@@ -133,6 +133,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     repriseAuto.current?.(finRepos)
   }, [finRepos])
 
+  // Série écrite en base : la saisie de la suivante peut s'ouvrir.
+  useEffect(() => setVerrou(false), [seance.series.length])
+
   // Nouveau repos : le plein écran revient sur le minuteur.
   useEffect(() => {
     setSaisie(false)
@@ -158,8 +161,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   const valider = (s: Serie, repos: number) => {
     debloquerSon()
+    // Verrou levé quand la série est écrite (voir plus haut), au pire après 8 s.
     setVerrou(true)
-    setTimeout(() => setVerrou(false), 1500)
+    setTimeout(() => setVerrou(false), 8000)
     setMinuteur({ debut: Date.now(), fin: Date.now() + repos * 1000, duree: repos })
     // Records (seulement s'il existe un historique pour comparer)
     const exo = exoAvecReglages(catalogue.exo(s.exoId), reglages)

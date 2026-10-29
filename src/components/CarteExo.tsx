@@ -382,6 +382,9 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       derniereValidation = performance.now()
     }
     vibrer(40)
+    // Nouvelle série : le repos démarre et le bouton se verrouille dès l'appui, sans attendre
+    // l'écriture (parfois lente sur téléphone) qui laissait le bouton actif.
+    if (!edition) onFini(s)
     try {
       const n = await majSeance(seance.id, (x) => {
         const k = x.series.findIndex((y) => y.id === s.id)
@@ -394,7 +397,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       alert(`La série n’a pas été enregistrée : ${(e as Error).message}\n(version ${__VERSION__})`)
       return
     }
-    onFini(s)
+    if (edition) onFini(s)
   }
 
   const supprimer = async () => {

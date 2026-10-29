@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { db, demanderStockagePersistant } from './db'
 import Secours from './Secours'
+import UneFenetre from './UneFenetre'
 import './styles.css'
 
 declare global {
@@ -21,7 +22,9 @@ db.on('blocked', () => void window.__erreurs?.push('base bloquée par un autre o
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Secours>
-      <App />
+      <UneFenetre>
+        <App />
+      </UneFenetre>
     </Secours>
   </StrictMode>
 )
