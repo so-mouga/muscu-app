@@ -153,6 +153,22 @@ export interface Pesee {
   poids: number
 }
 
+/** Prise de mensurations (cm). Clés : `taille`, ou `bras_g` / `bras_d` pour les mesures à deux côtés. */
+export interface Mesure {
+  date: string
+  valeurs: Record<string, number>
+}
+
+export type Pose = 'face' | 'profil' | 'dos'
+
+/** Photo de progression, gardée uniquement sur le téléphone (JPEG data URL). */
+export interface PhotoCorps {
+  id: string
+  date: string
+  pose: Pose
+  image: string
+}
+
 export interface Reglage {
   cle: string
   valeur: unknown

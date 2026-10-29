@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { MODELES } from './data/programme'
-import type { Exercice, Pesee, Programme, Reglage, Seance, SeanceModele, Serie } from './types'
+import type { Exercice, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele, Serie } from './types'
 
 export const db = new Dexie('muscu') as Dexie & {
   seances: EntityTable<Seance, 'id'>
@@ -11,6 +11,8 @@ export const db = new Dexie('muscu') as Dexie & {
   /** Exercices créés par l'utilisateur. */
   exercices: EntityTable<Exercice, 'id'>
   programmes: EntityTable<Programme, 'id'>
+  mesures: EntityTable<Mesure, 'date'>
+  photos: EntityTable<PhotoCorps, 'id'>
 }
 
 db.version(1).stores({
@@ -32,6 +34,7 @@ db.version(2)
   )
 
 db.version(3).stores({ programmes: 'id' })
+db.version(4).stores({ mesures: 'date', photos: 'id, date' })
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
@@ -59,42 +62,4 @@ export async function demanderStockagePersistant() {
   } catch {
     /* non disponible */
   }
-}
-
-// --- Export / import -------------------------------------------------------
-
-export async function exporterJSON(): Promise<string> {
-  const data = {
-    app: 'muscu',
-    version: 3,
-    exporteLe: new Date().toISOString(),
-    seances: await db.seances.toArray(),
-    pesees: await db.pesees.toArray(),
-    reglages: await db.reglages.toArray(),
-    modeles: await db.modeles.toArray(),
-    exercices: await db.exercices.toArray(),
-    programmes: await db.programmes.toArray(),
-  }
-  return JSON.stringify(data)
-}
-
-export async function importerJSON(texte: string) {
-  const data = JSON.parse(texte)
-  if (data?.app !== 'muscu' || !Array.isArray(data.seances)) throw new Error('Fichier non reconnu')
-  const tables = [db.seances, db.pesees, db.reglages, db.modeles, db.exercices, db.programmes]
-  await db.transaction('rw', tables, async () => {
-    await Promise.all(tables.map((t) => t.clear()))
-    await db.seances.bulkPut(
-      (data.seances as Seance[]).map((s) => ({
-        ...s,
-        exercices: s.exercices ?? structuredClone(MODELES[s.modeleId ?? '']?.exercices ?? []),
-        ajustSeries: s.ajustSeries ?? {},
-      }))
-    )
-    await db.pesees.bulkPut(data.pesees ?? [])
-    await db.reglages.bulkPut(data.reglages ?? [])
-    await db.modeles.bulkPut(data.modeles ?? [])
-    await db.exercices.bulkPut(data.exercices ?? [])
-    await db.programmes.bulkPut(data.programmes ?? [])
-  })
 }

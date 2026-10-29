@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
-import { db, exporterJSON, importerJSON, setReglage } from '../db'
+import { db, setReglage } from '../db'
+import { useRetour } from '../lib/nav'
+import { CATEGORIES, compter, exporter as exporterDonnees, importer as importerDonnees, lire, type Categorie, type Fichier } from '../lib/sauvegarde'
 import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, tic } from '../lib/appareil'
@@ -42,10 +44,15 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
     navigator.storage?.persisted?.().then(setPersistant, () => setPersistant(null))
   }, [])
 
-  const exporter = async () => {
+  const [choixExport, setChoixExport] = useState(false)
+  const [fichier, setFichier] = useState<Fichier | null>(null)
+
+  const exporter = async (cats: Categorie[]) => {
     try {
-      await partagerOuTelecharger(`muscu-${jour}.json`, await exporterJSON(), 'application/json')
-      await setReglage('dernierExport', Date.now())
+      await partagerOuTelecharger(`muscu-${jour}${cats.length === 1 ? '-' + cats[0] : ''}.json`, await exporterDonnees(cats), 'application/json')
+      // Le rappel d'export ne se calme que si l'historique est sauvegardé.
+      if (cats.includes('historique')) await setReglage('dernierExport', Date.now())
+      setChoixExport(false)
       setMessage('Export prêt ✓')
     } catch {
       /* partage annulé */
@@ -71,12 +78,10 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
     }
   }
 
-  const importer = async (f: File | undefined) => {
+  const ouvrirFichier = async (f: File | undefined) => {
     if (!f) return
-    if (!confirm('Remplacer toutes les données de ce téléphone par celles du fichier ?')) return
     try {
-      await importerJSON(await f.text())
-      setMessage('Import terminé ✓')
+      setFichier(lire(await f.text()))
     } catch (e) {
       setMessage('Import impossible : ' + (e as Error).message)
     }
@@ -133,18 +138,36 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
           Dernier export :{' '}
           {dernierExport ? new Date(dernierExport.valeur as number).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : 'jamais'}
         </div>
-        <button className="btn primaire plein" onClick={exporter}>
-          Exporter tout (JSON)
-        </button>
-        <button className="btn plein" onClick={exporterCSV}>
-          Exporter les séries (CSV)
+        <button className="btn primaire plein" onClick={() => setChoixExport(true)}>
+          Exporter…
         </button>
         <label className="btn plein">
-          Importer un export JSON
-          <input type="file" accept="application/json,.json" hidden onChange={(e) => importer(e.target.files?.[0])} />
+          Importer…
+          <input
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(e) => {
+              void ouvrirFichier(e.target.files?.[0])
+              e.target.value = ''
+            }}
+          />
         </label>
+        <button className="btn discret plein" onClick={exporterCSV}>
+          Exporter les séries en tableur (CSV)
+        </button>
         {message && <div className="petit">{message}</div>}
       </div>
+      {choixExport && <ChoixExport onExporter={exporter} onFermer={() => setChoixExport(false)} />}
+      {fichier && (
+        <ChoixImport
+          fichier={fichier}
+          onFini={(m) => {
+            setFichier(null)
+            if (m) setMessage(m)
+          }}
+        />
+      )}
 
       <div className="carte pile">
         <h3>Stockage</h3>
@@ -161,6 +184,107 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
           Les suggestions de charge sont des propositions : c’est toi qui décides. Les pas de charge se règlent par exercice dans Progression.
         </div>
         <div className="faible">Version du {__VERSION__}</div>
+      </div>
+    </div>
+  )
+}
+
+/** Case à cocher d'une catégorie de données. */
+function Case({ coche, onClick, nom, detail }: { coche: boolean; onClick: () => void; nom: string; detail: string }) {
+  return (
+    <button className={'liste-btn' + (coche ? ' coche' : '')} onClick={onClick}>
+      <span>
+        <strong>{nom}</strong>
+        <div className="faible">{detail}</div>
+      </span>
+      <span className="case">{coche ? '✓' : ''}</span>
+    </button>
+  )
+}
+
+const basculer = <T,>(x: T[], v: T) => (x.includes(v) ? x.filter((y) => y !== v) : [...x, v])
+
+function ChoixExport({ onExporter, onFermer }: { onExporter: (cats: Categorie[]) => void; onFermer: () => void }) {
+  useRetour(true, onFermer)
+  const nombres = useLiveQuery(compter, [])
+  // Tout sauf les photos, lourdes, par défaut.
+  const [cats, setCats] = useState<Categorie[]>(CATEGORIES.filter((c) => c.id !== 'photos').map((c) => c.id))
+  return (
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <div>
+          <h2>Exporter</h2>
+          <div className="faible">Choisis ce que tu sauvegardes. Pour une sauvegarde complète, garde tout coché (et les photos de temps en temps).</div>
+        </div>
+        <div>
+          {CATEGORIES.map((c) => (
+            <Case
+              key={c.id}
+              coche={cats.includes(c.id)}
+              onClick={() => setCats((x) => basculer(x, c.id))}
+              nom={`${c.nom}${nombres ? ` (${nombres[c.id]})` : ''}`}
+              detail={c.detail}
+            />
+          ))}
+        </div>
+        <button className="btn primaire grand" disabled={!cats.length} onClick={() => onExporter(cats)}>
+          EXPORTER
+        </button>
+        <button className="btn discret plein" onClick={onFermer}>
+          Annuler
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ChoixImport({ fichier, onFini }: { fichier: Fichier; onFini: (message?: string) => void }) {
+  useRetour(true, () => onFini())
+  const [cats, setCats] = useState<Categorie[]>(fichier.presentes.map((c) => c.id))
+  const [remplacer, setRemplacer] = useState(false)
+  const lancer = async () => {
+    if (remplacer && !confirm('Effacer ces données sur ce téléphone et les remplacer par celles du fichier ?')) return
+    try {
+      await importerDonnees(fichier, cats, remplacer)
+      onFini('Import terminé ✓')
+    } catch (e) {
+      onFini('Import impossible : ' + (e as Error).message)
+    }
+  }
+  return (
+    <div className="modal-fond" onClick={() => onFini()}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <div>
+          <h2>Importer</h2>
+          {fichier.exporteLe && (
+            <div className="faible">Export du {new Date(fichier.exporteLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          )}
+        </div>
+        <div>
+          {fichier.presentes.map((p) => {
+            const c = CATEGORIES.find((x) => x.id === p.id)!
+            return <Case key={p.id} coche={cats.includes(p.id)} onClick={() => setCats((x) => basculer(x, p.id))} nom={`${c.nom} (${p.n})`} detail={c.detail} />
+          })}
+        </div>
+        <div className="segments" role="tablist">
+          <button className={!remplacer ? 'actif' : ''} onClick={() => setRemplacer(false)}>
+            Ajouter
+          </button>
+          <button className={remplacer ? 'actif' : ''} onClick={() => setRemplacer(true)}>
+            Remplacer
+          </button>
+        </div>
+        <div className="faible">
+          {remplacer
+            ? 'Restauration : les données cochées sont effacées sur ce téléphone, puis remplacées par celles du fichier.'
+            : 'Les données du fichier s’ajoutent aux tiennes (un élément identique est mis à jour). Rien n’est effacé.'}
+        </div>
+        <button className={'btn grand' + (remplacer ? ' danger' : ' primaire')} disabled={!cats.length} onClick={lancer}>
+          {remplacer ? 'REMPLACER' : 'AJOUTER'}
+        </button>
+        <button className="btn discret plein" onClick={() => onFini()}>
+          Annuler
+        </button>
       </div>
     </div>
   )
