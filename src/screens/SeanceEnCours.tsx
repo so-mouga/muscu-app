@@ -15,7 +15,7 @@ import { calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minute
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
-import { hausse, pareil, suggestionPour, type Suggestion } from '../lib/progression'
+import { hausse, pareil, seancesIdentiques, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
@@ -181,6 +181,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   if (!terminees || !reglages) return null
 
   const equivalents = lireEquivalents(reglages)
+  /** Dernière note laissée sur cet exercice (réglage machine, sensation), pour la retrouver. */
+  const noteAvant = (exoId: string) => terminees.find((s) => s.notes[exoId]?.trim())?.notes[exoId]
   /** Exercice jamais fait : la dernière perf d'un équivalent relié (séance du jour comprise). */
   const repereDe = (exoId: string) => {
     if (historiqueDe(terminees, exoId).length) return undefined
@@ -511,6 +513,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   {plus && <span className="badge-hausse">↑ {plus}</span>}
                   {derniereFois?.[n] && <div className="faible">Dernière fois : {serieTexte(exo, derniereFois[n])}</div>}
                   {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
+                  {noteAvant(p.exoId) && !seance.notes[p.exoId] && <div className="faible">📝 La dernière fois : {noteAvant(p.exoId)}</div>}
                 </div>
                 <Editeur
                   key={`${p.exoId}-${n}-${suggestions[enCours].charges.join()}`}
@@ -603,6 +606,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onAllerEnCours={allerEnCours}
           repere={repereDe(plan.exoId)}
           onObjectif={!seance.deload && historiqueDe(terminees, plan.exoId).length ? () => setObjectifDe(idx) : undefined}
+          noteAvant={noteAvant(plan.exoId)}
+          identiques={seance.deload ? 0 : seancesIdentiques(historiqueDe(terminees, plan.exoId))}
         />
       ) : (
         <div className="carte pile">

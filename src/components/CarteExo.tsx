@@ -46,6 +46,10 @@ interface Props {
   repere?: string
   /** Régler l'objectif sur place (absent quand l'exercice n'a pas d'historique). */
   onObjectif?: () => void
+  /** Note laissée sur cet exercice à une séance précédente (réglage machine, sensation…). */
+  noteAvant?: string
+  /** Séances d'affilée avec exactement les mêmes séries (stagnation à partir de 3). */
+  identiques?: number
 }
 
 /** Instant de la dernière validation (horloge monotone, insensible aux changements d'heure du
@@ -81,6 +85,8 @@ export default function CarteExo({
   onAnnulerPasser,
   repere,
   onObjectif,
+  noteAvant,
+  identiques = 0,
 }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
@@ -188,7 +194,13 @@ export default function CarteExo({
             )
           )}
         </div>
-        <div className="muted">{battre ? 'Tu as prévu de faire mieux que la dernière fois : c’est ici qu’on progresse.' : sugg.message}</div>
+        <div className="muted">
+          {battre
+            ? 'Tu as prévu de faire mieux que la dernière fois : c’est ici qu’on progresse.'
+            : identiques >= 3
+              ? `⏸ Mêmes charges et mêmes reps depuis ${identiques} séances : tente +1 rep ou un cran de charge${onObjectif ? ' (✎ Modifier)' : ''}.`
+              : sugg.message}
+        </div>
         {battre && onObjectif && (
           <button className="btn discret petit lien-action" onClick={onObjectif}>
             ✎ Modifier l’objectif
@@ -201,6 +213,7 @@ export default function CarteExo({
         </div>
       )}
       {(plan.note || exo.notes) && <div className="faible">ℹ️ {plan.note ?? exo.notes}</div>}
+      {noteAvant && !seance.notes[exo.id] && <div className="faible">📝 La dernière fois : {noteAvant}</div>}
 
       <div>
         {plan.chauffes.length > 0 && faites.length > 0 && !voirChauffes && (

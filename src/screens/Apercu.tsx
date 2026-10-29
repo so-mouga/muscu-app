@@ -7,7 +7,7 @@ import { db, exoAvecReglages, historiqueDe } from '../db'
 import { chargeQte, cibleTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
-import { hausse, suggestionPour } from '../lib/progression'
+import { hausse, seancesIdentiques, suggestionPour } from '../lib/progression'
 import type { SeanceModele } from '../types'
 
 interface Props {
@@ -98,7 +98,11 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
                     {derniere && <> · dernière fois {derniere.map((x) => chargeQte(exo, x.charge, x.reps)).join(', ')}</>}
                   </div>
                 ) : (
-                  <div className="muted">{sugg.message}</div>
+                  <div className="muted">
+                    {terminees && seancesIdentiques(historiqueDe(terminees, p.exoId)) >= 3
+                      ? `⏸ Mêmes charges et mêmes reps depuis ${seancesIdentiques(historiqueDe(terminees, p.exoId))} séances : tente +1 rep ou un cran de charge (✎).`
+                      : sugg.message}
+                  </div>
                 )}
                 {derniere && !deload && (
                   <button className="btn discret petit lien-action" onClick={() => setObjectif(i)}>

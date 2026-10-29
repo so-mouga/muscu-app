@@ -2104,3 +2104,55 @@ button.pastille.cliquable {
   font-weight: 800;
   margin-right: 6px;
 }
+
+/* Silhouette des muscles travaillés */
+.silhouette-volume {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.figures-volume {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+.figure-volume {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 42%;
+  max-width: 160px;
+}
+.figure-volume svg {
+  width: 100%;
+  height: auto;
+}
+.detail-volume {
+  min-height: 22px;
+  font-size: 15px;
+  text-align: center;
+}
+.legende-volume {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.case-volume {
+  width: 22px;
+  height: 10px;
+  border-radius: 3px;
+}
+.corps-semaine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+}
+.corps-semaine strong {
+  color: var(--texte);
+}

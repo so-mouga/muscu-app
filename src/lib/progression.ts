@@ -235,3 +235,20 @@ export function hausse(exo: Exercice, sugg: Suggestion, derniere: Serie[] | unde
 
 /** L'objectif dépasse la dernière fois sur au moins une série : « à battre ». */
 export const aBattre = (exo: Exercice, sugg: Suggestion, derniere: Serie[] | undefined) => sugg.charges.some((_, i) => hausse(exo, sugg, derniere, i) !== null)
+
+/**
+ * Séances d'affilée, les plus récentes, avec exactement les mêmes séries (charges et reps) :
+ * à partir de 3, l'exercice stagne. Les finisseurs ne comptent pas.
+ */
+export function seancesIdentiques(historique: Serie[][]): number {
+  const sig = (h: Serie[]) =>
+    h
+      .filter((s) => s.type === 'normale')
+      .map((s) => `${s.charge}×${s.reps}`)
+      .join('|')
+  const l = historique.filter((h) => h.some((s) => s.type === 'normale'))
+  if (!l.length) return 0
+  let n = 1
+  while (n < l.length && sig(l[n]) === sig(l[0])) n++
+  return n
+}

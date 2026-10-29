@@ -7,6 +7,7 @@ import { creneauxFaits, dureeReelle } from '../lib/historique'
 import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
+import SilhouetteVolume from '../components/SilhouetteVolume'
 import VolumeMuscles from '../components/VolumeMuscles'
 import FormActivite from '../components/FormActivite'
 import { typeActivite } from '../data/activites'
@@ -72,6 +73,7 @@ export default function Accueil({
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   const [activite, setActivite] = useState(false)
+  const [detailVolume, setDetailVolume] = useState(false)
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
     try {
@@ -280,11 +282,20 @@ export default function Accueil({
             </span>
           ))}
         </div>
-        <VolumeMuscles volume={volume} cibles={cycle ? cibles(cycle) : undefined} />
-        <div className="faible">
-          Séries dures (RPE ≥ 7). Triceps et avant d’épaule : développés et dips comptés à 0,5. « Suivi seulement » : pas d’objectif pour ce muscle, tu peux
-          en fixer un dans les réglages du cycle.
-        </div>
+        <SilhouetteVolume volume={volume} cibles={cycle ? cibles(cycle) : undefined} />
+        <button type="button" className="groupe-repli" onClick={() => setDetailVolume(!detailVolume)} aria-expanded={detailVolume}>
+          <span>Détail par muscle</span>
+          <span className="muted">{detailVolume ? '▾' : '▸'}</span>
+        </button>
+        {detailVolume && (
+          <>
+            <VolumeMuscles volume={volume} cibles={cycle ? cibles(cycle) : undefined} />
+            <div className="faible">
+              Séries dures (RPE ≥ 7). Triceps et avant d’épaule : développés et dips comptés à 0,5. « Suivi seulement » : pas d’objectif pour ce muscle, tu
+              peux en fixer un dans les réglages du cycle.
+            </div>
+          </>
+        )}
       </div>
 
 

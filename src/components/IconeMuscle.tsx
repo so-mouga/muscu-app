@@ -1,7 +1,7 @@
 import { MUSCLES, type Zone } from '../data/exercices'
 import type { Muscle } from '../types'
 
-type Forme = { m?: Muscle; e: [number, number, number, number] } | { m?: Muscle; d: string }
+export type Forme = { m?: Muscle; e: [number, number, number, number] } | { m?: Muscle; d: string }
 
 // Silhouette stylisée (viewBox 60 × 100), une paire de formes par muscle.
 const paire = (m: Muscle | undefined, x: number, y: number, rx: number, ry: number): Forme[] => [
@@ -15,7 +15,7 @@ const COMMUN: Forme[] = [
   ...paire(undefined, 25.5, 94, 3, 2.2), // pieds
 ]
 
-const AVANT: Forme[] = [
+export const AVANT: Forme[] = [
   ...COMMUN,
   { d: 'M27 14h6v5h-6z' }, // cou
   ...paire('epaule_laterale', 15.5, 23, 3.6, 5),
@@ -30,7 +30,7 @@ const AVANT: Forme[] = [
   ...paire(undefined, 25.5, 85.5, 3, 6.5), // tibias
 ]
 
-const ARRIERE: Forme[] = [
+export const ARRIERE: Forme[] = [
   ...COMMUN,
   { m: 'trapezes', d: 'M30 14 L38 21 L30 30 L22 21 Z' },
   ...paire('epaule_arriere', 16, 23, 3.8, 4.8),

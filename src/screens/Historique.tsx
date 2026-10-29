@@ -230,6 +230,21 @@ function Calendrier({
 /** Cette semaine comparée à la précédente. */
 function BilanSemaine({ actuel, avant, activites, activitesAvant }: { actuel: Bilan; avant: Bilan; activites: Activite[]; activitesAvant: Activite[] }) {
   const minutes = (l: Activite[]) => l.reduce((a, x) => a + x.duree, 0)
+  // Corps : poids moyen de la semaine et dernière taille mesurée, comparés à la semaine d'avant.
+  const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
+  const mesures = useLiveQuery(() => db.mesures.orderBy('date').toArray(), [], [])
+  const cetteSemaine = lundi()
+  const precedente = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') - 7 * 86400000))
+  const moyenne = (debut: string, fin: string) => {
+    const l = pesees.filter((p) => p.date >= debut && p.date < fin)
+    return l.length ? l.reduce((a, p) => a + p.poids, 0) / l.length : null
+  }
+  const poids = moyenne(cetteSemaine, '9999')
+  const poidsAvant = moyenne(precedente, cetteSemaine)
+  const tailles = mesures.filter((m) => m.valeurs.taille !== undefined)
+  const taille = tailles.filter((m) => m.date >= cetteSemaine).pop()
+  const tailleAvant = taille && [...tailles].reverse().find((m) => m.date < taille.date)
+  const ecart = (d: number, u: string) => ` (${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(Math.round(d * 10) / 10))} ${u})`
   // Semaine dernière vide : rien à comparer, on n'affiche pas de « ↑ vs 0 ».
   const comparable = avant.seances > 0 || activitesAvant.length > 0
   const tuile = (valeur: string, label: string, n: number, m: number, texteAvant: string) => (
@@ -264,6 +279,22 @@ function BilanSemaine({ actuel, avant, activites, activitesAvant }: { actuel: Bi
             minutes(activitesAvant) ? duree(minutes(activitesAvant) * 60000) : '0'
           )}
       </div>
+      {(poids !== null || taille) && (
+        <div className="faible corps-semaine">
+          {poids !== null && (
+            <span>
+              Poids moyen <strong>{kg(Math.round(poids * 10) / 10)} kg</strong>
+              {poidsAvant !== null && ecart(poids - poidsAvant, 'kg')}
+            </span>
+          )}
+          {taille && (
+            <span>
+              Taille <strong>{kg(taille.valeurs.taille)} cm</strong>
+              {tailleAvant && ecart(taille.valeurs.taille - tailleAvant.valeurs.taille, 'cm')}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
