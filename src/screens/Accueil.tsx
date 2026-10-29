@@ -3,7 +3,8 @@ import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { MUSCLES } from '../data/exercices'
 import { db, dernierPoids, uid } from '../db'
-import { dateISO, dureeTexte, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
+import { dateISO, duree, dureeTexte, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
+import { dureeReelle } from '../lib/historique'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import Apercu from './Apercu'
@@ -40,7 +41,7 @@ async function creerSeance(modele?: SeanceModele) {
   })
 }
 
-export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
+export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalogue; onVoirSeance: (id: string) => void }) {
   const [choix, setChoix] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
@@ -81,6 +82,7 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
   const groupeOuvert = ouvert ?? actif.id
 
   const volume = volumeParMuscle(semaine, catalogue.exercices)
+  const derniere = terminees?.reduce<(typeof terminees)[number] | undefined>((a, s) => (!a || s.debut > a.debut ? s : a), undefined)
 
   if (apercu) return <Apercu modele={apercu} catalogue={catalogue} onDemarrer={() => demarrer(apercu)} onFermer={() => voir(null)} />
 
@@ -140,6 +142,21 @@ export default function Accueil({ catalogue }: { catalogue: Catalogue }) {
           )}
         </div>
       </div>
+
+      {derniere && (
+        <button className="liste-btn" style={{ marginBottom: 12 }} onClick={() => onVoirSeance(derniere.id)}>
+          <span>
+            <span className="faible">Dernière séance</span>
+            <div>
+              <strong>{derniere.nom}</strong>{' '}
+              <span className="muted">
+                · {new Date(derniere.debut).toLocaleDateString('fr-FR', { weekday: 'long' })} · {duree(dureeReelle(derniere))}
+              </span>
+            </div>
+          </span>
+          <span className="muted">›</span>
+        </button>
+      )}
 
       <div className="carte">
         <div className="ligne entre" style={{ marginBottom: 10 }}>

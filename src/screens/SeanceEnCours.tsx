@@ -7,25 +7,10 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif from '../components/EditeurObjectif'
 import Interrupteur from '../components/Interrupteur'
 import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
+import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
-import {
-  calories,
-  chargeTexte,
-  chrono,
-  duree,
-  dureePrevueExo,
-  e1rm,
-  ecartSerie,
-  estDure,
-  kg,
-  minutes,
-  POIDS_DEFAUT,
-  reposApres,
-  reposTexte,
-  serieTexte,
-  tempsParExo,
-} from '../lib/calc'
+import { calories, chargeTexte, e1rm, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { suggere, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
@@ -695,33 +680,17 @@ function FinSeance({
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
   const [ajuste, setAjuste] = useState<string | null>(null)
-  const dures = seance.series.filter(estDure).length
-  const tonnage = seance.series.reduce((a, s) => a + s.charge * s.reps, 0)
-  const finisseurs = seance.series.filter((s) => s.type === 'serie_longue' || s.type === 'drop' || s.type === 'rest_pause').length
-  const chauffes = Object.values(seance.chauffes).filter(Boolean).length
   const libre = !modele && seance.exercices.length > 0
-  const passe = tempsParExo(seance)
 
-  // « Prévoir la prochaine séance » : proposition automatique calculée avec cette séance incluse,
+  // « Prochaine fois » : proposition automatique calculée avec cette séance incluse,
   // remplaçable par un objectif fixé à la main.
   const avecCelleCi = [seance, ...terminees]
-  const prochaines = seance.exercices
-    .filter((p) => seance.series.some((s) => s.exoId === p.exoId))
-    .map((p) => {
-      const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
-      const i = seance.exercices.indexOf(p)
-      const avant = historiqueDe(terminees, p.exoId)
-      return {
-        exo,
-        plan: p,
-        record: Math.max(0, ...avant.flat().map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0)),
-        s: suggere(exo, p, historiqueDe(avecCelleCi, p.exoId)),
-        series: seance.series.filter((x) => x.exoId === p.exoId),
-        avant: avant[0] ?? [],
-        ms: passe[p.exoId] ?? 0,
-        prevu: dureePrevueExo(seance.exercices, i),
-      }
-    })
+  const suggestionDe = (exoId: string) => {
+    const p = seance.exercices.find((x) => x.exoId === exoId)!
+    const exo = exoAvecReglages(catalogue.exo(exoId), reglages)
+    return { exo, s: suggere(exo, p, historiqueDe(avecCelleCi, exoId)) }
+  }
+  const faits = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
 
   const enregistrer = async () => {
     let modeleId = seance.modeleId
@@ -764,97 +733,26 @@ function FinSeance({
       </div>
       <div className="carte">
         <h2>{seance.nom}</h2>
-        <div className="ligne wrap" style={{ marginTop: 8 }}>
-          <span className="pastille">⏱ {duree(Date.now() - seance.debut)}</span>
-          <span className="pastille">🔥 ≈ {calories(Date.now() - seance.debut, seance.poidsCorps)} kcal</span>
-          <span className="pastille">{dures} séries dures</span>
-          <span className="pastille">{kg(Math.round(tonnage))} kg soulevés</span>
-          {finisseurs > 0 && <span className="pastille fin">★ {finisseurs} finisseur(s)</span>}
-          {chauffes > 0 && <span className="pastille">{chauffes} échauffement(s)</span>}
-        </div>
-        <div className="faible" style={{ marginTop: 8 }}>
-          Calories estimées d’après la durée et {seance.poidsCorps ? `ton poids (${kg(seance.poidsCorps)} kg)` : `un poids de ${POIDS_DEFAUT} kg : note ton poids sur l’accueil pour affiner`}.
-          C’est un ordre de grandeur, pas une mesure.
-        </div>
+        <ResumeSeance seance={seance} explication />
       </div>
 
-      {prochaines.length > 0 && (
+      {faits.length > 0 && (
         <>
           <h3 style={{ margin: '18px 0 4px' }}>Récap par exercice</h3>
           <div className="faible" style={{ marginBottom: 10 }}>
             Tes séries comparées à la dernière fois, puis l’objectif de la prochaine séance : l’appli le propose, tu peux le changer.
           </div>
-          {prochaines.map(({ exo, plan, record, s, series, avant, ms, prevu }) => {
-            const o = objectifs[exo.id]
-            const charges = o?.charges ?? s.charges
-            const reps = o?.reps ?? s.reps
-            const r0 = plan.series[0]
-            const ch = plan.chauffes.filter((_, k) => seance.chauffes[`${exo.id}:${k}`]).length
-            const volumeExo = series.reduce((a, x) => a + x.charge * x.reps, 0)
-            const meilleur = Math.max(0, ...series.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
-            return (
-              <div key={exo.id} className="carte pile recap">
-                <div>
-                  <div className="ligne entre" style={{ alignItems: 'baseline' }}>
-                    <strong>{exo.nom}</strong>
-                    {ms > 0 && (
-                      <span className="faible" style={{ whiteSpace: 'nowrap' }}>
-                        ⏱ {duree(ms)} <span className="muted">/ prévu {duree(prevu * 1000)}</span>
-                      </span>
-                    )}
-                  </div>
-                  <div className="faible">
-                    Visé : {plan.series.length} × {r0.repsMin === r0.repsMax ? r0.repsMin : `${r0.repsMin}–${r0.repsMax}`} · RPE{' '}
-                    {plan.series.map((x) => kg(x.rpe)).join(', ')} · repos {reposTexte(plan)}
-                  </div>
-                </div>
-                <div>
-                  {series.map((x, k) => {
-                    const e = ecartSerie(x, avant[k])
-                    const ecartRpe = x.rpeCible !== undefined ? x.rpe - x.rpeCible : 0
-                    return (
-                      <div key={x.id} className="recap-serie">
-                        <div className="ligne entre">
-                          <span>
-                            <span className="faible">S{k + 1}</span> {serieTexte(exo, x)}
-                            {x.douleur ? ' ⚠️' : ''}
-                          </span>
-                          {e ? (
-                            <span className={'avant ' + e.sens} style={{ display: 'inline', marginTop: 0 }}>
-                              {e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓'} {e.texte}
-                            </span>
-                          ) : (
-                            <span className="faible">{avant.length ? '' : '1re fois'}</span>
-                          )}
-                        </div>
-                        <div className="faible petit-info">
-                          {x.rpeCible !== undefined && (
-                            <span style={ecartRpe > 0.5 ? { color: 'var(--alerte)' } : undefined}>
-                              RPE visé {kg(x.rpeCible)}
-                              {ecartRpe ? ` (${ecartRpe > 0 ? '+' : '−'}${kg(Math.abs(ecartRpe))})` : ' ✓'}
-                            </span>
-                          )}
-                          {k > 0 && <span>⏱ {chrono((x.heure - series[k - 1].heure) / 1000)} depuis S{k}</span>}
-                          {avant[k] && <span>avant : {serieTexte(exo, avant[k])}</span>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="ligne wrap" style={{ gap: 6 }}>
-                  {plan.chauffes.length > 0 && (
-                    <span className="pastille">
-                      Échauffement {ch}/{plan.chauffes.length}
-                    </span>
-                  )}
-                  {volumeExo > 0 && <span className="pastille">{kg(Math.round(volumeExo))} kg soulevés</span>}
-                  {meilleur > 0 && (
-                    <span className={'pastille' + (record && meilleur > record ? ' ok' : '')}>
-                      1RM estimé {kg(Math.round(meilleur * 2) / 2)} kg{record && meilleur > record ? ' · record 🏆' : ''}
-                    </span>
-                  )}
-                </div>
-                {seance.notes[exo.id] && <div className="faible">📝 {seance.notes[exo.id]}</div>}
+          <RecapExos
+            seance={seance}
+            avant={terminees}
+            reglages={reglages}
+            catalogue={catalogue}
+            basExo={(exo) => {
+              const { s } = suggestionDe(exo.id)
+              const o = objectifs[exo.id]
+              const charges = o?.charges ?? s.charges
+              const reps = o?.reps ?? s.reps
+              return (
                 <button className="prochaine" onClick={() => setAjuste(exo.id)}>
                   <span>
                     <span className="label">Prochaine fois</span>
@@ -868,9 +766,9 @@ function FinSeance({
                   </span>
                   <span className="modifier">✎ Modifier</span>
                 </button>
-              </div>
-            )
-          })}
+              )
+            }}
+          />
         </>
       )}
 
@@ -892,7 +790,7 @@ function FinSeance({
       )}
       {ajuste &&
         (() => {
-          const p = prochaines.find((x) => x.exo.id === ajuste)!
+          const p = suggestionDe(ajuste)
           return (
             <EditeurObjectif
               exo={p.exo}

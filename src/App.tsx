@@ -5,12 +5,14 @@ import { db } from './db'
 import { transition, useRetour } from './lib/nav'
 import Accueil from './screens/Accueil'
 import Exercices from './screens/Exercices'
+import Historique from './screens/Historique'
 import Reglages from './screens/Reglages'
 import SeanceEnCours from './screens/SeanceEnCours'
 import Seances from './screens/Seances'
 
 const ONGLETS = [
   ['accueil', '🏠', 'Accueil'],
+  ['historique', '📅', 'Historique'],
   ['seances', '📋', 'Programmes'],
   ['exercices', '💪', 'Exercices'],
   ['reglages', '⚙️', 'Réglages'],
@@ -19,6 +21,8 @@ type Onglet = (typeof ONGLETS)[number][0]
 
 export default function App() {
   const [onglet, setOngletEtat] = useState<Onglet>('accueil')
+  /** Séance ouverte dans l'historique. */
+  const [detail, setDetailEtat] = useState<string | null>(null)
   const enCours = useLiveQuery(() => db.seances.filter((s) => s.enCours).first(), [], null)
   const catalogue = useCatalogue()
 
@@ -26,6 +30,13 @@ export default function App() {
     if (o === onglet) return
     const sens = ONGLETS.findIndex((x) => x[0] === o) > ONGLETS.findIndex((x) => x[0] === onglet) ? 'avant' : 'arriere'
     transition(() => setOngletEtat(o), sens)
+    window.scrollTo({ top: 0 })
+  }
+  const setDetail = (id: string | null) => {
+    transition(() => {
+      setDetailEtat(id)
+      if (id) setOngletEtat('historique')
+    }, id ? 'avant' : 'arriere')
     window.scrollTo({ top: 0 })
   }
   // Retour Android : depuis un autre onglet, on revient à l'accueil ; depuis l'accueil, on quitte.
@@ -37,14 +48,15 @@ export default function App() {
   return (
     <>
       <div key={onglet}>
-        {onglet === 'accueil' && <Accueil catalogue={catalogue} />}
+        {onglet === 'accueil' && <Accueil catalogue={catalogue} onVoirSeance={setDetail} />}
+        {onglet === 'historique' && <Historique catalogue={catalogue} detail={detail} onDetail={setDetail} />}
         {onglet === 'seances' && <Seances catalogue={catalogue} />}
         {onglet === 'exercices' && <Exercices catalogue={catalogue} />}
         {onglet === 'reglages' && <Reglages catalogue={catalogue} />}
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, ico, nom]) => (
-          <button key={id} className={onglet === id ? 'actif' : ''} onClick={() => setOnglet(id)}>
+          <button key={id} className={onglet === id ? 'actif' : ''} onClick={() => (setDetailEtat(null), setOnglet(id))}>
             <span className="ico">{ico}</span>
             {nom}
           </button>
