@@ -5,6 +5,19 @@ import { db, demanderStockagePersistant } from './db'
 import Secours from './Secours'
 import './styles.css'
 
+declare global {
+  interface Window {
+    __etape: string
+    __erreurs: string[]
+  }
+}
+window.__etape = 'code chargé'
+db.open().then(
+  () => (window.__etape = 'base ouverte'),
+  (e: Error) => window.__erreurs?.push('base : ' + e.message)
+)
+db.on('blocked', () => void window.__erreurs?.push('base bloquée par un autre onglet'))
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Secours>

@@ -10,15 +10,44 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="demarrage" style="display:none;padding:24px 16px;font:15px system-ui,sans-serif;color:#e8eaf0;background:#0f1115;min-height:100vh"></div>
     <script>
-      // Filet de sécurité : si l'appli ne s'affiche pas (fichier introuvable…), on recharge une fois sans cache.
+      // Diagnostic de démarrage : erreurs notées avant même le chargement de l'appli.
+      window.__erreurs = []
+      window.__etape = 'page'
+      addEventListener('error', function (e) {
+        __erreurs.push(e.message || 'fichier introuvable : ' + ((e.target && (e.target.src || e.target.href)) || '?'))
+      }, true)
+      addEventListener('unhandledrejection', function (e) {
+        __erreurs.push('promesse : ' + ((e.reason && e.reason.message) || e.reason))
+      })
+      // Si rien ne s'affiche : un rechargement sans cache, puis un écran pour comprendre et réparer.
       setTimeout(function () {
         if (document.getElementById('root').children.length) return
+        var essai = null
         try {
-          if (sessionStorage.getItem('secours')) return
+          essai = sessionStorage.getItem('secours')
           sessionStorage.setItem('secours', '1')
         } catch (e) {}
-        location.replace(location.pathname + '?v=' + Date.now())
+        if (!essai) return location.replace(location.pathname + '?v=' + Date.now())
+        var d = document.getElementById('demarrage')
+        d.style.display = 'block'
+        d.innerHTML =
+          '<h2 style="margin:0 0 8px">L’appli ne démarre pas</h2>' +
+          '<p style="color:#9aa1b0">Tes données sont intactes. Essaie « Réparer » ; si ça ne suffit pas, envoie une capture de cet écran.</p>' +
+          '<pre style="white-space:pre-wrap;word-break:break-word;background:#181b22;padding:12px;border-radius:10px;font-size:12px"></pre>' +
+          '<button id="reparer" style="width:100%;min-height:52px;margin-top:12px;border:0;border-radius:12px;background:#ff8a3d;color:#1a0d02;font:700 16px system-ui">Réparer (vide le cache, garde tes données)</button>'
+        d.querySelector('pre').textContent =
+          'étape : ' + __etape + '\nerreurs : ' + (__erreurs.join('\n') || 'aucune') +
+          '\nservice worker : ' + (navigator.serviceWorker && navigator.serviceWorker.controller ? 'actif' : 'aucun') +
+          '\nnavigateur : ' + navigator.userAgent
+        document.getElementById('reparer').onclick = function () {
+          var fin = function () { location.replace(location.pathname + '?v=' + Date.now()) }
+          Promise.all([
+            navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function (r) { return Promise.all(r.map(function (x) { return x.unregister() })) }) : 0,
+            window.caches ? caches.keys().then(function (k) { return Promise.all(k.map(function (x) { return caches.delete(x) })) }) : 0,
+          ]).then(fin, fin)
+        }
       }, 6000)
     </script>
     <script type="module" src="/src/main.tsx"></script>
