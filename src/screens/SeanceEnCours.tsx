@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import Anneau from '../components/Anneau'
-import CarteExo, { cibleSerie, majSeance } from '../components/CarteExo'
+import CarteExo, { cibleSerie, Ecart, majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif from '../components/EditeurObjectif'
 import Interrupteur from '../components/Interrupteur'
@@ -83,9 +83,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return m?.seanceId === seance.id ? m : null
   })
   const [toast, setToast] = useState<string | null>(null)
-  // Minuteur en plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
-  const [grand, setGrandEtat] = useState<boolean>(() => stocke('minuteurGrand', false))
-  const setGrand = (v: boolean) => (setGrandEtat(v), range('minuteurGrand', v))
+  // Mode plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
+  const [focus, setFocusEtat] = useState<boolean>(() => stocke('modeFocus', false))
+  const setFocus = (v: boolean) => (transition(() => setFocusEtat(v), 'fondu'), range('modeFocus', v), window.scrollTo({ top: 0 }))
+  /** Plein écran pendant le repos : afficher quand même la saisie. */
+  const [saisie, setSaisie] = useState(false)
+  /** Plein écran : série en cours de correction. */
+  const [corrige, setCorrige] = useState<string | null>(null)
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
   const [machinePrise, setMachinePrise] = useState(false)
@@ -114,6 +118,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   // Retour Android : fin → séance, puis exercice précédent. Ne quitte jamais une séance en cours.
   useRetour(true, () => {
     if (fin) ouvrirFin(false)
+    else if (focus) setFocus(false)
     else if (idx > 0) setIdx(idx - 1)
     return 'rester'
   })
@@ -142,6 +147,12 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     reposTraite.current = finRepos
     repriseAuto.current?.(finRepos)
   }, [finRepos])
+
+  // Nouveau repos : le plein écran revient sur le minuteur.
+  useEffect(() => {
+    setSaisie(false)
+    setCorrige(null)
+  }, [minuteur?.debut])
 
   useEffect(() => {
     if (!toast) return
@@ -296,40 +307,66 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   const plan = plans[idx]
 
-  const saisir = () => {
-    setMinuteur(null)
-    if (enCours >= 0 && enCours !== idx) setIdx(enCours)
-    setTimeout(() => document.querySelector('.serie-bloc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
-  }
-
-  // Vue plein écran du minuteur : la prochaine série et l'avancement de la séance.
-  const detailGrand = (() => {
-    const avancementSeance = (
-      <div className="ligne avancement-grand">
-        <Anneau valeur={avancement} taille={56} epaisseur={5}>
-          <strong>{Math.round(avancement * 100)}%</strong>
-        </Anneau>
+  // Mode plein écran : le repos en grand, puis la carte de l'exercice en cours pour saisir la série.
+  const reposEnCours = !!minuteur && !(minuteur.pause === undefined && minuteur.fin <= maintenant)
+  const vueRepos = reposEnCours && !saisie && !corrige
+  const derniereSerie = seance.series.reduce<Serie | null>((a, x) => (!a || x.heure > a.heure ? x : a), null)
+  const iCorrige = corrige ? plans.findIndex((p) => p.exoId === seance.series.find((x) => x.id === corrige)?.exoId) : -1
+  const iFocus = iCorrige >= 0 ? iCorrige : enCours
+  const avancementCompact = (
+    <div className="ligne focus-avancement">
+      <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait`}>
+        <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
+      </Anneau>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div>
-          <div>
-            <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Toutes les séries sont faites'}</strong>
-            {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
-          </div>
-          <div className="faible">
-            ⏱ {chronoSeance(maintenant - seance.debut)} · 🔥 ≈ {kcal} kcal
-          </div>
+          <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait 💪'}</strong>
+          {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
+        </div>
+        <div className="faible">
+          ⏱ {chronoSeance(maintenant - seance.debut)} · 🔥 ≈ {kcal} kcal
         </div>
       </div>
-    )
-    if (enCours < 0) return <div className="detail-grand">{avancementSeance}</div>
-    const p = plans[enCours]
-    const exo = exos[enCours]
-    const n = nbFaites(p.exoId)
-    const t = totalDe(enCours)
-    const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
-    return (
-      <div className="detail-grand">
-        <div className="prochaine-grand">
-          <div className="faible">{enCours === idx ? 'Prochaine série' : 'Prochaine série · autre exercice'}</div>
+      <button className="btn" onClick={() => setFocus(false)}>
+        ⌄ Réduire
+      </button>
+    </div>
+  )
+
+  if (focus) {
+    const derniereInfo = (() => {
+      if (!derniereSerie) return null
+      const i = plans.findIndex((p) => p.exoId === derniereSerie.exoId)
+      if (i < 0) return null
+      const k = seance.series.filter((x) => x.exoId === derniereSerie.exoId).indexOf(derniereSerie)
+      const avant = historiqueDe(terminees, derniereSerie.exoId)[0]?.[k]
+      return (
+        <div className="focus-bloc">
+          <div className="ligne entre">
+            <span className="faible">Tu viens de faire · {exos[i].nom}</span>
+            <button className="btn discret petit" onClick={() => setCorrige(derniereSerie.id)}>
+              ✎ Corriger
+            </button>
+          </div>
+          <div>
+            <strong>
+              S{k + 1} {serieTexte(exos[i], derniereSerie)}
+            </strong>
+            {avant && <Ecart s={derniereSerie} avant={avant} exo={exos[i]} />}
+          </div>
+        </div>
+      )
+    })()
+    const prochaine = (() => {
+      if (enCours < 0) return null
+      const p = plans[enCours]
+      const exo = exos[enCours]
+      const n = nbFaites(p.exoId)
+      const t = totalDe(enCours)
+      const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
+      return (
+        <div className="focus-bloc prochaine-grand">
+          <div className="faible">Prochaine série</div>
           <h2>{exo.nom}</h2>
           <div className="ligne wrap" style={{ gap: 6 }}>
             <span className="pastille accent">
@@ -342,10 +379,65 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
           {(p.note || exo.notes) && <div className="faible">ℹ️ {p.note ?? exo.notes}</div>}
         </div>
-        {avancementSeance}
+      )
+    })()
+    const planFocus = plans[iFocus]
+
+    return (
+      <div className="focus apparait">
+        {avancementCompact}
+        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
+        {vueRepos ? (
+          <>
+            {derniereInfo}
+            {prochaine}
+            {enCours >= 0 && (
+              <button className="btn plein" onClick={() => setSaisie(true)}>
+                Voir la série · valider maintenant ›
+              </button>
+            )}
+          </>
+        ) : planFocus ? (
+          <CarteExo
+            key={planFocus.exoId + iFocus + (corrige ?? '')}
+            seance={seance}
+            plan={planFocus}
+            exo={exos[iFocus]}
+            sugg={suggestions[iFocus]}
+            derniere={historiqueDe(terminees, planFocus.exoId)[0]}
+            onValide={valider}
+            onMachinePrise={() => undefined}
+            reposRestant={reposRestant}
+            verrou={verrou}
+            consultation={iFocus !== enCours}
+            enCoursNom={enCours >= 0 ? exos[enCours]?.nom : undefined}
+            onFaireMaintenant={() => faireMaintenant(iFocus)}
+            passe={estPasse(iFocus)}
+            onAnnulerPasser={() => annulerPasser(iFocus)}
+            onAllerEnCours={() => (enCours >= 0 ? setCorrige(null) : (setFocus(false), ouvrirFin(true)))}
+            focus
+            editInitial={corrige ?? undefined}
+          />
+        ) : (
+          <div className="focus-bloc pile">
+            <h2>Toutes les séries sont faites 💪</h2>
+            <button className="btn primaire grand" onClick={() => (setFocus(false), ouvrirFin(true))}>
+              Terminer la séance
+            </button>
+          </div>
+        )}
+        {corrige && (
+          <button className="btn plein" onClick={() => setCorrige(null)}>
+            ← Retour
+          </button>
+        )}
+        <button className="btn discret plein" style={{ marginBottom: 24 }} onClick={() => setFocus(false)}>
+          Carte complète (machine prise, photo…) ›
+        </button>
+        {toast && <div className="toast">{toast}</div>}
       </div>
     )
-  })()
+  }
 
   return (
     <div className="apparait">
@@ -369,6 +461,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               </span>
             </h3>
           </div>
+          <button className="btn icone-focus" onClick={() => setFocus(true)} aria-label="Plein écran">
+            ⤢
+          </button>
           <button className="btn" onClick={() => ouvrirFin(true)}>
             Terminer
           </button>
@@ -483,10 +578,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onChange={setMinuteur}
           ensuite={ensuite}
           onAller={enCours >= 0 && enCours !== idx ? () => setIdx(enCours) : enCours < 0 ? () => ouvrirFin(true) : undefined}
-          grand={grand}
-          onGrand={setGrand}
-          detail={detailGrand}
-          onSaisir={enCours >= 0 ? saisir : () => (setMinuteur(null), ouvrirFin(true))}
+          onAgrandir={() => setFocus(true)}
         />
       )}
     </div>

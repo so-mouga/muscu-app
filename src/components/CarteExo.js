@@ -26,10 +26,10 @@ export function cibleSerie(exo, plan, sugg, n) {
 export function majSeance(id, fn) {
     return db.seances.where('id').equals(id).modify(fn);
 }
-export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onMachinePrise, reposRestant, verrou, consultation, enCoursNom, onFaireMaintenant, onAllerEnCours, passe, onAnnulerPasser, }) {
+export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, onMachinePrise, reposRestant, verrou, consultation, enCoursNom, onFaireMaintenant, onAllerEnCours, passe, onAnnulerPasser, focus, editInitial, }) {
     const faites = seance.series.filter((s) => s.exoId === exo.id);
     const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0));
-    const [editId, setEditId] = useState(null);
+    const [editId, setEditId] = useState(editInitial ?? null);
     const [photo, setPhoto] = useState(false);
     const enEdition = faites.find((s) => s.id === editId);
     const index = enEdition ? faites.indexOf(enEdition) : faites.length;
@@ -49,7 +49,7 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
     const ajuster = (delta) => majSeance(seance.id, (s) => {
         s.ajustSeries[exo.id] = (s.ajustSeries[exo.id] ?? 0) + delta;
     });
-    return (_jsxs("div", { className: 'carte pile carte-exo' + (passe ? ' exo-passe' : ''), children: [_jsxs("div", { children: [_jsxs("div", { className: "ligne entre", style: { alignItems: 'flex-start' }, children: [exo.image && _jsx(Vignette, { exo: exo, taille: 52, onClick: () => setPhoto(true) }), _jsxs("h2", { style: { flex: 1 }, children: [exo.nom, plan.optionnel && (_jsx("span", { className: "pastille", style: { marginLeft: 8, verticalAlign: 'middle' }, children: "optionnel" }))] }), _jsx("button", { className: "btn petit", style: { minHeight: 40, flex: '0 0 auto' }, onClick: onMachinePrise, children: "Machine prise" })] }), _jsxs("div", { className: "faible", children: [plan.series.length, " \u00D7 ", plan.series[0].repsMin === plan.series[0].repsMax ? plan.series[0].repsMin : `${plan.series[0].repsMin}–${plan.series[0].repsMax}`, " \u00B7 RPE", ' ', plan.series.map((p) => kg(p.rpe)).join(', '), " \u00B7 repos ", reposTexte(plan), plan.finisseur && _jsxs("span", { style: { color: 'var(--finisseur)' }, children: [" \u00B7 \u2605 ", FINISSEURS[typeFinisseur(plan)].nom.toLowerCase()] })] })] }), _jsxs("div", { className: "suggestion petit", children: [_jsx("div", { children: _jsxs("strong", { children: ["Cible : ", chargeTexte(exo, sugg.charges[0]), sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`, " \u00D7", ' ', sugg.reps.join('/')] }) }), _jsx("div", { className: "muted", children: sugg.message })] }), (plan.note || exo.notes) && _jsxs("div", { className: "faible", children: ["\u2139\uFE0F ", plan.note ?? exo.notes] }), _jsxs("div", { children: [plan.chauffes.map((c, i) => {
+    return (_jsxs("div", { className: 'carte pile carte-exo' + (passe ? ' exo-passe' : ''), children: [_jsxs("div", { children: [_jsxs("div", { className: "ligne entre", style: { alignItems: 'flex-start' }, children: [exo.image && _jsx(Vignette, { exo: exo, taille: 52, onClick: () => setPhoto(true) }), _jsxs("h2", { style: { flex: 1 }, children: [exo.nom, plan.optionnel && (_jsx("span", { className: "pastille", style: { marginLeft: 8, verticalAlign: 'middle' }, children: "optionnel" }))] }), !focus && (_jsx("button", { className: "btn petit", style: { minHeight: 40, flex: '0 0 auto' }, onClick: onMachinePrise, children: "Machine prise" }))] }), _jsxs("div", { className: "faible", children: [plan.series.length, " \u00D7 ", plan.series[0].repsMin === plan.series[0].repsMax ? plan.series[0].repsMin : `${plan.series[0].repsMin}–${plan.series[0].repsMax}`, " \u00B7 RPE", ' ', plan.series.map((p) => kg(p.rpe)).join(', '), " \u00B7 repos ", reposTexte(plan), plan.finisseur && _jsxs("span", { style: { color: 'var(--finisseur)' }, children: [" \u00B7 \u2605 ", FINISSEURS[typeFinisseur(plan)].nom.toLowerCase()] })] })] }), _jsxs("div", { className: "suggestion petit", children: [_jsx("div", { children: _jsxs("strong", { children: ["Cible : ", chargeTexte(exo, sugg.charges[0]), sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`, " \u00D7", ' ', sugg.reps.join('/')] }) }), _jsx("div", { className: "muted", children: sugg.message })] }), (plan.note || exo.notes) && _jsxs("div", { className: "faible", children: ["\u2139\uFE0F ", plan.note ?? exo.notes] }), _jsxs("div", { children: [plan.chauffes.map((c, i) => {
                         const cle = `${exo.id}:${i}`;
                         const fait = !!seance.chauffes[cle];
                         const l = lireChauffe(c);
@@ -74,7 +74,7 @@ export default function CarteExo({ seance, plan, exo, sugg, derniere, onValide, 
                     });
                 } })] }));
 }
-function Ecart({ s, avant, exo }) {
+export function Ecart({ s, avant, exo }) {
     const e = ecartSerie(s, avant);
     return (_jsxs("span", { className: 'avant ' + e.sens, children: [e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓', " ", e.texte, " ", _jsxs("span", { className: "faible", children: ["(avant ", serieTexte(exo, avant), ")"] })] }));
 }

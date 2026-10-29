@@ -39,6 +39,10 @@ interface Props {
   /** Exercice sauté aujourd'hui. */
   passe: boolean
   onAnnulerPasser: () => void
+  /** Mode plein écran : sans « Machine prise » (reste sur l'écran normal). */
+  focus?: boolean
+  /** Série à ouvrir en correction dès l'affichage. */
+  editInitial?: string
 }
 
 /** Heure de la dernière validation : bloque un double appui avant même le rafraîchissement de l'écran. */
@@ -71,10 +75,12 @@ export default function CarteExo({
   onAllerEnCours,
   passe,
   onAnnulerPasser,
+  focus,
+  editInitial,
 }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
-  const [editId, setEditId] = useState<string | null>(null)
+  const [editId, setEditId] = useState<string | null>(editInitial ?? null)
   const [photo, setPhoto] = useState(false)
   const enEdition = faites.find((s) => s.id === editId)
   const index = enEdition ? faites.indexOf(enEdition) : faites.length
@@ -127,9 +133,11 @@ export default function CarteExo({
               </span>
             )}
           </h2>
-          <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
-            Machine prise
-          </button>
+          {!focus && (
+            <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
+              Machine prise
+            </button>
+          )}
         </div>
         <div className="faible">
           {plan.series.length} × {plan.series[0].repsMin === plan.series[0].repsMax ? plan.series[0].repsMin : `${plan.series[0].repsMin}–${plan.series[0].repsMax}`} · RPE{' '}
@@ -282,7 +290,7 @@ export default function CarteExo({
   )
 }
 
-function Ecart({ s, avant, exo }: { s: Serie; avant: Serie; exo: Exercice }) {
+export function Ecart({ s, avant, exo }: { s: Serie; avant: Serie; exo: Exercice }) {
   const e = ecartSerie(s, avant)!
   return (
     <span className={'avant ' + e.sens}>
