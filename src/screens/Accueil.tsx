@@ -8,6 +8,8 @@ import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import VolumeMuscles from '../components/VolumeMuscles'
+import FormActivite from '../components/FormActivite'
+import { typeActivite } from '../data/activites'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 
@@ -47,6 +49,7 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
   const [ouvert, setOuvert] = useState<string | null>(null)
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
+  const [activite, setActivite] = useState(false)
   useRetour(choix, () => setChoix(false))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
@@ -54,6 +57,7 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
     window.scrollTo({ top: 0 })
   }
   const debutSemaine = lundi()
+  const activitesSemaine = useLiveQuery(() => db.activites.where('date').aboveOrEqual(debutSemaine).sortBy('date'), [debutSemaine], [])
   const semaine = useLiveQuery(
     () => db.seances.where('date').aboveOrEqual(debutSemaine).filter((s) => !s.enCours).toArray(),
     [debutSemaine],
@@ -165,6 +169,9 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
           <button className="btn" onClick={() => setChoix(true)}>
             Autre séance
           </button>
+          <button className="btn" onClick={() => setActivite(true)}>
+            + Activité
+          </button>
           {variante && proposee === duJour && (
             <button className="btn" onClick={() => voir(variante)}>
               🏠 Pas de salle
@@ -201,12 +208,18 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
               {JOURS[e.jour]} · {e.modele.nom} {faite(e) ? '✓' : ''}
             </span>
           ))}
+          {activitesSemaine.map((a) => (
+            <span key={a.id} className="pastille activite">
+              {JOURS[jourSemaine(new Date(a.date + 'T12:00:00'))]} · {typeActivite(a.type).emoji} {typeActivite(a.type).nom}
+            </span>
+          ))}
         </div>
         <VolumeMuscles volume={volume} />
         <div className="faible">Séries dures (RPE ≥ 7). Triceps : développés et dips comptés à 0,5.</div>
       </div>
 
 
+      {activite && <FormActivite onFermer={() => setActivite(false)} />}
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

@@ -159,6 +159,18 @@ export interface Mesure {
   valeurs: Record<string, number>
 }
 
+/** Autre sport de la journée (padel, course…), à côté des séances de muscu. */
+export interface Activite {
+  id: string
+  date: string
+  type: string
+  /** minutes */
+  duree: number
+  /** Intensité ressentie, de 1 (très facile) à 10 (maximale). */
+  intensite: number
+  note?: string
+}
+
 export type Pose = 'face' | 'profil' | 'dos'
 
 /** Photo de progression, gardée uniquement sur le téléphone (JPEG data URL). */

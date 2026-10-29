@@ -5,10 +5,12 @@ import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages } from '../db'
 import { chargeTexte, dateISO, duree, estDure, kg, lundi } from '../lib/calc'
-import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, type Bilan } from '../lib/historique'
+import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, semaineDe, type Bilan } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
-import type { Reglage, Seance, Serie } from '../types'
+import type { Activite, Reglage, Seance, Serie } from '../types'
+import FormActivite from '../components/FormActivite'
+import { kcalActivite, typeActivite, INTENSITES } from '../data/activites'
 import { Mesures, OngletPoids } from './Corps'
 import Photos from './Photos'
 import { planParDefaut } from './Seances'
@@ -43,6 +45,10 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const [semaines, setSemaines] = useState(6)
+  const activites = useLiveQuery(() => db.activites.orderBy('date').reverse().toArray(), [], [])
+  const poids = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
+  /** Activité ouverte (ou 'nouvelle'). */
+  const [activite, setActivite] = useState<Activite | 'nouvelle' | null>(null)
   const records = useMemo(() => (terminees ? recordsParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
   if (!terminees) return null
@@ -83,24 +89,34 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
       </div>
     )
 
-  const groupes = parSemaine(terminees)
+  // Semaines avec des séances ou des activités, de la plus récente à la plus ancienne.
+  const parSem = parSemaine(terminees)
+  const groupes = [...new Set([...parSem.map((g) => g.lundi), ...activites.map((a) => semaineDe(a.date))])]
+    .sort((a, b) => b.localeCompare(a))
+    .map((l) => ({ lundi: l, seances: parSem.find((g) => g.lundi === l)?.seances ?? [], activites: activites.filter((a) => semaineDe(a.date) === l) }))
   const cetteSemaine = lundi()
   const precedente = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') - 7 * 86400000))
   const bilanDe = (l: string) => bilan(groupes.find((g) => g.lundi === l)?.seances ?? [], records)
+  const activitesDe = (l: string) => activites.filter((a) => semaineDe(a.date) === l)
 
   return (
     <div>
       {haut}
 
-      {terminees.length === 0 ? (
+      <button className="btn plein" style={{ marginBottom: 12 }} onClick={() => setActivite('nouvelle')}>
+        + Autre activité (padel, course…)
+      </button>
+      {activite && <FormActivite initial={activite === 'nouvelle' ? undefined : activite} onFermer={() => setActivite(null)} />}
+
+      {terminees.length === 0 && activites.length === 0 ? (
         <div className="carte pile">
           <h3>Pas encore de séance</h3>
           <div className="faible">Tes séances terminées apparaîtront ici, avec leur récap complet et tes records.</div>
         </div>
       ) : (
         <>
-          <Calendrier seances={terminees} onSeance={(s) => onDetail(s.id)} />
-          <BilanSemaine actuel={bilanDe(cetteSemaine)} avant={bilanDe(precedente)} />
+          <Calendrier seances={terminees} activites={activites} onSeance={(s) => onDetail(s.id)} onActivite={setActivite} />
+          <BilanSemaine actuel={bilanDe(cetteSemaine)} avant={bilanDe(precedente)} activites={activitesDe(cetteSemaine)} activitesAvant={activitesDe(precedente)} />
 
           {groupes.slice(0, semaines).map((g) => {
             const b = bilan(g.seances, records)
@@ -109,12 +125,19 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
                 <div className="semaine-titre">
                   <strong>{g.lundi === cetteSemaine ? 'Cette semaine' : `Semaine du ${jourCourt(g.lundi).replace(/^\S+ /, '')}`}</strong>
                   <span className="faible">
-                    {pluriel(b.seances, 'séance')} · {duree(b.temps)}
+                    {[b.seances ? pluriel(b.seances, 'séance') : '', g.activites.length ? pluriel(g.activites.length, 'activité') : ''].filter(Boolean).join(' · ')} ·{' '}
+                    {duree(b.temps + g.activites.reduce((a, x) => a + x.duree * 60000, 0))}
                   </span>
                 </div>
-                {g.seances.map((s) => (
-                  <CarteSeance key={s.id} seance={s} records={records[s.id] ?? 0} reglages={reglages} catalogue={catalogue} onOuvrir={() => onDetail(s.id)} />
-                ))}
+                {[...g.seances.map((s) => ({ date: s.date, t: s.debut, s })), ...g.activites.map((a) => ({ date: a.date, t: 0, a }))]
+                  .sort((x, y) => y.date.localeCompare(x.date) || y.t - x.t)
+                  .map((e) =>
+                    'a' in e ? (
+                      <CarteActivite key={e.a.id} activite={e.a} poids={poids?.poids} onOuvrir={() => setActivite(e.a)} />
+                    ) : (
+                      <CarteSeance key={e.s.id} seance={e.s} records={records[e.s.id] ?? 0} reglages={reglages} catalogue={catalogue} onOuvrir={() => onDetail(e.s.id)} />
+                    )
+                  )}
               </div>
             )
           })}
@@ -130,16 +153,29 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
 }
 
 /** Mois en calendrier : chaque jour entraîné est marqué, un appui ouvre la séance. */
-function Calendrier({ seances, onSeance }: { seances: Seance[]; onSeance: (s: Seance) => void }) {
+function Calendrier({
+  seances,
+  activites,
+  onSeance,
+  onActivite,
+}: {
+  seances: Seance[]
+  activites: Activite[]
+  onSeance: (s: Seance) => void
+  onActivite: (a: Activite) => void
+}) {
   const auj = new Date()
   const [mois, setMois] = useState(() => new Date(auj.getFullYear(), auj.getMonth(), 1))
   const parJour = new Map<string, Seance[]>()
   for (const s of seances) parJour.set(s.date, [...(parJour.get(s.date) ?? []), s])
+  const activitesDuJour = new Map<string, Activite[]>()
+  for (const a of activites) activitesDuJour.set(a.date, [...(activitesDuJour.get(a.date) ?? []), a])
 
   const decalage = (mois.getDay() + 6) % 7
   const nbJours = new Date(mois.getFullYear(), mois.getMonth() + 1, 0).getDate()
   const cases = [...Array(decalage).fill(null), ...Array.from({ length: nbJours }, (_, i) => new Date(mois.getFullYear(), mois.getMonth(), i + 1))]
   const duMois = seances.filter((s) => s.date.startsWith(dateISO(mois).slice(0, 7))).length
+  const activitesMois = activites.filter((a) => a.date.startsWith(dateISO(mois).slice(0, 7))).length
   const estMoisCourant = mois.getFullYear() === auj.getFullYear() && mois.getMonth() === auj.getMonth()
   const aller = (d: number) => setMois(new Date(mois.getFullYear(), mois.getMonth() + d, 1))
   const aujourdhui = dateISO()
@@ -152,7 +188,10 @@ function Calendrier({ seances, onSeance }: { seances: Seance[]; onSeance: (s: Se
         </button>
         <div style={{ textAlign: 'center' }}>
           <strong style={{ textTransform: 'capitalize' }}>{mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</strong>
-          <div className="faible">{duMois ? pluriel(duMois, 'séance') : 'aucune séance'}</div>
+          <div className="faible">
+            {duMois ? pluriel(duMois, 'séance') : 'aucune séance'}
+            {activitesMois ? ` · ${pluriel(activitesMois, 'activité')}` : ''}
+          </div>
         </div>
         <button className="icone" onClick={() => aller(1)} disabled={estMoisCourant} aria-label="Mois suivant">
           ›
@@ -168,13 +207,15 @@ function Calendrier({ seances, onSeance }: { seances: Seance[]; onSeance: (s: Se
           if (!d) return <span key={i} />
           const iso = dateISO(d)
           const s = parJour.get(iso)
+          const a = activitesDuJour.get(iso)
+          // Séance de muscu : case pleine ; autre activité : point en dessous.
           return (
             <button
               key={i}
-              className={'jour' + (s ? ' fait' : '') + (iso === aujourdhui ? ' aujourdhui' : '')}
-              disabled={!s}
-              onClick={() => s && onSeance(s[0])}
-              aria-label={s ? `${d.getDate()} : ${s.map((x) => x.nom).join(', ')}` : undefined}
+              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '')}
+              disabled={!s && !a}
+              onClick={() => (s ? onSeance(s[0]) : a && onActivite(a[0]))}
+              aria-label={s || a ? `${d.getDate()} : ${[...(s ?? []).map((x) => x.nom), ...(a ?? []).map((x) => typeActivite(x.type).nom)].join(', ')}` : undefined}
             >
               {d.getDate()}
             </button>
@@ -186,7 +227,8 @@ function Calendrier({ seances, onSeance }: { seances: Seance[]; onSeance: (s: Se
 }
 
 /** Cette semaine comparée à la précédente. */
-function BilanSemaine({ actuel, avant }: { actuel: Bilan; avant: Bilan }) {
+function BilanSemaine({ actuel, avant, activites, activitesAvant }: { actuel: Bilan; avant: Bilan; activites: Activite[]; activitesAvant: Activite[] }) {
+  const minutes = (l: Activite[]) => l.reduce((a, x) => a + x.duree, 0)
   const tuile = (valeur: string, label: string, n: number, m: number, texteAvant: string) => (
     <div className="tuile">
       <strong>{valeur}</strong>
@@ -208,6 +250,14 @@ function BilanSemaine({ actuel, avant }: { actuel: Bilan; avant: Bilan }) {
         {tuile(String(actuel.dures), actuel.dures > 1 ? 'séries dures' : 'série dure', actuel.dures, avant.dures, String(avant.dures))}
         {tuile(kg(Math.round(actuel.tonnage)), 'kg soulevés', actuel.tonnage, avant.tonnage, kg(Math.round(avant.tonnage)))}
         {tuile(String(actuel.records), actuel.records > 1 ? 'records 🏆' : 'record 🏆', actuel.records, avant.records, String(avant.records))}
+        {(activites.length > 0 || activitesAvant.length > 0) &&
+          tuile(
+            minutes(activites) ? duree(minutes(activites) * 60000) : '0',
+            `d’autre sport (${activites.length})`,
+            minutes(activites),
+            minutes(activitesAvant),
+            minutes(activitesAvant) ? duree(minutes(activitesAvant) * 60000) : '0'
+          )}
       </div>
     </div>
   )
@@ -373,5 +423,29 @@ function CorrectionSerie({
         />
       </div>
     </div>
+  )
+}
+
+function CarteActivite({ activite, poids, onOuvrir }: { activite: Activite; poids?: number; onOuvrir: () => void }) {
+  const t = typeActivite(activite.type)
+  return (
+    <button className="liste-btn carte-seance carte-activite" onClick={onOuvrir}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span className="faible">{jourCourt(activite.date)}</span>
+        <span className="ligne entre" style={{ alignItems: 'baseline' }}>
+          <strong>
+            {t.emoji} {t.nom}
+          </strong>
+          <span className="faible">intensité {activite.intensite}/10</span>
+        </span>
+        <span className="ligne wrap" style={{ gap: 6, marginTop: 6 }}>
+          <span className="pastille">⏱ {duree(activite.duree * 60000)}</span>
+          <span className="pastille">🔥 ≈ {kcalActivite(activite, poids)} kcal</span>
+          <span className="pastille">{INTENSITES[activite.intensite]}</span>
+        </span>
+        {activite.note && <span className="faible" style={{ display: 'block', marginTop: 4 }}>📝 {activite.note}</span>}
+      </span>
+      <span className="muted">✎</span>
+    </button>
   )
 }

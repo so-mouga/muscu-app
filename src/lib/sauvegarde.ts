@@ -7,18 +7,18 @@ export type Categorie = 'programmes' | 'historique' | 'exercices' | 'corps' | 'p
 
 export const CATEGORIES: { id: Categorie; nom: string; detail: string }[] = [
   { id: 'programmes', nom: 'Programmes et séances', detail: 'tes programmes et les séances que tu as créées ou modifiées' },
-  { id: 'historique', nom: 'Historique', detail: 'les séances faites, série par série, et les objectifs' },
+  { id: 'historique', nom: 'Historique', detail: 'les séances faites, série par série, les objectifs et les autres activités' },
   { id: 'exercices', nom: 'Exercices perso', detail: 'les exercices que tu as créés, avec leurs photos' },
   { id: 'corps', nom: 'Poids et mensurations', detail: 'pesées et prises de mensurations' },
   { id: 'photos', nom: 'Photos de progression', detail: 'lourd : à sauvegarder à part, de temps en temps' },
   { id: 'reglages', nom: 'Réglages', detail: 'pas de charge, bips, équivalents, programme actif…' },
 ]
 
-type NomTable = 'seances' | 'pesees' | 'mesures' | 'reglages' | 'modeles' | 'exercices' | 'programmes' | 'photos'
+type NomTable = 'seances' | 'activites' | 'pesees' | 'mesures' | 'reglages' | 'modeles' | 'exercices' | 'programmes' | 'photos'
 
 const TABLES: Record<Categorie, NomTable[]> = {
   programmes: ['modeles', 'programmes'],
-  historique: ['seances'],
+  historique: ['seances', 'activites'],
   exercices: ['exercices'],
   corps: ['pesees', 'mesures'],
   photos: ['photos'],
