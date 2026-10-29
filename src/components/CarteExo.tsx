@@ -44,6 +44,8 @@ interface Props {
   focus?: boolean
   /** Exercice jamais fait : dernière perf d'un équivalent relié, pour s'orienter. */
   repere?: string
+  /** Régler l'objectif sur place (absent quand l'exercice n'a pas d'historique). */
+  onObjectif?: () => void
 }
 
 /** Instant de la dernière validation (horloge monotone, insensible aux changements d'heure du
@@ -79,6 +81,7 @@ export default function CarteExo({
   onAnnulerPasser,
   focus,
   repere,
+  onObjectif,
 }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
@@ -102,7 +105,7 @@ export default function CarteExo({
   // Saisie collée sous la série concernée : celle en cours, ou une série faite qu'on corrige.
   const editeur = (
     <Editeur
-      key={`${exo.id}-${index}-${editId ?? ''}`}
+      key={`${exo.id}-${index}-${editId ?? ''}-${sugg.charges.join()}-${sugg.reps.join()}`}
       seance={seance}
       plan={plan}
       exo={exo}
@@ -160,9 +163,22 @@ export default function CarteExo({
             {sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`} ×{' '}
             {sugg.reps.join('/')}
           </strong>
-          {battre && <span className="badge-hausse">🔥 À battre</span>}
+          {battre ? (
+            <span className="badge-hausse">🔥 À battre</span>
+          ) : (
+            onObjectif && (
+              <button className="btn discret petit" style={{ padding: 0, minHeight: 28 }} onClick={onObjectif}>
+                ✎ Modifier
+              </button>
+            )
+          )}
         </div>
         <div className="muted">{battre ? 'Tu as prévu de faire mieux que la dernière fois : c’est ici qu’on progresse.' : sugg.message}</div>
+        {battre && onObjectif && (
+          <button className="btn discret petit" style={{ padding: 0, minHeight: 28 }} onClick={onObjectif}>
+            ✎ Modifier l’objectif
+          </button>
+        )}
       </div>
       {repere && (
         <div className="faible">

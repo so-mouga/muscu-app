@@ -3,7 +3,9 @@ import { ecartSerie, kg, serieTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { usePasBoutons } from '../lib/pasBoutons'
 import type { Suggestion } from '../lib/progression'
-import type { Exercice, Objectif, Serie } from '../types'
+import { db, historiqueDe } from '../db'
+import { pareil } from '../lib/progression'
+import type { Exercice, ExoPlan, Objectif, Seance, Serie } from '../types'
 
 interface Props {
   exo: Exercice
@@ -15,6 +17,8 @@ interface Props {
   precedente: Serie[]
   /** Nouveau record de 1RM estimé aujourd'hui. */
   record?: boolean
+  /** Séance de référence des séries `faites` (« aujourd'hui » en fin de séance, sinon « la dernière fois »). */
+  quand?: string
   onValider: (o: Objectif) => void
   /** Revenir à l'objectif par défaut (comme aujourd'hui). */
   onDefaut: () => void
@@ -25,7 +29,7 @@ const arr = (x: number) => Math.round(x * 100) / 100
 
 /** Ajuster à la main la charge et les reps de chaque série pour la prochaine séance,
  * en regard de ce qui vient d'être fait (charge, reps, RPE, écart avec la dernière fois). */
-export default function EditeurObjectif({ exo, base, actuel, faites, precedente, record, onValider, onDefaut, onFermer }: Props) {
+export default function EditeurObjectif({ exo, base, actuel, faites, precedente, record, quand = 'aujourd’hui', onValider, onDefaut, onFermer }: Props) {
   useRetour(true, onFermer)
   const [charges, setCharges] = useState<(number | null)[]>(actuel?.charges ?? base.charges)
   const [reps, setReps] = useState<number[]>(actuel?.reps ?? base.reps)
@@ -48,7 +52,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
         </div>
         {(faites.some((x, k) => ecartSerie(x, precedente[k])?.sens === 'mieux') || record) && (
           <div className="pastille ok" style={{ alignSelf: 'flex-start' }}>
-            🏆 {record ? 'Nouveau record aujourd’hui' : 'Mieux que la dernière fois'}
+            🏆 {record ? `Nouveau record ${quand}` : quand === 'aujourd’hui' ? 'Mieux que la dernière fois' : 'Mieux que la fois d’avant'}
           </div>
         )}
 
@@ -76,7 +80,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
           </div>
           {charges.map((c, i) => (
             <div key={i} className="objectif-serie">
-              {faites[i] && <Fait n={`S${i + 1}`} s={faites[i]} avant={precedente[i]} exo={exo} />}
+              {faites[i] && <Fait n={`S${i + 1}`} quand={quand} s={faites[i]} avant={precedente[i]} exo={exo} />}
             <div className="ligne" style={{ gap: 6 }}>
               <span className="faible" style={{ width: 24 }}>
                 {faites[i] ? '→' : `S${i + 1}`}
@@ -121,7 +125,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
         </button>
         {actuel && (
           <button className="btn plein" onClick={onDefaut}>
-            Remettre comme aujourd’hui
+            Remettre comme {quand}
           </button>
         )}
         <button className="btn discret plein" onClick={onFermer}>
@@ -133,12 +137,12 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
 }
 
 /** Série faite aujourd'hui : « 30 kg × 14 · RPE 8 (visé 8) », et l'écart avec la dernière fois. */
-function Fait({ n, s, avant, exo }: { n: string; s: Serie; avant?: Serie; exo: Exercice }) {
+function Fait({ n, quand, s, avant, exo }: { n: string; quand: string; s: Serie; avant?: Serie; exo: Exercice }) {
   const e = ecartSerie(s, avant)
   const ecartRpe = s.rpeCible !== undefined ? s.rpe - s.rpeCible : 0
   return (
     <div className="faible">
-      {n} · aujourd’hui <strong style={{ color: 'var(--texte)' }}>{serieTexte(exo, s).replace(' @', ' · RPE ')}</strong>
+      {n} · {quand} <strong style={{ color: 'var(--texte)' }}>{serieTexte(exo, s).replace(' @', ' · RPE ')}</strong>
       {s.rpeCible !== undefined && ecartRpe !== 0 && (
         <span style={ecartRpe > 0.5 ? { color: 'var(--alerte)' } : undefined}>
           {' '}
@@ -151,5 +155,37 @@ function Fait({ n, s, avant, exo }: { n: string; s: Serie; avant?: Serie; exo: E
         </span>
       )}
     </div>
+  )
+}
+
+/**
+ * Objectif fixé après coup (aperçu de la séance, ou pendant la séance) : il s'enregistre sur la
+ * dernière séance terminée qui contient l'exercice, celle que lit `suggestionPour`.
+ * `terminees` : la plus récente en premier.
+ */
+export function ObjectifApres({ exo, plan, terminees, onFermer }: { exo: Exercice; plan: ExoPlan; terminees: Seance[]; onFermer: () => void }) {
+  const avec = terminees.filter((s) => s.series.some((x) => x.exoId === exo.id))
+  const derniere = avec[0]
+  if (!derniere) return null
+  const histo = historiqueDe(avec, exo.id)
+  const ecrire = (o: Objectif | null) =>
+    db.seances.update(derniere.id, {
+      objectifs: (() => {
+        const { [exo.id]: _ancien, ...reste } = derniere.objectifs ?? {}
+        return o ? { ...reste, [exo.id]: o } : reste
+      })(),
+    })
+  return (
+    <EditeurObjectif
+      exo={exo}
+      base={pareil(exo, plan, histo)}
+      actuel={derniere.objectifs?.[exo.id]}
+      faites={histo[0]}
+      precedente={histo[1] ?? []}
+      quand="la dernière fois"
+      onFermer={onFermer}
+      onValider={(o) => void ecrire(o).then(onFermer)}
+      onDefaut={() => void ecrire(null).then(onFermer)}
+    />
   )
 }

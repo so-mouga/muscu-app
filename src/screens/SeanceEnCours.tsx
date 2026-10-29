@@ -4,7 +4,7 @@ import type { Catalogue } from '../catalogue'
 import Anneau from '../components/Anneau'
 import CarteExo, { cibleSerie, Ecart, Editeur, majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
-import EditeurObjectif from '../components/EditeurObjectif'
+import EditeurObjectif, { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
 import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
@@ -79,6 +79,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [corrige, setCorrige] = useState<string | null>(null)
   /** Fiche d'exécution ouverte depuis le plein écran. */
   const [infos, setInfos] = useState<string | null>(null)
+  /** Objectif réglé sur place (index de l'exercice dans la séance). */
+  const [objectifDe, setObjectifDe] = useState<number | null>(null)
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
   const [machinePrise, setMachinePrise] = useState(false)
@@ -454,6 +456,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             onAllerEnCours={() => undefined}
             focus
             repere={repereDe(planFocus.exoId)}
+            onObjectif={historiqueDe(terminees, planFocus.exoId).length ? () => setObjectifDe(enCours) : undefined}
           />
         ) : (
           <div className="focus-bloc pile">
@@ -469,6 +472,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </button>
         )}
         {toast && <div className="toast">{toast}</div>}
+        {objectifDe !== null && plans[objectifDe] && (
+          <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />
+        )}
         {infos && <InfosExo exo={exoAvecReglages(catalogue.exo(infos), reglages)} onFermer={() => setInfos(null)} />}
       </div>
     )
@@ -546,6 +552,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onAnnulerPasser={() => annulerPasser(idx)}
           onAllerEnCours={allerEnCours}
           repere={repereDe(plan.exoId)}
+          onObjectif={historiqueDe(terminees, plan.exoId).length ? () => setObjectifDe(idx) : undefined}
         />
       ) : (
         <div className="carte pile">
@@ -626,6 +633,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )}
       {toast && <div className="toast">{toast}</div>}
+      {objectifDe !== null && plans[objectifDe] && (
+        <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />
+      )}
       {minuteur && (
         <Minuteur
           etat={minuteur}

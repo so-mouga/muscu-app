@@ -1,5 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
+import { ObjectifApres } from '../components/EditeurObjectif'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
 import { chargeTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte } from '../lib/calc'
@@ -20,6 +22,8 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const series = modele.exercices.reduce((a, p) => a + p.series.length, 0)
   const habituelle = terminees && dureeHabituelle(modele.id, terminees)
+  /** Exercice dont on règle l'objectif (index dans la séance). */
+  const [objectif, setObjectif] = useState<number | null>(null)
 
   return (
     <div>
@@ -86,6 +90,11 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
                 ) : (
                   <div className="muted">{sugg.message}</div>
                 )}
+                {derniere && (
+                  <button className="btn discret petit" style={{ padding: 0, minHeight: 32 }} onClick={() => setObjectif(i)}>
+                    ✎ Modifier l’objectif
+                  </button>
+                )}
               </div>
             )}
             {p.chauffes.length > 0 && <div className="faible">Chauffe : {p.chauffes.join(' · ')}</div>}
@@ -93,6 +102,15 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
           </div>
         )
       })}
+
+      {objectif !== null && terminees && (
+        <ObjectifApres
+          exo={exoAvecReglages(catalogue.exo(modele.exercices[objectif].exoId), reglages)}
+          plan={modele.exercices[objectif]}
+          terminees={terminees}
+          onFermer={() => setObjectif(null)}
+        />
+      )}
 
       <div className="barre-demarrer">
         <button className="btn primaire grand" onClick={onDemarrer}>
