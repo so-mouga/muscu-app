@@ -556,6 +556,12 @@ function Editeur({
             maj((x) => x.exercices.push(planParDefaut(exo)))
             setEditIdx(m.exercices.length)
           }}
+          onChoixMultiple={(ids) => {
+            setChoix(false)
+            maj((x) => x.exercices.push(...ids.map((id) => planParDefaut(catalogue.exo(id)))))
+            // Un seul exercice : on règle son plan tout de suite ; plusieurs : on les règle ensuite un par un.
+            if (ids.length === 1) setEditIdx(m.exercices.length)
+          }}
         />
       )}
       {editIdx !== null && m.exercices[editIdx] && (

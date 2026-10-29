@@ -12,6 +12,7 @@
   --alerte: #f5c04a;
   --danger: #ef5d5d;
   --finisseur: #c58bff;
+  --silhouette: #3b4150;
   --rayon: 14px;
   color-scheme: dark;
 }
@@ -1340,4 +1341,95 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   text-align: left;
   background: none;
   padding: 0;
+}
+
+/* Icônes de muscles */
+.icone-muscle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.vignette.vide .icone-muscle {
+  background: none;
+}
+
+/* Choix d'exercice : zones et sélection multiple */
+.chips.zones button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.liste-btn .case {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 2px solid var(--bord);
+  font-weight: 800;
+}
+.liste-btn.coche {
+  border-color: var(--accent);
+}
+.liste-btn.coche .case {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-texte);
+}
+.barre-ajout {
+  position: sticky;
+  bottom: calc(-20px - env(safe-area-inset-bottom));
+  margin: 0 -16px calc(-20px - env(safe-area-inset-bottom));
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--bord);
+}
+
+/* Fiche exercice */
+.fiche-tete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.segments {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--bord);
+}
+.segments button {
+  flex: 1;
+  min-height: 40px;
+  border-radius: 9px;
+  background: none;
+  color: var(--texte-3);
+  font-weight: 700;
+}
+.segments button.actif {
+  background: var(--surface-2);
+  color: var(--texte);
+}
+.consignes {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.erreurs-titre {
+  color: var(--danger);
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.consignes.erreurs {
+  color: var(--texte-2);
 }

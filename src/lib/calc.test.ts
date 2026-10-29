@@ -38,6 +38,13 @@ describe('volume hebdomadaire', () => {
       ischios: 6,
       mollets: 3,
       abdos: 3,
+      // Muscles sans objectif, comptés en secondaire
+      epaule_avant: 4.5,
+      fessiers: 3,
+      lombaires: 1.5,
+      trapezes: 1.5,
+      avant_bras: 1.5,
+      adducteurs: 0,
     })
   })
 })

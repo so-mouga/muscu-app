@@ -5,7 +5,8 @@ import { parMuscle } from '../components/ChoixExo'
 import ChoixExo from '../components/ChoixExo'
 import FormExo from '../components/FormExo'
 import Vignette from '../components/Vignette'
-import { MUSCLES } from '../data/exercices'
+import { MUSCLES, ZONES, type Zone } from '../data/exercices'
+import IconeMuscle from '../components/IconeMuscle'
 import { db, exoAvecReglages } from '../db'
 import { chargeTexte, dateCourte } from '../lib/calc'
 import { delies, lireEquivalents, modifierEquivalents, relies } from '../lib/equivalents'
@@ -14,7 +15,7 @@ import { transition, useRetour } from '../lib/nav'
 import type { Exercice, Muscle } from '../types'
 import { Detail } from './Progression'
 
-type Filtre = 'tous' | 'recents' | Muscle
+type Filtre = 'tous' | 'recents' | Zone
 
 export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
   const seances = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [], [])
@@ -56,7 +57,7 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <FormExo
           initial={formulaire.exo}
-          muscleInitial={filtre !== 'tous' && filtre !== 'recents' ? filtre : undefined}
+          muscleInitial={MUSCLES.find((m) => m.zone === filtre)?.id}
           nomInitial={formulaire.exo ? undefined : recherche}
           onAnnuler={() => setFormulaire(null)}
           onEnregistre={(exo) => {
@@ -86,7 +87,12 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
           onModifier={() => setFormulaire({ exo })}
           onSupprimer={() => supprimer(exo)}
           equivalents={liste}
+          suggestions={tous
+            .filter((e) => e.muscle === exo.muscle && e.id !== exo.id && !e.supprime && !(eq[exo.id] ?? []).includes(e.id))
+            .sort((a, b) => Number(b.type === exo.type) - Number(a.type === exo.type) || (historique.get(b.id)?.n ?? 0) - (historique.get(a.id)?.n ?? 0))
+            .slice(0, 3)}
           onRelier={() => setRelier(true)}
+          onRelierExo={(id) => void modifierEquivalents((x) => relies(x, exo.id, id))}
           onDelier={(id) => void modifierEquivalents((x) => delies(x, exo.id, id))}
         />
         {relier && (
@@ -113,7 +119,7 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
   const groupes =
     filtre === 'recents'
       ? [{ muscle: 'recents', nom: 'Faits récemment', exos: recents.filter((e) => parMuscle([e], recherche).length) }]
-      : parMuscle(tous, recherche).filter((g) => filtre === 'tous' || g.muscle === filtre)
+      : parMuscle(tous, recherche).filter((g) => filtre === 'tous' || MUSCLES.find((m) => m.id === g.muscle)?.zone === filtre)
 
   const ligne = (e: Exercice) => {
     const h = historique.get(e.id)
@@ -143,15 +149,16 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
         </button>
       </div>
       <input placeholder="Rechercher un exercice" value={recherche} onChange={(e) => setRecherche(e.target.value)} style={{ marginBottom: 10 }} />
-      <div className="pills" style={{ marginBottom: 4 }}>
+      <div className="chips zones" style={{ marginBottom: 4 }}>
         {(
           [
             ['tous', 'Tous'],
             ['recents', 'Récents'],
-            ...MUSCLES.map((m) => [m.id, m.nom]),
+            ...ZONES.map((z) => [z.id, z.nom]),
           ] as [Filtre, string][]
         ).map(([id, nom]) => (
-          <button key={id} className={filtre === id ? 'actif' : ''} style={{ padding: '0 12px', fontWeight: 600 }} onClick={() => setFiltre(id)}>
+          <button key={id} className={filtre === id ? 'actif' : ''} onClick={() => setFiltre(id)}>
+            {id !== 'tous' && id !== 'recents' && <IconeMuscle zone={id} taille={24} />}
             {nom}
           </button>
         ))}
@@ -159,8 +166,11 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
 
       {groupes.map((g) => (
         <div key={g.muscle}>
-          <div className="groupe-titre">
-            {g.nom} <span style={{ fontWeight: 400 }}>· {g.exos.length}</span>
+          <div className="groupe-titre ligne" style={{ gap: 8 }}>
+            {g.muscle !== 'recents' && <IconeMuscle muscle={g.muscle as Muscle} taille={26} />}
+            <span>
+              {g.nom} <span style={{ fontWeight: 400 }}>· {g.exos.length}</span>
+            </span>
           </div>
           {g.exos.map(ligne)}
         </div>

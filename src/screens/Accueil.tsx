@@ -172,8 +172,16 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
             </span>
           ))}
         </div>
-        {MUSCLES.map((m) => {
+        {MUSCLES.filter((m) => m.cible > 0 || volume[m.id] > 0).map((m) => {
           const v = volume[m.id]
+          // Sans objectif (fessiers, trapèzes…) : seulement le nombre de séries, barre neutre.
+          if (!m.cible)
+            return (
+              <div key={m.id} className="ligne entre petit" style={{ marginBottom: 8 }}>
+                <span>{m.nom}</span>
+                <span className="muted">{kg(v)} · sans objectif</span>
+              </div>
+            )
           const pct = Math.min(100, (v / m.cible) * 100)
           const etat = v > m.cible * 1.25 ? 'trop' : v >= m.cible ? 'ok' : ''
           return (
