@@ -465,26 +465,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     <div className="apparait">
       <div className="entete colle">
         <div className="ligne entre" style={{ marginBottom: 10 }}>
-          {totalSeries > 0 && (
-            <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait, reste ${restantes} séries`}>
+          {/* Avancement et chrono ; un appui ouvre le plein écran. */}
+          <button className="resume-seance" onClick={() => setFocus(true)} aria-label="Plein écran">
+            <Anneau valeur={avancement} taille={40} label={`${Math.round(avancement * 100)} % de la séance fait`}>
               <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
             </Anneau>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="faible">
-              {seance.nom}
-              {totalSeries > 0 && (restantes > 0 ? ` · reste ${restantes} série${restantes > 1 ? 's' : ''}` : ' · tout est fait 💪')}
-            </div>
-            <h3 style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>⏱ {chronoSeance(maintenant - seance.debut)}</span>
-              <span className="muted" style={{ fontWeight: 400 }}>
-                {' '}
-                · {seance.sousTitre}
+            <span>
+              <strong className="chrono-seance">{chronoSeance(maintenant - seance.debut)}</strong>
+              <span className="faible">
+                {totalSeries > 0 && (restantes > 0 ? `reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'tout est fait 💪')}
               </span>
-            </h3>
-          </div>
-          <button className="btn icone-focus" onClick={() => setFocus(true)} aria-label="Plein écran">
-            ⤢
+            </span>
           </button>
           <button className="btn" onClick={() => ouvrirFin(true)}>
             Terminer

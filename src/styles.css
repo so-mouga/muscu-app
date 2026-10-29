@@ -453,23 +453,18 @@ select {
   gap: 8px;
 }
 .minuteur .temps {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
   font-variant-numeric: tabular-nums;
+}
+.minuteur .espace {
+  flex: 1;
 }
 .temps-petit {
   font-size: 14px;
   font-weight: 800;
 }
-.libelle-petit {
-  font-size: 13px;
-  font-weight: 700;
-  opacity: 0.75;
-  white-space: nowrap;
-}
+
 .minuteur.fini {
   background: var(--ok);
   color: #04140c;
@@ -1235,7 +1230,20 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   font-size: 22px;
   font-weight: 800;
 }
-.icone-focus {
-  padding: 0 12px;
+/* En-tête de séance : avancement + chrono */
+.resume-seance {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  padding: 0;
+  text-align: left;
+}
+.resume-seance > span {
+  display: flex;
+  flex-direction: column;
+}
+.chrono-seance {
   font-size: 18px;
+  font-variant-numeric: tabular-nums;
 }
