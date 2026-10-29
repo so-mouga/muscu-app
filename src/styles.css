@@ -1813,3 +1813,17 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .liste-btn.rappel {
   border-color: var(--alerte);
 }
+
+/* Tendances des mesures */
+.legende-tendances {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bord);
+}
+.valeur-tendance {
+  display: block;
+  font-size: 22px;
+  margin-top: 2px;
+}

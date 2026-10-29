@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Courbe from '../components/Courbe'
 import Poids from '../components/Poids'
 import SilhouetteMesures from '../components/SilhouetteMesures'
+import Tendances from '../components/Tendances'
 import { clesDe, CONSEILS_MESURE, MESURES, nomCle, type DefMesure } from '../data/mesures'
 import { db } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
@@ -49,6 +50,12 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
 
   return (
     <>
+      <button className="btn primaire grand" style={{ marginBottom: 12 }} onClick={() => onSaisir('nouvelle')}>
+        + Prendre mes mensurations
+      </button>
+
+      <Tendances mesures={mesures} />
+
       <div className="carte mesures-haut">
         <SilhouetteMesures active={active} onChoix={setActive} remplies={remplies} />
         <div className="pile" style={{ gap: 8, minWidth: 0 }}>
@@ -60,10 +67,6 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
           <ValeursMesure def={def} mesures={mesures} />
         </div>
       </div>
-
-      <button className="btn primaire grand" style={{ marginBottom: 12 }} onClick={() => onSaisir('nouvelle')}>
-        + Prendre mes mensurations
-      </button>
 
       {points.length >= 2 && (
         <div className="carte">
