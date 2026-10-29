@@ -1,17 +1,17 @@
 import type { ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
-import { calories, chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, POIDS_DEFAUT, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
+import { calories, chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, POIDS_DEFAUT, kgSouleves, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
 
 /** Durée d'une séance : jusqu'à sa fin, ou jusqu'à maintenant si elle est en cours. */
 export const dureeSeance = (s: Seance) => (s.fin ?? Date.now()) - s.debut
 
 /** Pastilles de bilan d'une séance : durée, calories, séries dures, kg soulevés… */
-export function ResumeSeance({ seance, explication = false }: { seance: Seance; explication?: boolean }) {
+export function ResumeSeance({ seance, explication = false, exo }: { seance: Seance; explication?: boolean; exo?: (id: string) => Exercice }) {
   const ms = dureeSeance(seance)
   const dures = seance.series.filter(estDure).length
-  const tonnage = seance.series.reduce((a, s) => a + s.charge * s.reps, 0)
+  const tonnage = seance.series.reduce((a, s) => a + kgSouleves(s, exo?.(s.exoId)), 0)
   const finisseurs = seance.series.filter((s) => s.type === 'serie_longue' || s.type === 'drop' || s.type === 'rest_pause').length
   const chauffes = Object.values(seance.chauffes).filter(Boolean).length
   return (
@@ -27,7 +27,7 @@ export function ResumeSeance({ seance, explication = false }: { seance: Seance; 
       {explication && (
         <div className="faible" style={{ marginTop: 8 }}>
           Calories estimées d’après la durée et{' '}
-          {seance.poidsCorps ? `ton poids (${kg(seance.poidsCorps)} kg)` : `un poids de ${POIDS_DEFAUT} kg : note ton poids sur l’accueil pour affiner`}. C’est un ordre de
+          {seance.poidsCorps ? `ton poids (${kg(seance.poidsCorps)} kg)` : `un poids de ${POIDS_DEFAUT} kg : note ton poids dans Progression → Poids pour affiner`}. C’est un ordre de
           grandeur, pas une mesure.
         </div>
       )}
@@ -63,7 +63,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
         const ms = temps[plan.exoId] ?? 0
         const prevu = dureePrevueExo(seance.exercices, seance.exercices.indexOf(plan))
         const ch = plan.chauffes.filter((_, k) => seance.chauffes[`${exo.id}:${k}`]).length
-        const volumeExo = series.reduce((a, x) => a + x.charge * x.reps, 0)
+        const volumeExo = series.reduce((a, x) => a + kgSouleves(x, exo), 0)
         const meilleur = Math.max(0, ...series.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
         return (
           <div key={exo.id} className="carte pile recap">
@@ -133,7 +133,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
               {volumeExo > 0 && <span className="pastille">{kg(Math.round(volumeExo))} kg soulevés</span>}
               {meilleur > 0 && (
                 <span className={'pastille' + (record && meilleur > record ? ' ok' : '')}>
-                  1RM estimé {kg(Math.round(meilleur * 2) / 2)} kg{record && meilleur > record ? ' · record 🏆' : ''}
+                  1RM estimé {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}{record && meilleur > record ? ' · record 🏆' : ''}
                 </span>
               )}
             </div>

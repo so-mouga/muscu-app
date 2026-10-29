@@ -104,8 +104,8 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
           ))}
         </div>
         <div className="faible">
-          La montée de charge automatique, elle, suit le pas propre à chaque exercice (fiche de l’exercice → Modifier), pour ne proposer que des charges
-          qui existent sur la machine. Élastiques : toujours 1 niveau.
+          « Pas de l’exercice » : celui réglé dans sa fiche (Exercices → l’exercice → Modifier), pour ne proposer que des charges qui existent sur la
+          machine. Élastiques : toujours 1 niveau.
         </div>
       </div>
 
@@ -181,7 +181,7 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
       <div className="carte pile">
         <h3>À propos</h3>
         <div className="faible">
-          Les suggestions de charge sont des propositions : c’est toi qui décides. Les pas de charge se règlent par exercice dans Progression.
+          L’objectif de chaque séance est de refaire la précédente : c’est toi qui décides quand monter (fin de séance, ou « Voir » → ✎). Le pas de charge d’un exercice se règle dans sa fiche (Exercices → Modifier).
         </div>
         <div className="faible">Version du {__VERSION__}</div>
       </div>

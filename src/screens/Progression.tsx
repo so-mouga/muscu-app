@@ -5,7 +5,7 @@ import Courbe from '../components/Courbe'
 import IconeMuscle from '../components/IconeMuscle'
 import { Consignes } from '../components/InfosExo'
 import { consigne } from '../data/consignes'
-import { chargeTexte, dateCourte, duree, e1rm, enTemps, kg, qte, serieTexte, tempsParExo } from '../lib/calc'
+import { chargeTexte, dateCourte, duree, e1rm, enTemps, kg, kgSouleves, qte, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, Seance } from '../types'
 
 type Onglet = 'stats' | 'historique' | 'infos'
@@ -46,13 +46,14 @@ export function Detail({
 }) {
   const [onglet, setOnglet] = useState<Onglet>('stats')
   const temps = enTemps(exo)
+  const unite1rm = exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const [mesure, setMesure] = useState<Mesure>(temps ? 'temps' : exo.suivreE1rm ? 'e1rm' : 'charge')
   const [periode, setPeriode] = useState(91)
   const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
   const chrono = [...avec].reverse()
   const seriesDe = (s: Seance) => s.series.filter((x) => x.exoId === exo.id)
   const e1rmDe = (s: Seance) => Math.max(0, ...seriesDe(s).map((x) => e1rm(exo, x, s.poidsCorps) ?? 0))
-  const volumeDe = (s: Seance) => seriesDe(s).reduce((a, x) => a + x.charge * x.reps, 0)
+  const volumeDe = (s: Seance) => seriesDe(s).reduce((a, x) => a + kgSouleves(x, exo), 0)
 
   // Records et tuiles
   const toutes = avec.flatMap((s) => seriesDe(s).map((x) => ({ x, s })))
@@ -122,8 +123,8 @@ export function Detail({
         <>
           <div className="tuiles" style={{ marginBottom: 12 }}>
             {temps && tuile(tempsMax !== null ? `${tempsMax} s` : '—', 'record de temps')}
-            {tuile(exo.suivreE1rm ? (meilleurE1rm ? `${kg(Math.round(meilleurE1rm * 2) / 2)} kg` : '—') : chargeMax !== null ? chargeTexte(exo, chargeMax) : '—', exo.suivreE1rm ? 'record e1RM' : 'charge max')}
-            {exo.suivreE1rm && tuile(dernierE1rm ? `${kg(Math.round(dernierE1rm * 2) / 2)} kg` : '—', '1RM estimé (dernier)')}
+            {tuile(exo.suivreE1rm ? (meilleurE1rm ? `${kg(Math.round(meilleurE1rm * 2) / 2)} ${unite1rm}` : '—') : chargeMax !== null ? chargeTexte(exo, chargeMax) : '—', exo.suivreE1rm ? 'record e1RM' : 'charge max')}
+            {exo.suivreE1rm && tuile(dernierE1rm ? `${kg(Math.round(dernierE1rm * 2) / 2)} ${unite1rm}` : '—', '1RM estimé (dernier)')}
             {!temps && tuile(`${kg(Math.round(volumeTotal))} kg`, 'volume total')}
           </div>
 

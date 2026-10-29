@@ -154,7 +154,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         )}
       </div>
       <label className="champ">
-        <span>Pas de charge ({mode === 'elastique' ? 'niveau' : 'kg'}) — boutons −/+ et montée de charge</span>
+        <span>Pas de charge ({mode === 'elastique' ? 'niveau' : 'kg'}) — boutons −/+</span>
         <input inputMode="decimal" value={pas} onChange={(e) => setPas(e.target.value)} />
       </label>
       <Interrupteur

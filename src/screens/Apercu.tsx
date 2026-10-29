@@ -4,7 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { ObjectifApres } from '../components/EditeurObjectif'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
-import { chargeQte, cibleTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan } from '../lib/calc'
+import { chargeQte, cibleTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
 import { hausse, suggestionPour } from '../lib/progression'
@@ -26,6 +26,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const series = modele.exercices.reduce((a, p) => a + p.series.length, 0)
   const habituelle = terminees && dureeHabituelle(modele.id, terminees)
+  const nbHabituelles = terminees ? seancesHabituelles(modele.id, terminees).length : 0
   /** Exercice dont on règle l'objectif (index dans la séance). */
   const [objectif, setObjectif] = useState<number | null>(null)
 
@@ -52,7 +53,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
       </div>
 
       <div className="faible" style={{ marginBottom: 12 }}>
-        Prévu : 1 min par série et par échauffement, plus les repos.{habituelle ? ' D’habitude : tes 3 dernières séances.' : ''}
+        Prévu : 1 min par série et par échauffement, plus les repos.{habituelle ? (nbHabituelles > 1 ? ` D’habitude : tes ${nbHabituelles} dernières séances.` : ' D’habitude : ta dernière séance.') : ''}
       </div>
 
       {deload && <div className="bandeau-deload">🧘 Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère.</div>}

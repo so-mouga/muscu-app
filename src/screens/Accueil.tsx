@@ -230,7 +230,9 @@ export default function Accueil({
         <div className="ligne entre" style={{ marginBottom: 10 }}>
           <h3>Cette semaine</h3>
           <span className="faible">
-            Séances {semaine.length}/{planning.length}
+            {/* Séances prévues faites ; les autres (doublon, séance libre) à part. */}
+            Prévues {planning.filter(faite).length}/{planning.length}
+            {semaine.length > planning.filter(faite).length && ` · +${semaine.length - planning.filter(faite).length} autre${semaine.length - planning.filter(faite).length > 1 ? 's' : ''}`}
           </span>
         </div>
         <div className="ligne wrap" style={{ marginBottom: 14 }}>

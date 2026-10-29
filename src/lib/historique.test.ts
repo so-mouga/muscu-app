@@ -17,6 +17,19 @@ describe('historique', () => {
     expect(recordsParSeance([c, a, b], (id) => EXERCICES[id])).toEqual({ a: 0, b: 1, c: 0 })
   })
 
+  it('records sans poids de corps : dips plus lourds = record ; déload ignoré', () => {
+    const dip = (id: string, date: string, charge: number, reps: number, deload = false) =>
+      ({ ...seance(id, date, [{ ...serie(charge, reps), exoId: 'dips' }]), deload }) as Seance
+    const r = recordsParSeance([dip('a', '2026-10-26', 0, 9), dip('d', '2026-10-27', 10, 12, true), dip('b', '2026-10-28', 2, 10)], (id) => EXERCICES[id])
+    expect(r).toEqual({ a: 0, d: 0, b: 1 })
+  })
+
+  it('kg soulevés : les deux haltères, le lest seul au poids du corps', () => {
+    const halteres = Object.values(EXERCICES).find((e) => e.mode === 'par_main')!
+    const s = { ...seance('h', '2026-10-26', [{ ...serie(22.5, 8), exoId: halteres.id }, { ...serie(2, 10), exoId: 'dips' }]) }
+    expect(bilan([s], {}, (id) => EXERCICES[id]).tonnage).toBe(22.5 * 8 * 2 + 2 * 10)
+  })
+
   it('bilan de semaine', () => {
     const r = recordsParSeance([a, b], (id) => EXERCICES[id])
     expect(bilan([a, b], r)).toEqual({ seances: 2, temps: 7200000, dures: 2, tonnage: 60 * 8 + 62.5 * 8 + 60 * 6, records: 1 })

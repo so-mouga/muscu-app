@@ -42,6 +42,16 @@ export function cibleTexte(exo: Exercice, charges: (number | null)[], reps: numb
   return varie ? `${chargeTexte(exo, charges[0])} → ${chargeTexte(exo, charges[charges.length - 1])} × ${qte(exo, reps.join('/'))}` : chargeQte(exo, charges[0], reps.join('/'))
 }
 
+/**
+ * Kg soulevés par une série : les deux haltères comptent pour un exercice « par main » ; au poids
+ * du corps, seul le lest compte ; un exercice en temps ne compte pas.
+ */
+export function kgSouleves(s: Serie, exo?: Exercice): number {
+  if (exo && enTemps(exo)) return 0
+  const charge = exo?.mode === 'poids_corps' ? Math.max(0, s.charge) : s.charge
+  return charge * s.reps * (exo?.mode === 'par_main' ? 2 : 1)
+}
+
 /** Unité d'écart de quantité : « +1 rep », « +5 s ». */
 export const ecartQte = (exo: Exercice | undefined, d: number) =>
   exo && enTemps(exo) ? `${d > 0 ? '+' : '−'}${Math.abs(d)} s` : `${d > 0 ? '+' : '−'}${Math.abs(d)} rep${Math.abs(d) > 1 ? 's' : ''}`
@@ -168,11 +178,15 @@ export function dureeEstimee(m: SeanceModele): number {
 }
 
 /** Durée réelle habituelle (min) d'une séance : médiane des 3 dernières fois, arrondie à 5 min. */
-export function dureeHabituelle(modeleId: string, terminees: Seance[]): number | null {
-  const d = terminees
-    .filter((s) => s.modeleId === modeleId && s.fin && s.series.length > 0)
+/** Séances de référence pour la durée habituelle : les 3 dernières vraiment faites (au moins 15 min). */
+export const seancesHabituelles = (modeleId: string, terminees: Seance[]) =>
+  terminees
+    .filter((s) => s.modeleId === modeleId && s.fin && s.series.length > 0 && !s.deload && s.fin - s.debut >= 15 * 60000)
     .sort((a, b) => b.debut - a.debut)
     .slice(0, 3)
+
+export function dureeHabituelle(modeleId: string, terminees: Seance[]): number | null {
+  const d = seancesHabituelles(modeleId, terminees)
     .map((s) => s.fin! - s.debut)
     .sort((a, b) => a - b)
   if (!d.length) return null

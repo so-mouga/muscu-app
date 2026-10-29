@@ -14,6 +14,10 @@ export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourd
     const poids = parseFloat(valeur.replace(',', '.'))
     if (!(poids > 30 && poids < 250)) return
     await db.pesees.put({ date: aujourdhui, poids })
+    // Séances faites sans poids noté : on leur donne celui-ci, pour le 1RM des exercices au poids du corps.
+    await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
+      s.poidsCorps = poids
+    })
     setValeur('')
   }
 
@@ -33,7 +37,7 @@ export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourd
       ) : null}
       {(!duJour || valeur) && (
         <div className="ligne">
-          <input inputMode="decimal" placeholder="ex. 70,4" value={valeur} onChange={(e) => setValeur(e.target.value)} />
+          <input inputMode="decimal" enterKeyHint="done" placeholder="ex. 70,4" value={valeur} onChange={(e) => setValeur(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void enregistrer()} />
           <button className="btn primaire" onClick={enregistrer}>
             OK
           </button>

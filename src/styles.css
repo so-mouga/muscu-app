@@ -1970,3 +1970,19 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .ligne-semaine.pause {
   padding: 6px 0;
 }
+.ajuster-series {
+  gap: 8px;
+}
+.ajuster-series .btn {
+  flex: 1;
+  min-height: 44px;
+}
+/* Barre des exercices en séance : un dégradé signale qu'elle défile. */
+.pills.deborde {
+  -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
+  mask-image: linear-gradient(to right, #000 85%, transparent);
+}
+.focus-avancement .faible,
+.focus-avancement strong + .faible {
+  white-space: nowrap;
+}

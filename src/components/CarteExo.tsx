@@ -241,7 +241,9 @@ export default function CarteExo({
                 {plus(n) && <span className="badge-hausse">↑ {plus(n)}</span>}
                 {avant(n) && <span className="avant">dernière fois : {serieTexte(exo, avant(n)!)}</span>}
               </span>
-              <span className="faible">repos {chrono(reposApres(plan, n, total))}</span>
+              <span className="faible" style={{ whiteSpace: 'nowrap' }}>
+                repos {chrono(reposApres(plan, n, total))}
+              </span>
             </div>
           )
           return n === enSaisie && !enEdition ? (
@@ -290,13 +292,13 @@ export default function CarteExo({
       )}
 
       {!termine && !enEdition && (
-        <div className="ligne entre">
-          <button className="btn discret petit" onClick={() => ajuster(+1)}>
-            + série
+        <div className="ligne ajuster-series">
+          <button className="btn" onClick={() => ajuster(+1)}>
+            + Ajouter une série
           </button>
           {total > faites.length && (
-            <button className="btn discret petit" onClick={() => ajuster(-1)}>
-              − retirer une série
+            <button className="btn" onClick={() => ajuster(-1)}>
+              − Retirer une série
             </button>
           )}
         </div>
@@ -437,7 +439,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   }
 
   const supprimer = async () => {
-    if (!edition) return
+    if (!edition || !confirm(`Supprimer la série ${index + 1} ?`)) return
     await majSeance(seance.id, (x) => {
       x.series = x.series.filter((y) => y.id !== edition.id)
     })
@@ -541,10 +543,16 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </div>
         <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
       </div>
+      {/* Charge décalée comme à la série précédente : on le dit, pour ne pas croire à une erreur. */}
+      {!edition && sugg.charges[i] !== null && sugg.charges[i] !== undefined && charge === chargeInitiale() && charge !== sugg.charges[i] && (
+        <div className="faible" style={{ marginTop: -4 }}>
+          Charge reprise de ta série {index} (cible : {chargeTexte(exo, sugg.charges[i])})
+        </div>
+      )}
 
       {temps && !edition && (
         <button className="btn grand chrono-btn" onClick={() => setChronoOuvert(true)}>
-          ▶ LANCER LE CHRONO · {sugg.reps[i] ?? p.repsMax} s
+          ▶ CHRONO · {sugg.reps[i] ?? p.repsMax} s
         </button>
       )}
       <div className="stepper">
@@ -626,7 +634,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
       <div className="ligne entre">
         <button className="btn discret petit" onClick={() => setOptions(!options)}>
-          {options ? '▾' : '▸'} Autre type de série, douleur
+          {options ? '▾' : '▸'} Type de série, douleur
         </button>
         {edition && (
           <div className="ligne">

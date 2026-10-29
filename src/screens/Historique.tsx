@@ -4,7 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages } from '../db'
-import { chargeQte, dateISO, duree, estDure, kg, lundi } from '../lib/calc'
+import { chargeQte, dateISO, kgSouleves, duree, estDure, kg, lundi } from '../lib/calc'
 import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, semaineDe, type Bilan } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
@@ -96,7 +96,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
     .map((l) => ({ lundi: l, seances: parSem.find((g) => g.lundi === l)?.seances ?? [], activites: activites.filter((a) => semaineDe(a.date) === l) }))
   const cetteSemaine = lundi()
   const precedente = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') - 7 * 86400000))
-  const bilanDe = (l: string) => bilan(groupes.find((g) => g.lundi === l)?.seances ?? [], records)
+  const bilanDe = (l: string) => bilan(groupes.find((g) => g.lundi === l)?.seances ?? [], records, catalogue.exo)
   const activitesDe = (l: string) => activites.filter((a) => semaineDe(a.date) === l)
 
   return (
@@ -119,7 +119,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
           <BilanSemaine actuel={bilanDe(cetteSemaine)} avant={bilanDe(precedente)} activites={activitesDe(cetteSemaine)} activitesAvant={activitesDe(precedente)} />
 
           {groupes.slice(0, semaines).map((g) => {
-            const b = bilan(g.seances, records)
+            const b = bilan(g.seances, records, catalogue.exo)
             return (
               <div key={g.lundi}>
                 <div className="semaine-titre">
@@ -229,20 +229,24 @@ function Calendrier({
 /** Cette semaine comparée à la précédente. */
 function BilanSemaine({ actuel, avant, activites, activitesAvant }: { actuel: Bilan; avant: Bilan; activites: Activite[]; activitesAvant: Activite[] }) {
   const minutes = (l: Activite[]) => l.reduce((a, x) => a + x.duree, 0)
+  // Semaine dernière vide : rien à comparer, on n'affiche pas de « ↑ vs 0 ».
+  const comparable = avant.seances > 0 || activitesAvant.length > 0
   const tuile = (valeur: string, label: string, n: number, m: number, texteAvant: string) => (
     <div className="tuile">
       <strong>{valeur}</strong>
       <span className="faible">{label}</span>
-      <span className={'delta' + (n > m ? ' plus' : n < m ? ' moins' : '')}>
-        {n > m ? '↑' : n < m ? '↓' : '='} vs {texteAvant}
-      </span>
+      {comparable && (
+        <span className={'delta' + (n > m ? ' plus' : n < m ? ' moins' : '')}>
+          {n > m ? '↑' : n < m ? '↓' : '='} vs {texteAvant}
+        </span>
+      )}
     </div>
   )
   return (
     <div className="carte">
       <div className="ligne entre" style={{ marginBottom: 10 }}>
         <h3>Bilan de la semaine</h3>
-        <span className="faible">vs semaine dernière</span>
+        {comparable && <span className="faible">vs semaine dernière</span>}
       </div>
       <div className="tuiles">
         {tuile(String(actuel.seances), actuel.seances > 1 ? 'séances' : 'séance', actuel.seances, avant.seances, String(avant.seances))}
@@ -277,7 +281,7 @@ function CarteSeance({
   onOuvrir: () => void
 }) {
   const dures = seance.series.filter(estDure).length
-  const tonnage = seance.series.reduce((a, s) => a + s.charge * s.reps, 0)
+  const tonnage = seance.series.reduce((a, s) => a + kgSouleves(s, catalogue.exo(s.exoId)), 0)
   const exos = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
   return (
     <button className="liste-btn carte-seance" onClick={onOuvrir}>
@@ -355,7 +359,7 @@ function DetailSeance({
       </div>
 
       <div className="carte">
-        <ResumeSeance seance={seance} />
+        <ResumeSeance seance={seance} exo={catalogue.exo} />
         <div className="ligne wrap" style={{ gap: 6, marginTop: 6 }}>
           {records > 0 && <span className="pastille ok">🏆 {pluriel(records, 'record')}</span>}
           {seance.ressenti && <span className="pastille">Ressenti {seance.ressenti}/5</span>}

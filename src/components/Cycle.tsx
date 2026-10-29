@@ -104,10 +104,21 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
     const p = catalogue.programmes.find((x) => x.id === progId)!
     const enCours = catalogue.cycle
     if (enCours && !confirm(`Terminer le cycle « ${enCours.programme.nom} » en cours et lancer celui-ci ? L’historique est conservé.`)) return
-    await db.transaction('rw', db.cycles, db.reglages, async () => {
+    const c = nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b), volume)
+    await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
       if (enCours) await db.cycles.update(enCours.id, { fin: dateISO() })
-      await db.cycles.put(nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b), volume))
+      await db.cycles.put(c)
       await setReglage('programmeActif', p.id)
+      // Cycle lancé cette semaine : les séances déjà faites cette semaine en font partie (semaine 1).
+      if (debut === cetteSemaine)
+        await db.seances
+          .where('date')
+          .aboveOrEqual(cetteSemaine)
+          .filter((s) => !s.cycleId)
+          .modify((s) => {
+            s.cycleId = c.id
+            s.semaine = 1
+          })
     })
     onFermer()
   }

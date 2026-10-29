@@ -81,6 +81,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [corrige, setCorrige] = useState<string | null>(null)
   /** Fiche d'exécution ouverte depuis le plein écran. */
   const [infos, setInfos] = useState<string | null>(null)
+  // Barre des exercices : dégradé à droite tant qu'il reste des exercices cachés.
+  const pills = useRef<HTMLDivElement>(null)
+  const marquerDebord = () => {
+    const el = pills.current
+    if (el) el.classList.toggle('deborde', el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+  }
+  useEffect(marquerDebord)
   /** Objectif réglé sur place (index de l'exercice dans la séance). */
   const [objectifDe, setObjectifDe] = useState<number | null>(null)
   const [fin, setFin] = useState(false)
@@ -196,7 +203,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const memeCharge = avant.filter((x) => x.charge === s.charge)
     const e = e1rm(exo, s, seance.poidsCorps)
     const meilleur = Math.max(0, ...avant.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
-    if (e && meilleur && e > meilleur) setToast(`🏆 Nouveau record e1RM : ${kg(e)} kg`)
+    if (e && meilleur && e > meilleur) setToast(`🏆 Nouveau record e1RM : ${kg(e)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}`)
+    // Sans 1RM (pas de poids noté, isolation…) : une charge jamais soulevée est aussi un record.
+    else if (!enTemps(exo) && s.reps > 0 && s.charge > Math.max(...avant.map((x) => x.charge)))
+      setToast(`🏆 Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
     else if (memeCharge.length && s.reps > Math.max(...memeCharge.map((x) => x.reps)))
       setToast(enTemps(exo) ? `🏆 Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `🏆 Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
   }
@@ -339,9 +349,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           ⏱ {chronoSeance(maintenant - seance.debut)} · 🔥 ≈ {kcal} kcal
         </div>
       </div>
-      <button className="btn" onClick={() => setFocus(false)}>
-        ⌄ Réduire
-      </button>
+      <div className="pile" style={{ gap: 6 }}>
+        <button className="btn" onClick={() => setFocus(false)}>
+          ⌄ Réduire
+        </button>
+        <button className="btn discret petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
+          Terminer
+        </button>
+      </div>
     </div>
   )
 
@@ -507,7 +522,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </button>
         </div>
         {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
-        <div className="pills">
+        <div className="pills" ref={pills} onScroll={marquerDebord}>
           {plans.map((p, i) => {
             const passe = estPasse(i)
             const fait = !passe && nbFaites(p.exoId) >= totalDe(i)
@@ -747,8 +762,9 @@ function FinSeance({
   onRetour: () => void
 }) {
   const modele = catalogue.modele(seance.modeleId)
-  const [ressenti, setRessenti] = useState(3)
-  const [energie, setEnergie] = useState(3)
+  // Rien de présélectionné : une note non choisie n'est pas enregistrée.
+  const [ressenti, setRessenti] = useState<number | undefined>(undefined)
+  const [energie, setEnergie] = useState<number | undefined>(undefined)
   const [garder, setGarder] = useState(false)
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
@@ -780,14 +796,14 @@ function FinSeance({
     oublierEtatLocal(seance.id)
   }
 
-  const echelle = (v: number, set: (n: number) => void, label: string) => (
+  const echelle = (v: number | undefined, set: (n: number | undefined) => void, label: string) => (
     <div>
       <div className="faible" style={{ marginBottom: 6 }}>
         {label}
       </div>
       <div className="rpe" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className={v === n ? 'actif' : ''} onClick={() => set(n)}>
+          <button key={n} className={v === n ? 'actif' : ''} onClick={() => set(v === n ? undefined : n)}>
             {n}
           </button>
         ))}
@@ -805,7 +821,7 @@ function FinSeance({
       </div>
       <div className="carte">
         <h2>{seance.nom}</h2>
-        <ResumeSeance seance={seance} explication />
+        <ResumeSeance seance={seance} explication exo={catalogue.exo} />
       </div>
 
       {faits.length > 0 && (
@@ -848,8 +864,8 @@ function FinSeance({
       )}
 
       <div className="carte pile">
-        {echelle(ressenti, setRessenti, 'Ressenti global (1 = dur, 5 = excellent)')}
-        {echelle(energie, setEnergie, 'Énergie (1 = vidé, 5 = au top)')}
+        {echelle(ressenti, setRessenti, 'Ressenti global (1 = dur, 5 = excellent) · facultatif')}
+        {echelle(energie, setEnergie, 'Énergie (1 = vidé, 5 = au top) · facultatif')}
       </div>
 
       {libre && (

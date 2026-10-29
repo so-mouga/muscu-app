@@ -68,5 +68,7 @@ export function transition(fn: () => void, sens: Sens = 'fondu') {
     return
   }
   document.documentElement.dataset.sens = sens
-  doc.startViewTransition(() => flushSync(fn))
+  // Une transition interrompue (écran changé entre-temps) n'est pas une erreur : l'état est déjà appliqué.
+  const t = doc.startViewTransition(() => flushSync(fn)) as { ready?: Promise<unknown>; finished?: Promise<unknown>; updateCallbackDone?: Promise<unknown> } | undefined
+  for (const p of [t?.ready, t?.finished, t?.updateCallbackDone]) p?.catch(() => undefined)
 }

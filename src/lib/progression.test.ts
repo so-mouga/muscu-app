@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { aBattre, hausse, suggere, suggestionPour } from './progression'
+import { aBattre, hausse, pareil, suggere, suggestionPour } from './progression'
 
 const planDe = (modele: string, exoId: string) => MODELES[modele].exercices.find((e) => e.exoId === exoId)!
 
@@ -178,5 +178,21 @@ describe('déload', () => {
     const avant = { ...base, series: seance(30, '12@8', '12@8').map((x) => ({ ...x, exoId: 'butterfly' })) }
     const deload = { ...base, id: 'd', deload: true, series: seance(27.5, '12@6').map((x) => ({ ...x, exoId: 'butterfly' })) }
     expect(suggestionPour(EXERCICES.butterfly, planDe('haut_a', 'butterfly'), [deload, avant]).charges[0]).toBe(30)
+  })
+})
+
+describe('séance incomplète', () => {
+  it('les séries pas faites gardent la fois d’avant, pas la dernière série faite', () => {
+    const plan = planDe('haut_a', 'butterfly')
+    const incomplete = seance(30, '9@8')
+    const avant = seance(30, '12@8', '11@8', '10@9', '!9@10')
+    const r = pareil(EXERCICES.butterfly, plan, [incomplete, avant])
+    expect(r.reps).toEqual([9, 11, 10, 9])
+  })
+  it('sans fois d’avant : le programme pour les séries manquantes', () => {
+    const plan = planDe('haut_a', 'butterfly')
+    const r = pareil(EXERCICES.butterfly, plan, [seance(30, '9@8')])
+    expect(r.reps[0]).toBe(9)
+    expect(r.reps[1]).toBe(plan.series[1].repsMin)
   })
 })

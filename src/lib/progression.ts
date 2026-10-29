@@ -78,7 +78,7 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
       decision: 'depart',
       charges: plan.series.map((p) => p.charge ?? plan.charge),
       reps: plan.series.map((p) => p.repsMin),
-      message: 'Charge de départ du programme.',
+      message: 'Premier passage : charge de départ prévue, ajuste-la au ressenti.',
     }
   }
 
@@ -177,16 +177,18 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
 
 /**
  * Refaire exactement la dernière séance : même charge et mêmes reps, série par série.
+ * Une série pas faite la dernière fois (séance incomplète) reprend la fois d'avant, sinon le
+ * programme : une séance écourtée ne fait jamais baisser les autres séries.
  * C'est l'utilisateur qui décide de monter (objectif fixé en fin de séance).
  */
 export function pareil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Suggestion {
-  const derniere = historique.find((h) => h.length > 0)
-  if (!derniere) return suggere(exo, plan, historique)
-  const de = (i: number) => derniere[Math.min(i, derniere.length - 1)]
+  const depart = suggere(exo, plan, [])
+  if (!historique.some((h) => h.length > 0)) return suggere(exo, plan, historique)
+  const de = (i: number) => historique.find((h) => h[i])?.[i]
   return {
     decision: 'pareil',
-    charges: plan.series.map((_, i) => de(i).charge),
-    reps: plan.series.map((_, i) => de(i).reps),
+    charges: plan.series.map((_, i) => de(i)?.charge ?? depart.charges[i]),
+    reps: plan.series.map((_, i) => de(i)?.reps ?? depart.reps[i]),
     message: '= Comme la dernière fois.',
   }
 }
