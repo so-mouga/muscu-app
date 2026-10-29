@@ -1,10 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { Catalogue } from '../catalogue'
 import Vignette from '../components/Vignette'
-import { db, exoAvecReglages } from '../db'
+import { db, exoAvecReglages, historiqueDe } from '../db'
 import { chargeTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { suggestionPour } from '../lib/progression'
+import { hausse, suggestionPour } from '../lib/progression'
 import type { SeanceModele } from '../types'
 
 interface Props {
@@ -50,6 +50,9 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
       {modele.exercices.map((p, i) => {
         const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
         const sugg = terminees && suggestionPour(exo, p, terminees)
+        const derniere = terminees && historiqueDe(terminees, p.exoId)[0]
+        const hausses = sugg ? sugg.charges.map((_, n) => hausse(exo, sugg, derniere, n)) : []
+        const battre = hausses.some(Boolean)
         return (
           <div key={p.exoId + i} className="carte pile">
             <div className="ligne" style={{ gap: 12 }}>
@@ -67,12 +70,22 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
               </div>
             </div>
             {sugg && (
-              <div className="suggestion petit">
-                <strong>
-                  {chargeTexte(exo, sugg.charges[0])}
-                  {sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`} × {sugg.reps.join('/')}
-                </strong>
-                <div className="muted">{sugg.message}</div>
+              <div className={'suggestion petit' + (battre ? ' a-battre' : '')}>
+                <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
+                  <strong>
+                    {chargeTexte(exo, sugg.charges[0])}
+                    {sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`} × {sugg.reps.join('/')}
+                  </strong>
+                  {battre && <span className="badge-hausse">🔥 À battre</span>}
+                </div>
+                {battre ? (
+                  <div className="muted">
+                    {hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
+                    {derniere && <> · dernière fois {derniere.map((x) => `${chargeTexte(exo, x.charge)}×${x.reps}`).join(', ')}</>}
+                  </div>
+                ) : (
+                  <div className="muted">{sugg.message}</div>
+                )}
               </div>
             )}
             {p.chauffes.length > 0 && <div className="faible">Chauffe : {p.chauffes.join(' · ')}</div>}

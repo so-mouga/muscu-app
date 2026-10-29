@@ -1433,3 +1433,131 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .consignes.erreurs {
   color: var(--texte-2);
 }
+
+/* Bouton ⓘ : fiche d'exécution */
+.btn-infos {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--texte-3);
+  background: none;
+  color: var(--texte-2);
+  font: italic 700 15px/1 Georgia, 'Times New Roman', serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+}
+/* Zone d'appui plus grande que le rond */
+.btn-infos::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+/* Objectif de la prochaine séance : ce qui a été fait, puis l'objectif */
+.objectif-serie {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bord);
+}
+.objectif-serie:last-child {
+  border-bottom: none;
+}
+
+/* Objectif au-dessus de la dernière fois : « à battre » */
+.badge-hausse {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.badge-hausse.grand {
+  margin-left: 0;
+  align-self: flex-start;
+  font-size: 14px;
+  padding: 4px 10px;
+}
+.suggestion.a-battre {
+  border-left-width: 4px;
+  padding: 8px 10px;
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Plein écran pendant le repos : tout tient dans l'écran, sans défilement. */
+.focus.fixe {
+  --anneau: clamp(120px, calc(100dvh - 560px), 210px);
+  position: fixed;
+  inset: 0;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(10px + env(safe-area-inset-top)) 16px calc(10px + env(safe-area-inset-bottom));
+  gap: 10px;
+  overflow: hidden;
+  background: var(--bg);
+}
+.focus.fixe .minuteur.grand {
+  gap: 10px;
+  padding: 0;
+}
+.focus.fixe .minuteur.grand .anneau {
+  width: var(--anneau) !important;
+  height: var(--anneau) !important;
+}
+.focus.fixe .minuteur.grand .anneau svg {
+  width: 100%;
+  height: 100%;
+}
+.focus.fixe .temps-grand {
+  font-size: calc(var(--anneau) * 0.28);
+}
+.focus.fixe .focus-bloc {
+  padding: 10px 14px;
+  flex-shrink: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.focus.fixe .prochaine-grand {
+  gap: 4px;
+}
+.focus.fixe .prochaine-grand > .faible {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.focus.fixe > .btn.discret {
+  margin: auto 0 0 !important;
+  min-height: 40px;
+}
+.ligne-exo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.ligne-exo > .liste-btn {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.ligne-exo > .btn-infos {
+  margin-right: 4px;
+}
+.apport {
+  margin-left: 4px;
+  color: var(--accent);
+  font-weight: 700;
+}

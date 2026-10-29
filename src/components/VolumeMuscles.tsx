@@ -1,0 +1,49 @@
+import { MUSCLES } from '../data/exercices'
+import { kg } from '../lib/calc'
+import type { Muscle } from '../types'
+
+interface Props {
+  /** Séries dures par muscle sur la semaine (faites ou prévues). */
+  volume: Record<Muscle, number>
+  /** Part d'une séance dans ce total : affichée « +6 » à côté du muscle. */
+  apport?: Record<Muscle, number>
+}
+
+/** Une barre par muscle : séries dures de la semaine face à l'objectif (vert dans la cible, orange au-delà). */
+export default function VolumeMuscles({ volume, apport }: Props) {
+  return (
+    <>
+      {MUSCLES.filter((m) => m.cible > 0 || volume[m.id] > 0).map((m) => {
+        const v = volume[m.id]
+        const plus = apport && apport[m.id] > 0 ? <span className="apport">+{kg(apport[m.id])}</span> : null
+        // Sans objectif (fessiers, trapèzes…) : seulement le nombre de séries, barre neutre.
+        if (!m.cible)
+          return (
+            <div key={m.id} className="ligne entre petit" style={{ marginBottom: 8 }}>
+              <span>
+                {m.nom} {plus}
+              </span>
+              <span className="muted">{kg(v)} · sans objectif</span>
+            </div>
+          )
+        const pct = Math.min(100, (v / m.cible) * 100)
+        const etat = v > m.cible * 1.25 ? 'trop' : v >= m.cible ? 'ok' : ''
+        return (
+          <div key={m.id} style={{ marginBottom: 8 }}>
+            <div className="ligne entre petit">
+              <span>
+                {m.nom} {plus}
+              </span>
+              <span className="muted">
+                {kg(v)}/{kg(m.cible)}
+              </span>
+            </div>
+            <div className={'barre ' + etat}>
+              <div style={{ width: pct + '%' }} />
+            </div>
+          </div>
+        )
+      })}
+    </>
+  )
+}

@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance } from '../types'
-import { calories, dureeHabituelle, e1rm, lireDuree, reposApres, volumeParMuscle, tempsParExo } from './calc'
+import { calories, dureeHabituelle, e1rm, lireDuree, reposApres, semaineType, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -118,5 +118,19 @@ describe('durée habituelle et calories', () => {
   it('5 MET × poids × heures', () => {
     expect(calories(3600000, 80)).toBe(400)
     expect(calories(1800000)).toBe(188)
+  })
+})
+
+describe('volume prévu', () => {
+  it('compte les séries dures prévues et les muscles secondaires', () => {
+    const plan = (exoId: string, rpes: number[]) => ({ exoId, repos: 120, series: rpes.map((rpe) => ({ repsMin: 8, repsMax: 12, rpe })), chauffes: [], finisseur: false, charge: null })
+    const m = { id: 'm', nom: 'm', sousTitre: '', exercices: [plan('smith_incline', [8, 8, 6]), plan('butterfly', [9, 9])] }
+    const v = volumePrevu([m, m])
+    expect(v.pecs).toBe(8)
+    expect(v.triceps).toBe(2)
+  })
+  it('semaine type : seulement les séances planifiées', () => {
+    expect(semaineType({ id: 'p', nom: 'p', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b' }] }).map((e) => e.modeleId)).toEqual(['a'])
+    expect(semaineType({ id: 'p', nom: 'p', seances: [{ modeleId: 'a' }, { modeleId: 'b' }] })).toHaveLength(2)
   })
 })

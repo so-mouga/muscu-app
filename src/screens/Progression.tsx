@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { nomMuscle } from '../components/ChoixExo'
 import { MODES } from '../components/FormExo'
 import IconeMuscle from '../components/IconeMuscle'
+import { Consignes } from '../components/InfosExo'
 import { consigne } from '../data/consignes'
 import { chargeTexte, dateCourte, duree, e1rm, kg, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, Seance } from '../types'
@@ -213,23 +214,7 @@ export function Detail({
           {c && (
             <div className="carte pile">
               <h3>Exécution</h3>
-              <div>
-                <div className="faible">Position de départ</div>
-                <div>{c.depart}</div>
-              </div>
-              <ul className="consignes">
-                {c.etapes.map((e) => (
-                  <li key={e}>{e}</li>
-                ))}
-              </ul>
-              <div>
-                <div className="erreurs-titre">Erreurs fréquentes</div>
-                <ul className="consignes erreurs">
-                  {c.erreurs.map((e) => (
-                    <li key={e}>{e}</li>
-                  ))}
-                </ul>
-              </div>
+              <Consignes exo={exo} />
             </div>
           )}
 

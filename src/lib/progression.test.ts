@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { suggere, suggestionPour } from './progression'
+import { aBattre, hausse, suggere, suggestionPour } from './progression'
 
 const planDe = (modele: string, exoId: string) => MODELES[modele].exercices.find((e) => e.exoId === exoId)!
 
@@ -132,14 +132,42 @@ describe('objectif manuel', () => {
     expect(r.reps).toEqual([12, 12, 12, 12])
   })
 
-  it('sans objectif, la double progression s’applique', () => {
+  it('sans objectif, on refait exactement pareil', () => {
+    const s = seanceAvec(seance([30, 30, 32.5, 32.5], '14@8', '13@8', '12@9', '!10@10'))
+    const r = suggestionPour(EXERCICES.butterfly, plan, [s])
+    expect(r.decision).toBe('pareil')
+    expect(r.charges).toEqual([30, 30, 32.5, 32.5])
+    expect(r.reps).toEqual([14, 13, 12, 10])
+  })
+
+  it('sans objectif ni historique → charges de départ du programme', () => {
+    expect(suggestionPour(EXERCICES.butterfly, plan, []).decision).not.toBe('pareil')
+  })
+
+  it('progression automatique (réglage) : la double progression s’applique', () => {
     const s = seanceAvec(seance(30, '14@8', '13@8', '12@9', '!10@10'))
-    expect(suggestionPour(EXERCICES.butterfly, plan, [s]).decision).toBe('plus_une_rep')
+    expect(suggestionPour(EXERCICES.butterfly, plan, [s], true).decision).toBe('plus_une_rep')
   })
 
   it('seul l’objectif de la dernière séance compte', () => {
     const ancienne = seanceAvec(seance(30, '14@8'), { butterfly: { charges: [40], reps: [8] } })
     const recente = seanceAvec(seance(30, '15@8', '15@8', '15@9', '!11@10'))
-    expect(suggestionPour(EXERCICES.butterfly, plan, [recente, ancienne]).decision).toBe('augmenter')
+    expect(suggestionPour(EXERCICES.butterfly, plan, [recente, ancienne], true).decision).toBe('augmenter')
+  })
+})
+
+describe('objectif à battre', () => {
+  const derniere = seance(30, '12@8', '12@8')
+  const sugg = (charges: number[], reps: number[]) => ({ decision: 'manuel' as const, charges, reps, message: '' })
+  it('charge en hausse', () => {
+    expect(hausse(EXERCICES.butterfly, sugg([32.5, 30], [10, 12]), derniere, 0)).toBe('+2,5 kg')
+    expect(hausse(EXERCICES.butterfly, sugg([32.5, 30], [10, 12]), derniere, 1)).toBeNull()
+  })
+  it('reps en hausse à charge égale', () => {
+    expect(hausse(EXERCICES.butterfly, sugg([30, 30], [12, 13]), derniere, 1)).toBe('+1 rep')
+  })
+  it('refaire pareil : rien à battre', () => {
+    expect(aBattre(EXERCICES.butterfly, sugg([30, 30], [12, 12]), derniere)).toBe(false)
+    expect(aBattre(EXERCICES.butterfly, sugg([30, 30], [12, 12]), undefined)).toBe(false)
   })
 })

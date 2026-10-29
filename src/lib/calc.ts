@@ -1,5 +1,5 @@
 import { EXERCICES, MUSCLES } from '../data/exercices'
-import type { Exercice, ExoPlan, Muscle, Seance, SeanceModele, Serie } from '../types'
+import type { Exercice, ExoPlan, Muscle, Programme, Seance, SeanceModele, Serie } from '../types'
 
 export const RIR: Record<number, string> = {
   10: 'échec',
@@ -66,6 +66,26 @@ export function volumeParMuscle(seances: Seance[], exercices: Record<string, Exe
       for (const sec of exo.secondaires ?? []) v[sec.muscle] += sec.coef
     }
   return v
+}
+
+/** Séries dures prévues par muscle (RPE visé ≥ 7), comptées comme `volumeParMuscle`. */
+export function volumePrevu(modeles: SeanceModele[], exercices: Record<string, Exercice> = EXERCICES): Record<Muscle, number> {
+  const v = Object.fromEntries(MUSCLES.map((m) => [m.id, 0])) as Record<Muscle, number>
+  for (const m of modeles)
+    for (const p of m.exercices) {
+      const exo = exercices[p.exoId]
+      if (!exo) continue
+      const n = p.series.filter((s, i) => s.rpe >= 7 || (p.finisseur && i === p.series.length - 1)).length
+      v[exo.muscle] += n
+      for (const sec of exo.secondaires ?? []) v[sec.muscle] += sec.coef * n
+    }
+  return v
+}
+
+/** Séances d'une semaine type : celles qui ont un jour (sinon toutes, s'il n'y a pas de planning). */
+export function semaineType(p: Programme): Programme['seances'] {
+  const planifiees = p.seances.filter((e) => e.jour)
+  return planifiees.length ? planifiees : p.seances
 }
 
 export function duree(ms: number): string {

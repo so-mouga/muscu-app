@@ -1,6 +1,6 @@
 import type { Exercice, ExoPlan, Seance, Serie } from '../types'
 
-export type Decision = 'augmenter' | 'plus_une_rep' | 'consolider' | 'baisser' | 'calibrer' | 'depart' | 'manuel'
+export type Decision = 'augmenter' | 'plus_une_rep' | 'consolider' | 'baisser' | 'calibrer' | 'depart' | 'manuel' | 'pareil'
 
 export interface Suggestion {
   decision: Decision
@@ -176,11 +176,27 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
 }
 
 /**
+ * Refaire exactement la dernière séance : même charge et mêmes reps, série par série.
+ * C'est l'utilisateur qui décide de monter (objectif fixé en fin de séance).
+ */
+export function pareil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Suggestion {
+  const derniere = historique.find((h) => h.length > 0)
+  if (!derniere) return suggere(exo, plan, historique)
+  const de = (i: number) => derniere[Math.min(i, derniere.length - 1)]
+  return {
+    decision: 'pareil',
+    charges: plan.series.map((_, i) => de(i).charge),
+    reps: plan.series.map((_, i) => de(i).reps),
+    message: '= Comme la dernière fois.',
+  }
+}
+
+/**
  * Suggestion pour la prochaine séance d'un exercice : l'objectif fixé à la main en fin de
- * dernière séance s'il existe, sinon la double progression automatique.
+ * dernière séance s'il existe, sinon refaire pareil (ou la double progression automatique si `auto`).
  * `seances` : séances terminées, la plus récente en premier.
  */
-export function suggestionPour(exo: Exercice, plan: ExoPlan, seances: Seance[]): Suggestion {
+export function suggestionPour(exo: Exercice, plan: ExoPlan, seances: Seance[], auto = false): Suggestion {
   const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
   const objectif = avec[0]?.objectifs?.[exo.id]
   if (objectif) {
@@ -193,9 +209,24 @@ export function suggestionPour(exo: Exercice, plan: ExoPlan, seances: Seance[]):
       message: '✎ Objectif fixé par toi à la fin de la dernière séance.',
     }
   }
-  return suggere(
+  return (auto ? suggere : pareil)(
     exo,
     plan,
     avec.map((s) => s.series.filter((x) => x.exoId === exo.id))
   )
 }
+
+/** Ce que l'objectif demande de plus que la dernière fois pour la série `i` : « +2,5 kg », « +1 rep » (null sinon). */
+export function hausse(exo: Exercice, sugg: Suggestion, derniere: Serie[] | undefined, i: number): string | null {
+  const d = derniere?.[i]
+  const c = sugg.charges[i]
+  if (!d || c === null || c === undefined) return null
+  const dc = arrondi(c - d.charge)
+  const dr = (sugg.reps[i] ?? 0) - d.reps
+  if (dc > EPS) return `+${nombre(dc)}${exo.mode === 'elastique' ? ' niv.' : ' kg'}`
+  if (Math.abs(dc) <= EPS && dr > 0) return `+${dr} rep${dr > 1 ? 's' : ''}`
+  return null
+}
+
+/** L'objectif dépasse la dernière fois sur au moins une série : « à battre ». */
+export const aBattre = (exo: Exercice, sugg: Suggestion, derniere: Serie[] | undefined) => sugg.charges.some((_, i) => hausse(exo, sugg, derniere, i) !== null)

@@ -1,12 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
-import { MUSCLES } from '../data/exercices'
-import { db, dernierPoids, uid } from '../db'
+import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { dateISO, duree, dureeTexte, jourSemaine, kg, lundi, volumeParMuscle } from '../lib/calc'
 import { dureeReelle } from '../lib/historique'
+import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
+import VolumeMuscles from '../components/VolumeMuscles'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 
@@ -62,6 +63,7 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
+  const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
 
   const { planning, actif } = catalogue
   // Séances faites cette semaine pour un modèle (sa variante maison compte aussi).
@@ -83,6 +85,16 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
 
   const volume = volumeParMuscle(semaine, catalogue.exercices)
   const derniere = terminees?.reduce<(typeof terminees)[number] | undefined>((a, s) => (!a || s.debut > a.debut ? s : a), undefined)
+
+  // Exercices où l'objectif dépasse la dernière fois : « à battre ».
+  const recentes = terminees && [...terminees].sort((a, b) => b.debut - a.debut)
+  const nbABattre = (m: SeanceModele) =>
+    recentes
+      ? m.exercices.filter((p) => {
+          const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
+          return aBattre(exo, suggestionPour(exo, p, recentes), historiqueDe(recentes, p.exoId)[0])
+        }).length
+      : 0
 
   if (apercu) return <Apercu modele={apercu} catalogue={catalogue} onDemarrer={() => demarrer(apercu)} onFermer={() => voir(null)} />
 
@@ -118,6 +130,11 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
               <div className="faible">
                 {exercices(proposee.modele.exercices.length)} · {dureeTexte(proposee.modele, terminees)}
               </div>
+              {nbABattre(proposee.modele) > 0 && (
+                <div className="badge-hausse grand" style={{ marginTop: 6 }}>
+                  🔥 {nbABattre(proposee.modele)} objectif{nbABattre(proposee.modele) > 1 ? 's' : ''} à battre
+                </div>
+              )}
             </div>
             <div className="ligne">
               <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => demarrer(proposee.modele)}>
@@ -172,32 +189,7 @@ export default function Accueil({ catalogue, onVoirSeance }: { catalogue: Catalo
             </span>
           ))}
         </div>
-        {MUSCLES.filter((m) => m.cible > 0 || volume[m.id] > 0).map((m) => {
-          const v = volume[m.id]
-          // Sans objectif (fessiers, trapèzes…) : seulement le nombre de séries, barre neutre.
-          if (!m.cible)
-            return (
-              <div key={m.id} className="ligne entre petit" style={{ marginBottom: 8 }}>
-                <span>{m.nom}</span>
-                <span className="muted">{kg(v)} · sans objectif</span>
-              </div>
-            )
-          const pct = Math.min(100, (v / m.cible) * 100)
-          const etat = v > m.cible * 1.25 ? 'trop' : v >= m.cible ? 'ok' : ''
-          return (
-            <div key={m.id} style={{ marginBottom: 8 }}>
-              <div className="ligne entre petit">
-                <span>{m.nom}</span>
-                <span className="muted">
-                  {kg(v)}/{kg(m.cible)}
-                </span>
-              </div>
-              <div className={'barre ' + etat}>
-                <div style={{ width: pct + '%' }} />
-              </div>
-            </div>
-          )
-        })}
+        <VolumeMuscles volume={volume} />
         <div className="faible">Séries dures (RPE ≥ 7). Triceps : développés et dips comptés à 0,5.</div>
       </div>
 

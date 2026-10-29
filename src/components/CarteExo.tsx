@@ -4,9 +4,10 @@ import { chargeTexte, chrono, ecartSerie, kg, lireChauffe, reposApres, reposText
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import { usePasBoutons } from '../lib/pasBoutons'
+import InfosExo, { BoutonInfos } from './InfosExo'
 import Vignette from './Vignette'
 import { vibrer } from '../lib/appareil'
-import type { Suggestion } from '../lib/progression'
+import { hausse, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
 
 const TYPES: [TypeSerie, string, string][] = [
@@ -83,6 +84,7 @@ export default function CarteExo({
   const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
   const [editId, setEditId] = useState<string | null>(null)
   const [photo, setPhoto] = useState(false)
+  const [infos, setInfos] = useState(false)
   const enEdition = faites.find((s) => s.id === editId)
   const index = enEdition ? faites.indexOf(enEdition) : faites.length
   const termine = !enEdition && faites.length >= total
@@ -93,6 +95,9 @@ export default function CarteExo({
 
   // Même série à la séance précédente (la plus proche si elle en avait moins).
   const avant = (n: number) => derniere?.[n]
+  // Ce que l'objectif demande de plus que la dernière fois (« +2,5 kg ») : là où il faut se surpasser.
+  const plus = (n: number) => hausse(exo, sugg, derniere, n)
+  const battre = sugg.charges.some((_, n) => plus(n) !== null)
 
   // Saisie collée sous la série concernée : celle en cours, ou une série faite qu'on corrige.
   const editeur = (
@@ -134,6 +139,7 @@ export default function CarteExo({
               </span>
             )}
           </h2>
+          <BoutonInfos onClick={() => setInfos(true)} />
           {!focus && (
             <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
               Machine prise
@@ -147,15 +153,16 @@ export default function CarteExo({
         </div>
       </div>
 
-      <div className="suggestion petit">
-        <div>
+      <div className={'suggestion petit' + (battre ? ' a-battre' : '')}>
+        <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
           <strong>
             Cible : {chargeTexte(exo, sugg.charges[0])}
             {sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`} ×{' '}
             {sugg.reps.join('/')}
           </strong>
+          {battre && <span className="badge-hausse">🔥 À battre</span>}
         </div>
-        <div className="muted">{sugg.message}</div>
+        <div className="muted">{battre ? 'Tu as prévu de faire mieux que la dernière fois : c’est ici qu’on progresse.' : sugg.message}</div>
       </div>
       {repere && (
         <div className="faible">
@@ -216,6 +223,7 @@ export default function CarteExo({
               <span>
                 {n === enSaisie ? '▶' : '○'} <span className="faible">S{n + 1}</span> {cible(n)}
                 {plan.finisseur && n === total - 1 ? ' ★' : ''}
+                {plus(n) && <span className="badge-hausse">↑ {plus(n)}</span>}
                 {avant(n) && <span className="avant">dernière fois : {serieTexte(exo, avant(n)!)}</span>}
               </span>
               <span className="faible">repos {chrono(reposApres(plan, n, total))}</span>
@@ -279,6 +287,7 @@ export default function CarteExo({
         </div>
       )}
 
+      {infos && <InfosExo exo={exo} onFermer={() => setInfos(false)} />}
       {photo && exo.image && <Photo src={exo.image} titre={exo.nom} onFermer={() => setPhoto(false)} />}
 
       <textarea
@@ -569,14 +578,13 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       ) : finisseur ? (
         <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
           {tf === 'echec' ? 'VALIDER (ÉCHEC)' : 'ÉCHEC ATTEINT'}
-          {enRepos ? ` · repos ${chrono(reposRestant)}` : ''}
         </button>
       ) : (
         <button
           className={'btn grand' + (enRepos ? '' : ' primaire')}
           onClick={() => enregistrer(construire(type, type === 'serie_longue' ? { demiReps: demi, zone } : { demiReps: undefined, zone: undefined }))}
         >
-          {edition ? 'METTRE À JOUR' : enRepos ? `Valider maintenant · repos ${chrono(reposRestant)}` : 'VALIDER LA SÉRIE'}
+          {edition ? 'METTRE À JOUR' : 'VALIDER LA SÉRIE'}
         </button>
       )}
 

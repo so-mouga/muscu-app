@@ -5,6 +5,7 @@ import { useRetour } from '../lib/nav'
 import type { Exercice, Muscle } from '../types'
 import FormExo from './FormExo'
 import IconeMuscle from './IconeMuscle'
+import InfosExo, { BoutonInfos } from './InfosExo'
 import Vignette from './Vignette'
 
 export const nomMuscle = (m: Muscle) => MUSCLES.find((x) => x.id === m)?.nom ?? m
@@ -42,6 +43,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
   const [creation, setCreation] = useState(false)
   const [zone, setZone] = useState<Zone | 'tous'>(() => MUSCLES.find((m) => m.id === muscle)?.zone ?? 'tous')
   const [choisis, setChoisis] = useState<string[]>([])
+  const [infos, setInfos] = useState<Exercice | null>(null)
   // Groupes fermés par défaut, sauf celui du muscle remplacé ou le seul groupe d'une zone.
   const [bascules, setBascules] = useState<Set<Muscle>>(() => new Set())
   const basculer = (m: Muscle) =>
@@ -67,8 +69,10 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
   const cocher = (id: string) => setChoisis((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id]))
   const ligne = (e: Exercice, detail?: string) => {
     const coche = choisis.includes(e.id)
+    // Appui sur la ligne : choisir ; le ⓘ à côté ouvre seulement la fiche d'exécution.
     return (
-      <button key={e.id} className={'liste-btn' + (coche ? ' coche' : '')} onClick={() => (onChoixMultiple ? cocher(e.id) : onChoix(e.id))}>
+      <div key={e.id} className="ligne-exo">
+      <button className={'liste-btn' + (coche ? ' coche' : '')} onClick={() => (onChoixMultiple ? cocher(e.id) : onChoix(e.id))}>
         <span className="avec-vignette">
           <Vignette exo={e} taille={40} />
           <span>
@@ -81,6 +85,8 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
         </span>
         {onChoixMultiple ? <span className="case">{coche ? '✓' : ''}</span> : <span className="muted">+</span>}
       </button>
+      <BoutonInfos onClick={() => setInfos(e)} />
+      </div>
     )
   }
   const equivalentsVisibles = recherche.trim()
@@ -165,6 +171,12 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
           </div>
         )}
       </div>
+      {/* Fiche par-dessus la liste ; un appui sur son fond ne ferme qu'elle. */}
+      {infos && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <InfosExo exo={infos} onFermer={() => setInfos(null)} />
+        </div>
+      )}
     </div>
   )
 }

@@ -3,9 +3,11 @@ import { useState } from 'react'
 import { ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
+import InfosExo, { BoutonInfos } from '../components/InfosExo'
+import VolumeMuscles from '../components/VolumeMuscles'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte } from '../lib/calc'
+import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 
@@ -75,6 +77,10 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
         nouvelle={vue.nouvelle}
         // Ouverte depuis un programme : c'est lui qui gère son contenu.
         pourProgramme={pile[pile.length - 2]?.type === 'programme'}
+        programme={(() => {
+          const dessous = pile[pile.length - 2]
+          return dessous?.type === 'programme' ? dessous.p : undefined
+        })()}
         onFermer={(enregistree) =>
           fermer((reste) => {
             // Séance créée depuis un programme : on l'ajoute au brouillon du programme.
@@ -294,6 +300,16 @@ function EditeurProgramme({
         </button>
       </div>
 
+      {entrees.length > 0 && (
+        <div className="carte">
+          <h3>Volume par semaine</h3>
+          <div className="faible" style={{ margin: '4px 0 10px' }}>
+            Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face à l’objectif.
+          </div>
+          <VolumeMuscles volume={volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)} />
+        </div>
+      )}
+
       {modifie || nouveau || !enBase ? (
         <button className="btn primaire grand" disabled={!valide} onClick={() => enregistrer(nouveau && !actif)}>
           {nouveau ? 'CRÉER ET ACTIVER' : 'ENREGISTRER'}
@@ -357,6 +373,7 @@ function Editeur({
   initial,
   nouvelle,
   pourProgramme,
+  programme,
   onFermer,
 }: {
   catalogue: Catalogue
@@ -364,12 +381,15 @@ function Editeur({
   nouvelle: boolean
   /** Ouverte depuis un programme : pas de choix de programme ici. */
   pourProgramme: boolean
+  /** Programme en cours d'édition en dessous (sinon : celui choisi pour la séance). */
+  programme?: Programme
   /** Reçoit la séance quand elle vient d'être enregistrée. */
   onFermer: (enregistree?: SeanceModele) => void
 }) {
   const [m, setM] = useState(initial)
   const [choix, setChoix] = useState(false)
   const [editIdx, setEditIdx] = useState<number | null>(null)
+  const [infos, setInfos] = useState<Exercice | null>(null)
   // Programmes qui contiennent la séance ; une nouvelle séance va par défaut dans le programme actif.
   const progsInitiaux = catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === initial.id)).map((p) => p.id)
   const [progs, setProgs] = useState<string[]>(nouvelle ? [catalogue.actif.id] : progsInitiaux)
@@ -395,6 +415,14 @@ function Editeur({
     })
 
   const finisseurs = m.exercices.filter((e) => e.finisseur).length
+
+  // Volume : ce que la séance apporte, et la semaine du programme avec cette version de la séance.
+  const prog = programme ?? catalogue.programmes.find((p) => p.id === catalogue.actif.id && progs.includes(p.id)) ?? catalogue.programmes.find((p) => progs.includes(p.id))
+  const apport = volumePrevu([m], catalogue.exercices)
+  const semaine = prog && semaineType(prog)
+  const modelesSemaine = semaine?.map((e) => (e.modeleId === m.id ? m : catalogue.modele(e.modeleId))).filter((x) => !!x) ?? []
+  // Pas encore dans le programme (nouvelle séance) : comptée une fois.
+  if (prog && !semaine!.some((e) => e.modeleId === m.id)) modelesSemaine.push(m)
   const valide = m.nom.trim() !== '' && m.exercices.length > 0
 
   const enregistrer = async () => {
@@ -502,6 +530,7 @@ function Editeur({
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">{resumePlan(exo, p)}</div>
               </button>
+              <BoutonInfos onClick={() => setInfos(exo)} />
               <button className="icone" disabled={i === 0} onClick={() => deplacer(i, -1)} aria-label="Monter">
                 ↑
               </button>
@@ -523,6 +552,18 @@ function Editeur({
           </div>
         )}
       </div>
+
+      {m.exercices.length > 0 && (
+        <div className="carte">
+          <h3>Volume par muscle</h3>
+          <div className="faible" style={{ margin: '4px 0 10px' }}>
+            {prog
+              ? `« +N » : ce que la séance apporte. La barre : toute la semaine du programme « ${prog.nom} » avec cette version de la séance.`
+              : 'Séries dures prévues dans cette séance.'}
+          </div>
+          {prog ? <VolumeMuscles volume={volumePrevu(modelesSemaine, catalogue.exercices)} apport={apport} /> : <VolumeMuscles volume={apport} />}
+        </div>
+      )}
 
       <button className="btn primaire grand" disabled={!valide} onClick={enregistrer}>
         ENREGISTRER
@@ -564,6 +605,7 @@ function Editeur({
           }}
         />
       )}
+      {infos && <InfosExo exo={infos} onFermer={() => setInfos(null)} />}
       {editIdx !== null && m.exercices[editIdx] && (
         <EditeurExoPlan
           key={editIdx}

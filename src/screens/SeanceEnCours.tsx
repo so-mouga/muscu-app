@@ -5,6 +5,7 @@ import Anneau from '../components/Anneau'
 import CarteExo, { cibleSerie, Ecart, Editeur, majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif from '../components/EditeurObjectif'
+import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
 import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
@@ -13,7 +14,7 @@ import { debloquerSon, ecranAllume } from '../lib/appareil'
 import { calories, chargeTexte, e1rm, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
-import { suggere, suggestionPour, type Suggestion } from '../lib/progression'
+import { hausse, pareil, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
 
@@ -76,6 +77,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [saisie, setSaisie] = useState(false)
   /** Plein écran : série en cours de correction. */
   const [corrige, setCorrige] = useState<string | null>(null)
+  /** Fiche d'exécution ouverte depuis le plein écran. */
+  const [infos, setInfos] = useState<string | null>(null)
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
   const [machinePrise, setMachinePrise] = useState(false)
@@ -365,10 +368,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const n = nbFaites(p.exoId)
       const t = totalDe(enCours)
       const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
+      const plus = hausse(exo, suggestions[enCours], historiqueDe(terminees, p.exoId)[0], n)
       return (
         <div className="focus-bloc prochaine-grand">
           <div className="faible">Prochaine série</div>
-          <h2>{exo.nom}</h2>
+          <div className="ligne entre">
+            <h2>{exo.nom}</h2>
+            <BoutonInfos onClick={() => setInfos(exo.id)} />
+          </div>
           <div className="ligne wrap" style={{ gap: 6 }}>
             <span className="pastille accent">
               Série {n + 1}/{t}
@@ -376,6 +383,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             {p.finisseur && n === t - 1 && <span className="pastille fin">★ finisseur</span>}
           </div>
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n)}</div>
+          {plus && <div className="badge-hausse grand">🔥 ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
           {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
           {(p.note || exo.notes) && <div className="faible">ℹ️ {p.note ?? exo.notes}</div>}
@@ -411,7 +419,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     })()
 
     return (
-      <div className="focus apparait">
+      <div className={'focus apparait' + (vueRepos && !correction ? ' fixe' : '')}>
         {avancementCompact}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
         {correction ? (
@@ -461,6 +469,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </button>
         )}
         {toast && <div className="toast">{toast}</div>}
+        {infos && <InfosExo exo={exoAvecReglages(catalogue.exo(infos), reglages)} onFermer={() => setInfos(null)} />}
       </div>
     )
   }
@@ -729,13 +738,12 @@ function FinSeance({
   const [ajuste, setAjuste] = useState<string | null>(null)
   const libre = !modele && seance.exercices.length > 0
 
-  // « Prochaine fois » : proposition automatique calculée avec cette séance incluse,
-  // remplaçable par un objectif fixé à la main.
+  // « Prochaine fois » : par défaut, refaire exactement cette séance ; l'utilisateur monte lui-même.
   const avecCelleCi = [seance, ...terminees]
   const suggestionDe = (exoId: string) => {
     const p = seance.exercices.find((x) => x.exoId === exoId)!
     const exo = exoAvecReglages(catalogue.exo(exoId), reglages)
-    return { exo, s: suggere(exo, p, historiqueDe(avecCelleCi, exoId)) }
+    return { exo, s: pareil(exo, p, historiqueDe(avecCelleCi, exoId)) }
   }
   const faits = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
 
@@ -787,7 +795,7 @@ function FinSeance({
         <>
           <h3 style={{ margin: '18px 0 4px' }}>Récap par exercice</h3>
           <div className="faible" style={{ marginBottom: 10 }}>
-            Tes séries comparées à la dernière fois, puis l’objectif de la prochaine séance : l’appli le propose, tu peux le changer.
+            Tes séries comparées à la dernière fois. La prochaine fois, tu refais pareil : appuie sur ✎ pour monter une charge ou des reps.
           </div>
           <RecapExos
             seance={seance}
@@ -799,6 +807,7 @@ function FinSeance({
               const o = objectifs[exo.id]
               const charges = o?.charges ?? s.charges
               const reps = o?.reps ?? s.reps
+              const monte = o && charges.some((c, k) => (c ?? 0) > (s.charges[k] ?? 0) || (c === s.charges[k] && reps[k] > s.reps[k]))
               return (
                 <button className="prochaine" onClick={() => setAjuste(exo.id)}>
                   <span>
@@ -808,7 +817,7 @@ function FinSeance({
                       {charges.some((c) => c !== charges[0]) && ` → ${chargeTexte(exo, charges[charges.length - 1])}`} × {reps.join('/')}
                     </strong>
                     <span className="faible" style={{ display: 'block' }}>
-                      {o ? '✎ Fixé par toi.' : s.message}
+                      {!o ? 'Comme aujourd’hui.' : monte ? '↑ Tu as prévu de monter.' : '✎ Fixé par toi.'}
                     </span>
                   </span>
                   <span className="modifier">✎ Modifier</span>
@@ -838,14 +847,21 @@ function FinSeance({
       {ajuste &&
         (() => {
           const p = suggestionDe(ajuste)
+          const histo = historiqueDe(terminees, ajuste)
+          const faitesExo = seance.series.filter((x) => x.exoId === ajuste)
+          const record = Math.max(0, ...histo.flat().map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
+          const meilleur = Math.max(0, ...faitesExo.map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
           return (
             <EditeurObjectif
               exo={p.exo}
-              auto={p.s}
+              base={p.s}
               actuel={objectifs[ajuste]}
+              faites={faitesExo}
+              precedente={histo[0] ?? []}
+              record={record > 0 && meilleur > record}
               onFermer={() => setAjuste(null)}
               onValider={(o) => (setObjectifs((x) => ({ ...x, [ajuste]: o })), setAjuste(null))}
-              onAuto={() => {
+              onDefaut={() => {
                 setObjectifs((x) => {
                   const { [ajuste]: _retire, ...reste } = x
                   return reste
