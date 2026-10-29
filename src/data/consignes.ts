@@ -148,6 +148,9 @@ const C: Record<string, Brut> = {
   releve_jambes_suspendu: ['Suspendu à une barre', ['Monte les jambes devant toi', 'Enroule le bassin en haut', 'Redescends lentement'], ['Balancer', 'Élan']],
   roulette: ['À genoux, mains sur la roue', ['Gaine les abdos', 'Roule vers l’avant le plus loin possible', 'Reviens en contractant les abdos'], ['Cambrer le bas du dos', 'Aller trop loin']],
   gainage: ['En appui sur les avant-bras et les pointes de pieds', ['Corps droit des épaules aux talons', 'Serre abdos et fessiers', 'Respire calmement'], ['Bassin trop haut ou trop bas', 'Bloquer la respiration']],
+  gainage_lateral: ['Sur le côté, en appui sur un avant-bras (coude sous l’épaule) et le bord du pied', ['Décolle le bassin', 'Corps aligné de la tête aux pieds', 'Tiens, puis change de côté'], ['Bassin qui tombe', 'Épaule qui s’affaisse vers l’oreille']],
+  hollow: ['Allongé sur le dos, bas du dos plaqué au sol', ['Décolle épaules et jambes tendues', 'Bras tendus derrière la tête (ou le long du corps pour faciliter)', 'Tiens en gardant le bas du dos au sol'], ['Bas du dos qui se creuse', 'Bloquer la respiration']],
+  chaise: ['Dos plaqué contre un mur, pieds à une longueur de cuisse du mur', ['Descends jusqu’à cuisses parallèles au sol', 'Genoux au-dessus des chevilles', 'Tiens, mains hors des cuisses'], ['Mains posées sur les cuisses', 'Genoux qui dépassent les pieds']],
   pallof: ['De profil à la poulie, poignée contre la poitrine', ['Tends les bras devant toi', 'Résiste à la rotation', 'Ramène les mains'], ['Tourner le buste', 'Cambrer']],
   russian_twist: ['Assis, buste incliné en arrière, pieds au sol ou décollés', ['Tourne le buste d’un côté', 'Puis de l’autre', 'Garde le dos droit'], ['Bouger seulement les bras', 'Dos arrondi']],
 }

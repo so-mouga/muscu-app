@@ -1857,3 +1857,34 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .carte-activite {
   border-left: 3px solid var(--activite);
 }
+
+/* Série en temps : chrono plein écran */
+.chrono-tenue {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: calc(16px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  text-align: center;
+}
+.decompte-tenue {
+  font-size: 140px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent);
+}
+.chrono-tenue .libelle {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+.chrono-btn {
+  border-color: var(--accent);
+  color: var(--accent);
+}

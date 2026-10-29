@@ -8,7 +8,7 @@ import Vignette from '../components/Vignette'
 import { MUSCLES, ZONES, type Zone } from '../data/exercices'
 import IconeMuscle from '../components/IconeMuscle'
 import { db, exoAvecReglages } from '../db'
-import { chargeTexte, dateCourte } from '../lib/calc'
+import { chargeQte, dateCourte } from '../lib/calc'
 import { delies, lireEquivalents, modifierEquivalents, relies } from '../lib/equivalents'
 import { meilleureSerie } from '../lib/historique'
 import { transition, useRetour } from '../lib/nav'
@@ -85,7 +85,7 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
       const autre = catalogue.exo(id)
       const s = seances.find((x) => x.series.some((y) => y.exoId === id))
       const m = s && meilleureSerie(s.series.filter((y) => y.exoId === id))
-      return { exo: autre, derniere: s && m ? `${chargeTexte(autre, m.charge)} × ${m.reps} (${dateCourte(s.date)})` : undefined }
+      return { exo: autre, derniere: s && m ? `${chargeQte(autre, m.charge, m.reps)} (${dateCourte(s.date)})` : undefined }
     })
     return (
       <>

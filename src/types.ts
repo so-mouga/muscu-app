@@ -30,6 +30,8 @@ export interface Exercice {
   /** Charge maximale disponible (haltères fixes à la maison). */
   chargeMax?: number
   suivreE1rm: boolean
+  /** `temps` : chaque série se mesure en secondes tenues (gainage…) ; les champs « reps » contiennent alors des secondes. */
+  mesure?: 'reps' | 'temps'
   notes?: string
   /** Créé par l'utilisateur (sinon : bibliothèque préchargée). */
   perso?: boolean

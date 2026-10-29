@@ -9,7 +9,7 @@ const chainePost = sec(['fessiers', 0.5], ['lombaires', 0.5])
 
 type Def = Omit<Exercice, 'suivreE1rm' | 'pas'> & { pas?: number; suivreE1rm?: boolean }
 // Pas par défaut : 2 kg par haltère, 2,5 kg sinon ; e1RM suivi pour les composés.
-const exo = (e: Def): Exercice => ({ pas: e.mode === 'par_main' ? 2 : e.mode === 'elastique' ? 1 : 2.5, suivreE1rm: e.type === 'compose', ...e })
+const exo = (e: Def): Exercice => ({ pas: e.mode === 'par_main' ? 2 : e.mode === 'elastique' ? 1 : 2.5, suivreE1rm: e.type === 'compose' && e.mesure !== 'temps', ...e })
 
 const liste: Exercice[] = [
   // --- Séances de départ (identifiants conservés : ils sont dans l'historique) ---
@@ -157,6 +157,7 @@ const liste: Exercice[] = [
   // --- Mollets ---
   exo({ id: 'mollets_debout', nom: 'Mollets debout machine', muscle: 'mollets', type: 'isolation', mode: 'machine' }),
   exo({ id: 'mollets_assis', nom: 'Mollets assis machine', muscle: 'mollets', type: 'isolation', mode: 'machine' }),
+  exo({ id: 'chaise', nom: 'Chaise contre le mur', muscle: 'quadriceps', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
   exo({ id: 'mollets_presse', nom: 'Mollets à la presse', muscle: 'mollets', type: 'isolation', mode: 'machine' }),
   exo({ id: 'mollets_smith', nom: 'Mollets debout Smith', muscle: 'mollets', type: 'isolation', mode: 'machine' }),
 
@@ -166,7 +167,9 @@ const liste: Exercice[] = [
   exo({ id: 'crunch_machine', nom: 'Crunch machine', muscle: 'abdos', type: 'isolation', mode: 'machine' }),
   exo({ id: 'releve_jambes_suspendu', nom: 'Relevé de jambes suspendu', muscle: 'abdos', type: 'isolation', mode: 'poids_corps' }),
   exo({ id: 'roulette', nom: 'Roue abdominale', muscle: 'abdos', type: 'isolation', mode: 'poids_corps' }),
-  exo({ id: 'gainage', nom: 'Gainage (planche)', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', notes: 'Reps = secondes tenues.' }),
+  exo({ id: 'gainage', nom: 'Gainage (planche)', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
+  exo({ id: 'gainage_lateral', nom: 'Gainage latéral', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
+  exo({ id: 'hollow', nom: 'Hollow hold', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
   exo({ id: 'pallof', nom: 'Pallof press', muscle: 'abdos', type: 'isolation', mode: 'machine' }),
   exo({ id: 'russian_twist', nom: 'Russian twist', muscle: 'abdos', type: 'isolation', mode: 'par_main', notes: 'Reps = rotations de chaque côté.' }),
 ]

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ecartSerie, kg, serieTexte } from '../lib/calc'
+import { ecartSerie, enTemps, kg, serieTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { usePasBoutons } from '../lib/pasBoutons'
 import type { Suggestion } from '../lib/progression'
@@ -37,6 +37,9 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
 
   const pas = usePasBoutons()(exo)
   const unite = exo.mode === 'elastique' ? 'niv.' : exo.mode === 'poids_corps' ? 'lest' : 'kg'
+  // Exercice en temps : les « reps » sont des secondes, par pas de 5 s.
+  const pasQte = enTemps(exo) ? 5 : 1
+  const uniteQte = enTemps(exo) ? 's' : 'rep'
   const decaler = (dc: number, dr: number) => {
     if (dc) setCharges((c) => c.map((x) => arr(Math.max(0, (x ?? 0) + dc))))
     if (dr) setReps((r) => r.map((x) => Math.max(1, x + dr)))
@@ -50,7 +53,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
           <h2>{exo.nom}</h2>
           <div className="faible">Objectif pour la prochaine séance</div>
         </div>
-        {(faites.some((x, k) => ecartSerie(x, precedente[k])?.sens === 'mieux') || record) && (
+        {(faites.some((x, k) => ecartSerie(x, precedente[k], exo)?.sens === 'mieux') || record) && (
           <div className="pastille ok" style={{ alignSelf: 'flex-start' }}>
             🏆 {record ? `Nouveau record ${quand}` : quand === 'aujourd’hui' ? 'Mieux que la dernière fois' : 'Mieux que la fois d’avant'}
           </div>
@@ -65,18 +68,18 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
             <button className="btn petit" onClick={() => decaler(pas, 0)}>
               +{kg(pas)} {unite}
             </button>
-            <button className="btn petit" onClick={() => decaler(0, -1)}>
-              −1 rep
+            <button className="btn petit" onClick={() => decaler(0, -pasQte)}>
+              −{pasQte} {uniteQte}
             </button>
-            <button className="btn petit" onClick={() => decaler(0, 1)}>
-              +1 rep
+            <button className="btn petit" onClick={() => decaler(0, pasQte)}>
+              +{pasQte} {uniteQte}
             </button>
           </span>
         </div>
 
         <div>
           <div className="faible" style={{ marginBottom: 6 }}>
-            Prochaine fois · charge ({unite}) · reps
+            Prochaine fois · charge ({unite}) · {enTemps(exo) ? 'secondes' : 'reps'}
           </div>
           {charges.map((c, i) => (
             <div key={i} className="objectif-serie">
@@ -107,11 +110,11 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
                 </button>
               </span>
               <span className="mini-stepper compact">
-                <button type="button" onClick={() => setReps((x) => x.map((v, k) => (k === i ? Math.max(1, v - 1) : v)))}>
+                <button type="button" onClick={() => setReps((x) => x.map((v, k) => (k === i ? Math.max(1, v - pasQte) : v)))}>
                   −
                 </button>
                 <strong>{reps[i]}</strong>
-                <button type="button" onClick={() => setReps((x) => x.map((v, k) => (k === i ? v + 1 : v)))}>
+                <button type="button" onClick={() => setReps((x) => x.map((v, k) => (k === i ? v + pasQte : v)))}>
                   +
                 </button>
               </span>
@@ -138,7 +141,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
 
 /** Série faite aujourd'hui : « 30 kg × 14 · RPE 8 (visé 8) », et l'écart avec la dernière fois. */
 function Fait({ n, quand, s, avant, exo }: { n: string; quand: string; s: Serie; avant?: Serie; exo: Exercice }) {
-  const e = ecartSerie(s, avant)
+  const e = ecartSerie(s, avant, exo)
   const ecartRpe = s.rpeCible !== undefined ? s.rpe - s.rpeCible : 0
   return (
     <div className="faible">

@@ -5,11 +5,11 @@ import Courbe from '../components/Courbe'
 import IconeMuscle from '../components/IconeMuscle'
 import { Consignes } from '../components/InfosExo'
 import { consigne } from '../data/consignes'
-import { chargeTexte, dateCourte, duree, e1rm, kg, serieTexte, tempsParExo } from '../lib/calc'
+import { chargeTexte, dateCourte, duree, e1rm, enTemps, kg, qte, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, Seance } from '../types'
 
 type Onglet = 'stats' | 'historique' | 'infos'
-type Mesure = 'e1rm' | 'charge' | 'volume'
+type Mesure = 'e1rm' | 'charge' | 'volume' | 'temps'
 const PERIODES: [string, number][] = [
   ['30 j', 30],
   ['3 m', 91],
@@ -45,7 +45,8 @@ export function Detail({
   onDelier: (id: string) => void
 }) {
   const [onglet, setOnglet] = useState<Onglet>('stats')
-  const [mesure, setMesure] = useState<Mesure>(exo.suivreE1rm ? 'e1rm' : 'charge')
+  const temps = enTemps(exo)
+  const [mesure, setMesure] = useState<Mesure>(temps ? 'temps' : exo.suivreE1rm ? 'e1rm' : 'charge')
   const [periode, setPeriode] = useState(91)
   const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
   const chrono = [...avec].reverse()
@@ -69,10 +70,12 @@ export function Detail({
     .filter((s) => s.debut >= depuis)
     .map((s) => ({
       date: s.date,
-      valeur: mesure === 'e1rm' ? e1rmDe(s) : mesure === 'volume' ? volumeDe(s) : Math.max(...seriesDe(s).map((x) => x.charge)),
+      valeur:
+        mesure === 'e1rm' ? e1rmDe(s) : mesure === 'volume' ? volumeDe(s) : mesure === 'temps' ? Math.max(...seriesDe(s).map((x) => x.reps)) : Math.max(...seriesDe(s).map((x) => x.charge)),
     }))
     .filter((p) => mesure !== 'e1rm' || p.valeur > 0)
-  const formatMesure = (v: number) => (mesure === 'charge' ? chargeTexte(exo, v) : `${kg(Math.round(v * 10) / 10)} kg`)
+  const formatMesure = (v: number) => (mesure === 'temps' ? `${v} s` : mesure === 'charge' ? chargeTexte(exo, v) : `${kg(Math.round(v * 10) / 10)} kg`)
+  const tempsMax = toutes.length ? Math.max(...toutes.map(({ x }) => x.reps)) : null
 
   const c = consigne(exo.id)
   const tuile = (valeur: string, label: string) => (
@@ -118,9 +121,10 @@ export function Detail({
       {onglet === 'stats' && (
         <>
           <div className="tuiles" style={{ marginBottom: 12 }}>
+            {temps && tuile(tempsMax !== null ? `${tempsMax} s` : '—', 'record de temps')}
             {tuile(exo.suivreE1rm ? (meilleurE1rm ? `${kg(Math.round(meilleurE1rm * 2) / 2)} kg` : '—') : chargeMax !== null ? chargeTexte(exo, chargeMax) : '—', exo.suivreE1rm ? 'record e1RM' : 'charge max')}
             {exo.suivreE1rm && tuile(dernierE1rm ? `${kg(Math.round(dernierE1rm * 2) / 2)} kg` : '—', '1RM estimé (dernier)')}
-            {tuile(`${kg(Math.round(volumeTotal))} kg`, 'volume total')}
+            {!temps && tuile(`${kg(Math.round(volumeTotal))} kg`, 'volume total')}
           </div>
 
           <div className="carte pile">
@@ -130,12 +134,19 @@ export function Detail({
                   1RM estimé
                 </button>
               )}
+              {temps && (
+                <button className={mesure === 'temps' ? 'actif' : ''} onClick={() => setMesure('temps')}>
+                  Temps max
+                </button>
+              )}
               <button className={mesure === 'charge' ? 'actif' : ''} onClick={() => setMesure('charge')}>
                 Charge max
               </button>
-              <button className={mesure === 'volume' ? 'actif' : ''} onClick={() => setMesure('volume')}>
-                Volume
-              </button>
+              {!temps && (
+                <button className={mesure === 'volume' ? 'actif' : ''} onClick={() => setMesure('volume')}>
+                  Volume
+                </button>
+              )}
             </div>
             {points.length >= 2 ? (
               <Courbe key={mesure + periode} points={points} format={formatMesure} />
@@ -157,7 +168,7 @@ export function Detail({
 
           {repsParCharge.size > 0 && (
             <div className="carte">
-              <h3 style={{ marginBottom: 6 }}>Records de reps</h3>
+              <h3 style={{ marginBottom: 6 }}>{temps ? 'Records de temps' : 'Records de reps'}</h3>
               <table>
                 <tbody>
                   {[...repsParCharge.entries()]
@@ -165,8 +176,10 @@ export function Detail({
                     .slice(0, 6)
                     .map(([ch, r]) => (
                       <tr key={ch}>
-                        <td>Max reps à {chargeTexte(exo, ch)}</td>
-                        <td>{r}</td>
+                        <td>
+                          {temps ? 'Max' : 'Max reps'} à {chargeTexte(exo, ch)}
+                        </td>
+                        <td>{qte(exo, r)}</td>
                       </tr>
                     ))}
                 </tbody>

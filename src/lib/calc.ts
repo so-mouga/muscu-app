@@ -20,8 +20,34 @@ export function chargeTexte(exo: Exercice, charge: number | null | undefined): s
   return `${kg(charge)} kg`
 }
 
+/** Exercice mesuré en secondes tenues (gainage…) plutôt qu'en reps. */
+export const enTemps = (exo: Exercice) => exo.mesure === 'temps'
+
+/** Quantité d'une série : « 12 » (reps) ou « 45 s ». */
+export const qte = (exo: Exercice, n: number | string) => (enTemps(exo) ? `${n} s` : `${n}`)
+
+/** Fourchette visée : « 8–12 » ou « 30–45 s ». */
+export const fourchette = (exo: Exercice, min: number, max: number) => qte(exo, min === max ? min : `${min}–${max}`)
+
+/** « 3 × 8–12 » ou « 3 × 30–45 s ». */
+export const schemaPlan = (exo: Exercice, p: ExoPlan) => `${p.series.length} × ${fourchette(exo, p.series[0].repsMin, p.series[0].repsMax)}`
+
+/** Charge et quantité : « 30 kg × 12 », « PDC +10 kg × 45 s », ou juste « 45 s » au poids du corps. */
+export const chargeQte = (exo: Exercice, charge: number | null | undefined, n: number | string) =>
+  enTemps(exo) && exo.mode === 'poids_corps' && charge === 0 ? qte(exo, n) : `${chargeTexte(exo, charge)} × ${qte(exo, n)}`
+
+/** Objectif d'un exercice : « 30 kg × 12/12/10 », « 30 kg → 25 kg × 12/12 », « 45/45/45 s ». */
+export function cibleTexte(exo: Exercice, charges: (number | null)[], reps: number[]): string {
+  const varie = charges.some((c) => c !== charges[0])
+  return varie ? `${chargeTexte(exo, charges[0])} → ${chargeTexte(exo, charges[charges.length - 1])} × ${qte(exo, reps.join('/'))}` : chargeQte(exo, charges[0], reps.join('/'))
+}
+
+/** Unité d'écart de quantité : « +1 rep », « +5 s ». */
+export const ecartQte = (exo: Exercice | undefined, d: number) =>
+  exo && enTemps(exo) ? `${d > 0 ? '+' : '−'}${Math.abs(d)} s` : `${d > 0 ? '+' : '−'}${Math.abs(d)} rep${Math.abs(d) > 1 ? 's' : ''}`
+
 export function serieTexte(exo: Exercice, s: Serie): string {
-  let t = `${chargeTexte(exo, s.charge)} × ${s.reps} @${kg(s.rpe)}`
+  let t = `${chargeQte(exo, s.charge, s.reps)} @${kg(s.rpe)}`
   if (s.demiReps) t += ` + ${s.demiReps} demi-reps`
   if (s.suite?.length) t += s.type === 'drop' ? s.suite.map((x) => ` ↘ ${kg(x.charge)}×${x.reps}`).join('') : ` + ${s.suite.map((x) => x.reps).join(' + ')}`
   return t
@@ -29,7 +55,7 @@ export function serieTexte(exo: Exercice, s: Serie): string {
 
 /** Epley corrigé par le RPE. Les demi-reps ne comptent jamais. */
 export function e1rm(exo: Exercice, s: Serie, poidsCorps?: number): number | null {
-  if (!exo.suivreE1rm || s.reps <= 0) return null
+  if (!exo.suivreE1rm || enTemps(exo) || s.reps <= 0) return null
   let charge = s.charge
   if (exo.mode === 'poids_corps') {
     if (!poidsCorps) return null
@@ -190,11 +216,11 @@ export function lireChauffe(c: string): { charge: number; reps: number } | null 
 }
 
 /** Comparaison avec la même série la dernière fois : plus lourd, ou plus de reps à charge égale = mieux. */
-export function ecartSerie(s: Serie, avant: Serie | undefined): { sens: 'mieux' | 'egal' | 'moins'; texte: string } | null {
+export function ecartSerie(s: Serie, avant: Serie | undefined, exo?: Exercice): { sens: 'mieux' | 'egal' | 'moins'; texte: string } | null {
   if (!avant) return null
   const dc = Math.round((s.charge - avant.charge) * 100) / 100
   const dr = s.reps - avant.reps
-  const texte = [dc ? `${dc > 0 ? '+' : '−'}${kg(Math.abs(dc))} kg` : '', dr ? `${dr > 0 ? '+' : '−'}${Math.abs(dr)} rep${Math.abs(dr) > 1 ? 's' : ''}` : '']
+  const texte = [dc ? `${dc > 0 ? '+' : '−'}${kg(Math.abs(dc))} kg` : '', dr ? ecartQte(exo, dr) : '']
     .filter(Boolean)
     .join(', ')
   const sens = dc > 0 || (dc === 0 && dr > 0) ? 'mieux' : dc === 0 && dr === 0 ? 'egal' : 'moins'

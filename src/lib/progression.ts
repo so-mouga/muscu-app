@@ -224,7 +224,7 @@ export function hausse(exo: Exercice, sugg: Suggestion, derniere: Serie[] | unde
   const dc = arrondi(c - d.charge)
   const dr = (sugg.reps[i] ?? 0) - d.reps
   if (dc > EPS) return `+${nombre(dc)}${exo.mode === 'elastique' ? ' niv.' : ' kg'}`
-  if (Math.abs(dc) <= EPS && dr > 0) return `+${dr} rep${dr > 1 ? 's' : ''}`
+  if (Math.abs(dc) <= EPS && dr > 0) return exo.mesure === 'temps' ? `+${dr} s` : `+${dr} rep${dr > 1 ? 's' : ''}`
   return null
 }
 

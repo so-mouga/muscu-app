@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
-import { calories, chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, POIDS_DEFAUT, reposTexte, serieTexte, tempsParExo } from '../lib/calc'
+import { calories, chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, POIDS_DEFAUT, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
 
 /** Durée d'une séance : jusqu'à sa fin, ou jusqu'à maintenant si elle est en cours. */
@@ -62,7 +62,6 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
         const series = seance.series.filter((x) => x.exoId === plan.exoId)
         const ms = temps[plan.exoId] ?? 0
         const prevu = dureePrevueExo(seance.exercices, seance.exercices.indexOf(plan))
-        const r0 = plan.series[0]
         const ch = plan.chauffes.filter((_, k) => seance.chauffes[`${exo.id}:${k}`]).length
         const volumeExo = series.reduce((a, x) => a + x.charge * x.reps, 0)
         const meilleur = Math.max(0, ...series.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
@@ -78,13 +77,13 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                 )}
               </div>
               <div className="faible">
-                Visé : {plan.series.length} × {r0.repsMin === r0.repsMax ? r0.repsMin : `${r0.repsMin}–${r0.repsMax}`} · RPE {plan.series.map((x) => kg(x.rpe)).join(', ')} ·
+                Visé : {schemaPlan(exo, plan)} · RPE {plan.series.map((x) => kg(x.rpe)).join(', ')} ·
                 repos {reposTexte(plan)}
               </div>
             </div>
             <div>
               {series.map((x, k) => {
-                const e = ecartSerie(x, precedente[k])
+                const e = ecartSerie(x, precedente[k], exo)
                 const ecartRpe = x.rpeCible !== undefined ? x.rpe - x.rpeCible : 0
                 const contenu = (
                   <>

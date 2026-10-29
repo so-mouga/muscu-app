@@ -4,7 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { ObjectifApres } from '../components/EditeurObjectif'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
-import { chargeTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte } from '../lib/calc'
+import { chargeQte, cibleTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { hausse, suggestionPour } from '../lib/progression'
 import type { SeanceModele } from '../types'
@@ -67,7 +67,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
                 </strong>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">
-                  {p.series.length} × {p.series[0].repsMin === p.series[0].repsMax ? p.series[0].repsMin : `${p.series[0].repsMin}–${p.series[0].repsMax}`} · RPE{' '}
+                  {schemaPlan(exo, p)} · RPE{' '}
                   {p.series.map((x) => kg(x.rpe)).join(', ')} · repos {reposTexte(p)}
                   {p.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ finisseur</span>}
                 </div>
@@ -77,15 +77,14 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
               <div className={'suggestion petit' + (battre ? ' a-battre' : '')}>
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <strong>
-                    {chargeTexte(exo, sugg.charges[0])}
-                    {sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`} × {sugg.reps.join('/')}
+                    {cibleTexte(exo, sugg.charges, sugg.reps)}
                   </strong>
                   {battre && <span className="badge-hausse">🔥 À battre</span>}
                 </div>
                 {battre ? (
                   <div className="muted">
                     {hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
-                    {derniere && <> · dernière fois {derniere.map((x) => `${chargeTexte(exo, x.charge)}×${x.reps}`).join(', ')}</>}
+                    {derniere && <> · dernière fois {derniere.map((x) => chargeQte(exo, x.charge, x.reps)).join(', ')}</>}
                   </div>
                 ) : (
                   <div className="muted">{sugg.message}</div>

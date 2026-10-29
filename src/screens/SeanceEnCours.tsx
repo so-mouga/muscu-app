@@ -11,7 +11,7 @@ import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
-import { calories, chargeTexte, e1rm, kg, minutes, reposApres, serieTexte } from '../lib/calc'
+import { calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { hausse, pareil, suggestionPour, type Suggestion } from '../lib/progression'
@@ -174,7 +174,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const r = repere(exoId, equivalents, [seance, ...terminees])
     if (!r) return undefined
     const ref = catalogue.exo(r.exoId)
-    return `${ref.nom}, ${chargeTexte(ref, r.charge)} × ${r.reps} @${kg(r.rpe)} (${r.date})`
+    return `${ref.nom}, ${chargeQte(ref, r.charge, r.reps)} @${kg(r.rpe)} (${r.date})`
   }
 
   const valider = (s: Serie, repos: number) => {
@@ -192,7 +192,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const meilleur = Math.max(0, ...avant.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
     if (e && meilleur && e > meilleur) setToast(`🏆 Nouveau record e1RM : ${kg(e)} kg`)
     else if (memeCharge.length && s.reps > Math.max(...memeCharge.map((x) => x.reps)))
-      setToast(`🏆 Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
+      setToast(enTemps(exo) ? `🏆 Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `🏆 Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
   }
 
   const choisir = async (exoId: string, cree?: Parameters<typeof planParDefaut>[0]) => {
@@ -823,8 +823,7 @@ function FinSeance({
                   <span>
                     <span className="label">Prochaine fois</span>
                     <strong>
-                      {chargeTexte(exo, charges[0])}
-                      {charges.some((c) => c !== charges[0]) && ` → ${chargeTexte(exo, charges[charges.length - 1])}`} × {reps.join('/')}
+                      {cibleTexte(exo, charges, reps)}
                     </strong>
                     <span className="faible" style={{ display: 'block' }}>
                       {!o ? 'Comme aujourd’hui.' : monte ? '↑ Tu as prévu de monter.' : '✎ Fixé par toi.'}

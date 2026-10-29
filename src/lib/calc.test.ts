@@ -1,7 +1,7 @@
 import { PROGRAMME } from '../data/programme'
 import { kcalActivite } from '../data/activites'
 import type { Seance } from '../types'
-import { calories, dureeHabituelle, e1rm, lireDuree, reposApres, semaineType, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import { calories, dureeHabituelle, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -140,5 +140,19 @@ describe('activités', () => {
   it('calories : padel 1 h à intensité moyenne, 75 kg', () => {
     expect(kcalActivite({ type: 'padel', duree: 60, intensite: 5 }, 75)).toBe(450)
     expect(kcalActivite({ type: 'padel', duree: 60, intensite: 10 }, 75)).toBeGreaterThan(450)
+  })
+})
+
+describe('exercices en temps', () => {
+  const gainage = EXERCICES.gainage
+  const serie = (charge: number, reps: number) => ({ id: 'a', exoId: 'gainage', type: 'normale' as const, charge, reps, rpe: 8, heure: 0 })
+  it('affichage en secondes', () => {
+    expect(serieTexte(gainage, serie(0, 45))).toBe('45 s @8')
+    expect(serieTexte(gainage, serie(10, 30))).toBe('PDC +10 kg × 30 s @8')
+    expect(schemaPlan(gainage, { exoId: 'gainage', repos: 60, series: [0, 1, 2].map(() => ({ repsMin: 30, repsMax: 45, rpe: 8 })), chauffes: [], finisseur: false, charge: 0 })).toBe('3 × 30–45 s')
+  })
+  it('écart en secondes, pas de 1RM', () => {
+    expect(ecartSerie(serie(0, 50), serie(0, 45), gainage)?.texte).toBe('+5 s')
+    expect(e1rm(gainage, serie(0, 45))).toBeNull()
   })
 })

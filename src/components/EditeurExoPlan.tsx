@@ -29,14 +29,14 @@ const versLigne = (c: string): LigneChauffe => {
 }
 const depuisLigne = (l: LigneChauffe) => ('texte' in l ? l.texte.trim() : l.charge.trim() ? `${l.charge.trim()}×${l.reps}` : '')
 
-function MiniStepper({ valeur, min = 0, max = 99, onChange }: { valeur: number; min?: number; max?: number; onChange: (v: number) => void }) {
+function MiniStepper({ valeur, min = 0, max = 99, pas = 1, onChange }: { valeur: number; min?: number; max?: number; pas?: number; onChange: (v: number) => void }) {
   return (
     <span className="mini-stepper">
-      <button type="button" onClick={() => onChange(Math.max(min, valeur - 1))}>
+      <button type="button" onClick={() => onChange(Math.max(min, valeur - pas))}>
         −
       </button>
       <strong>{valeur}</strong>
-      <button type="button" onClick={() => onChange(Math.min(max, valeur + 1))}>
+      <button type="button" onClick={() => onChange(Math.min(max, valeur + pas))}>
         +
       </button>
     </span>
@@ -65,6 +65,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
   const [detail, setDetail] = useState(() => plan.series.some((s) => s.charge !== undefined || s.repos !== undefined))
 
   const n = p.series.length
+  const temps = exo.mesure === 'temps'
   const repsMin = p.series[0].repsMin
   const repsMax = p.series[0].repsMax
   const maj = (f: (q: ExoPlan) => void) =>
@@ -123,12 +124,12 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
           <MiniStepper valeur={n} min={1} max={10} onChange={setNombre} />
         </div>
         <div className="ligne entre">
-          <span>Reps min</span>
-          <MiniStepper valeur={repsMin} min={1} onChange={(v) => setReps(v, Math.max(v, repsMax))} />
+          <span>{temps ? 'Secondes min' : 'Reps min'}</span>
+          <MiniStepper valeur={repsMin} min={1} max={temps ? 600 : 99} pas={temps ? 5 : 1} onChange={(v) => setReps(v, Math.max(v, repsMax))} />
         </div>
         <div className="ligne entre">
-          <span>Reps max</span>
-          <MiniStepper valeur={repsMax} min={repsMin} onChange={(v) => setReps(repsMin, v)} />
+          <span>{temps ? 'Secondes max' : 'Reps max'}</span>
+          <MiniStepper valeur={repsMax} min={repsMin} max={temps ? 600 : 99} pas={temps ? 5 : 1} onChange={(v) => setReps(repsMin, v)} />
         </div>
 
         <div className="ligne entre">

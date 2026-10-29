@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { db, uid } from '../db'
-import { chargeTexte, chrono, ecartSerie, kg, lireChauffe, reposApres, reposTexte, RIR, serieTexte } from '../lib/calc'
+import { chargeQte, chargeTexte, chrono, cibleTexte, ecartSerie, enTemps, fourchette, kg, lireChauffe, reposApres, reposTexte, RIR, schemaPlan, serieTexte } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import { usePasBoutons } from '../lib/pasBoutons'
+import ChronoTenue from './ChronoTenue'
 import InfosExo, { BoutonInfos } from './InfosExo'
 import Vignette from './Vignette'
 import { vibrer } from '../lib/appareil'
@@ -56,7 +57,7 @@ let derniereValidation = -Infinity
 export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number): string {
   const j = Math.min(n, sugg.charges.length - 1)
   const p = plan.series[Math.min(n, plan.series.length - 1)]
-  return `${chargeTexte(exo, sugg.charges[j])} × ${sugg.reps[j] ?? p.repsMin} · RPE ${kg(p.rpe)}`
+  return `${chargeQte(exo, sugg.charges[j], sugg.reps[j] ?? p.repsMin)} · RPE ${kg(p.rpe)}`
 }
 
 export function majSeance(id: string, fn: (s: Seance) => void) {
@@ -150,7 +151,7 @@ export default function CarteExo({
           )}
         </div>
         <div className="faible">
-          {plan.series.length} × {plan.series[0].repsMin === plan.series[0].repsMax ? plan.series[0].repsMin : `${plan.series[0].repsMin}–${plan.series[0].repsMax}`} · RPE{' '}
+          {schemaPlan(exo, plan)} · RPE{' '}
           {plan.series.map((p) => kg(p.rpe)).join(', ')} · repos {reposTexte(plan)}
           {plan.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ {FINISSEURS[typeFinisseur(plan)].nom.toLowerCase()}</span>}
         </div>
@@ -159,9 +160,7 @@ export default function CarteExo({
       <div className={'suggestion petit' + (battre ? ' a-battre' : '')}>
         <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
           <strong>
-            Cible : {chargeTexte(exo, sugg.charges[0])}
-            {sugg.charges.some((c) => c !== sugg.charges[0]) && ` → ${chargeTexte(exo, sugg.charges[sugg.charges.length - 1])}`} ×{' '}
-            {sugg.reps.join('/')}
+            Cible : {cibleTexte(exo, sugg.charges, sugg.reps)}
           </strong>
           {battre ? (
             <span className="badge-hausse">🔥 À battre</span>
@@ -322,7 +321,7 @@ export default function CarteExo({
 }
 
 export function Ecart({ s, avant, exo }: { s: Serie; avant: Serie; exo: Exercice }) {
-  const e = ecartSerie(s, avant)!
+  const e = ecartSerie(s, avant, exo)!
   return (
     <span className={'avant ' + e.sens}>
       {e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓'} {e.texte} <span className="faible">(avant {serieTexte(exo, avant)})</span>
@@ -386,6 +385,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const tf = typeFinisseur(plan)
   const info = FINISSEURS[tf]
   const [aideRpe, setAideRpe] = useState(false)
+  // Exercice en temps : « reps » = secondes, par pas de 5 s, et un chrono pour les mesurer.
+  const temps = enTemps(exo)
+  const pasQte = temps ? 5 : 1
+  const [chronoOuvert, setChronoOuvert] = useState(false)
   const pasBoutons = usePasBoutons()
 
   // Pendant le repos, la validation reste possible mais passe au second plan.
@@ -509,7 +512,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       <div className="ligne entre">
         {edition && <h3>Modifier la série {index + 1}</h3>}
         <span className="faible">
-          fourchette {p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`} reps · RPE {kg(p.rpe)}
+          fourchette {fourchette(exo, p.repsMin, p.repsMax)}
+          {enTemps(exo) ? '' : ' reps'} · RPE {kg(p.rpe)}
         </span>
       </div>
 
@@ -538,14 +542,30 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
       </div>
 
+      {temps && !edition && (
+        <button className="btn grand chrono-btn" onClick={() => setChronoOuvert(true)}>
+          ▶ LANCER LE CHRONO · {sugg.reps[i] ?? p.repsMax} s
+        </button>
+      )}
       <div className="stepper">
-        <button onClick={() => setReps(Math.max(0, reps - 1))}>−</button>
+        <button onClick={() => setReps(Math.max(0, reps - pasQte))}>−</button>
         <div className="valeur">
           <input inputMode="numeric" value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
-          <span className="unite">reps</span>
+          <span className="unite">{temps ? 'secondes tenues' : 'reps'}</span>
         </div>
-        <button onClick={() => setReps(reps + 1)}>+</button>
+        <button onClick={() => setReps(reps + pasQte)}>+</button>
       </div>
+      {chronoOuvert && (
+        <ChronoTenue
+          objectif={sugg.reps[i] ?? p.repsMax}
+          nom={exo.nom}
+          onAnnuler={() => setChronoOuvert(false)}
+          onStop={(sec) => {
+            setReps(sec)
+            setChronoOuvert(false)
+          }}
+        />
+      )}
 
       {!finisseur && (
         <div>

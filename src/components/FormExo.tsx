@@ -28,6 +28,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
   const [mode, setMode] = useState<ModeCharge>(initial?.mode ?? 'machine')
   const [pas, setPas] = useState(String(initial?.pas ?? 2.5).replace('.', ','))
   const [compose, setCompose] = useState(initial ? initial.type === 'compose' : false)
+  const [temps, setTemps] = useState(initial?.mesure === 'temps')
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [image, setImage] = useState(initial?.image)
   const [chargement, setChargement] = useState(false)
@@ -58,12 +59,14 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
       type: compose ? 'compose' : 'isolation',
       mode,
       pas: p > 0 ? p : mode === 'elastique' ? 1 : 2.5,
-      suivreE1rm: compose,
+      suivreE1rm: compose && !temps,
+      mesure: temps ? 'temps' : undefined,
       notes: notes.trim() || undefined,
       image,
       perso: initial ? initial.perso : true,
     }
     if (!exo.secondaires?.length) delete exo.secondaires
+    if (!exo.mesure) delete exo.mesure
     await db.exercices.put(exo)
     // L'ancien réglage de pas (écran Progression) est remplacé par celui de la fiche.
     await db.reglages.delete(`pas:${exo.id}`)
@@ -136,6 +139,20 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
           ))}
         </select>
       </label>
+      <div className="champ">
+        <span>Mesuré en</span>
+        <div className="segments" role="tablist" style={{ marginBottom: 0 }}>
+          <button type="button" className={!temps ? 'actif' : ''} onClick={() => setTemps(false)}>
+            Répétitions
+          </button>
+          <button type="button" className={temps ? 'actif' : ''} onClick={() => setTemps(true)}>
+            Temps (secondes)
+          </button>
+        </div>
+        {temps !== (initial?.mesure === 'temps') && initial && (
+          <span className="faible">Pense à régler la durée visée de cet exercice dans tes séances (onglet Programmes).</span>
+        )}
+      </div>
       <label className="champ">
         <span>Pas de charge ({mode === 'elastique' ? 'niveau' : 'kg'}) — boutons −/+ et montée de charge</span>
         <input inputMode="decimal" value={pas} onChange={(e) => setPas(e.target.value)} />

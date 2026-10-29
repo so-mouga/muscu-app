@@ -8,7 +8,7 @@ import VolumeMuscles from '../components/VolumeMuscles'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 
@@ -16,6 +16,9 @@ export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'sa
 
 /** Plan par défaut d'un exercice ajouté (modifiable juste après). */
 export function planParDefaut(exo: Exercice): ExoPlan {
+  // Exercice en temps (gainage…) : 3 × 30–45 s, repos court.
+  if (exo.mesure === 'temps')
+    return { exoId: exo.id, repos: 60, series: [0, 1, 2].map(() => ({ repsMin: 30, repsMax: 45, rpe: 8 })), chauffes: [], finisseur: false, charge: 0 }
   const petit = exo.muscle === 'mollets' || exo.muscle === 'abdos'
   const compose = exo.type === 'compose'
   const [min, max] = compose ? [8, 12] : [12, 15]
@@ -30,10 +33,8 @@ export function planParDefaut(exo: Exercice): ExoPlan {
 }
 
 export function resumePlan(exo: Exercice, p: ExoPlan): string {
-  const s = p.series[0]
-  const reps = s.repsMin === s.repsMax ? s.repsMin : `${s.repsMin}–${s.repsMax}`
   return [
-    `${p.series.length} × ${reps}`,
+    schemaPlan(exo, p),
     `RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}`,
     reposTexte(p),
     chargeTexte(exo, p.charge),

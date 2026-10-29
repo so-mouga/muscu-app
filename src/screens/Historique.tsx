@@ -4,7 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages } from '../db'
-import { chargeTexte, dateISO, duree, estDure, kg, lundi } from '../lib/calc'
+import { chargeQte, dateISO, duree, estDure, kg, lundi } from '../lib/calc'
 import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, semaineDe, type Bilan } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
@@ -303,7 +303,7 @@ function CarteSeance({
               <span>{exo.nom}</span>
               {m && (
                 <span className="faible">
-                  {chargeTexte(exo, m.charge)} × {m.reps}
+                  {chargeQte(exo, m.charge, m.reps)}
                 </span>
               )}
             </span>
