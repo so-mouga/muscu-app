@@ -14,6 +14,14 @@ const exercices = (n: number) => `${n} exercice${n > 1 ? 's' : ''}`
 
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
 async function demarrer(modele?: SeanceModele) {
+  try {
+    await creerSeance(modele)
+  } catch (e) {
+    alert(`Impossible de démarrer la séance : ${(e as Error).message}\n(version ${__VERSION__})`)
+  }
+}
+
+async function creerSeance(modele?: SeanceModele) {
   debloquerSon()
   await db.seances.add({
     id: uid(),

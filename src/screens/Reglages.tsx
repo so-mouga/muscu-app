@@ -160,7 +160,7 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
         <div className="faible">
           Les suggestions de charge sont des propositions : c’est toi qui décides. Les pas de charge se règlent par exercice dans Progression.
         </div>
-        <div className="faible">Version 0.2</div>
+        <div className="faible">Version du {__VERSION__}</div>
       </div>
     </div>
   )

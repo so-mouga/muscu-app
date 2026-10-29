@@ -1,2 +1,7 @@
 node_modules
 dist
+# Sorties de tsc -b : Vite les préférerait aux .ts
+src/**/*.js
+*.tsbuildinfo
+/index.js
+/vite.config.js

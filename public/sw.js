@@ -1,6 +1,6 @@
 // Service worker minimal : hors ligne d'abord.
 // Navigation : réseau puis cache. Fichiers statiques : cache puis réseau.
-const CACHE = 'muscu-v1'
+const CACHE = 'muscu-v2'
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])))
@@ -17,7 +17,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return
-  if (req.mode === 'navigate') {
+  // La page (et la vérification de mise à jour) : toujours le réseau d'abord.
+  if (req.mode === 'navigate' || new URL(req.url).pathname.endsWith('/index.html')) {
     e.respondWith(
       fetch(req)
         .then((res) => {
