@@ -10,6 +10,7 @@ import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import type { Cycle, Muscle, Programme } from '../types'
 import VolumeMuscles from './VolumeMuscles'
+import { confirmer } from './Dialogues'
 
 export const AIDE_CYCLE =
   'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut), avec une semaine de déload à la fin. Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, l’appli te demande si tu veux l’appliquer tout de suite ou seulement au prochain cycle.'
@@ -39,7 +40,7 @@ export function Aide({ texte }: { texte: string }) {
 export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cycle; etat: EtatCycle; onBilan: () => void; onProgrammes: () => void }) {
   if (etat.fini)
     return (
-      <div className="carte pile" style={{ borderColor: 'var(--ok)' }}>
+      <div className="pile cycle-fini">
         <div>
           <strong>🎉 Cycle « {cycle.programme.nom} » terminé</strong>
           <div className="faible">{cycle.semaines} semaines. Regarde ce que ça a donné, puis lance le suivant.</div>
@@ -103,7 +104,11 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
     }
     const p = catalogue.programmes.find((x) => x.id === progId)!
     const enCours = catalogue.cycle
-    if (enCours && !confirm(`Terminer le cycle « ${enCours.programme.nom} » en cours et lancer celui-ci ? L’historique est conservé.`)) return
+    if (
+      enCours &&
+      !(await confirmer(`Le cycle « ${enCours.programme.nom} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer un nouveau cycle ?', oui: 'Lancer le nouveau cycle' }))
+    )
+      return
     const c = nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b), volume)
     await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
       if (enCours) await db.cycles.update(enCours.id, { fin: dateISO() })
@@ -256,7 +261,7 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
   }
 
   const terminer = async () => {
-    if (!confirm('Terminer ce cycle maintenant ? Son historique et son bilan sont conservés.')) return
+    if (!(await confirmer('Son historique et son bilan sont conservés.', { titre: 'Terminer ce cycle maintenant ?', oui: 'Terminer le cycle', danger: true }))) return
     await db.cycles.update(cycle.id, { fin: dateISO() })
     onFermer()
   }
@@ -336,8 +341,8 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
           <button
             className="btn plein"
             disabled={etat.pause}
-            onClick={() =>
-              confirm(`Passer la semaine ${etat.n} en déload ? Les séances seront allégées et la fin du cycle reculera d’une semaine.`) &&
+            onClick={async () =>
+              (await confirmer('Les séances seront allégées et la fin du cycle reculera d’une semaine.', { titre: `Passer la semaine ${etat.n} en déload ?`, oui: 'Passer en déload' })) &&
               db.cycles.put(deloadMaintenant(cycle))
             }
           >
@@ -347,7 +352,10 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
           <button
             className="btn plein"
             disabled={etat.pause}
-            onClick={() => confirm('Mettre cette semaine en pause ? Elle ne comptera pas et tout le reste du cycle glissera d’une semaine.') && db.cycles.put(mettreEnPause(cycle))}
+            onClick={async () =>
+              (await confirmer('Elle ne comptera pas, et tout le reste du cycle glissera d’une semaine.', { titre: 'Mettre cette semaine en pause ?', oui: 'Mettre en pause' })) &&
+              db.cycles.put(mettreEnPause(cycle))
+            }
           >
             ⏸ Mettre cette semaine en pause
           </button>

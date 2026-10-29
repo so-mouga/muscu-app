@@ -14,6 +14,7 @@ import { BandeauCycle, BilanCycle } from '../components/Cycle'
 import { cibles, etatCycle, planDeload } from '../lib/cycle'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
+import { informer } from '../components/Dialogues'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 const exercices = (n: number) => `${n} exercice${n > 1 ? 's' : ''}`
@@ -26,7 +27,7 @@ async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle) {
   try {
     await creerSeance(modele, cycle)
   } catch (e) {
-    alert(`Impossible de démarrer la séance : ${(e as Error).message}\n(version ${__VERSION__})`)
+    void informer(`${(e as Error).message}\n(version ${__VERSION__})`, 'Impossible de démarrer la séance')
   }
 }
 
@@ -71,6 +72,24 @@ export default function Accueil({
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   const [activite, setActivite] = useState(false)
+  // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
+  const [masques, setMasques] = useState<Record<string, number>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('rappelsMasques') ?? '{}')
+    } catch {
+      return {}
+    }
+  })
+  const masque = (cle: string) => Date.now() - (masques[cle] ?? 0) < 7 * 86400000
+  const masquer = (cle: string) => {
+    const m = { ...masques, [cle]: Date.now() }
+    setMasques(m)
+    try {
+      localStorage.setItem('rappelsMasques', JSON.stringify(m))
+    } catch {
+      /* stockage indisponible */
+    }
+  }
   useRetour(choix, () => setChoix(false))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
@@ -154,26 +173,11 @@ export default function Accueil({
         </div>
       </div>
 
-      {mesuresEnRetard && (
-        <button className="liste-btn rappel" onClick={onMesures}>
-          <span>
-            📏 {derniereMesure ? 'Pense à reprendre tes mensurations' : 'Prends tes premières mensurations'}
-            {joursMesure !== null && <span className="faible"> · il y a {joursMesure} jours</span>}
-          </span>
-          <span className="muted">›</span>
-        </button>
-      )}
-
-      {exportVieux && (
-        <div className="carte petit" style={{ borderColor: 'var(--alerte)' }}>
-          💾 Pense à exporter tes données (Réglages) : elles ne sont que sur ce téléphone.
-        </div>
-      )}
-
-      {cycle && etat && <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />}
       {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
 
+      {/* La séance d'abord : c'est l'action principale de l'écran. Le cycle en est l'en-tête. */}
       <div className="carte pile">
+        {cycle && etat && <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />}
         {duJour && faite(duJour) && <div className="pastille ok">✓ {duJour.modele.nom} faite aujourd’hui</div>}
         {!duJour && <div className="muted">Repos prévu aujourd’hui.</div>}
         {proposee ? (
@@ -218,6 +222,27 @@ export default function Accueil({
           )}
         </div>
       </div>
+
+      {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
+      {mesuresEnRetard && !masque('mesures') && (
+        <div className="rappel-ligne">
+          <button className="texte" onClick={onMesures}>
+            📏 {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
+            {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>} ›
+          </button>
+          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('mesures')}>
+            ✕
+          </button>
+        </div>
+      )}
+      {exportVieux && !masque('export') && (
+        <div className="rappel-ligne">
+          <span>💾 Exporte tes données (Réglages) : elles ne sont que sur ce téléphone.</span>
+          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
+            ✕
+          </button>
+        </div>
+      )}
 
       {derniere && (
         <button className="liste-btn" style={{ marginBottom: 12 }} onClick={() => onVoirSeance(derniere.id)}>

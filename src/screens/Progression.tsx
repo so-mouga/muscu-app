@@ -7,6 +7,8 @@ import { Consignes } from '../components/InfosExo'
 import { consigne } from '../data/consignes'
 import { chargeTexte, dateCourte, duree, e1rm, enTemps, kg, kgSouleves, qte, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, Seance } from '../types'
+import { Aide } from '../components/Cycle'
+import { LEXIQUE } from '../data/lexique'
 
 type Onglet = 'stats' | 'historique' | 'infos'
 type Mesure = 'e1rm' | 'charge' | 'volume' | 'temps'
@@ -127,6 +129,12 @@ export function Detail({
             {exo.suivreE1rm && tuile(dernierE1rm ? `${kg(Math.round(dernierE1rm * 2) / 2)} ${unite1rm}` : '—', '1RM estimé (dernier)')}
             {!temps && tuile(`${kg(Math.round(volumeTotal))} kg`, 'volume total')}
           </div>
+          {exo.suivreE1rm && (
+            <div className="ligne" style={{ gap: 8, marginBottom: 12 }}>
+              <span className="faible">C’est quoi, le 1RM estimé ?</span>
+              <Aide texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
+            </div>
+          )}
 
           <div className="carte pile">
             <div className="chips">

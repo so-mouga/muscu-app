@@ -10,6 +10,7 @@ import Vignette from './Vignette'
 import { vibrer } from '../lib/appareil'
 import { hausse, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
+import { confirmer, informer } from './Dialogues'
 
 const TYPES: [TypeSerie, string, string][] = [
   ['normale', 'Normale', 'Série classique, arrêtée avant l’échec.'],
@@ -89,6 +90,9 @@ export default function CarteExo({
   const [editId, setEditId] = useState<string | null>(null)
   const [photo, setPhoto] = useState(false)
   const [infos, setInfos] = useState(false)
+  // Moins d'informations entre deux séries : échauffements repliés une fois l'exercice commencé, note sur demande.
+  const [voirChauffes, setVoirChauffes] = useState(false)
+  const [voirNote, setVoirNote] = useState(!!seance.notes[exo.id])
   const enEdition = faites.find((s) => s.id === editId)
   const index = enEdition ? faites.indexOf(enEdition) : faites.length
   const termine = !enEdition && faites.length >= total
@@ -183,7 +187,7 @@ export default function CarteExo({
             <span className="badge-hausse">🔥 À battre</span>
           ) : (
             onObjectif && (
-              <button className="btn discret petit" style={{ padding: 0, minHeight: 28 }} onClick={onObjectif}>
+              <button className="btn discret petit lien-action" onClick={onObjectif}>
                 ✎ Modifier
               </button>
             )
@@ -191,7 +195,7 @@ export default function CarteExo({
         </div>
         <div className="muted">{battre ? 'Tu as prévu de faire mieux que la dernière fois : c’est ici qu’on progresse.' : sugg.message}</div>
         {battre && onObjectif && (
-          <button className="btn discret petit" style={{ padding: 0, minHeight: 28 }} onClick={onObjectif}>
+          <button className="btn discret petit lien-action" onClick={onObjectif}>
             ✎ Modifier l’objectif
           </button>
         )}
@@ -204,7 +208,13 @@ export default function CarteExo({
       {(plan.note || exo.notes) && <div className="faible">ℹ️ {plan.note ?? exo.notes}</div>}
 
       <div>
-        {plan.chauffes.map((c, i) => {
+        {plan.chauffes.length > 0 && faites.length > 0 && !voirChauffes && (
+          <button className="chauffes-repliees" onClick={() => setVoirChauffes(true)}>
+            Échauffement {plan.chauffes.every((_, i) => seance.chauffes[`${exo.id}:${i}`]) ? '✓ ' : ''}
+            {plan.chauffes.filter((_, i) => seance.chauffes[`${exo.id}:${i}`]).length}/{plan.chauffes.length} ›
+          </button>
+        )}
+        {(faites.length === 0 || voirChauffes) && plan.chauffes.map((c, i) => {
           const cle = `${exo.id}:${i}`
           const fait = !!seance.chauffes[cle]
           const l = lireChauffe(c)
@@ -308,17 +318,24 @@ export default function CarteExo({
       {infos && <InfosExo exo={exo} onFermer={() => setInfos(false)} />}
       {photo && exo.image && <Photo src={exo.image} titre={exo.nom} onFermer={() => setPhoto(false)} />}
 
-      <textarea
-        rows={2}
-        placeholder="Note (réglage machine, sensation, douleur…)"
-        defaultValue={seance.notes[exo.id] ?? ''}
-        onBlur={(e) => {
-          const v = e.target.value
-          void majSeance(seance.id, (s) => {
-            s.notes[exo.id] = v
-          })
-        }}
-      />
+      {voirNote ? (
+        <textarea
+          rows={2}
+          autoFocus={!seance.notes[exo.id]}
+          placeholder="Note (réglage machine, sensation, douleur…)"
+          defaultValue={seance.notes[exo.id] ?? ''}
+          onBlur={(e) => {
+            const v = e.target.value
+            void majSeance(seance.id, (s) => {
+              s.notes[exo.id] = v
+            })
+          }}
+        />
+      ) : (
+        <button className="btn discret petit" style={{ alignSelf: 'flex-start' }} onClick={() => setVoirNote(true)}>
+          📝 Ajouter une note
+        </button>
+      )}
     </div>
   )
 }
@@ -421,7 +438,11 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   const enregistrer = async (s: Serie) => {
     if (s.reps <= 0 && !edition) return
-    if (chargeSuspecte(s.charge) && !confirm(`Valider ${chargeTexte(exo, s.charge)} ? C’est bien plus que d’habitude (${chargeTexte(exo, reference)}).`)) return
+    if (
+      chargeSuspecte(s.charge) &&
+      !(await confirmer(`C’est bien plus que d’habitude (${chargeTexte(exo, reference)}). Faute de frappe ?`, { titre: `Valider ${chargeTexte(exo, s.charge)} ?`, oui: 'Valider quand même', non: 'Corriger' }))
+    )
+      return
     if (!edition) {
       if (performance.now() - derniereValidation < 1500) return
       derniereValidation = performance.now()
@@ -439,14 +460,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       if (n === 0) throw new Error('séance introuvable')
     } catch (e) {
       derniereValidation = -Infinity
-      alert(`La série n’a pas été enregistrée : ${(e as Error).message}\n(version ${__VERSION__})`)
+      void informer(`${(e as Error).message}\n(version ${__VERSION__})`, 'La série n’a pas été enregistrée')
       return
     }
     if (edition) onFini(s)
   }
 
   const supprimer = async () => {
-    if (!edition || !confirm(`Supprimer la série ${index + 1} ?`)) return
+    if (!edition || !(await confirmer(`Supprimer la série ${index + 1} ?`, { oui: 'Supprimer la série', danger: true }))) return
     await majSeance(seance.id, (x) => {
       x.series = x.series.filter((y) => y.id !== edition.id)
     })
@@ -601,7 +622,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
               RPE {kg(rpe)} · {RIR[Math.floor(rpe)] ?? ''}
               {rpe > p.rpe + 0.5 && <span style={{ color: 'var(--alerte)' }}> · plus dur que prévu</span>}
             </span>
-            <button className="btn discret petit" style={{ minHeight: 0, padding: 0 }} onClick={() => setAideRpe(!aideRpe)}>
+            <button className="btn discret petit lien-action" onClick={() => setAideRpe(!aideRpe)}>
               aide RPE
             </button>
           </div>

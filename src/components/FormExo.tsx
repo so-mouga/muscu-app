@@ -4,6 +4,7 @@ import { db, uid } from '../db'
 import { photoReduite } from '../lib/image'
 import type { Exercice, ModeCharge, Muscle } from '../types'
 import Interrupteur from './Interrupteur'
+import { informer } from './Dialogues'
 
 export const MODES: [ModeCharge, string][] = [
   ['machine', 'Machine / barre / poulie'],
@@ -43,7 +44,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
     try {
       setImage(await photoReduite(f))
     } catch {
-      alert('Impossible de lire cette image.')
+      void informer('Choisis une photo au format JPEG ou PNG.', 'Impossible de lire cette image')
     } finally {
       setChargement(false)
     }

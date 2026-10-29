@@ -9,6 +9,7 @@ import { db } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import type { Mesure } from '../types'
+import { confirmer } from '../components/Dialogues'
 
 const cm = (v: number) => `${kg(v)} cm`
 const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(Math.round(d * 10) / 10))
@@ -169,7 +170,11 @@ function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; dern
   const [active, setActive] = useState<string>('cou')
   const modifie = JSON.stringify(textes) !== JSON.stringify(Object.fromEntries(Object.entries(initial?.valeurs ?? {}).map(([k, v]) => [k, String(v).replace('.', ',')])))
   const fermer = () => {
-    if (modifie && !confirm('Quitter sans enregistrer ?')) return 'rester' as const
+    // Saisie en cours : on garde l'écran et on demande avant de perdre les valeurs.
+    if (modifie) {
+      void confirmer('Les mesures saisies seront perdues.', { titre: 'Quitter sans enregistrer ?', oui: 'Quitter sans enregistrer', non: 'Continuer', danger: true }).then((ok) => ok && onFermer())
+      return 'rester' as const
+    }
     onFermer()
   }
   useRetour(true, fermer)
@@ -190,7 +195,7 @@ function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; dern
     onFermer()
   }
   const supprimer = async () => {
-    if (!initial || !confirm(`Supprimer la prise du ${dateCourte(initial.date)} ?`)) return
+    if (!initial || !(await confirmer(`Supprimer la prise du ${dateCourte(initial.date)} ?`, { oui: 'Supprimer la prise', danger: true }))) return
     await db.mesures.delete(initial.date)
     onFermer()
   }
@@ -280,7 +285,7 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
               <span>{dateCourte(p.date)}</span>
               <span className="ligne" style={{ gap: 8 }}>
                 <strong>{kg(p.poids)} kg</strong>
-                <button className="btn discret petit" aria-label="Supprimer" onClick={() => confirm(`Supprimer la pesée du ${dateCourte(p.date)} ?`) && db.pesees.delete(p.date)}>
+                <button className="btn discret petit" aria-label="Supprimer" onClick={async () => (await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })) && db.pesees.delete(p.date)}>
                   ✕
                 </button>
               </span>

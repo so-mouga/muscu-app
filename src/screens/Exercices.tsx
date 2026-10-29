@@ -14,6 +14,7 @@ import { meilleureSerie } from '../lib/historique'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, Muscle } from '../types'
 import { Detail } from './Progression'
+import { confirmer } from '../components/Dialogues'
 
 type Filtre = 'tous' | 'recents' | Zone
 
@@ -56,7 +57,7 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
     const msg = seancesModeles.length
       ? `« ${exo.nom} » est utilisé dans : ${seancesModeles.join(', ')}. Le supprimer de la bibliothèque ? Il restera dans ces séances et dans ton historique.`
       : `Supprimer « ${exo.nom} » ? Ton historique est conservé, tu pourras le restaurer.`
-    if (!confirm(msg)) return
+    if (!(await confirmer(msg, { oui: 'Supprimer l’exercice', danger: true }))) return
     await db.exercices.put({ ...exo, supprime: true })
     setChoisi(null)
   }

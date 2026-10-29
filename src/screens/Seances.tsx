@@ -6,7 +6,7 @@ import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
-import { useQuestion } from '../components/Question'
+import { confirmer, informer } from '../components/Dialogues'
 import { cibles, copieSeances, etatCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
@@ -227,14 +227,19 @@ function EditeurProgramme({
   const { p, initial, nouveau } = vue
   const [choix, setChoix] = useState(false)
   const [lancer, setLancer] = useState(false)
-  const [question, demander] = useQuestion()
   const modifie = JSON.stringify(p) !== JSON.stringify(initial)
   const actif = catalogue.actif.id === p.id
   const enBase = catalogue.programmes.some((x) => x.id === p.id)
   useRetour(choix, () => setChoix(false))
+  // Modifications non enregistrées : on garde l'écran et on demande avant de les perdre.
+  const quitter = () => {
+    if (!modifie) return onFermer()
+    void confirmer('Tes changements seront perdus.', { titre: 'Quitter sans enregistrer ?', oui: 'Quitter sans enregistrer', non: 'Continuer', danger: true }).then((ok) => ok && onFermer())
+  }
   useRetour(true, () => {
-    if (modifie && !confirm('Quitter sans enregistrer ?')) return 'rester'
-    onFermer()
+    if (!modifie) return onFermer()
+    quitter()
+    return 'rester'
   })
 
   const maj = (f: (x: Programme) => void) => {
@@ -251,12 +256,7 @@ function EditeurProgramme({
     if (activer) await setReglage('programmeActif', finale.id)
     // Programme du cycle en cours : on demande avant de toucher au cycle.
     const c = catalogue.cycle
-    if (c && c.programmeId === finale.id && modifie && (await demander({
-        titre: 'Appliquer au cycle en cours ?',
-        texte: `« ${finale.nom} » est le programme du cycle en cours. Tes changements sont enregistrés dans le programme ; tu choisis s’ils s’appliquent dès maintenant au cycle, ou seulement au prochain.`,
-        oui: 'Appliquer au cycle en cours',
-        non: 'Seulement pour le prochain cycle',
-      })))
+    if (c && c.programmeId === finale.id && modifie && (await confirmer(`« ${finale.nom} » est le programme du cycle en cours. Tes changements sont enregistrés dans le programme ; tu choisis s’ils s’appliquent dès maintenant au cycle, ou seulement au prochain.`, { titre: 'Appliquer au cycle en cours ?', oui: 'Appliquer au cycle en cours', non: 'Seulement pour le prochain cycle' })))
       await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele) })
     onFermer()
   }
@@ -265,8 +265,8 @@ function EditeurProgramme({
     onFermer()
   }
   const supprimer = async () => {
-    if (catalogue.programmes.length <= 1) return alert('Il faut garder au moins un programme.')
-    if (!confirm(`Supprimer le programme « ${p.nom} » ? Ses séances restent dans la bibliothèque.`)) return
+    if (catalogue.programmes.length <= 1) return informer('Il faut garder au moins un programme.')
+    if (!(await confirmer('Ses séances restent dans ta bibliothèque.', { titre: `Supprimer le programme « ${p.nom} » ?`, oui: 'Supprimer le programme', danger: true }))) return
     if ((await db.programmes.count()) === 0) await db.programmes.bulkPut(catalogue.programmes)
     await db.programmes.delete(p.id)
     if (actif) await setReglage('programmeActif', catalogue.programmes.find((x) => x.id !== p.id)!.id)
@@ -276,7 +276,7 @@ function EditeurProgramme({
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={() => (!modifie || confirm('Quitter sans enregistrer ?')) && onFermer()}>
+        <button className="btn" onClick={quitter}>
           ←
         </button>
         <h2 style={{ flex: 1 }}>{nouveau ? 'Nouveau programme' : 'Programme'}</h2>
@@ -386,7 +386,6 @@ function EditeurProgramme({
       )}
 
       {lancer && <LancerCycle catalogue={catalogue} programme={p} onFermer={() => setLancer(false)} />}
-      {question}
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(ev) => ev.stopPropagation()}>
@@ -442,7 +441,6 @@ function Editeur({
   const [choix, setChoix] = useState(false)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [infos, setInfos] = useState<Exercice | null>(null)
-  const [question, demander] = useQuestion()
   // Programmes qui contiennent la séance ; une nouvelle séance va par défaut dans le programme actif.
   const progsInitiaux = catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === initial.id)).map((p) => p.id)
   const [progs, setProgs] = useState<string[]>(nouvelle ? [catalogue.actif.id] : progsInitiaux)
@@ -450,9 +448,15 @@ function Editeur({
   const prechargee = !!MODELES[m.id]
   const modifieeEnBase = useLiveQuery(() => db.modeles.get(m.id), [m.id])
 
+  // Modifications non enregistrées : on garde l'écran et on demande avant de les perdre.
+  const quitter = () => {
+    if (!modifie) return onFermer()
+    void confirmer('Tes changements seront perdus.', { titre: 'Quitter sans enregistrer ?', oui: 'Quitter sans enregistrer', non: 'Continuer', danger: true }).then((ok) => ok && onFermer())
+  }
   useRetour(true, () => {
-    if (modifie && !confirm('Quitter sans enregistrer ?')) return 'rester'
-    onFermer()
+    if (!modifie) return onFermer()
+    quitter()
+    return 'rester'
   })
 
   const maj = (f: (x: SeanceModele) => void) =>
@@ -481,12 +485,7 @@ function Editeur({
     const c = catalogue.cycle
     if (
       c?.modeles.some((x) => x.id === finale.id) &&
-      (await demander({
-        titre: 'Appliquer au cycle en cours ?',
-        texte: `« ${finale.nom} » fait partie du cycle en cours. La séance est enregistrée dans ta bibliothèque ; tu choisis si le cycle la prend dès maintenant, ou seulement au prochain cycle.`,
-        oui: 'Appliquer au cycle en cours',
-        non: 'Seulement pour le prochain cycle',
-      }))
+      (await confirmer(`« ${finale.nom} » fait partie du cycle en cours. La séance est enregistrée dans ta bibliothèque ; tu choisis si le cycle la prend dès maintenant, ou seulement au prochain cycle.`, { titre: 'Appliquer au cycle en cours ?', oui: 'Appliquer au cycle en cours', non: 'Seulement pour le prochain cycle' }))
     )
       await db.cycles.update(c.id, { modeles: c.modeles.map((x) => (x.id === finale.id ? structuredClone(finale) : x)) })
     if (!pourProgramme)
@@ -502,13 +501,13 @@ function Editeur({
     onFermer()
   }
   const supprimer = async () => {
-    if (!confirm(`Supprimer « ${m.nom} » ? L’historique des séances faites est conservé.`)) return
+    if (!(await confirmer('L’historique des séances faites est conservé.', { titre: `Supprimer « ${m.nom} » ?`, oui: 'Supprimer la séance', danger: true }))) return
     if (prechargee) await db.modeles.put({ ...initial, supprime: true })
     else await db.modeles.delete(m.id)
     onFermer()
   }
   const reinitialiser = async () => {
-    if (!confirm('Revenir à la version d’origine du programme ?')) return
+    if (!(await confirmer('Tes modifications de cette séance seront perdues.', { titre: 'Revenir à la version d’origine ?', oui: 'Revenir à l’origine' }))) return
     await db.modeles.delete(m.id)
     onFermer()
   }
@@ -518,9 +517,7 @@ function Editeur({
       <div className="entete">
         <button
           className="btn"
-          onClick={() => {
-            if (!modifie || confirm('Quitter sans enregistrer ?')) onFermer()
-          }}
+          onClick={quitter}
         >
           ←
         </button>
@@ -599,7 +596,7 @@ function Editeur({
               <button className="icone" disabled={i === m.exercices.length - 1} onClick={() => deplacer(i, 1)} aria-label="Descendre">
                 ↓
               </button>
-              <button className="icone" onClick={() => confirm(`Retirer « ${exo.nom} » de la séance ?`) && maj((x) => x.exercices.splice(i, 1))} aria-label="Retirer">
+              <button className="icone" onClick={async () => (await confirmer(`Retirer « ${exo.nom} » de la séance ?`, { oui: 'Retirer', danger: true })) && maj((x) => x.exercices.splice(i, 1))} aria-label="Retirer">
                 ✕
               </button>
             </div>
@@ -673,7 +670,6 @@ function Editeur({
         />
       )}
       {infos && <InfosExo exo={infos} onFermer={() => setInfos(null)} />}
-      {question}
       {editIdx !== null && m.exercices[editIdx] && (
         <EditeurExoPlan
           key={editIdx}

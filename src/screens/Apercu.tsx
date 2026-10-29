@@ -101,7 +101,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
                   <div className="muted">{sugg.message}</div>
                 )}
                 {derniere && !deload && (
-                  <button className="btn discret petit" style={{ padding: 0, minHeight: 32 }} onClick={() => setObjectif(i)}>
+                  <button className="btn discret petit lien-action" onClick={() => setObjectif(i)}>
                     ✎ Modifier l’objectif
                   </button>
                 )}

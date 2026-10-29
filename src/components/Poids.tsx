@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { db } from '../db'
 import { kg } from '../lib/calc'
 import type { Pesee } from '../types'
+import { informer } from './Dialogues'
 
 /** Poids du jour, avec la moyenne sur 7 jours. */
 export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourdhui: string }) {
@@ -14,7 +15,7 @@ export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourd
     // Nombre complet seulement (« 72,3 ») : un champ mal tapé (« 71,572,3 ») est refusé, pas tronqué.
     const t = valeur.trim().replace(',', '.')
     const poids = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
-    if (!(poids > 30 && poids < 250)) return alert('Poids non reconnu : tape par exemple 72,3')
+    if (!(poids > 30 && poids < 250)) return informer('Tape par exemple 72,3.', 'Poids non reconnu')
     await db.pesees.put({ date: aujourdhui, poids })
     // Séances faites sans poids noté : on leur donne celui-ci, pour le 1RM des exercices au poids du corps.
     await db.seances.filter((s) => !s.poidsCorps).modify((s) => {

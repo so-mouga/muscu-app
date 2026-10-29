@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useCatalogue } from './catalogue'
 import { db } from './db'
 import { transition, useRetour } from './lib/nav'
+import IconeOnglet from './components/IconeOnglet'
 import Accueil from './screens/Accueil'
 import Exercices from './screens/Exercices'
 import Historique, { type VueProgression } from './screens/Historique'
@@ -11,11 +12,11 @@ import SeanceEnCours from './screens/SeanceEnCours'
 import Seances from './screens/Seances'
 
 const ONGLETS = [
-  ['accueil', '🏠', 'Accueil'],
-  ['historique', '📈', 'Progression'],
-  ['seances', '📋', 'Programmes'],
-  ['exercices', '💪', 'Exercices'],
-  ['reglages', '⚙️', 'Réglages'],
+  ['accueil', 'Accueil'],
+  ['historique', 'Progression'],
+  ['seances', 'Programmes'],
+  ['exercices', 'Exercices'],
+  ['reglages', 'Réglages'],
 ] as const
 type Onglet = (typeof ONGLETS)[number][0]
 
@@ -71,9 +72,9 @@ export default function App() {
         {onglet === 'reglages' && <Reglages catalogue={catalogue} />}
       </div>
       <nav className="onglets">
-        {ONGLETS.map(([id, ico, nom]) => (
+        {ONGLETS.map(([id, nom]) => (
           <button key={id} className={onglet === id ? 'actif' : ''} onClick={() => (setDetailEtat(null), setOnglet(id))}>
-            <span className="ico">{ico}</span>
+            <IconeOnglet nom={id} />
             {nom}
           </button>
         ))}

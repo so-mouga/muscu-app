@@ -18,6 +18,7 @@ import { suggestionDeload } from '../lib/cycle'
 import { hausse, pareil, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
+import { confirmer } from '../components/Dialogues'
 
 function stocke<T>(cle: string, defaut: T): T {
   try {
@@ -801,7 +802,10 @@ function FinSeance({
   }
 
   const abandonner = async () => {
-    if (!confirm(seance.series.length ? 'Supprimer cette séance et ses séries ?' : 'Annuler la séance ?')) return
+    const ok = seance.series.length
+      ? await confirmer('Les séries déjà faites seront effacées.', { titre: 'Supprimer cette séance ?', oui: 'Supprimer la séance', non: 'Reprendre', danger: true })
+      : await confirmer('Rien n’a encore été enregistré.', { titre: 'Annuler la séance ?', oui: 'Annuler la séance', non: 'Reprendre', danger: true })
+    if (!ok) return
     await db.seances.delete(seance.id)
     oublierEtatLocal(seance.id)
   }

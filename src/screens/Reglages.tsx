@@ -7,6 +7,8 @@ import { CATEGORIES, compter, exporter as exporterDonnees, importer as importerD
 import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, tic } from '../lib/appareil'
+import { confirmer } from '../components/Dialogues'
+import { LEXIQUE } from '../data/lexique'
 
 function telecharger(nom: string, contenu: string, type: string) {
   const url = URL.createObjectURL(new Blob([contenu], { type }))
@@ -178,6 +180,8 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
         </div>
       </div>
 
+      <Lexique />
+
       <div className="carte pile">
         <h3>À propos</h3>
         <div className="faible">
@@ -243,7 +247,7 @@ function ChoixImport({ fichier, onFini }: { fichier: Fichier; onFini: (message?:
   const [cats, setCats] = useState<Categorie[]>(fichier.presentes.map((c) => c.id))
   const [remplacer, setRemplacer] = useState(false)
   const lancer = async () => {
-    if (remplacer && !confirm('Effacer ces données sur ce téléphone et les remplacer par celles du fichier ?')) return
+    if (remplacer && !(await confirmer('Les données cochées seront effacées sur ce téléphone, puis remplacées par celles du fichier.', { titre: 'Remplacer tes données ?', oui: 'Remplacer mes données', danger: true }))) return
     try {
       await importerDonnees(fichier, cats, remplacer)
       onFini('Import terminé ✓')
@@ -286,6 +290,31 @@ function ChoixImport({ fichier, onFini }: { fichier: Fichier; onFini: (message?:
           Annuler
         </button>
       </div>
+    </div>
+  )
+}
+
+/** Les termes de l'appli, repliés par défaut. */
+function Lexique() {
+  const [ouvert, setOuvert] = useState(false)
+  return (
+    <div className="carte pile">
+      <button type="button" className="groupe-repli" onClick={() => setOuvert(!ouvert)} aria-expanded={ouvert}>
+        <span>
+          <strong>Lexique</strong> <span className="faible">PDC, RPE, 1RM, déload…</span>
+        </span>
+        <span className="muted">{ouvert ? '▾' : '▸'}</span>
+      </button>
+      {ouvert && (
+        <dl className="lexique">
+          {LEXIQUE.map(([terme, sens]) => (
+            <div key={terme}>
+              <dt>{terme}</dt>
+              <dd>{sens}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </div>
   )
 }

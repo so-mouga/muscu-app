@@ -5,6 +5,7 @@ import { db, demanderStockagePersistant } from './db'
 import Secours from './Secours'
 import UneFenetre from './UneFenetre'
 import './styles.css'
+import Dialogues from './components/Dialogues'
 
 declare global {
   interface Window {
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
     <Secours>
       <UneFenetre>
         <App />
+        <Dialogues />
       </UneFenetre>
     </Secours>
   </StrictMode>

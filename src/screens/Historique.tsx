@@ -14,6 +14,7 @@ import { kcalActivite, typeActivite, INTENSITES } from '../data/activites'
 import { Mesures, OngletPoids } from './Corps'
 import Photos from './Photos'
 import { planParDefaut } from './Seances'
+import { confirmer } from '../components/Dialogues'
 
 const JOURS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const dateLongue = (s: Seance) =>
@@ -339,7 +340,7 @@ function DetailSeance({
   const passes = (seance.passes ?? []).map((id) => catalogue.exo(id).nom)
 
   const supprimer = async () => {
-    if (!confirm(`Supprimer la séance « ${seance.nom} » du ${jourCourt(seance.date)} et toutes ses séries ?`)) return
+    if (!(await confirmer('La séance et toutes ses séries seront effacées de ton historique.', { titre: `Supprimer « ${seance.nom} » du ${jourCourt(seance.date)} ?`, oui: 'Supprimer la séance', danger: true }))) return
     await db.seances.delete(seance.id)
     onRetour()
   }

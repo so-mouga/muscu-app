@@ -5,7 +5,8 @@
   --bord: #2e3340;
   --texte: #f1f3f7;
   --texte-2: #a9b0bf;
-  --texte-3: #737b8c;
+  /* Texte secondaire : contraste ≥ 5:1 sur toutes les surfaces (WCAG AA). */
+  --texte-3: #9098a8;
   --accent: #ff8a3d;
   --accent-texte: #1a0d03;
   --ok: #4cc38a;
@@ -260,8 +261,7 @@ select {
 }
 .onglets .ico {
   display: block;
-  font-size: 20px;
-  line-height: 1.2;
+  margin: 0 auto 3px;
 }
 
 /* Barres de volume */
@@ -2012,4 +2012,89 @@ button.pastille.cliquable {
 /* Le bouton Enregistrer collé en bas ne doit pas cacher les derniers champs. */
 .page-dessus .saisie-mesures {
   padding-bottom: 96px;
+}
+
+/* Fenêtres de l'appli (remplacent confirm / alert) */
+.modal-fond.dialogue {
+  z-index: 60;
+}
+.texte-dialogue {
+  white-space: pre-line;
+  color: var(--texte-2);
+}
+.btn.danger-plein {
+  background: var(--danger);
+  color: #fff;
+  border-color: transparent;
+}
+.rappel-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--alerte) 50%, var(--bord));
+  font-size: 14px;
+}
+.rappel-ligne .texte {
+  background: none;
+  padding: 8px 0;
+  text-align: left;
+  color: inherit;
+  flex: 1;
+  min-width: 0;
+}
+.fermer-rappel {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  background: none;
+  color: var(--texte-3);
+  font-size: 16px;
+}
+.carte .bandeau-cycle {
+  margin: 0 0 4px;
+  background: var(--surface-2);
+}
+.cycle-fini {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ok);
+  margin-bottom: 4px;
+}
+.chauffes-repliees {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  padding: 10px 0;
+  color: var(--texte-3);
+  font-size: 14px;
+}
+/* Lien d'action dans le texte : discret, mais une zone d'appui de 44 px pour le pouce. */
+.btn.lien-action {
+  min-height: 44px;
+  padding: 0 4px;
+  margin: -6px 0;
+}
+.lexique {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lexique dt {
+  font-weight: 700;
+}
+.lexique dd {
+  margin: 2px 0 0;
+  color: var(--texte-2);
+  font-size: 14px;
+}
+.texte-dialogue.seul {
+  color: var(--texte);
+  font-size: 18px;
+  font-weight: 700;
 }

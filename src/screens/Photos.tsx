@@ -6,6 +6,7 @@ import { dateCourte, dateISO, kg } from '../lib/calc'
 import { photoReduite } from '../lib/image'
 import { useRetour } from '../lib/nav'
 import type { Mesure, PhotoCorps, Pose } from '../types'
+import { confirmer } from '../components/Dialogues'
 
 export const POSES: { id: Pose; nom: string; consigne: string }[] = [
   { id: 'face', nom: 'Face', consigne: 'De face, bras légèrement écartés, relâché (ne contracte pas).' },
@@ -46,7 +47,7 @@ export default function Photos() {
             <strong>{dateCourte(date)}</strong>
             <button
               className="btn discret petit danger"
-              onClick={() => confirm(`Supprimer les photos du ${dateCourte(date)} ?`) && db.photos.where('date').equals(date).delete()}
+              onClick={async () => (await confirmer(`Supprimer les photos du ${dateCourte(date)} ?`, { oui: 'Supprimer les photos', danger: true })) && db.photos.where('date').equals(date).delete()}
             >
               Supprimer
             </button>
@@ -291,9 +292,10 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
     if (f) setApercu(await photoReduite(f, 1280))
   }
 
-  const suivante = (garder: boolean) => {
+  const suivante = async (garder: boolean) => {
     // Une photo de cette pose existe déjà aujourd'hui : on demande avant de la remplacer.
-    if (garder && duJour(pose.id) && !confirm(`Remplacer ta photo « ${pose.nom} » d’aujourd’hui par celle-ci ?`)) garder = false
+    if (garder && duJour(pose.id) && !(await confirmer(`Tu as déjà une photo « ${pose.nom} » aujourd’hui.`, { titre: 'Remplacer la photo ?', oui: 'Remplacer', non: 'Garder l’ancienne' })))
+      garder = false
     const f = garder && apercu ? { ...faites, [pose.id]: apercu } : faites
     setFaites(f)
     setApercu(null)

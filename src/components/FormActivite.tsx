@@ -5,6 +5,7 @@ import { db, uid } from '../db'
 import { dateCourte, dateISO } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import type { Activite } from '../types'
+import { confirmer } from './Dialogues'
 
 const DUREES = [30, 45, 60, 90, 120]
 
@@ -24,7 +25,7 @@ export default function FormActivite({ initial, onFermer }: { initial?: Activite
     onFermer()
   }
   const supprimer = async () => {
-    if (!initial || !confirm(`Supprimer l’activité du ${dateCourte(initial.date)} ?`)) return
+    if (!initial || !(await confirmer(`Supprimer l’activité du ${dateCourte(initial.date)} ?`, { oui: 'Supprimer', danger: true }))) return
     await db.activites.delete(initial.id)
     onFermer()
   }
