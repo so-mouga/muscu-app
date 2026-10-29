@@ -1556,8 +1556,3 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .ligne-exo > .btn-infos {
   margin-right: 4px;
 }
-.apport {
-  margin-left: 4px;
-  color: var(--accent);
-  font-weight: 700;
-}

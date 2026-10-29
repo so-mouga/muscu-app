@@ -5,6 +5,7 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
+import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
 import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, semaineType, volumePrevu } from '../lib/calc'
@@ -77,10 +78,6 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
         nouvelle={vue.nouvelle}
         // Ouverte depuis un programme : c'est lui qui gère son contenu.
         pourProgramme={pile[pile.length - 2]?.type === 'programme'}
-        programme={(() => {
-          const dessous = pile[pile.length - 2]
-          return dessous?.type === 'programme' ? dessous.p : undefined
-        })()}
         onFermer={(enregistree) =>
           fermer((reste) => {
             // Séance créée depuis un programme : on l'ajoute au brouillon du programme.
@@ -373,7 +370,6 @@ function Editeur({
   initial,
   nouvelle,
   pourProgramme,
-  programme,
   onFermer,
 }: {
   catalogue: Catalogue
@@ -381,8 +377,6 @@ function Editeur({
   nouvelle: boolean
   /** Ouverte depuis un programme : pas de choix de programme ici. */
   pourProgramme: boolean
-  /** Programme en cours d'édition en dessous (sinon : celui choisi pour la séance). */
-  programme?: Programme
   /** Reçoit la séance quand elle vient d'être enregistrée. */
   onFermer: (enregistree?: SeanceModele) => void
 }) {
@@ -416,13 +410,9 @@ function Editeur({
 
   const finisseurs = m.exercices.filter((e) => e.finisseur).length
 
-  // Volume : ce que la séance apporte, et la semaine du programme avec cette version de la séance.
-  const prog = programme ?? catalogue.programmes.find((p) => p.id === catalogue.actif.id && progs.includes(p.id)) ?? catalogue.programmes.find((p) => progs.includes(p.id))
-  const apport = volumePrevu([m], catalogue.exercices)
-  const semaine = prog && semaineType(prog)
-  const modelesSemaine = semaine?.map((e) => (e.modeleId === m.id ? m : catalogue.modele(e.modeleId))).filter((x) => !!x) ?? []
-  // Pas encore dans le programme (nouvelle séance) : comptée une fois.
-  if (prog && !semaine!.some((e) => e.modeleId === m.id)) modelesSemaine.push(m)
+  // Séries dures que la séance donne à chaque muscle, du plus travaillé au moins travaillé.
+  const volume = volumePrevu([m], catalogue.exercices)
+  const travailles = MUSCLES.filter((x) => volume[x.id] > 0).sort((a, b) => volume[b.id] - volume[a.id])
   const valide = m.nom.trim() !== '' && m.exercices.length > 0
 
   const enregistrer = async () => {
@@ -553,15 +543,20 @@ function Editeur({
         )}
       </div>
 
-      {m.exercices.length > 0 && (
+      {travailles.length > 0 && (
         <div className="carte">
-          <h3>Volume par muscle</h3>
-          <div className="faible" style={{ margin: '4px 0 10px' }}>
-            {prog
-              ? `« +N » : ce que la séance apporte. La barre : toute la semaine du programme « ${prog.nom} » avec cette version de la séance.`
-              : 'Séries dures prévues dans cette séance.'}
+          <h3>Muscles travaillés</h3>
+          <div className="faible" style={{ margin: '4px 0 8px' }}>
+            Séries dures de cette séance. Le total de la semaine est dans le programme.
           </div>
-          {prog ? <VolumeMuscles volume={volumePrevu(modelesSemaine, catalogue.exercices)} apport={apport} /> : <VolumeMuscles volume={apport} />}
+          {travailles.map((x) => (
+            <div key={x.id} className="ligne entre petit" style={{ padding: '4px 0' }}>
+              <span>{x.nom}</span>
+              <strong>
+                {kg(volume[x.id])} série{volume[x.id] >= 2 ? 's' : ''}
+              </strong>
+            </div>
+          ))}
         </div>
       )}
 
