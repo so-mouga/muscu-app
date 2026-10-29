@@ -142,6 +142,11 @@ export interface Seance {
   objectifs?: Record<string, Objectif>
   ressenti?: number
   energie?: number
+  /** Cycle et semaine du cycle au démarrage. */
+  cycleId?: string
+  semaine?: number
+  /** Séance de déload : allégée, et ignorée pour la progression (objectifs, records, « dernière fois »). */
+  deload?: boolean
 }
 
 export interface Objectif {
@@ -159,6 +164,29 @@ export interface Pesee {
 export interface Mesure {
   date: string
   valeurs: Record<string, number>
+}
+
+/**
+ * Cycle : un programme lancé à une date, pour un nombre de semaines, avec ses semaines de déload
+ * et ses objectifs de volume. Il garde une copie du programme et de ses séances : modifier le
+ * programme ensuite ne change pas le cycle, sauf si on le demande.
+ */
+export interface Cycle {
+  id: string
+  programmeId: string
+  programme: Programme
+  modeles: SeanceModele[]
+  /** Lundi de la semaine 1 (AAAA-MM-JJ). */
+  debut: string
+  semaines: number
+  /** Numéros des semaines de déload (1 = première). */
+  deloads: number[]
+  /** Lundis des semaines mises en pause (vacances, maladie) : elles ne comptent pas. */
+  pauses: string[]
+  /** Objectif de séries dures par semaine, par muscle. */
+  volume: Partial<Record<Muscle, number>>
+  /** Date de fin si le cycle a été terminé. */
+  fin?: string
 }
 
 /** Autre sport de la journée (padel, course…), à côté des séances de muscu. */

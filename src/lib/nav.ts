@@ -18,7 +18,8 @@ function assurerPiege() {
 }
 
 function retirerPiegeSiInutile() {
-  if (pile.length === 0 && surPiege()) {
+  // Plusieurs couches fermées d'un coup : un seul retour, sinon on sortirait de l'appli.
+  if (pile.length === 0 && surPiege() && aIgnorer === 0) {
     aIgnorer++
     history.back()
   }

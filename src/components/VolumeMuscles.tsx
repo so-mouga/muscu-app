@@ -5,13 +5,17 @@ import type { Muscle } from '../types'
 interface Props {
   /** Séries dures par muscle sur la semaine (faites ou prévues). */
   volume: Record<Muscle, number>
+  /** Objectifs du cycle en cours (sinon ceux par défaut). */
+  cibles?: Record<Muscle, number>
 }
 
 /** Une barre par muscle : séries dures de la semaine face à l'objectif (vert dans la cible, orange au-delà). */
-export default function VolumeMuscles({ volume }: Props) {
+export default function VolumeMuscles({ volume, cibles }: Props) {
   return (
     <>
-      {MUSCLES.filter((m) => m.cible > 0 || volume[m.id] > 0).map((m) => {
+      {MUSCLES.map((x) => ({ ...x, cible: cibles?.[x.id] ?? x.cible }))
+        .filter((m) => m.cible > 0 || volume[m.id] > 0)
+        .map((m) => {
         const v = volume[m.id]
         // Sans objectif (fessiers, trapèzes…) : seulement le nombre de séries, barre neutre.
         if (!m.cible)

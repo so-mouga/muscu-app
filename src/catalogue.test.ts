@@ -1,4 +1,5 @@
 import { construireCatalogue, ID_PROGRAMME_DEFAUT } from './catalogue'
+import { nouveauCycle } from './lib/cycle'
 
 describe('programmes', () => {
   it('sans programme enregistré, le planning d’origine devient le programme de départ', () => {
@@ -32,5 +33,18 @@ describe('programmes', () => {
     const masquee = { id: 'bas', nom: 'Bas', sousTitre: '', exercices: [], supprime: true }
     const c = construireCatalogue([masquee], [], programmes, 'a')
     expect(c.planning.map((e) => e.modele.id)).toEqual(['haut_a'])
+  })
+})
+
+describe('cycle en cours', () => {
+  it('le planning suit la copie du cycle, pas la séance modifiée ensuite', () => {
+    const base = construireCatalogue([], [], [], undefined)
+    const m = base.planning[0].modele
+    const cycle = nouveauCycle('c', base.actif, base.modele, '2026-11-02')
+    const modifiee = { ...m, nom: 'Modifiée', exercices: [] }
+    const c = construireCatalogue([modifiee], [], [], undefined, cycle)
+    expect(c.planning[0].modele.nom).toBe(m.nom)
+    expect(c.pourDemarrer(modifiee).exercices.length).toBe(m.exercices.length)
+    expect(c.modele(m.id)?.nom).toBe('Modifiée')
   })
 })

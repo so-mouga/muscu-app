@@ -1888,3 +1888,85 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* Cycle */
+.aide-texte {
+  flex-basis: 100%;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--texte-2);
+  font-size: 14px;
+  font-weight: 400;
+  text-align: left;
+}
+.entete:has(.aide-texte),
+.ligne:has(.aide-texte) {
+  flex-wrap: wrap;
+}
+.bandeau-cycle {
+  margin-bottom: 12px;
+}
+.bandeau-cycle > span {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bandeau-cycle.deload,
+.bandeau-deload {
+  border-color: var(--activite);
+}
+.bandeau-deload {
+  border: 1px solid var(--activite);
+  color: var(--activite);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.semaines-cycle {
+  display: flex;
+  gap: 4px;
+}
+.semaines-cycle > span {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.semaines-cycle > span.faite {
+  background: var(--accent);
+}
+.semaines-cycle > span.courante {
+  background: color-mix(in srgb, var(--accent) 50%, var(--surface-2));
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.semaines-cycle > span.deload {
+  background-image: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--activite) 70%, transparent) 3px 5px);
+}
+.ligne-semaine {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bord);
+}
+.ligne-semaine:last-child {
+  border-bottom: none;
+}
+.ligne-semaine.courante {
+  margin: 0 -10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-bottom-color: transparent;
+}
+.ligne-semaine.deload strong {
+  color: var(--activite);
+}
+.ligne-semaine.pause {
+  padding: 6px 0;
+}

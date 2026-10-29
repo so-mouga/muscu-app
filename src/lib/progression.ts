@@ -197,7 +197,8 @@ export function pareil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Sug
  * `seances` : séances terminées, la plus récente en premier.
  */
 export function suggestionPour(exo: Exercice, plan: ExoPlan, seances: Seance[], auto = false): Suggestion {
-  const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
+  // Les déloads (allégés) ne servent jamais de référence.
+  const avec = seances.filter((s) => !s.deload && s.series.some((x) => x.exoId === exo.id))
   const objectif = avec[0]?.objectifs?.[exo.id]
   if (objectif) {
     const n = plan.series.length

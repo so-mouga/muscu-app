@@ -167,7 +167,7 @@ function Fait({ n, quand, s, avant, exo }: { n: string; quand: string; s: Serie;
  * `terminees` : la plus récente en premier.
  */
 export function ObjectifApres({ exo, plan, terminees, onFermer }: { exo: Exercice; plan: ExoPlan; terminees: Seance[]; onFermer: () => void }) {
-  const avec = terminees.filter((s) => s.series.some((x) => x.exoId === exo.id))
+  const avec = terminees.filter((s) => !s.deload && s.series.some((x) => x.exoId === exo.id))
   const derniere = avec[0]
   if (!derniere) return null
   const histo = historiqueDe(avec, exo.id)

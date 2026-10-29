@@ -14,6 +14,7 @@ import { debloquerSon, ecranAllume } from '../lib/appareil'
 import { calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
+import { suggestionDeload } from '../lib/cycle'
 import { hausse, pareil, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
@@ -62,7 +63,8 @@ function chronoSeance(ms: number) {
 }
 
 export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; catalogue: Catalogue }) {
-  const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
+  // Référence pour la progression : séances terminées, hors déloads (allégées, elles fausseraient la suite).
+  const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours && !s.deload).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [])
   const [idxBrut, setIdxEtat] = useState<number>(() => stocke(`idx:${seance.id}`, 0))
   const [minuteur, setMinuteurEtat] = useState<EtatMinuteur | null>(() => {
@@ -162,8 +164,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   )
   const suggestions = useMemo(() => {
     if (!terminees) return [] as Suggestion[]
-    return plans.map((p, i) => suggestionPour(exos[i], p, terminees))
-  }, [terminees, exos, plans])
+    return plans.map((p, i) => {
+      const sugg = suggestionPour(exos[i], p, terminees)
+      return seance.deload ? suggestionDeload(exos[i], sugg) : sugg
+    })
+  }, [terminees, exos, plans, seance.deload])
 
   if (!terminees || !reglages) return null
 
@@ -183,7 +188,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     setVerrou(true)
     setTimeout(() => setVerrou(false), 8000)
     setMinuteur({ debut: Date.now(), fin: Date.now() + repos * 1000, duree: repos })
-    // Records (seulement s'il existe un historique pour comparer)
+    // Records (seulement s'il existe un historique pour comparer ; jamais en déload)
+    if (seance.deload) return
     const exo = exoAvecReglages(catalogue.exo(s.exoId), reglages)
     const avant = historiqueDe(terminees, s.exoId).flat()
     if (avant.length === 0) return
@@ -456,7 +462,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             onAllerEnCours={() => undefined}
             focus
             repere={repereDe(planFocus.exoId)}
-            onObjectif={historiqueDe(terminees, planFocus.exoId).length ? () => setObjectifDe(enCours) : undefined}
+            onObjectif={!seance.deload && historiqueDe(terminees, planFocus.exoId).length ? () => setObjectifDe(enCours) : undefined}
           />
         ) : (
           <div className="focus-bloc pile">
@@ -500,6 +506,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             Terminer
           </button>
         </div>
+        {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
         <div className="pills">
           {plans.map((p, i) => {
             const passe = estPasse(i)
@@ -552,7 +559,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onAnnulerPasser={() => annulerPasser(idx)}
           onAllerEnCours={allerEnCours}
           repere={repereDe(plan.exoId)}
-          onObjectif={historiqueDe(terminees, plan.exoId).length ? () => setObjectifDe(idx) : undefined}
+          onObjectif={!seance.deload && historiqueDe(terminees, plan.exoId).length ? () => setObjectifDe(idx) : undefined}
         />
       ) : (
         <div className="carte pile">
@@ -805,7 +812,9 @@ function FinSeance({
         <>
           <h3 style={{ margin: '18px 0 4px' }}>Récap par exercice</h3>
           <div className="faible" style={{ marginBottom: 10 }}>
-            Tes séries comparées à la dernière fois. La prochaine fois, tu refais pareil : appuie sur ✎ pour monter une charge ou des reps.
+            {seance.deload
+              ? 'Séance de déload : pas d’objectif à fixer. La prochaine vraie séance reprend là où tu en étais avant le déload.'
+              : 'Tes séries comparées à la dernière fois. La prochaine fois, tu refais pareil : appuie sur ✎ pour monter une charge ou des reps.'}
           </div>
           <RecapExos
             seance={seance}
@@ -813,6 +822,7 @@ function FinSeance({
             reglages={reglages}
             catalogue={catalogue}
             basExo={(exo) => {
+              if (seance.deload) return null
               const { s } = suggestionDe(exo.id)
               const o = objectifs[exo.id]
               const charges = o?.charges ?? s.charges

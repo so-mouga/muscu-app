@@ -10,6 +10,8 @@ import { transition, useRetour } from '../lib/nav'
 import VolumeMuscles from '../components/VolumeMuscles'
 import FormActivite from '../components/FormActivite'
 import { typeActivite } from '../data/activites'
+import { BandeauCycle, BilanCycle } from '../components/Cycle'
+import { cibles, etatCycle, planDeload } from '../lib/cycle'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 
@@ -17,23 +19,30 @@ const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 const exercices = (n: number) => `${n} exercice${n > 1 ? 's' : ''}`
 
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
-async function demarrer(modele?: SeanceModele) {
+/** Contexte du cycle au démarrage : semaine en cours et déload éventuel. */
+type ContexteCycle = { cycleId: string; semaine?: number; deload: boolean }
+
+async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle) {
   try {
-    await creerSeance(modele)
+    await creerSeance(modele, cycle)
   } catch (e) {
     alert(`Impossible de démarrer la séance : ${(e as Error).message}\n(version ${__VERSION__})`)
   }
 }
 
-async function creerSeance(modele?: SeanceModele) {
+async function creerSeance(modele?: SeanceModele, cycle?: ContexteCycle) {
   debloquerSon()
+  const deload = !!(modele && cycle?.deload)
   await db.seances.add({
+    ...(cycle && { cycleId: cycle.cycleId, semaine: cycle.semaine }),
+    ...(deload && { deload: true }),
     id: uid(),
     date: dateISO(),
     modeleId: modele?.id,
     nom: modele?.nom ?? 'Séance libre',
     sousTitre: modele?.sousTitre ?? 'exercices au choix',
-    exercices: structuredClone(modele?.exercices ?? []),
+    // Déload : plan allégé (moitié des séries, RPE 6-7, sans finisseur).
+    exercices: structuredClone(modele?.exercices ?? []).map((p) => (deload ? planDeload(p) : p)),
     debut: Date.now(),
     enCours: true,
     poidsCorps: await dernierPoids(),
@@ -44,7 +53,19 @@ async function creerSeance(modele?: SeanceModele) {
   })
 }
 
-export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalogue: Catalogue; onVoirSeance: (id: string) => void; onMesures: () => void }) {
+export default function Accueil({
+  catalogue,
+  onVoirSeance,
+  onMesures,
+  onProgrammes,
+}: {
+  catalogue: Catalogue
+  onVoirSeance: (id: string) => void
+  onMesures: () => void
+  /** Ouvre l'onglet Programmes (gestion du cycle). */
+  onProgrammes: () => void
+}) {
+  const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
@@ -53,7 +74,7 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
   useRetour(choix, () => setChoix(false))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
-    transition(() => setApercuEtat(m), m ? 'avant' : 'arriere')
+    transition(() => setApercuEtat(m && catalogue.pourDemarrer(m)), m ? 'avant' : 'arriere')
     window.scrollTo({ top: 0 })
   }
   const debutSemaine = lundi()
@@ -90,7 +111,7 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
   const derniere = terminees?.reduce<(typeof terminees)[number] | undefined>((a, s) => (!a || s.debut > a.debut ? s : a), undefined)
 
   // Exercices où l'objectif dépasse la dernière fois : « à battre ».
-  const recentes = terminees && [...terminees].sort((a, b) => b.debut - a.debut)
+  const recentes = terminees && [...terminees].filter((s) => !s.deload).sort((a, b) => b.debut - a.debut)
   const nbABattre = (m: SeanceModele) =>
     recentes
       ? m.exercices.filter((p) => {
@@ -99,7 +120,14 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
         }).length
       : 0
 
-  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} onDemarrer={() => demarrer(apercu)} onFermer={() => voir(null)} />
+  // Cycle en cours : semaine, déload, pause ; chaque séance lancée y est rattachée.
+  const cycle = catalogue.cycle
+  const etat = cycle && etatCycle(cycle)
+  const contexte: ContexteCycle | undefined =
+    cycle && etat ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.fini && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
+  const lancer = (m?: SeanceModele) => demarrer(m && catalogue.pourDemarrer(m), contexte)
+
+  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu)} onFermer={() => voir(null)} />
 
   // Rappel des mensurations : seulement après 3 semaines sans en prendre.
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
@@ -134,6 +162,9 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
         </div>
       )}
 
+      {cycle && etat && <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />}
+      {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
+
       <div className="carte pile">
         {duJour && faite(duJour) && <div className="pastille ok">✓ {duJour.modele.nom} faite aujourd’hui</div>}
         {!duJour && <div className="muted">Repos prévu aujourd’hui.</div>}
@@ -147,14 +178,14 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
               <div className="faible">
                 {exercices(proposee.modele.exercices.length)} · {dureeTexte(proposee.modele, terminees)}
               </div>
-              {nbABattre(proposee.modele) > 0 && (
+              {!etat?.deload && nbABattre(proposee.modele) > 0 && (
                 <div className="badge-hausse grand" style={{ marginTop: 6 }}>
                   🔥 {nbABattre(proposee.modele)} objectif{nbABattre(proposee.modele) > 1 ? 's' : ''} à battre
                 </div>
               )}
             </div>
             <div className="ligne">
-              <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => demarrer(proposee.modele)}>
+              <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => lancer(proposee.modele)}>
                 Démarrer
               </button>
               <button className="btn grand" style={{ flex: 1 }} onClick={() => voir(proposee.modele)}>
@@ -214,7 +245,7 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
             </span>
           ))}
         </div>
-        <VolumeMuscles volume={volume} />
+        <VolumeMuscles volume={volume} cibles={cycle ? cibles(cycle) : undefined} />
         <div className="faible">Séries dures (RPE ≥ 7). Triceps : développés et dips comptés à 0,5.</div>
       </div>
 
@@ -248,7 +279,7 @@ export default function Accueil({ catalogue, onVoirSeance, onMesures }: { catalo
               </div>
             ))}
             <div style={{ height: 8 }} />
-            <button className="liste-btn" onClick={() => demarrer()}>
+            <button className="liste-btn" onClick={() => lancer()}>
               <span>
                 <strong>Séance libre</strong> <span className="muted">— exercices ajoutés au fur et à mesure</span>
               </span>

@@ -5,6 +5,8 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
+import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
+import { cibles, copieSeances, etatCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
@@ -47,6 +49,7 @@ export function resumePlan(exo: Exercice, p: ExoPlan): string {
 type Vue =
   | { type: 'programme'; p: Programme; initial: Programme; nouveau: boolean }
   | { type: 'seance'; m: SeanceModele; nouvelle: boolean; /** Ajouter la séance créée au programme en dessous. */ pourProgramme?: boolean }
+  | { type: 'cycle' }
 
 export const jourCourt = (j?: number) => (j ? JOURS[j].slice(0, 3) : '')
 
@@ -61,6 +64,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
   const masquees = useLiveQuery(() => db.modeles.filter((m) => !!m.supprime).toArray(), [], [])
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
+  const [lancer, setLancer] = useState(false)
 
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
   const fermer = (f?: (pile: Vue[]) => Vue[]) =>
@@ -90,6 +94,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
         }
       />
     )
+  if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={() => fermer()} />
   if (vue?.type === 'programme')
     return (
       <EditeurProgramme
@@ -111,6 +116,35 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
       <div className="entete">
         <h1>Programmes</h1>
       </div>
+      {catalogue.cycle ? (
+        (() => {
+          const e = etatCycle(catalogue.cycle)
+          return (
+            <button className="liste-btn bandeau-cycle" style={{ borderColor: 'var(--accent)' }} onClick={() => ouvrir({ type: 'cycle' })}>
+              <span>
+                <span className="faible">Cycle en cours</span>
+                <strong>🔁 {catalogue.cycle.programme.nom}</strong>
+                <span className="faible">
+                  {e.fini ? 'terminé : voir le bilan' : e.n <= 0 ? 'commence la semaine prochaine' : e.pause ? 'semaine en pause' : `semaine ${e.n}/${e.total}${e.deload ? ' · 🧘 déload' : ''}`}
+                </span>
+              </span>
+              <span className="muted">›</span>
+            </button>
+          )
+        })()
+      ) : (
+        <div className="carte pile">
+          <div className="ligne entre">
+            <strong>Pas de cycle en cours</strong>
+            <Aide texte={AIDE_CYCLE} />
+          </div>
+          <div className="faible">Lance ton programme pour 6 semaines avec un déload à la fin : l’appli suit les semaines et allège le déload toute seule.</div>
+          <button className="btn primaire plein" onClick={() => setLancer(true)}>
+            Lancer un cycle
+          </button>
+        </div>
+      )}
+      {lancer && <LancerCycle catalogue={catalogue} onFermer={() => setLancer(false)} />}
       {catalogue.programmes.map((p) => {
         const seances = p.seances.filter((e) => catalogue.modele(e.modeleId))
         const jours = seances.filter((e) => e.jour).sort((a, b) => a.jour! - b.jour!)
@@ -191,6 +225,7 @@ function EditeurProgramme({
 }) {
   const { p, initial, nouveau } = vue
   const [choix, setChoix] = useState(false)
+  const [lancer, setLancer] = useState(false)
   const modifie = JSON.stringify(p) !== JSON.stringify(initial)
   const actif = catalogue.actif.id === p.id
   const enBase = catalogue.programmes.some((x) => x.id === p.id)
@@ -212,6 +247,10 @@ function EditeurProgramme({
     const finale = { ...p, nom: p.nom.trim(), description: p.description?.trim() || undefined, seances: p.seances.filter((e) => catalogue.modele(e.modeleId)) }
     await sauverProgramme(finale, catalogue)
     if (activer) await setReglage('programmeActif', finale.id)
+    // Programme du cycle en cours : on demande avant de toucher au cycle.
+    const c = catalogue.cycle
+    if (c && c.programmeId === finale.id && modifie && confirm('Appliquer aussi ces changements au cycle en cours ?\n\nSinon, ils serviront au prochain cycle.'))
+      await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele) })
     onFermer()
   }
   const dupliquer = async () => {
@@ -304,7 +343,10 @@ function EditeurProgramme({
           <div className="faible" style={{ margin: '4px 0 10px' }}>
             Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face à l’objectif.
           </div>
-          <VolumeMuscles volume={volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)} />
+          <VolumeMuscles
+            volume={volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)}
+            cibles={catalogue.cycle?.programmeId === p.id ? cibles(catalogue.cycle) : undefined}
+          />
         </div>
       )}
 
@@ -316,9 +358,14 @@ function EditeurProgramme({
       {!valide && <div className="faible" style={{ marginTop: 6 }}>Il faut un nom et au moins une séance.</div>}
       {!nouveau && (
         <div className="ligne wrap" style={{ marginTop: 12 }}>
-          {!actif && (
-            <button className="btn primaire" disabled={!valide} onClick={() => enregistrer(true)}>
-              Activer ce programme
+          {catalogue.cycle?.programmeId !== p.id && (
+            <button className="btn primaire" disabled={!valide || modifie} onClick={() => setLancer(true)}>
+              Lancer un cycle
+            </button>
+          )}
+          {!actif && !catalogue.cycle && (
+            <button className="btn" disabled={!valide} onClick={() => enregistrer(true)}>
+              Activer sans cycle
             </button>
           )}
           <button className="btn" onClick={dupliquer}>
@@ -330,6 +377,7 @@ function EditeurProgramme({
         </div>
       )}
 
+      {lancer && <LancerCycle catalogue={catalogue} programme={p} onFermer={() => setLancer(false)} />}
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(ev) => ev.stopPropagation()}>
@@ -419,6 +467,10 @@ function Editeur({
   const enregistrer = async () => {
     const finale = { ...m, nom: m.nom.trim(), sousTitre: m.sousTitre.trim() }
     await db.modeles.put(finale)
+    // Séance du cycle en cours : on demande avant de toucher au cycle.
+    const c = catalogue.cycle
+    if (c?.modeles.some((x) => x.id === finale.id) && confirm('Cette séance fait partie du cycle en cours. Appliquer aussi les changements au cycle ?\n\nSinon, ils serviront au prochain cycle.'))
+      await db.cycles.update(c.id, { modeles: c.modeles.map((x) => (x.id === finale.id ? structuredClone(finale) : x)) })
     if (!pourProgramme)
       for (const p of catalogue.programmes) {
         const dedans = p.seances.some((e) => e.modeleId === finale.id)

@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { EXERCICES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
 import { db } from './db'
-import type { Exercice, Programme, SeanceModele } from './types'
+import type { Cycle, Exercice, Programme, SeanceModele } from './types'
 
 export const ID_PROGRAMME_DEFAUT = 'principal'
 
@@ -24,13 +24,18 @@ export interface Catalogue {
   actif: Programme
   /** Séances du programme actif ayant un jour, triées par jour. */
   planning: EntreePlanning[]
+  /** Cycle en cours : il pilote l'accueil avec sa propre copie du programme. */
+  cycle?: Cycle
+  /** Version d'une séance à lancer : celle du cycle si elle en fait partie, sinon la séance de la bibliothèque. */
+  pourDemarrer: (m: SeanceModele) => SeanceModele
 }
 
 export function construireCatalogue(
   modelesDb: SeanceModele[],
   exercicesDb: Exercice[],
   programmesDb: Programme[],
-  actifId: string | undefined
+  actifId: string | undefined,
+  cycle?: Cycle
 ): Catalogue {
   const parId = new Map<string, SeanceModele>(PROGRAMME.map((m) => [m.id, m]))
   for (const m of modelesDb) parId.set(m.id, m)
@@ -42,11 +47,14 @@ export function construireCatalogue(
   const programmes: Programme[] = programmesDb.length
     ? programmesDb
     : [{ id: ID_PROGRAMME_DEFAUT, nom: 'Recompo 4 jours', description: 'Programme de départ', seances: modeles.map((m) => ({ modeleId: m.id, jour: m.jour })) }]
-  const actif = programmes.find((p) => p.id === actifId) ?? programmes[0]
   const modele = (id: string | undefined) => {
     const m = id ? parId.get(id) : undefined
     return m && !m.supprime ? m : undefined
   }
+  // Pendant un cycle : son programme et ses séances tels qu'au lancement (ou mis à jour à la demande).
+  const duCycle = new Map((cycle?.modeles ?? []).map((m) => [m.id, m]))
+  const actif = cycle ? { ...cycle.programme, id: cycle.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0])
+  const pourPlanning = (id: string) => duCycle.get(id) ?? (cycle ? undefined : modele(id))
 
   return {
     modeles,
@@ -57,9 +65,11 @@ export function construireCatalogue(
     programmes,
     actif,
     planning: actif.seances
-      .filter((e) => e.jour && modele(e.modeleId))
-      .map((e) => ({ modele: modele(e.modeleId)!, jour: e.jour! }))
+      .filter((e) => e.jour && pourPlanning(e.modeleId))
+      .map((e) => ({ modele: pourPlanning(e.modeleId)!, jour: e.jour! }))
       .sort((a, b) => a.jour - b.jour),
+    cycle,
+    pourDemarrer: (m) => duCycle.get(m.id) ?? m,
   }
 }
 
@@ -69,11 +79,12 @@ export function useCatalogue(): Catalogue | null {
   const exercices = useLiveQuery(() => db.exercices.toArray(), [])
   const programmes = useLiveQuery(() => db.programmes.toArray(), [])
   const actif = useLiveQuery(() => db.reglages.get('programmeActif'), [], null)
+  const cycles = useLiveQuery(() => db.cycles.toArray(), [])
   return useMemo(
     () =>
-      modeles && exercices && programmes && actif !== null
-        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined)
+      modeles && exercices && programmes && cycles && actif !== null
+        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin))
         : null,
-    [modeles, exercices, programmes, actif]
+    [modeles, exercices, programmes, actif, cycles]
   )
 }

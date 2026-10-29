@@ -6,6 +6,7 @@ import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
 import { chargeQte, cibleTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan } from '../lib/calc'
 import { useRetour } from '../lib/nav'
+import { planDeload, suggestionDeload } from '../lib/cycle'
 import { hausse, suggestionPour } from '../lib/progression'
 import type { SeanceModele } from '../types'
 
@@ -14,11 +15,14 @@ interface Props {
   catalogue: Catalogue
   onDemarrer: () => void
   onFermer: () => void
+  /** Semaine de déload : la séance sera allégée au démarrage. */
+  deload?: boolean
 }
 
-export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Props) {
+export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload = false }: Props) {
   useRetour(true, onFermer)
-  const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
+  // Les déloads ne servent pas de référence pour la progression.
+  const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours && !s.deload).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const series = modele.exercices.reduce((a, p) => a + p.series.length, 0)
   const habituelle = terminees && dureeHabituelle(modele.id, terminees)
@@ -51,9 +55,13 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
         Prévu : 1 min par série et par échauffement, plus les repos.{habituelle ? ' D’habitude : tes 3 dernières séances.' : ''}
       </div>
 
-      {modele.exercices.map((p, i) => {
+      {deload && <div className="bandeau-deload">🧘 Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère.</div>}
+
+      {modele.exercices.map((p0, i) => {
+        const p = deload ? planDeload(p0) : p0
         const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
-        const sugg = terminees && suggestionPour(exo, p, terminees)
+        const normale = terminees && suggestionPour(exo, p, terminees)
+        const sugg = normale && (deload ? suggestionDeload(exo, normale) : normale)
         const derniere = terminees && historiqueDe(terminees, p.exoId)[0]
         const hausses = sugg ? sugg.charges.map((_, n) => hausse(exo, sugg, derniere, n)) : []
         const battre = hausses.some(Boolean)
@@ -89,7 +97,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer }: Prop
                 ) : (
                   <div className="muted">{sugg.message}</div>
                 )}
-                {derniere && (
+                {derniere && !deload && (
                   <button className="btn discret petit" style={{ padding: 0, minHeight: 32 }} onClick={() => setObjectif(i)}>
                     ✎ Modifier l’objectif
                   </button>

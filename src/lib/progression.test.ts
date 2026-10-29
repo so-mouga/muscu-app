@@ -171,3 +171,12 @@ describe('objectif à battre', () => {
     expect(aBattre(EXERCICES.butterfly, sugg([30, 30], [12, 12]), undefined)).toBe(false)
   })
 })
+
+describe('déload', () => {
+  it('une séance de déload ne sert pas de référence', () => {
+    const base = { id: 's', date: '2026-10-28', nom: 'H', debut: 0, enCours: false, exercices: [], chauffes: {}, notes: {}, ajustSeries: {} }
+    const avant = { ...base, series: seance(30, '12@8', '12@8').map((x) => ({ ...x, exoId: 'butterfly' })) }
+    const deload = { ...base, id: 'd', deload: true, series: seance(27.5, '12@6').map((x) => ({ ...x, exoId: 'butterfly' })) }
+    expect(suggestionPour(EXERCICES.butterfly, planDe('haut_a', 'butterfly'), [deload, avant]).charges[0]).toBe(30)
+  })
+})
