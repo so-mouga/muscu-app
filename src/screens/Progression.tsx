@@ -110,6 +110,9 @@ export function Detail({
             ⧉ Dupliquer
           </button>
         )}
+        <button className="btn danger" onClick={onSupprimer} aria-label="Supprimer l’exercice">
+          🗑
+        </button>
       </div>
 
       <div className="carte fiche-tete">

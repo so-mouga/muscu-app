@@ -2172,7 +2172,9 @@ button.pastille.cliquable {
   background: none;
   color: var(--texte-3);
   font-size: 20px;
-  touch-action: none;
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
+  user-select: none;
   cursor: grab;
 }
 .exo-ligne.glisse {
@@ -2390,5 +2392,27 @@ body.sans-onglets .barre-demarrer {
   flex: 0 0 auto;
   display: inline-block;
   border-radius: 10px;
+  background: var(--surface-2);
+}
+.chip-groupe {
+  display: inline-flex;
+  align-items: center;
+}
+.chip-groupe .chip-suppr {
+  margin-left: -4px;
+  padding: 0 8px;
+  background: none;
+  border: none;
+  color: var(--texte-3);
+  font-size: 18px;
+}
+.chips .chip-ajout {
+  border-style: dashed;
+  color: var(--texte-2);
+}
+.nouveau-mouvement {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
 }

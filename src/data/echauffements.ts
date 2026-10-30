@@ -10,6 +10,8 @@ export interface MouvementEchauffement {
   duree: number
   zone: 'general' | 'haut' | 'bas'
   consignes: string[]
+  /** Ajouté par l'utilisateur (réglage `echauffementsPerso`). */
+  perso?: boolean
 }
 
 export const MOUVEMENTS: MouvementEchauffement[] = [
@@ -30,7 +32,8 @@ export const MOUVEMENTS: MouvementEchauffement[] = [
   { id: 'hanches_9090', nom: '90/90 des hanches', quantite: '6 par côté', duree: 60, zone: 'bas', consignes: ['Assis, une jambe devant et une sur le côté, genoux pliés à 90°.', 'Bascule les deux genoux de l’autre côté, buste droit.'] },
 ]
 
-export const mouvement = (id: string) => MOUVEMENTS.find((m) => m.id === id)
+/** `liste` : la bibliothèque et les mouvements ajoutés par l'utilisateur. */
+export const mouvement = (id: string, liste = MOUVEMENTS) => liste.find((m) => m.id === id)
 
 const HAUT: Muscle[] = ['pecs', 'dos', 'trapezes', 'epaule_avant', 'epaule_laterale', 'epaule_arriere', 'biceps', 'triceps', 'avant_bras']
 const BAS: Muscle[] = ['quadriceps', 'ischios', 'fessiers', 'adducteurs', 'mollets', 'lombaires']
@@ -56,4 +59,4 @@ export function echauffementDe(m: SeanceModele, exo: (id: string) => Exercice): 
 }
 
 /** Durée totale approximative, en secondes. */
-export const dureeEchauffement = (ids: string[]) => ids.reduce((a, id) => a + (mouvement(id)?.duree ?? 0), 0)
+export const dureeEchauffement = (ids: string[], liste = MOUVEMENTS) => ids.reduce((a, id) => a + (mouvement(id, liste)?.duree ?? 0), 0)

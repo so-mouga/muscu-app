@@ -15,7 +15,8 @@ import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, schemaP
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import SilhouetteVolume from '../components/SilhouetteVolume'
-import { dureeEchauffement, echauffementAuto, echauffementDe, MOUVEMENTS } from '../data/echauffements'
+import { ReglageEchauffement } from '../components/Echauffement'
+import { vibrer } from '../lib/appareil'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -537,9 +538,23 @@ function Editeur({
       f(c)
       return c
     })
-  // Glisser-déposer : on attrape la poignée ⠿, on glisse, l'exercice s'insère là où on relâche.
+  // Glisser-déposer : on maintient la poignée ⠿ un instant, on glisse, l'exercice s'insère là où on
+  // relâche. Un doigt qui bouge avant le délai fait défiler la page, sans rien déplacer.
   const liste = useRef<HTMLDivElement>(null)
   const [glisse, setGlisse] = useState<{ de: number; vers: number } | null>(null)
+  const prise = useRef<{ y: number; minuterie: number } | null>(null)
+  const glisseRef = useRef(glisse)
+  glisseRef.current = glisse
+  useEffect(() => {
+    // Pendant un déplacement, le doigt ne fait plus défiler la page.
+    const bloquer = (e: TouchEvent) => glisseRef.current && e.preventDefault()
+    document.addEventListener('touchmove', bloquer, { passive: false })
+    return () => document.removeEventListener('touchmove', bloquer)
+  }, [])
+  const lacher = () => {
+    if (prise.current) clearTimeout(prise.current.minuterie)
+    prise.current = null
+  }
   const [remplace, setRemplace] = useState<number | null>(null)
   /** Exercice dont le menu ⋯ est ouvert (fiche, remplacer, retirer). */
   const [menu, setMenu] = useState<number | null>(null)
@@ -604,7 +619,6 @@ function Editeur({
           <span>Sous-titre</span>
           <input value={m.sousTitre} placeholder="ex. épaules + bras" onChange={(e) => maj((x) => (x.sousTitre = e.target.value))} />
         </label>
-        <ReglageEchauffement modele={m} exo={catalogue.exo} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />
         <label className="champ">
           <span>Variante de (pour « Pas de salle »)</span>
           <select value={m.varianteDe ?? ''} onChange={(e) => maj((x) => (x.varianteDe = e.target.value || undefined))}>
@@ -644,6 +658,8 @@ function Editeur({
         )}
       </div>
 
+      <ReglageEchauffement modele={m} exo={catalogue.exo} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />
+
       <div className="carte">
         <div className="ligne entre">
           <h3>Exercices</h3>
@@ -667,10 +683,21 @@ function Editeur({
                 className="poignee"
                 aria-label={`Déplacer ${exo.nom}`}
                 onPointerDown={(e) => {
-                  e.currentTarget.setPointerCapture(e.pointerId)
-                  setGlisse({ de: i, vers: i })
+                  const cible = e.currentTarget
+                  const pointeur = e.pointerId
+                  lacher()
+                  prise.current = {
+                    y: e.clientY,
+                    minuterie: window.setTimeout(() => {
+                      prise.current = null
+                      if (cible.isConnected) cible.setPointerCapture(pointeur)
+                      vibrer(25)
+                      setGlisse({ de: i, vers: i })
+                    }, 300),
+                  }
                 }}
                 onPointerMove={(e) => {
+                  if (prise.current && Math.abs(e.clientY - prise.current.y) > 8) lacher()
                   if (!glisse) return
                   // Défilement automatique près des bords de l'écran
                   if (e.clientY < 90) window.scrollBy(0, -12)
@@ -678,10 +705,12 @@ function Editeur({
                   setGlisse({ ...glisse, vers: positionSous(e.clientY) })
                 }}
                 onPointerUp={() => {
+                  lacher()
                   if (glisse) deposer(glisse.de, glisse.vers)
                   setGlisse(null)
                 }}
-                onPointerCancel={() => setGlisse(null)}
+                onPointerCancel={() => (lacher(), setGlisse(null))}
+                onContextMenu={(e) => e.preventDefault()}
               >
                 ⠿
               </button>
@@ -699,7 +728,7 @@ function Editeur({
           )
         })}
         </div>
-        {m.exercices.length > 1 && <div className="faible" style={{ marginTop: 6 }}>Pour changer l’ordre, fais glisser un exercice par sa poignée ⠿.</div>}
+        {m.exercices.length > 1 && <div className="faible" style={{ marginTop: 6 }}>Pour changer l’ordre, maintiens la poignée ⠿ d’un exercice puis fais-le glisser.</div>}
         <button className="btn plein" style={{ marginTop: 12 }} onClick={() => setChoix(true)}>
           + Ajouter un exercice
         </button>
@@ -846,53 +875,6 @@ function Editeur({
 }
 
 /** « ✓ Enregistré » : l'édition s'enregistre toute seule, on le montre discrètement. */
-/** Échauffement avant la séance : proposé d'après les muscles (auto), choisi (perso) ou aucun. */
-function ReglageEchauffement({ modele, exo, onChange }: { modele: SeanceModele; exo: (id: string) => Exercice; onChange: (v: SeanceModele['echauffement']) => void }) {
-  const mode = modele.echauffement === 'aucun' ? 'aucun' : Array.isArray(modele.echauffement) ? 'perso' : 'auto'
-  const ids = echauffementDe(modele, exo)
-  const choisis = Array.isArray(modele.echauffement) ? modele.echauffement : []
-  const basculer = (id: string) => onChange(choisis.includes(id) ? choisis.filter((x) => x !== id) : [...choisis, id])
-  return (
-    <div className="champ">
-      <span>Échauffement avant la séance</span>
-      <div className="chips">
-        <button type="button" className={mode === 'auto' ? 'actif' : ''} onClick={() => onChange(undefined)}>
-          Auto
-        </button>
-        <button type="button" className={mode === 'perso' ? 'actif' : ''} onClick={() => mode !== 'perso' && onChange(echauffementAuto(modele.exercices.map((p) => exo(p.exoId).muscle)))}>
-          Perso
-        </button>
-        <button type="button" className={mode === 'aucun' ? 'actif' : ''} onClick={() => onChange('aucun')}>
-          Aucun
-        </button>
-      </div>
-      {mode === 'auto' && (
-        <span className="faible">
-          Choisi d’après les muscles de la séance (≈ {minutes(Math.round(dureeEchauffement(ids) / 60))}) : {ids.map((id) => MOUVEMENTS.find((m) => m.id === id)!.nom.toLowerCase()).join(', ')}.
-        </span>
-      )}
-      {mode === 'perso' &&
-        (['general', 'haut', 'bas'] as const).map((z) => (
-          <div key={z}>
-            <div className="faible" style={{ margin: '6px 0 4px' }}>
-              {z === 'general' ? 'Général' : z === 'haut' ? 'Haut du corps' : 'Bas du corps'}
-            </div>
-            <div className="chips">
-              {MOUVEMENTS.filter((m) => m.zone === z).map((m) => (
-                <button key={m.id} type="button" className={choisis.includes(m.id) ? 'actif' : ''} onClick={() => basculer(m.id)}>
-                  {choisis.includes(m.id) ? '✓ ' : ''}
-                  {m.nom}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      {mode === 'perso' && <span className="faible">{choisis.length ? `${choisis.length} mouvement${choisis.length > 1 ? 's' : ''} · ≈ ${minutes(Math.round(dureeEchauffement(choisis) / 60))}` : 'Aucun mouvement choisi : pas d’échauffement.'}</span>}
-      {mode === 'aucun' && <span className="faible">Pas d’échauffement proposé (les séries de chauffe de chaque exercice restent là).</span>}
-    </div>
-  )
-}
-
 function EtatEnregistrement({ nom, enregistre }: { nom: string; enregistre: boolean }) {
   if (!nom.trim()) return <span className="faible">à nommer</span>
   return enregistre ? <span className="faible etat-enregistre">✓ Enregistré</span> : null

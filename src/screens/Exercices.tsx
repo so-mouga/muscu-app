@@ -54,6 +54,15 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
 
   const supprimer = async (exo: Exercice) => {
     const seancesModeles = utilisations(exo.id)
+    // Créé par l'utilisateur, jamais fait et utilisé nulle part : on l'efface vraiment (rien à restaurer).
+    const enCycle = catalogue.cycle?.modeles.some((m) => m.exercices.some((e) => e.exoId === exo.id))
+    if (exo.perso && !historique.has(exo.id) && !seancesModeles.length && !enCycle) {
+      if (!(await confirmer(`Supprimer « ${exo.nom} » ? Tu ne l’as jamais fait : il sera effacé.`, { oui: 'Supprimer l’exercice', danger: true }))) return
+      await db.exercices.delete(exo.id)
+      await modifierEquivalents((x) => Object.fromEntries(Object.entries(x).filter(([k]) => k !== exo.id).map(([k, l]) => [k, l.filter((y) => y !== exo.id)])))
+      setChoisi(null)
+      return
+    }
     const msg = seancesModeles.length
       ? `« ${exo.nom} » est utilisé dans : ${seancesModeles.join(', ')}. Le supprimer de la bibliothèque ? Il restera dans ces séances et dans ton historique.`
       : `Supprimer « ${exo.nom} » ? Ton historique est conservé, tu pourras le restaurer.`
