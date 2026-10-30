@@ -2,8 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { dateISO, duree, dureeTexte, jourSemaine, lundi } from '../lib/calc'
-import { creneauxFaits, dureeReelle } from '../lib/historique'
+import { dateISO, duree, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
+import { creneauxFaits, dureeReelle, recordsParSeance } from '../lib/historique'
 import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
@@ -59,11 +59,14 @@ export default function Accueil({
   catalogue,
   onVoirSeance,
   onMesures,
+  onBilan,
   onProgrammes,
 }: {
   catalogue: Catalogue
   onVoirSeance: (id: string) => void
   onMesures: () => void
+  /** Ouvre Progression → Bilan. */
+  onBilan: () => void
   /** Ouvre l'onglet Programmes (gestion du cycle). */
   onProgrammes: () => void
 }) {
@@ -153,6 +156,18 @@ export default function Accueil({
   const contexte: ContexteCycle | undefined =
     cycle && etat ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.fini && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
   const lancer = (m?: SeanceModele) => demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m, catalogue.exo) : [])
+  const bandeauCycleVisible = !!(cycle && etat && (etat.fini || etat.deload || etat.pause || etat.n <= 0))
+  const sousTitreProg =
+    cycle && etat && etat.n >= 1 && !etat.fini
+      ? `${cycle.programme.nom} · ${etat.pause ? 'en pause' : `Semaine ${etat.n}/${etat.total}${etat.deload ? ' (déload)' : ''}`}`
+      : actif.nom
+  const duresSemaine = semaine.reduce((a, s) => a + s.series.filter(estDure).length, 0)
+  const recordsSemaine = terminees
+    ? (() => {
+        const recs = recordsParSeance(terminees, catalogue.exo)
+        return semaine.reduce((a, s) => a + (recs[s.id] ?? 0), 0)
+      })()
+    : 0
 
   if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu)} onFermer={() => voir(null)} />
 
@@ -167,17 +182,18 @@ export default function Accueil({
     <div>
       <div className="entete">
         <div>
-          <div className="faible">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-          <h1>Muscu</h1>
-          <div className="faible">Programme : {actif.nom}</div>
+          <h1 style={{ textTransform: 'capitalize' }}>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
+          <button type="button" className="btn discret petit lien-action" style={{ color: 'var(--texte-3)', marginTop: 2 }} onClick={onProgrammes}>
+            {sousTitreProg} ›
+          </button>
         </div>
       </div>
 
       {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
 
-      {/* La séance d'abord : c'est l'action principale de l'écran. Le cycle en est l'en-tête. */}
+      {/* La séance d'abord : c'est l'action principale de l'écran. */}
       <div className="carte pile">
-        {cycle && etat && <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />}
+        {bandeauCycleVisible && cycle && etat && <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />}
         {duJour && faite(duJour) && <div className="pastille ok">✓ {duJour.modele.nom} faite aujourd’hui</div>}
         {!duJour && <div className="muted">Repos prévu aujourd’hui.</div>}
         {proposee ? (
@@ -208,15 +224,15 @@ export default function Accueil({
         ) : (
           <div>Semaine complète 💪</div>
         )}
-        <div className="ligne wrap">
-          <button className="btn" onClick={() => setChoix(true)}>
-            Autre séance
+        <div className="ligne wrap" style={{ justifyContent: 'space-around', borderTop: '1px solid var(--bord)', paddingTop: 6, marginTop: 4 }}>
+          <button className="btn discret petit lien-action" onClick={() => setChoix(true)}>
+            Autre séance ›
           </button>
-          <button className="btn" onClick={() => setActivite(true)}>
+          <button className="btn discret petit lien-action" onClick={() => setActivite(true)}>
             + Activité
           </button>
           {variante && proposee === duJour && (
-            <button className="btn" onClick={() => voir(variante)}>
+            <button className="btn discret petit lien-action" onClick={() => voir(variante)}>
               🏠 Pas de salle
             </button>
           )}
@@ -235,7 +251,7 @@ export default function Accueil({
           </button>
         </div>
       )}
-      { exportVieux && !masque('export') && (
+      {exportVieux && !masque('export') && (
         <div className="rappel-ligne">
           <span>💾 Exporte tes données (Réglages) : elles ne sont que sur ce téléphone.</span>
           <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
@@ -265,10 +281,28 @@ export default function Accueil({
             </span>
           ))}
         </div>
+        {(semaine.length > 0 || activitesSemaine.length > 0) && (
+          <button
+            className="ligne-jour"
+            style={{ marginTop: 12, paddingTop: 10, paddingBottom: derniere ? 10 : 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }}
+            onClick={onBilan}
+          >
+            <span className="faible" style={{ minWidth: 0 }}>
+              Bilan ·{' '}
+              <strong style={{ color: 'var(--texte)' }}>
+                {semaine.length} séance{semaine.length > 1 ? 's' : ''}
+              </strong>
+              {duresSemaine > 0 && ` · ${duresSemaine} série${duresSemaine > 1 ? 's' : ''} dure${duresSemaine > 1 ? 's' : ''}`}
+              {recordsSemaine > 0 && ` · 🏆 ${recordsSemaine}`}
+              {activitesSemaine.length > 0 && ` · +${activitesSemaine.length} sport${activitesSemaine.length > 1 ? 's' : ''}`}
+            </span>
+            <span className="muted">›</span>
+          </button>
+        )}
         {derniere && (
-          <button className="ligne-jour" style={{ marginTop: 12, paddingTop: 12, paddingBottom: 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }} onClick={() => onVoirSeance(derniere.id)}>
+          <button className="ligne-jour" style={{ marginTop: semaine.length > 0 || activitesSemaine.length > 0 ? 0 : 12, paddingTop: 10, paddingBottom: 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }} onClick={() => onVoirSeance(derniere.id)}>
             <span style={{ minWidth: 0 }}>
-              <span className="faible">Dernière séance · </span>
+              <span className="faible">Dernière · </span>
               <strong>{derniere.nom}</strong>{' '}
               <span className="faible">
                 · {new Date(derniere.debut).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · {duree(dureeReelle(derniere))}

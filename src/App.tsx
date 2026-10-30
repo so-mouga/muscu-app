@@ -67,7 +67,15 @@ export default function App() {
   return (
     <>
       <div key={onglet}>
-        {onglet === 'accueil' && <Accueil catalogue={catalogue} onVoirSeance={setDetail} onMesures={() => (setVue('corps'), setOnglet('historique'))} onProgrammes={() => setOnglet('seances')} />}
+        {onglet === 'accueil' && (
+          <Accueil
+            catalogue={catalogue}
+            onVoirSeance={setDetail}
+            onMesures={() => (setVue('corps'), setOnglet('historique'))}
+            onBilan={() => (setVue('bilan'), setOnglet('historique'))}
+            onProgrammes={() => setOnglet('seances')}
+          />
+        )}
         {onglet === 'historique' && <Historique catalogue={catalogue} detail={detail} onDetail={setDetail} vue={vue} onVue={setVue} />}
         {onglet === 'seances' && <Seances catalogue={catalogue} />}
         {onglet === 'exercices' && <Exercices catalogue={catalogue} />}
