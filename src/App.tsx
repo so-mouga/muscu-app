@@ -27,9 +27,11 @@ export default function App() {
   /** Partie de Progression affichée (mémorisée d'une ouverture à l'autre). */
   const [vue, setVueEtat] = useState<VueProgression>(() => {
     try {
-      return (localStorage.getItem('vueProgression') as VueProgression | null) ?? 'seances'
+      // « seances » : ancien nom du Journal.
+      const v = localStorage.getItem('vueProgression')
+      return v === 'seances' || !v ? 'journal' : (v as VueProgression)
     } catch {
-      return 'seances'
+      return 'journal'
     }
   })
   const setVue = (v: VueProgression) => {
@@ -52,7 +54,7 @@ export default function App() {
   const setDetail = (id: string | null) => {
     transition(() => {
       setDetailEtat(id)
-      if (id) (setOngletEtat('historique'), setVue('seances'))
+      if (id) (setOngletEtat('historique'), setVue('journal'))
     }, id ? 'avant' : 'arriere')
     window.scrollTo({ top: 0 })
   }

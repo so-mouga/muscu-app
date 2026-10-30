@@ -5,13 +5,13 @@ import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages } from '../db'
 import { chargeQte, dateISO, kgSouleves, duree, estDure, kg, lundi } from '../lib/calc'
-import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, semaineDe, type Bilan } from '../lib/historique'
+import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, semaineDe } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
 import type { Activite, Reglage, Seance, Serie } from '../types'
-import BilanPartage from '../components/BilanPartage'
 import FormActivite from '../components/FormActivite'
 import { kcalActivite, typeActivite, INTENSITES } from '../data/activites'
+import Bilan from './Bilan'
 import { Mesures, OngletPoids } from './Corps'
 import Photos from './Photos'
 import { planParDefaut } from './Seances'
@@ -25,10 +25,11 @@ const dateLongue = (s: Seance) =>
 const jourCourt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
-export type VueProgression = 'seances' | 'mesures' | 'photos' | 'poids'
+export type VueProgression = 'bilan' | 'journal' | 'mesures' | 'photos' | 'poids'
 
 const VUES: [VueProgression, string][] = [
-  ['seances', 'Séances'],
+  ['bilan', 'Bilan'],
+  ['journal', 'Journal'],
   ['mesures', 'Mesures'],
   ['photos', 'Photos'],
   ['poids', 'Poids'],
@@ -51,7 +52,12 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
   const poids = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
   /** Activité ouverte (ou 'nouvelle'). */
   const [activite, setActivite] = useState<Activite | 'nouvelle' | null>(null)
-  const [bilanPartage, setBilanPartage] = useState(false)
+  /** Jour choisi dans le calendrier (aujourd'hui par défaut). */
+  const [jourChoisi, setJourChoisi] = useState(dateISO())
+  /** Nouvelle activité : sa date (jour vide choisi dans le calendrier). */
+  const [dateActivite, setDateActivite] = useState<string | undefined>(undefined)
+  const mesuresJour = useLiveQuery(() => db.mesures.toArray(), [], [])
+  const peseesJour = useLiveQuery(() => db.pesees.toArray(), [], [])
   const records = useMemo(() => (terminees ? recordsParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
   if (!terminees) return null
@@ -82,10 +88,11 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
       </div>
     </>
   )
-  if (vue !== 'seances')
+  if (vue !== 'journal')
     return (
       <div>
         {haut}
+        {vue === 'bilan' && <Bilan catalogue={catalogue} />}
         {vue === 'mesures' && <Mesures />}
         {vue === 'photos' && <Photos />}
         {vue === 'poids' && <OngletPoids />}
@@ -98,7 +105,6 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
     .sort((a, b) => b.localeCompare(a))
     .map((l) => ({ lundi: l, seances: parSem.find((g) => g.lundi === l)?.seances ?? [], activites: activites.filter((a) => semaineDe(a.date) === l) }))
   const cetteSemaine = lundi()
-  const precedente = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') - 7 * 86400000))
   const bilanDe = (l: string) => bilan(groupes.find((g) => g.lundi === l)?.seances ?? [], records, catalogue.exo)
   const activitesDe = (l: string) => activites.filter((a) => semaineDe(a.date) === l)
 
@@ -106,26 +112,54 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
     <div>
       {haut}
 
-      <div className="ligne" style={{ marginBottom: 12 }}>
-        <button className="btn" style={{ flex: 1 }} onClick={() => setActivite('nouvelle')}>
-          + Autre activité
-        </button>
-        <button className="btn" style={{ flex: 1 }} onClick={() => setBilanPartage(true)}>
-          📋 Bilan détaillé
-        </button>
-      </div>
-      {bilanPartage && <BilanPartage catalogue={catalogue} onFermer={() => setBilanPartage(false)} />}
-      {activite && <FormActivite initial={activite === 'nouvelle' ? undefined : activite} onFermer={() => setActivite(null)} />}
+      {activite && (
+        <FormActivite
+          initial={activite === 'nouvelle' ? undefined : activite}
+          date={activite === 'nouvelle' ? dateActivite : undefined}
+          onFermer={() => (setActivite(null), setDateActivite(undefined))}
+        />
+      )}
 
       {terminees.length === 0 && activites.length === 0 ? (
         <div className="carte pile">
           <h3>Pas encore de séance</h3>
-          <div className="faible">Tes séances terminées apparaîtront ici, avec leur récap complet et tes records.</div>
+          <div className="faible">Tes séances terminées apparaîtront ici, jour par jour, avec leur récap complet et tes records.</div>
+          <button className="btn plein" onClick={() => setActivite('nouvelle')}>
+            + Noter une autre activité (padel, course…)
+          </button>
         </div>
       ) : (
         <>
-          <Calendrier seances={terminees} activites={activites} onSeance={(s) => onDetail(s.id)} onActivite={setActivite} />
-          <BilanSemaine actuel={bilanDe(cetteSemaine)} avant={bilanDe(precedente)} activites={activitesDe(cetteSemaine)} activitesAvant={activitesDe(precedente)} />
+          <Calendrier seances={terminees} activites={activites} choisi={jourChoisi} onChoix={setJourChoisi} />
+          <JourChoisi
+            date={jourChoisi}
+            seances={terminees.filter((x) => x.date === jourChoisi)}
+            activites={activites.filter((x) => x.date === jourChoisi)}
+            pesee={peseesJour.find((x) => x.date === jourChoisi)?.poids}
+            mesure={mesuresJour.find((x) => x.date === jourChoisi)}
+            semaine={(() => {
+              const l = semaineDe(jourChoisi)
+              const b = bilanDe(l)
+              const sports = activitesDe(l)
+              return [
+                `Semaine du ${jourCourt(l).replace(/^\S+ /, '')}`,
+                pluriel(b.seances, 'séance'),
+                `${b.dures} série${b.dures > 1 ? 's' : ''} dure${b.dures > 1 ? 's' : ''}`,
+                b.records ? `${pluriel(b.records, 'record')} 🏆` : '',
+                sports.length ? `${sports.length} ${sports.length > 1 ? 'autres sports' : 'autre sport'}` : '',
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            })()}
+            records={records}
+            reglages={reglages}
+            catalogue={catalogue}
+            poids={poids?.poids}
+            onSeance={(id) => onDetail(id)}
+            onActivite={setActivite}
+            onAjouter={() => (setDateActivite(jourChoisi), setActivite('nouvelle'))}
+          />
+          <h3 style={{ margin: '18px 0 8px' }}>Historique</h3>
 
           {groupes.slice(0, semaines).map((g) => {
             const b = bilan(g.seances, records, catalogue.exo)
@@ -161,18 +195,8 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
   )
 }
 
-/** Mois en calendrier : chaque jour entraîné est marqué, un appui ouvre la séance. */
-function Calendrier({
-  seances,
-  activites,
-  onSeance,
-  onActivite,
-}: {
-  seances: Seance[]
-  activites: Activite[]
-  onSeance: (s: Seance) => void
-  onActivite: (a: Activite) => void
-}) {
+/** Mois en calendrier : chaque jour entraîné est marqué ; un appui choisit le jour (sa carte s'affiche dessous). */
+function Calendrier({ seances, activites, choisi, onChoix }: { seances: Seance[]; activites: Activite[]; choisi: string; onChoix: (iso: string) => void }) {
   const auj = new Date()
   const [mois, setMois] = useState(() => new Date(auj.getFullYear(), auj.getMonth(), 1))
   const parJour = new Map<string, Seance[]>()
@@ -217,14 +241,15 @@ function Calendrier({
           const iso = dateISO(d)
           const s = parJour.get(iso)
           const a = activitesDuJour.get(iso)
-          // Séance de muscu : case pleine ; autre activité : point en dessous.
+          // Séance de muscu : case pleine ; autre activité : point en dessous ; jour choisi : contour.
           return (
             <button
               key={i}
-              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '')}
-              disabled={!s && !a}
-              onClick={() => (s ? onSeance(s[0]) : a && onActivite(a[0]))}
-              aria-label={s || a ? `${d.getDate()} : ${[...(s ?? []).map((x) => x.nom), ...(a ?? []).map((x) => typeActivite(x.type).nom)].join(', ')}` : undefined}
+              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '') + (iso === choisi ? ' choisi' : '')}
+              disabled={iso > aujourdhui}
+              onClick={() => onChoix(iso)}
+              aria-pressed={iso === choisi}
+              aria-label={`${d.getDate()}${s || a ? ` : ${[...(s ?? []).map((x) => x.nom), ...(a ?? []).map((x) => typeActivite(x.type).nom)].join(', ')}` : ''}`}
             >
               {d.getDate()}
             </button>
@@ -235,74 +260,62 @@ function Calendrier({
   )
 }
 
-/** Cette semaine comparée à la précédente. */
-function BilanSemaine({ actuel, avant, activites, activitesAvant }: { actuel: Bilan; avant: Bilan; activites: Activite[]; activitesAvant: Activite[] }) {
-  const minutes = (l: Activite[]) => l.reduce((a, x) => a + x.duree, 0)
-  // Corps : poids moyen de la semaine et dernière taille mesurée, comparés à la semaine d'avant.
-  const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
-  const mesures = useLiveQuery(() => db.mesures.orderBy('date').toArray(), [], [])
-  const cetteSemaine = lundi()
-  const precedente = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') - 7 * 86400000))
-  const moyenne = (debut: string, fin: string) => {
-    const l = pesees.filter((p) => p.date >= debut && p.date < fin)
-    return l.length ? l.reduce((a, p) => a + p.poids, 0) / l.length : null
-  }
-  const poids = moyenne(cetteSemaine, '9999')
-  const poidsAvant = moyenne(precedente, cetteSemaine)
-  const tailles = mesures.filter((m) => m.valeurs.taille !== undefined)
-  const taille = tailles.filter((m) => m.date >= cetteSemaine).pop()
-  const tailleAvant = taille && [...tailles].reverse().find((m) => m.date < taille.date)
-  const ecart = (d: number, u: string) => ` (${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(Math.round(d * 10) / 10))} ${u})`
-  // Semaine dernière vide : rien à comparer, on n'affiche pas de « ↑ vs 0 ».
-  const comparable = avant.seances > 0 || activitesAvant.length > 0
-  const tuile = (valeur: string, label: string, n: number, m: number, texteAvant: string) => (
-    <div className="tuile">
-      <strong>{valeur}</strong>
-      <span className="faible">{label}</span>
-      {comparable && (
-        <span className={'delta' + (n > m ? ' plus' : n < m ? ' moins' : '')}>
-          {n > m ? '↑' : n < m ? '↓' : '='} vs {texteAvant}
-        </span>
-      )}
-    </div>
-  )
+/** Carte du jour choisi : ses séances et activités, poids et mesures, la semaine en une ligne. */
+function JourChoisi({
+  date,
+  seances,
+  activites,
+  pesee,
+  mesure,
+  semaine,
+  records,
+  reglages,
+  catalogue,
+  poids,
+  onSeance,
+  onActivite,
+  onAjouter,
+}: {
+  date: string
+  seances: Seance[]
+  activites: Activite[]
+  pesee?: number
+  mesure?: { valeurs: Record<string, number> }
+  semaine: string
+  records: Record<string, number>
+  reglages: Reglage[]
+  catalogue: Catalogue
+  poids?: number
+  onSeance: (id: string) => void
+  onActivite: (a: Activite) => void
+  onAjouter: () => void
+}) {
+  const vide = !seances.length && !activites.length
   return (
-    <div className="carte">
-      <div className="ligne entre" style={{ marginBottom: 10 }}>
-        <h3>Bilan de la semaine</h3>
-        {comparable && <span className="faible">vs semaine dernière</span>}
+    <div className="jour-choisi">
+      <div className="ligne entre" style={{ alignItems: 'baseline', marginBottom: 6 }}>
+        <strong style={{ textTransform: 'capitalize' }}>
+          {date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </strong>
+        {(pesee !== undefined || mesure) && (
+          <span className="faible">
+            {pesee !== undefined ? `⚖️ ${kg(pesee)} kg` : ''}
+            {pesee !== undefined && mesure ? ' · ' : ''}
+            {mesure ? `📏 ${Object.keys(mesure.valeurs).length} mesure${Object.keys(mesure.valeurs).length > 1 ? 's' : ''}` : ''}
+          </span>
+        )}
       </div>
-      <div className="tuiles">
-        {tuile(String(actuel.seances), actuel.seances > 1 ? 'séances' : 'séance', actuel.seances, avant.seances, String(avant.seances))}
-        {tuile(actuel.temps ? duree(actuel.temps) : '0', 'de muscu', actuel.temps, avant.temps, avant.temps ? duree(avant.temps) : '0')}
-        {tuile(String(actuel.dures), actuel.dures > 1 ? 'séries dures' : 'série dure', actuel.dures, avant.dures, String(avant.dures))}
-        {tuile(kg(Math.round(actuel.tonnage)), 'kg soulevés', actuel.tonnage, avant.tonnage, kg(Math.round(avant.tonnage)))}
-        {tuile(String(actuel.records), actuel.records > 1 ? 'records 🏆' : 'record 🏆', actuel.records, avant.records, String(avant.records))}
-        {(activites.length > 0 || activitesAvant.length > 0) &&
-          tuile(
-            minutes(activites) ? duree(minutes(activites) * 60000) : '0',
-            `d’autre sport (${activites.length})`,
-            minutes(activites),
-            minutes(activitesAvant),
-            minutes(activitesAvant) ? duree(minutes(activitesAvant) * 60000) : '0'
-          )}
-      </div>
-      {(poids !== null || taille) && (
-        <div className="faible corps-semaine">
-          {poids !== null && (
-            <span>
-              Poids moyen <strong>{kg(Math.round(poids * 10) / 10)} kg</strong>
-              {poidsAvant !== null && ecart(poids - poidsAvant, 'kg')}
-            </span>
-          )}
-          {taille && (
-            <span>
-              Taille <strong>{kg(taille.valeurs.taille)} cm</strong>
-              {tailleAvant && ecart(taille.valeurs.taille - tailleAvant.valeurs.taille, 'cm')}
-            </span>
-          )}
-        </div>
-      )}
+      {seances.map((s) => (
+        <CarteSeance key={s.id} seance={s} records={records[s.id] ?? 0} reglages={reglages} catalogue={catalogue} onOuvrir={() => onSeance(s.id)} />
+      ))}
+      {activites.map((a) => (
+        <CarteActivite key={a.id} activite={a} poids={poids} onOuvrir={() => onActivite(a)} />
+      ))}
+      {vide && <div className="faible" style={{ marginBottom: 8 }}>Pas d’entraînement ce jour-là.</div>}
+      <button className="btn discret petit lien-action" onClick={onAjouter}>
+        + Ajouter une activité ce jour-là
+      </button>
+      <div className="faible semaine-du-jour">{semaine}</div>
     </div>
   )
 }

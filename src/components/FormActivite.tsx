@@ -10,13 +10,14 @@ import { confirmer } from './Dialogues'
 const DUREES = [30, 45, 60, 90, 120]
 
 /** Ajout ou modification d'une activité (padel, course…). */
-export default function FormActivite({ initial, onFermer }: { initial?: Activite; onFermer: () => void }) {
+/** `date` : pré-remplit la date d'une nouvelle activité (jour choisi dans le calendrier). */
+export default function FormActivite({ initial, date: dateInitiale, onFermer }: { initial?: Activite; date?: string; onFermer: () => void }) {
   useRetour(true, onFermer)
   const [type, setType] = useState(initial?.type ?? 'padel')
   const [duree, setDuree] = useState(initial?.duree ?? 60)
   const [dureeTxt, setDureeTxt] = useState<string | null>(null)
   const [intensite, setIntensite] = useState(initial?.intensite ?? 6)
-  const [date, setDate] = useState(initial?.date ?? dateISO())
+  const [date, setDate] = useState(initial?.date ?? dateInitiale ?? dateISO())
   const [note, setNote] = useState(initial?.note ?? '')
   const poids = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
 

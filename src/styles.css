@@ -2247,3 +2247,30 @@ body.sans-onglets .barre-demarrer {
   user-select: text;
   -webkit-user-select: text;
 }
+/* Journal : jour choisi dans le calendrier */
+.grille-mois .jour.choisi {
+  box-shadow: 0 0 0 2px var(--texte);
+}
+.grille-mois .jour:disabled {
+  opacity: 0.35;
+}
+.grille-mois .jour.activite::after {
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+}
+.jour-choisi {
+  margin: 4px 0 8px;
+}
+.semaine-du-jour {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bord);
+}
+.a-retenir ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
