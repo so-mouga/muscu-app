@@ -14,6 +14,7 @@ import { db, setReglage, uid } from '../db'
 import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
+import SilhouetteVolume from '../components/SilhouetteVolume'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -663,8 +664,9 @@ function Editeur({
         <div className="carte">
           <h3>Muscles travaillés</h3>
           <div className="faible" style={{ margin: '4px 0 8px' }}>
-            Séries dures de cette séance. Le total de la semaine est dans le programme.
+            Séries dures de cette séance, face aux objectifs de la semaine. Le total de la semaine est dans le programme.
           </div>
+          <SilhouetteVolume volume={volume} cibles={cibles(catalogue.cycle, catalogue.actif)} legende="objectif de la semaine" quoi="prévues" />
           {travailles.map((x) => (
             <div key={x.id} className="ligne entre petit" style={{ padding: '4px 0' }}>
               <span>{x.nom}</span>

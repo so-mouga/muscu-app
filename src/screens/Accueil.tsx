@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { dateISO, duree, dureeTexte, jourSemaine, lundi, volumeParMuscle } from '../lib/calc'
+import { dateISO, duree, dureeTexte, jourSemaine, lundi, volumeParMuscle, volumePrevu } from '../lib/calc'
 import { creneauxFaits, dureeReelle } from '../lib/historique'
 import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
@@ -14,7 +14,7 @@ import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
 import { cibles, etatCycle, planDeload } from '../lib/cycle'
 import Apercu from './Apercu'
-import type { Programme, SeanceModele } from '../types'
+import type { Muscle, Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
@@ -74,6 +74,8 @@ export default function Accueil({
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   const [activite, setActivite] = useState(false)
   const [detailVolume, setDetailVolume] = useState(false)
+  const [vueVolume, setVueVolume] = useState<'fait' | 'prevu'>('fait')
+  const [muscleChoisi, setMuscleChoisi] = useState<Muscle | null>(null)
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
     try {
@@ -137,6 +139,7 @@ export default function Accueil({
   const groupeOuvert = ouvert ?? actif.id
 
   const volume = volumeParMuscle(semaine, catalogue.exercices)
+  const volumeAffiche = vueVolume === 'fait' ? volume : volumePrevu(planning.map((e) => e.modele), catalogue.exercices)
   const derniere = terminees?.reduce<(typeof terminees)[number] | undefined>((a, s) => (!a || s.debut > a.debut ? s : a), undefined)
 
   // Exercices où l'objectif dépasse la dernière fois : « à battre ».
@@ -282,17 +285,34 @@ export default function Accueil({
             </span>
           ))}
         </div>
-        <SilhouetteVolume volume={volume} cibles={cibles(cycle, actif)} />
+        {/* Fait (séries dures de la semaine) ou Prévu (ce que le programme donne sur une semaine) */}
+        <div className="ligne entre" style={{ marginTop: 4 }}>
+          <span className="faible">{vueVolume === 'fait' ? 'Séries dures faites cette semaine' : 'Séries dures prévues par ton programme'}</span>
+          <div className="chips mini-chips">
+            {(['fait', 'prevu'] as const).map((v) => (
+              <button key={v} className={vueVolume === v ? 'actif' : ''} onClick={() => setVueVolume(v)}>
+                {v === 'fait' ? 'Fait' : 'Prévu'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <SilhouetteVolume
+          volume={volumeAffiche}
+          cibles={cibles(cycle, actif)}
+          choisi={muscleChoisi}
+          onChoisir={setMuscleChoisi}
+          quoi={vueVolume === 'fait' ? 'dures' : 'prévues'}
+        />
         <button type="button" className="groupe-repli" onClick={() => setDetailVolume(!detailVolume)} aria-expanded={detailVolume}>
           <span>Détail par muscle</span>
           <span className="muted">{detailVolume ? '▾' : '▸'}</span>
         </button>
         {detailVolume && (
           <>
-            <VolumeMuscles volume={volume} cibles={cibles(cycle, actif)} />
+            <VolumeMuscles volume={volumeAffiche} cibles={cibles(cycle, actif)} actif={muscleChoisi} onChoix={(m) => setMuscleChoisi(m === muscleChoisi ? null : m)} />
             <div className="faible">
-              Séries dures (RPE ≥ 7). Triceps et avant d’épaule : développés et dips comptés à 0,5. « Suivi seulement » : pas d’objectif pour ce muscle, tu
-              peux en fixer un dans les réglages du cycle.
+              Séries dures (RPE ≥ 7). Triceps et avant d’épaule : développés et dips comptés à 0,5. Les objectifs se règlent dans le programme (carte « Volume
+              par semaine »). Touche un muscle pour le voir sur la silhouette.
             </div>
           </>
         )}

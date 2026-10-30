@@ -11,14 +11,15 @@ import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume } from '../lib/appareil'
-import { calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
+import { volumeParMuscle, calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
-import { suggestionDeload } from '../lib/cycle'
+import { cibles, suggestionDeload } from '../lib/cycle'
 import { hausse, pareil, seancesIdentiques, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Objectif, Reglage, Seance, Serie } from '../types'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
+import SilhouetteVolume from '../components/SilhouetteVolume'
 
 function stocke<T>(cle: string, defaut: T): T {
   try {
@@ -436,7 +437,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </span>
             {p.finisseur && n === t - 1 && <span className="pastille fin">★ finisseur</span>}
           </div>
-          <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n)}</div>
+          <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand">🔥 ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
           {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
@@ -509,7 +510,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
                 <div>
-                  <strong className="cible-focus">{cibleSerie(exo, p, suggestions[enCours], n)}</strong>
+                  <strong className="cible-focus">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</strong>
                   {plus && <span className="badge-hausse">↑ {plus}</span>}
                   {derniereFois?.[n] && <div className="faible">Dernière fois : {serieTexte(exo, derniereFois[n])}</div>}
                   {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
@@ -859,6 +860,16 @@ function FinSeance({
         <h2>{seance.nom}</h2>
         <ResumeSeance seance={seance} explication exo={catalogue.exo} />
       </div>
+      {seance.series.length > 0 && (
+        <div className="carte">
+          <h3 style={{ marginBottom: 8 }}>Muscles travaillés</h3>
+          <SilhouetteVolume
+            volume={volumeParMuscle([seance], catalogue.exercices)}
+            cibles={cibles(catalogue.cycle, catalogue.actif)}
+            legende="objectif de la semaine"
+          />
+        </div>
+      )}
 
       {faits.length > 0 && (
         <>

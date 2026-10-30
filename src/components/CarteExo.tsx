@@ -56,11 +56,25 @@ interface Props {
  * téléphone) : bloque un double appui avant même le rafraîchissement de l'écran. */
 let derniereValidation = -Infinity
 
-/** Objectif de la série `n` : « 60 kg × 10 · RPE 8 ». */
-export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number): string {
+/**
+ * Charge pré-remplie pour la série `index` : la cible, décalée du même écart que celui appliqué à la
+ * série précédente (monté de 10 kg en S1 → S2 aussi). Sans cible : la charge de la série d'avant.
+ */
+export function chargeProposee(exo: Exercice, sugg: Suggestion, faites: Serie[], index: number): number {
+  const i = Math.min(index, sugg.charges.length - 1)
+  const prec = faites[index - 1]
+  const s = sugg.charges[i]
+  if (s === null) return prec?.charge ?? (exo.mode === 'elastique' ? 1 : 0)
+  const sPrec = sugg.charges[Math.min(index - 1, sugg.charges.length - 1)]
+  return prec && sPrec !== null && index > 0 ? Math.max(0, s + (prec.charge - sPrec)) : s
+}
+
+/** Objectif de la série `n` : « 60 kg × 10 · RPE 8 ». Avec `faites`, la charge suit l'écart pris aux séries d'avant. */
+export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number, faites?: Serie[]): string {
   const j = Math.min(n, sugg.charges.length - 1)
   const p = plan.series[Math.min(n, plan.series.length - 1)]
-  return `${chargeQte(exo, sugg.charges[j], sugg.reps[j] ?? p.repsMin)} · RPE ${kg(p.rpe)}`
+  const charge = faites ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
+  return `${chargeQte(exo, charge, sugg.reps[j] ?? p.repsMin)} · RPE ${kg(p.rpe)}`
 }
 
 export function majSeance(id: string, fn: (s: Seance) => void) {
@@ -393,13 +407,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const finisseur = !edition && plan.finisseur && index === total - 1
 
   // Charge proposée : la suggestion, décalée du même écart que l'utilisateur a appliqué à la série précédente.
-  const chargeInitiale = (): number => {
-    const prec = faites[index - 1]
-    const s = sugg.charges[i]
-    if (s === null) return prec?.charge ?? (exo.mode === 'elastique' ? 1 : 0)
-    const sPrec = sugg.charges[Math.min(index - 1, sugg.charges.length - 1)]
-    return prec && sPrec !== null && index > 0 ? Math.max(0, s + (prec.charge - sPrec)) : s
-  }
+  const chargeInitiale = () => chargeProposee(exo, sugg, faites, index)
 
   const [charge, setCharge] = useState(edition?.charge ?? chargeInitiale())
   const [chargeTxt, setChargeTxt] = useState<string | null>(null)

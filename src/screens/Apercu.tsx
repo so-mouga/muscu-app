@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { ObjectifApres } from '../components/EditeurObjectif'
 import Vignette from '../components/Vignette'
@@ -9,6 +9,7 @@ import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
 import { hausse, seancesIdentiques, suggestionPour } from '../lib/progression'
 import type { SeanceModele } from '../types'
+import { BoutonLexique } from '../components/Lexique'
 
 interface Props {
   modele: SeanceModele
@@ -21,6 +22,10 @@ interface Props {
 
 export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload = false }: Props) {
   useRetour(true, onFermer)
+  useEffect(() => {
+    document.body.classList.add('sans-onglets')
+    return () => document.body.classList.remove('sans-onglets')
+  }, [])
   // Les déloads ne servent pas de référence pour la progression.
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours && !s.deload).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
@@ -57,6 +62,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
       <div className="faible" style={{ marginBottom: 12 }}>
         Prévu : 1 min par série et par échauffement, plus les repos.{habituelle ? (nbHabituelles > 1 ? ` D’habitude : tes ${nbHabituelles} dernières séances.` : ' D’habitude : ta dernière séance.') : ''}
       </div>
+      <BoutonLexique />
 
       {deload && <div className="bandeau-deload">🧘 Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère.</div>}
 
@@ -78,8 +84,10 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
                 </strong>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">
-                  {schemaPlan(exo, p)} · RPE{' '}
-                  {p.series.map((x) => kg(x.rpe)).join(', ')} · repos {reposTexte(p)}
+                  {schemaPlan(exo, p)}
+                  {/* RPE seulement s'il s'écarte du réglage par défaut (8) */}
+                  {p.series.some((x) => x.rpe !== 8) && !(p.finisseur && p.series.slice(0, -1).every((x) => x.rpe === 8)) ? ` · RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}` : ''} · repos{' '}
+                  {reposTexte(p)}
                   {p.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ finisseur</span>}
                 </div>
               </div>

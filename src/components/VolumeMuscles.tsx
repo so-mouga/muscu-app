@@ -10,13 +10,16 @@ interface Props {
   cibles?: Record<Muscle, number>
   /** Réglage des objectifs : un appui sur un muscle ouvre son objectif. */
   onCible?: (m: Muscle, v: number) => void
+  /** Sans réglage : un appui sur un muscle le désigne (ex. sur la silhouette). */
+  actif?: Muscle | null
+  onChoix?: (m: Muscle) => void
 }
 
 /** Au-delà de 125 % de l'objectif, on le signale : plus n'est pas toujours mieux. */
 const AU_DESSUS = 1.25
 
 /** Une barre par muscle : séries dures de la semaine face à l'objectif (vert dans la cible, orange au-delà). */
-export default function VolumeMuscles({ volume, cibles, onCible }: Props) {
+export default function VolumeMuscles({ volume, cibles, onCible, actif, onChoix }: Props) {
   const [ouvert, setOuvert] = useState<Muscle | null>(null)
   const [ajout, setAjout] = useState(false)
   const cibleDe = (m: Muscle) => cibles?.[m] ?? MUSCLES.find((x) => x.id === m)!.cible
@@ -56,8 +59,13 @@ export default function VolumeMuscles({ volume, cibles, onCible }: Props) {
         )
         return (
           <div key={m.id} style={{ marginBottom: 8 }}>
-            {onCible ? (
-              <button type="button" className="ligne-volume" onClick={() => setOuvert(ouvert === m.id ? null : m.id)} aria-expanded={ouvert === m.id}>
+            {onCible || onChoix ? (
+              <button
+                type="button"
+                className={'ligne-volume' + (actif === m.id ? ' actif' : '')}
+                onClick={() => (onCible ? setOuvert(ouvert === m.id ? null : m.id) : onChoix!(m.id))}
+                aria-expanded={onCible ? ouvert === m.id : undefined}
+              >
                 {contenu}
               </button>
             ) : (

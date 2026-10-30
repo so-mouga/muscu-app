@@ -2213,3 +2213,25 @@ button.pastille.cliquable {
   color: var(--alerte);
   font-weight: 700;
 }
+.interrupteur.petit-inter {
+  font-size: 15px;
+}
+.ligne-volume.actif > .ligne span:first-child {
+  color: var(--accent);
+  font-weight: 700;
+}
+.chips.mini-chips button {
+  padding: 4px 10px;
+  min-height: 32px;
+  font-size: 13px;
+}
+/* Aperçu d'une séance : pas de barre d'onglets sous le bouton Démarrer */
+body.sans-onglets .onglets {
+  display: none;
+}
+body.sans-onglets #root {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+body.sans-onglets .barre-demarrer {
+  bottom: env(safe-area-inset-bottom);
+}

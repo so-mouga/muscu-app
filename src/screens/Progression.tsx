@@ -5,6 +5,7 @@ import Courbe from '../components/Courbe'
 import IconeMuscle from '../components/IconeMuscle'
 import { Consignes } from '../components/InfosExo'
 import { consigne } from '../data/consignes'
+import { MUSCLES } from '../data/exercices'
 import { chargeTexte, dateCourte, duree, e1rm, enTemps, kg, kgSouleves, qte, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, Seance } from '../types'
 import { Aide } from '../components/Cycle'
@@ -48,6 +49,7 @@ export function Detail({
 }) {
   const [onglet, setOnglet] = useState<Onglet>('stats')
   const temps = enTemps(exo)
+  const secondaires = exo.secondaires?.map((x) => x.muscle) ?? []
   const unite1rm = exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const [mesure, setMesure] = useState<Mesure>(temps ? 'temps' : exo.suivreE1rm ? 'e1rm' : 'charge')
   const [periode, setPeriode] = useState(91)
@@ -101,9 +103,22 @@ export function Detail({
       </div>
 
       <div className="carte fiche-tete">
-        {exo.image ? <img src={exo.image} alt={exo.nom} className="photo-grande" /> : <IconeMuscle muscle={exo.muscle} taille={84} />}
+        {exo.image ? (
+          <img src={exo.image} alt={exo.nom} className="photo-grande" />
+        ) : (
+          // Muscle principal en orange, secondaires en orange doux ; la vue de dos s'ajoute si un muscle travaillé y est.
+          <div className="ligne" style={{ gap: 8, justifyContent: 'center' }}>
+            {(['avant', 'arriere'] as const)
+              .filter((f) => [exo.muscle, ...secondaires].some((m) => MUSCLES.find((x) => x.id === m)?.face === f))
+              .map((f) => (
+                <IconeMuscle key={f} muscle={exo.muscle} secondaires={secondaires} face={f} taille={84} />
+              ))}
+          </div>
+        )}
         <div className="faible">
-          {nomMuscle(exo.muscle)} · {MODES.find((m) => m[0] === exo.mode)?.[1]} · {exo.type === 'compose' ? 'composé' : 'isolation'}
+          {nomMuscle(exo.muscle)}
+          {secondaires.length ? ` (+ ${secondaires.map((m) => nomMuscle(m).toLowerCase()).join(', ')})` : ''} · {MODES.find((m) => m[0] === exo.mode)?.[1]} ·{' '}
+          {exo.type === 'compose' ? 'composé' : 'isolation'}
         </div>
       </div>
 
@@ -242,7 +257,6 @@ export function Detail({
           )}
 
           <div className="carte ligne" style={{ gap: 14 }}>
-            <IconeMuscle muscle={exo.muscle} taille={64} />
             <div>
               <div className="faible">Muscle ciblé</div>
               <strong>{nomMuscle(exo.muscle)}</strong>

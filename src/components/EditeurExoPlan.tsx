@@ -171,7 +171,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
   const chargeBase = lireCharge(charges[0] ?? '')
   const resumeAvance = [
     `RPE ${[...new Set(p.series.map((s) => kg(s.rpe)))].join(', ')}`,
-    fourchette ? 'fourchette' : '',
     p.series.some((s) => s.repos !== undefined && s.repos !== p.repos) ? 'repos par série' : '',
     p.finisseur ? '★ finisseur' : '',
     p.optionnel ? 'optionnel' : '',
@@ -216,6 +215,18 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
             </Fragment>
           ))}
         </div>
+        {/* Fourchette juste sous le tableau : on voit tout de suite ce qu'elle change (deux nombres par série). */}
+        <button type="button" className={'interrupteur petit-inter' + (fourchette ? ' on' : '')} onClick={() => setFourchette(!fourchette)}>
+          <span>
+            {temps ? 'Fourchette de secondes (min – max)' : 'Fourchette de reps (min – max)'}
+            <div className="faible">
+              {fourchette
+                ? 'Chaque série a un minimum et un maximum : vise le haut, et monte la charge quand tu l’atteins sur toutes les séries.'
+                : 'Un nombre fixe par série. Active pour viser une fourchette (ex. 8–12).'}
+            </div>
+          </span>
+          <span className="piste" />
+        </button>
         <div className="faible">
           Change la 1re série : les suivantes identiques suivent. La charge ne sert que la toute première fois (ensuite, l’appli repart de ta dernière
           séance) ; pas d’idée ? Laisse « — », tu la trouveras pendant la séance.
@@ -224,6 +235,14 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
         <div className="ligne entre">
           <span>Repos entre les séries</span>
           <ChoixDuree valeur={p.repos} onChange={(v) => maj((q) => (q.repos = v))} />
+        </div>
+        {/* Réglé presque à chaque exercice : à côté du repos, pas dans « Avancé ». */}
+        <div className="ligne entre">
+          <span>
+            Repos avant l’exercice suivant
+            <div className="faible">après la dernière série (changer de machine, souffler)</div>
+          </span>
+          <ChoixDuree valeur={p.reposApres ?? p.repos} onChange={(v) => maj((q) => (q.reposApres = v === q.repos ? undefined : v))} />
         </div>
 
         <div>
@@ -310,28 +329,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
                 </div>
               ))}
               <div className="faible">À droite : repos après chaque série (par défaut, celui réglé plus haut).</div>
-            </div>
-
-            <Interrupteur
-              on={fourchette}
-              onChange={setFourchette}
-              label={temps ? 'Fourchette de secondes' : 'Fourchette de reps'}
-              aide={temps ? 'Un minimum et un maximum par série (ex. 30–45 s).' : 'Un minimum et un maximum par série (ex. 8–12) : tu montes la charge quand tu atteins le haut.'}
-            />
-
-            <div>
-              <Interrupteur
-                on={p.reposApres !== undefined}
-                onChange={(v) => maj((q) => (q.reposApres = v ? q.repos : undefined))}
-                label="Repos spécifique avant l’exercice suivant"
-                aide="Lancé après la dernière série (changer de machine, souffler)."
-              />
-              {p.reposApres !== undefined && (
-                <div className="ligne entre" style={{ marginTop: 6 }}>
-                  <span className="petit">Repos après l’exercice</span>
-                  <ChoixDuree valeur={p.reposApres} onChange={(v) => maj((q) => (q.reposApres = v))} />
-                </div>
-              )}
             </div>
 
             <Interrupteur

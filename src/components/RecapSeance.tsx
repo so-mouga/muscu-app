@@ -19,7 +19,9 @@ export function ResumeSeance({ seance, explication = false, exo }: { seance: Sea
       <div className="ligne wrap" style={{ marginTop: 8 }}>
         <span className="pastille">⏱ {duree(ms)}</span>
         <span className="pastille">🔥 ≈ {calories(ms, seance.poidsCorps)} kcal</span>
-        <span className="pastille">{dures} séries dures</span>
+        <span className="pastille">
+          {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
+        </span>
         <span className="pastille">{kg(Math.round(tonnage))} kg soulevés</span>
         {finisseurs > 0 && <span className="pastille fin">★ {finisseurs} finisseur(s)</span>}
         {chauffes > 0 && <span className="pastille">{chauffes} échauffement(s)</span>}

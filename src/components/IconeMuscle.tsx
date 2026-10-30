@@ -27,7 +27,7 @@ export const AVANT: Forme[] = [
   ...paire('avant_bras', 12, 46.5, 2.7, 6),
   ...paire('quadriceps', 25, 66, 4.6, 11),
   ...paire('adducteurs', 28.6, 59, 1.4, 6),
-  ...paire(undefined, 25.5, 85.5, 3, 6.5), // tibias
+  ...paire('mollets', 25.5, 85.5, 3, 6.5), // bas de jambe (mollets visibles de face)
 ]
 
 export const ARRIERE: Forme[] = [
@@ -38,7 +38,7 @@ export const ARRIERE: Forme[] = [
   { m: 'dos', d: 'M38.5 24 L30.6 31 V43 Q35.5 40 37.5 33 Z' },
   { m: 'lombaires', d: 'M25.5 43.5 Q30 45 34.5 43.5 L35 50.5 Q30 52 25 50.5 Z' },
   ...paire('triceps', 14, 34, 3.2, 6.2),
-  ...paire(undefined, 12, 46.5, 2.7, 6), // avant-bras
+  ...paire('avant_bras', 12, 46.5, 2.7, 6),
   ...paire('fessiers', 25.4, 57, 5, 5.2),
   ...paire('ischios', 25.2, 70, 4.4, 8.5),
   ...paire('mollets', 25.5, 85.5, 3.3, 6.5),
@@ -52,12 +52,16 @@ interface Props {
   muscle?: Muscle
   zone?: Zone
   taille?: number
+  /** Muscles secondaires, en orange atténué. */
+  secondaires?: Muscle[]
+  /** Vue imposée (sinon celle du muscle). */
+  face?: 'avant' | 'arriere'
 }
 
 /** Silhouette de face ou de dos avec le muscle travaillé en couleur. */
-export default function IconeMuscle({ muscle, zone, taille = 40 }: Props) {
+export default function IconeMuscle({ muscle, zone, taille = 40, secondaires = [], face: faceImposee }: Props) {
   const actifs = new Set<Muscle>(zone ? MUSCLES_ZONE(zone) : muscle ? [muscle] : [])
-  const face = zone ? FACE_ZONE[zone] : (MUSCLES.find((m) => m.id === muscle)?.face ?? 'avant')
+  const face = faceImposee ?? (zone ? FACE_ZONE[zone] : (MUSCLES.find((m) => m.id === muscle)?.face ?? 'avant'))
   const formes = face === 'avant' ? AVANT : ARRIERE
   // Cadrage sur la moitié du corps concernée, pour que le muscle se voie même en petit.
   const jambes = zone ? zone === 'jambes' : MUSCLES.find((m) => m.id === muscle)?.zone === 'jambes'
@@ -66,7 +70,7 @@ export default function IconeMuscle({ muscle, zone, taille = 40 }: Props) {
     <span className="icone-muscle" style={{ width: taille, height: taille }} aria-hidden="true">
       <svg viewBox={cadre} width={taille} height={taille}>
         {formes.map((f, i) => {
-          const fill = f.m && actifs.has(f.m) ? 'var(--accent)' : 'var(--silhouette)'
+          const fill = f.m && actifs.has(f.m) ? 'var(--accent)' : f.m && secondaires.includes(f.m) ? 'color-mix(in srgb, var(--accent) 45%, var(--silhouette))' : 'var(--silhouette)'
           return 'e' in f ? <ellipse key={i} cx={f.e[0]} cy={f.e[1]} rx={f.e[2]} ry={f.e[3]} fill={fill} /> : <path key={i} d={f.d} fill={fill} />
         })}
       </svg>

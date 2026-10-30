@@ -17,11 +17,23 @@ function niveau(v: number, cible: number): number {
 interface Props {
   volume: Record<Muscle, number>
   cibles?: Record<Muscle, number>
+  /** Muscle mis en avant, piloté de l'extérieur (ex. la liste « Détail par muscle »). */
+  choisi?: Muscle | null
+  onChoisir?: (m: Muscle | null) => void
+  /** Ce que veut dire « plein » (par défaut : l'objectif de la semaine atteint). */
+  legende?: string
+  /** Libellé des séries dans le détail (ex. « prévues », « faites cette semaine »). */
+  quoi?: string
 }
 
+/** Petits muscles : une zone d'appui plus large que leur dessin, posée par-dessus. */
+const PETITS = new Set<Muscle>(['adducteurs', 'avant_bras', 'epaule_avant', 'epaule_laterale', 'epaule_arriere', 'mollets', 'lombaires'])
+
 /** Face et dos, chaque muscle coloré selon ses séries dures de la semaine ; un appui donne le détail. */
-export default function SilhouetteVolume({ volume, cibles }: Props) {
-  const [choisi, setChoisi] = useState<Muscle | null>(null)
+export default function SilhouetteVolume({ volume, cibles, choisi: choisiExterne, onChoisir, legende = 'objectif atteint', quoi = 'dures' }: Props) {
+  const [choisiInterne, setChoisiInterne] = useState<Muscle | null>(null)
+  const choisi = choisiExterne !== undefined ? choisiExterne : choisiInterne
+  const setChoisi = onChoisir ?? setChoisiInterne
   const cible = (m: Muscle) => cibles?.[m] ?? MUSCLES.find((x) => x.id === m)?.cible ?? 0
   const def = choisi && MUSCLES.find((m) => m.id === choisi)
 
@@ -39,6 +51,12 @@ export default function SilhouetteVolume({ volume, cibles }: Props) {
           }
           return 'e' in f ? <ellipse key={i} cx={f.e[0]} cy={f.e[1]} rx={f.e[2]} ry={f.e[3]} {...props} /> : <path key={i} d={f.d} {...props} />
         })}
+        {formes
+          .filter((f) => f.m && PETITS.has(f.m))
+          .map((f, i) => {
+            const props = { fill: 'transparent', stroke: 'transparent', strokeWidth: 5, onClick: () => setChoisi(f.m === choisi ? null : f.m!), style: { cursor: 'pointer' } }
+            return 'e' in f ? <ellipse key={'z' + i} cx={f.e[0]} cy={f.e[1]} rx={f.e[2]} ry={f.e[3]} {...props} /> : <path key={'z' + i} d={f.d} {...props} />
+          })}
       </svg>
       <figcaption className="faible">{titre}</figcaption>
     </figure>
@@ -53,7 +71,7 @@ export default function SilhouetteVolume({ volume, cibles }: Props) {
       <div className="detail-volume">
         {def ? (
           <span>
-            <strong>{def.nom}</strong> : {kg(volume[def.id])} série{volume[def.id] >= 2 ? 's' : ''} dure{volume[def.id] >= 2 ? 's' : ''}
+            <strong>{def.nom}</strong> : {kg(volume[def.id])} série{volume[def.id] >= 2 ? 's' : ''} {quoi === 'dures' && volume[def.id] >= 2 ? 'dures' : quoi}
             {cible(def.id) ? ` sur ${kg(cible(def.id))}` : ' · suivi seulement'}
           </span>
         ) : (
@@ -65,7 +83,7 @@ export default function SilhouetteVolume({ volume, cibles }: Props) {
         {NIVEAUX.map((c, i) => (
           <span key={i} className="case-volume" style={{ background: c }} />
         ))}
-        <span className="faible">objectif atteint</span>
+        <span className="faible">{legende}</span>
       </div>
     </div>
   )

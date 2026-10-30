@@ -8,7 +8,7 @@ import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, tic } from '../lib/appareil'
 import { confirmer } from '../components/Dialogues'
-import { LEXIQUE } from '../data/lexique'
+import { ListeLexique } from '../components/Lexique'
 
 function telecharger(nom: string, contenu: string, type: string) {
   const url = URL.createObjectURL(new Blob([contenu], { type }))
@@ -305,16 +305,7 @@ function Lexique() {
         </span>
         <span className="muted">{ouvert ? '▾' : '▸'}</span>
       </button>
-      {ouvert && (
-        <dl className="lexique">
-          {LEXIQUE.map(([terme, sens]) => (
-            <div key={terme}>
-              <dt>{terme}</dt>
-              <dd>{sens}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
+      {ouvert && <ListeLexique />}
     </div>
   )
 }
