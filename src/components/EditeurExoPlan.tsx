@@ -1,10 +1,9 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { kg, lireChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, TypeFinisseur } from '../types'
 import ChoixDuree from './ChoixDuree'
-import { confirmer } from './Dialogues'
 import Interrupteur from './Interrupteur'
 
 const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
@@ -44,21 +43,27 @@ function MiniStepper({ valeur, min = 0, max = 99, pas = 1, onChange }: { valeur:
   )
 }
 
-/** Petit champ numérique (reps d'une série) : la valeur n'est prise qu'une fois le nombre complet. */
+/**
+ * Petit champ numérique (reps d'une série) : la valeur n'est prise qu'une fois la saisie finie
+ * (champ quitté ou Entrée). Taper « 10 » ne passe jamais par « 1 ».
+ */
 function NombreCourt({ valeur, onChange }: { valeur: number; onChange: (v: number) => void }) {
   const [texte, setTexte] = useState<string | null>(null)
+  const valider = () => {
+    const v = parseInt(texte ?? '')
+    if (v > 0 && v !== valeur) onChange(v)
+    setTexte(null)
+  }
   return (
     <input
       inputMode="numeric"
+      enterKeyHint="done"
       style={{ width: 52, padding: '8px 4px', textAlign: 'center', flex: '0 0 auto' }}
       value={texte ?? String(valeur)}
       onFocus={(e) => e.target.select()}
-      onChange={(e) => {
-        setTexte(e.target.value)
-        const v = parseInt(e.target.value)
-        if (v > 0) onChange(v)
-      }}
-      onBlur={() => setTexte(null)}
+      onChange={(e) => setTexte(e.target.value)}
+      onBlur={valider}
+      onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
     />
   )
 }
@@ -71,15 +76,15 @@ const lireCharge = (t: string) => {
 interface Props {
   exo: Exercice
   plan: ExoPlan
+  /** Reçoit le plan à la fermeture (OK, appui à côté, retour) : rien ne se perd. */
   onValider: (p: ExoPlan) => void
-  onFermer: () => void
   /** Enregistrer puis ouvrir l'exercice suivant de la séance (absent pour le dernier). */
   onSuivant?: (p: ExoPlan) => void
   /** Remplacer l'exercice par un autre en gardant ce plan (séries, reps, RPE, repos). */
   onRemplacer?: (p: ExoPlan) => void
 }
 
-export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuivant, onRemplacer }: Props) {
+export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onRemplacer }: Props) {
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
   // Charge de chaque série (texte saisi) : celle de la série, sinon la charge de départ générale.
   const [charges, setCharges] = useState(() => plan.series.map((s) => kg(s.charge ?? plan.charge ?? undefined).replace('—', '')))
@@ -127,23 +132,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
   const majCharge = (i: number, t: string) =>
     setCharges((c) => c.map((x, j) => (j === i || (j > i && x === c[i]) ? t : x)))
 
-  // Changements non validés : on ne les perd jamais sans le demander (retour, Annuler).
-  const [depart] = useState(() => JSON.stringify([plan, charges, plan.chauffes.map(versLigne)]))
-  const modifie = JSON.stringify([p, charges, chauffes]) !== depart
-  const fermer = () => {
-    if (!modifie) return onFermer()
-    void confirmer('Les réglages de cet exercice ne seront pas enregistrés.', {
-      titre: 'Quitter sans enregistrer ?',
-      oui: 'Quitter sans enregistrer',
-      non: 'Continuer',
-      danger: true,
-    }).then((ok) => ok && onFermer())
-  }
-  useRetour(true, () => {
-    if (!modifie) return onFermer()
-    fermer()
-    return 'rester'
-  })
 
   const resultat = (): ExoPlan => {
     // Charge de départ générale = celle de la 1re série ; les autres séries ne la précisent que si elle diffère.
@@ -165,7 +153,15 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
       note: p.note?.trim() || undefined,
     }
   }
-  const valider = () => onValider(resultat())
+  // Fermer = enregistrer : par OK, par un appui à côté ou par le bouton retour.
+  const valider = () => {
+    // Un nombre en cours de saisie est pris avant de fermer.
+    ;(document.activeElement as HTMLElement | null)?.blur?.()
+    setTimeout(() => onValider(resultatRef.current()), 0)
+  }
+  const resultatRef = useRef(resultat)
+  resultatRef.current = resultat
+  useRetour(true, valider)
 
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const chargeBase = lireCharge(charges[0] ?? '')
@@ -179,7 +175,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
     .join(' · ')
 
   return (
-    <div className="modal-fond">
+    <div className="modal-fond" onClick={valider}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <h2>{exo.nom}</h2>
 
@@ -401,9 +397,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
             ⇄ Remplacer par un autre exercice
           </button>
         )}
-        <button className="btn discret plein" onClick={fermer}>
-          Annuler
-        </button>
+
       </div>
     </div>
   )

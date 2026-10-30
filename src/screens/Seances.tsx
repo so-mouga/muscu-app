@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
@@ -231,18 +231,43 @@ function EditeurProgramme({
   const { p, initial, nouveau } = vue
   const [choix, setChoix] = useState(false)
   const [lancer, setLancer] = useState(false)
+  const [voirVolume, setVoirVolume] = useState(false)
   const modifie = JSON.stringify(p) !== JSON.stringify(initial)
   const actif = catalogue.actif.id === p.id
   const enBase = catalogue.programmes.some((x) => x.id === p.id)
   useRetour(choix, () => setChoix(false))
-  // Modifications non enregistrées : on garde l'écran et on demande avant de les perdre.
-  const quitter = () => {
-    if (!modifie) return onFermer()
-    void confirmer('Tes changements seront perdus.', { titre: 'Quitter sans enregistrer ?', oui: 'Quitter sans enregistrer', non: 'Continuer', danger: true }).then((ok) => ok && onFermer())
+
+  // Enregistrement automatique : chaque changement est écrit peu après (dès que le programme a un nom).
+  const finaleDe = (x: Programme) => ({ ...x, nom: x.nom.trim(), description: x.description?.trim() || undefined, seances: x.seances.filter((e) => catalogue.modele(e.modeleId)) })
+  const [enregistre, setEnregistre] = useState(false)
+  useEffect(() => {
+    if (!modifie || !p.nom.trim()) return
+    const t = setTimeout(() => void sauverProgramme(finaleDe(p), catalogue).then(() => setEnregistre(true)), 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p])
+
+  // En quittant : dernier enregistrement, puis, pour le programme du cycle en cours, la question du cycle.
+  const quitter = async () => {
+    if (modifie && p.nom.trim()) {
+      const finale = finaleDe(p)
+      await sauverProgramme(finale, catalogue)
+      const c = catalogue.cycle
+      if (
+        c &&
+        c.programmeId === finale.id &&
+        (await confirmer(`« ${finale.nom} » est le programme du cycle en cours. Tes changements sont enregistrés dans le programme ; tu choisis s’ils s’appliquent dès maintenant au cycle, ou seulement au prochain.`, {
+          titre: 'Appliquer au cycle en cours ?',
+          oui: 'Appliquer au cycle en cours',
+          non: 'Seulement pour le prochain cycle',
+        }))
+      )
+        await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele), volume: { ...volumeProgramme(finale) } })
+    }
+    onFermer()
   }
   useRetour(true, () => {
-    if (!modifie) return onFermer()
-    quitter()
+    void quitter()
     return 'rester'
   })
 
@@ -254,15 +279,9 @@ function EditeurProgramme({
   const entrees = p.seances.map((e, i) => ({ e, i, m: catalogue.modele(e.modeleId) })).filter((x) => x.m)
   const valide = p.nom.trim() !== '' && entrees.length > 0
 
-  const enregistrer = async (activer = false) => {
-    const finale = { ...p, nom: p.nom.trim(), description: p.description?.trim() || undefined, seances: p.seances.filter((e) => catalogue.modele(e.modeleId)) }
-    await sauverProgramme(finale, catalogue)
-    if (activer) await setReglage('programmeActif', finale.id)
-    // Programme du cycle en cours : on demande avant de toucher au cycle.
-    const c = catalogue.cycle
-    if (c && c.programmeId === finale.id && modifie && (await confirmer(`« ${finale.nom} » est le programme du cycle en cours. Tes changements sont enregistrés dans le programme ; tu choisis s’ils s’appliquent dès maintenant au cycle, ou seulement au prochain.`, { titre: 'Appliquer au cycle en cours ?', oui: 'Appliquer au cycle en cours', non: 'Seulement pour le prochain cycle' })))
-      await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele), volume: { ...volumeProgramme(finale) } })
-    onFermer()
+  const activer = async () => {
+    await sauverProgramme(finaleDe(p), catalogue)
+    await setReglage('programmeActif', p.id)
   }
   const dupliquer = async () => {
     await sauverProgramme({ ...structuredClone(p), id: 'p_' + uid(), nom: `${p.nom.trim()} (copie)` }, catalogue)
@@ -280,11 +299,12 @@ function EditeurProgramme({
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={quitter}>
+        <button className="btn" onClick={() => void quitter()}>
           ←
         </button>
         <h2 style={{ flex: 1 }}>{nouveau ? 'Nouveau programme' : 'Programme'}</h2>
         {actif && <span className="pastille accent">actif</span>}
+        <EtatEnregistrement nom={p.nom} enregistre={enregistre} />
       </div>
 
       <div className="carte pile">
@@ -348,37 +368,50 @@ function EditeurProgramme({
         </button>
       </div>
 
-      {entrees.length > 0 && (
-        <div className="carte">
-          <h3>Volume par semaine</h3>
-          <div className="faible" style={{ margin: '4px 0 10px' }}>
-            Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face aux objectifs de ce programme. Touche un muscle
-            pour changer son objectif.
-          </div>
-          <VolumeMuscles
-            volume={volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)}
-            cibles={cibles(undefined, p)}
-            onCible={(muscle, v) => maj((x) => (x.volume = { ...volumeProgramme(x), [muscle]: v }))}
-          />
-        </div>
-      )}
+      {entrees.length > 0 &&
+        (() => {
+          // Replié par défaut : une ligne de résumé, le détail (et le réglage des objectifs) à la demande.
+          const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
+          const c = cibles(undefined, p)
+          const suivis = MUSCLES.filter((m) => c[m.id] > 0)
+          const retard = suivis.filter((m) => volume[m.id] < c[m.id]).length
+          const dessus = suivis.filter((m) => volume[m.id] > c[m.id] * 1.25).length
+          return (
+            <div className="carte">
+              <button type="button" className="groupe-repli" onClick={() => setVoirVolume(!voirVolume)} aria-expanded={voirVolume}>
+                <span>
+                  <strong>Volume par semaine</strong>
+                  <div className="faible">
+                    {retard || dessus
+                      ? [retard ? `${retard} muscle${retard > 1 ? 's' : ''} sous l’objectif` : '', dessus ? `${dessus} au-dessus` : ''].filter(Boolean).join(' · ')
+                      : 'Tous les objectifs sont atteints'}
+                  </div>
+                </span>
+                <span className="muted">{voirVolume ? '▾' : '▸'}</span>
+              </button>
+              {voirVolume && (
+                <>
+                  <div className="faible" style={{ margin: '4px 0 10px' }}>
+                    Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face aux objectifs de ce programme. Touche
+                    un muscle pour changer son objectif.
+                  </div>
+                  <VolumeMuscles volume={volume} cibles={c} onCible={(muscle, v) => maj((x) => (x.volume = { ...volumeProgramme(x), [muscle]: v }))} />
+                </>
+              )}
+            </div>
+          )
+        })()}
 
-      {/* Pendant un cycle, c'est le cycle qui pilote : un nouveau programme est créé sans être activé. */}
-      {modifie || nouveau || !enBase ? (
-        <button className="btn primaire grand" disabled={!valide} onClick={() => enregistrer(nouveau && !actif && !catalogue.cycle)}>
-          {nouveau ? (catalogue.cycle ? 'CRÉER' : 'CRÉER ET ACTIVER') : 'ENREGISTRER'}
-        </button>
-      ) : null}
-      {!valide && <div className="faible" style={{ marginTop: 6 }}>Il faut un nom et au moins une séance.</div>}
-      {!nouveau && (
+      {!valide && <div className="faible" style={{ marginTop: 6 }}>Donne-lui un nom et ajoute au moins une séance : tout s’enregistre au fur et à mesure.</div>}
+      {(enBase || enregistre) && (
         <div className="ligne wrap" style={{ marginTop: 12 }}>
           {catalogue.cycle?.programmeId !== p.id && (
-            <button className="btn primaire" disabled={!valide || modifie} onClick={() => setLancer(true)}>
+            <button className="btn primaire" disabled={!valide} onClick={() => setLancer(true)}>
               Lancer un cycle
             </button>
           )}
           {!actif && !catalogue.cycle && (
-            <button className="btn" disabled={!valide} onClick={() => enregistrer(true)}>
+            <button className="btn" disabled={!valide} onClick={() => void activer()}>
               Activer sans cycle
             </button>
           )}
@@ -454,14 +487,46 @@ function Editeur({
   const prechargee = !!MODELES[m.id]
   const modifieeEnBase = useLiveQuery(() => db.modeles.get(m.id), [m.id])
 
-  // Modifications non enregistrées : on garde l'écran et on demande avant de les perdre.
-  const quitter = () => {
-    if (!modifie) return onFermer()
-    void confirmer('Tes changements seront perdus.', { titre: 'Quitter sans enregistrer ?', oui: 'Quitter sans enregistrer', non: 'Continuer', danger: true }).then((ok) => ok && onFermer())
+  // Enregistrement automatique : la séance et ses programmes sont écrits peu après chaque changement.
+  const [enregistre, setEnregistre] = useState(false)
+  const ecrire = async () => {
+    const finale = { ...m, nom: m.nom.trim(), sousTitre: m.sousTitre.trim() }
+    await db.modeles.put(finale)
+    if (!pourProgramme)
+      for (const p of catalogue.programmes) {
+        const dedans = p.seances.some((e) => e.modeleId === finale.id)
+        if (progs.includes(p.id) && !dedans) await sauverProgramme({ ...p, seances: [...p.seances, { modeleId: finale.id }] }, catalogue)
+        if (!progs.includes(p.id) && dedans) await sauverProgramme({ ...p, seances: p.seances.filter((e) => e.modeleId !== finale.id) }, catalogue)
+      }
+    setEnregistre(true)
+    return finale
+  }
+  useEffect(() => {
+    if (!modifie || !m.nom.trim()) return
+    const t = setTimeout(() => void ecrire(), 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [m, progs])
+
+  // En quittant : dernier enregistrement, puis, pour une séance du cycle en cours, la question du cycle.
+  const quitter = async () => {
+    if (!modifie || !m.nom.trim()) return onFermer()
+    const finale = await ecrire()
+    const c = catalogue.cycle
+    if (
+      JSON.stringify(m) !== JSON.stringify(initial) &&
+      c?.modeles.some((x) => x.id === finale.id) &&
+      (await confirmer(`« ${finale.nom} » fait partie du cycle en cours. La séance est enregistrée dans ta bibliothèque ; tu choisis si le cycle la prend dès maintenant, ou seulement au prochain cycle.`, {
+        titre: 'Appliquer au cycle en cours ?',
+        oui: 'Appliquer au cycle en cours',
+        non: 'Seulement pour le prochain cycle',
+      }))
+    )
+      await db.cycles.update(c.id, { modeles: c.modeles.map((x) => (x.id === finale.id ? structuredClone(finale) : x)) })
+    onFermer(finale)
   }
   useRetour(true, () => {
-    if (!modifie) return onFermer()
-    quitter()
+    void quitter()
     return 'rester'
   })
 
@@ -500,24 +565,6 @@ function Editeur({
   const travailles = MUSCLES.filter((x) => volume[x.id] > 0).sort((a, b) => volume[b.id] - volume[a.id])
   const valide = m.nom.trim() !== '' && m.exercices.length > 0
 
-  const enregistrer = async () => {
-    const finale = { ...m, nom: m.nom.trim(), sousTitre: m.sousTitre.trim() }
-    await db.modeles.put(finale)
-    // Séance du cycle en cours : on demande avant de toucher au cycle.
-    const c = catalogue.cycle
-    if (
-      c?.modeles.some((x) => x.id === finale.id) &&
-      (await confirmer(`« ${finale.nom} » fait partie du cycle en cours. La séance est enregistrée dans ta bibliothèque ; tu choisis si le cycle la prend dès maintenant, ou seulement au prochain cycle.`, { titre: 'Appliquer au cycle en cours ?', oui: 'Appliquer au cycle en cours', non: 'Seulement pour le prochain cycle' }))
-    )
-      await db.cycles.update(c.id, { modeles: c.modeles.map((x) => (x.id === finale.id ? structuredClone(finale) : x)) })
-    if (!pourProgramme)
-      for (const p of catalogue.programmes) {
-        const dedans = p.seances.some((e) => e.modeleId === finale.id)
-        if (progs.includes(p.id) && !dedans) await sauverProgramme({ ...p, seances: [...p.seances, { modeleId: finale.id }] }, catalogue)
-        if (!progs.includes(p.id) && dedans) await sauverProgramme({ ...p, seances: p.seances.filter((e) => e.modeleId !== finale.id) }, catalogue)
-      }
-    onFermer(finale)
-  }
   const dupliquer = async () => {
     await db.modeles.put({ ...structuredClone(m), id: 'm_' + uid(), nom: `${m.nom.trim()} (copie)`, jour: undefined })
     onFermer()
@@ -539,11 +586,12 @@ function Editeur({
       <div className="entete">
         <button
           className="btn"
-          onClick={quitter}
+          onClick={() => void quitter()}
         >
           ←
         </button>
         <h2 style={{ flex: 1 }}>{nouvelle ? 'Nouvelle séance' : 'Modifier la séance'}</h2>
+        <EtatEnregistrement nom={m.nom} enregistre={enregistre} />
       </div>
 
       <div className="carte pile">
@@ -678,11 +726,8 @@ function Editeur({
         </div>
       )}
 
-      <button className="btn primaire grand" disabled={!valide} onClick={enregistrer}>
-        ENREGISTRER
-      </button>
-      {!valide && <div className="faible" style={{ marginTop: 6 }}>Il faut un nom et au moins un exercice.</div>}
-      {!nouvelle && (
+      {!valide && <div className="faible" style={{ marginTop: 6 }}>Donne-lui un nom et ajoute des exercices : tout s’enregistre au fur et à mesure.</div>}
+      {(!nouvelle || enregistre) && (
         <div className="ligne wrap" style={{ marginTop: 12 }}>
           <button className="btn" onClick={dupliquer}>
             Dupliquer
@@ -751,7 +796,6 @@ function Editeur({
           key={editIdx}
           exo={catalogue.exo(m.exercices[editIdx].exoId)}
           plan={m.exercices[editIdx]}
-          onFermer={() => setEditIdx(null)}
           onValider={(p) => {
             maj((x) => (x.exercices[editIdx] = p))
             setEditIdx(null)
@@ -797,4 +841,10 @@ function Editeur({
       )}
     </div>
   )
+}
+
+/** « ✓ Enregistré » : l'édition s'enregistre toute seule, on le montre discrètement. */
+function EtatEnregistrement({ nom, enregistre }: { nom: string; enregistre: boolean }) {
+  if (!nom.trim()) return <span className="faible">à nommer</span>
+  return enregistre ? <span className="faible etat-enregistre">✓ Enregistré</span> : null
 }
