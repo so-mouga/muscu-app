@@ -24,6 +24,8 @@ export default function App() {
   const [onglet, setOngletEtat] = useState<Onglet>('accueil')
   /** Séance ouverte dans l'historique. */
   const [detail, setDetailEtat] = useState<string | null>(null)
+  /** Exercice ouvert depuis le Bilan dans l'onglet Exercices. */
+  const [exoInitial, setExoInitial] = useState<string | null>(null)
   /** Partie de Progression affichée (mémorisée d'une ouverture à l'autre). */
   const [vue, setVueEtat] = useState<VueProgression>(() => {
     try {
@@ -76,14 +78,29 @@ export default function App() {
             onProgrammes={() => setOnglet('seances')}
           />
         )}
-        {onglet === 'historique' && <Historique catalogue={catalogue} detail={detail} onDetail={setDetail} vue={vue} onVue={setVue} />}
+        {onglet === 'historique' && (
+          <Historique
+            catalogue={catalogue}
+            detail={detail}
+            onDetail={setDetail}
+            vue={vue}
+            onVue={setVue}
+            onExo={(id) => (setExoInitial(id), setOnglet('exercices'))}
+          />
+        )}
         {onglet === 'seances' && <Seances catalogue={catalogue} />}
-        {onglet === 'exercices' && <Exercices catalogue={catalogue} />}
+        {onglet === 'exercices' && (
+          <Exercices
+            catalogue={catalogue}
+            initial={exoInitial}
+            onRetourInitial={() => (setExoInitial(null), setOnglet('historique'))}
+          />
+        )}
         {onglet === 'reglages' && <Reglages catalogue={catalogue} />}
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
-          <button key={id} className={onglet === id ? 'actif' : ''} onClick={() => (setDetailEtat(null), setOnglet(id))}>
+          <button key={id} className={onglet === id ? 'actif' : ''} onClick={() => (setDetailEtat(null), setExoInitial(null), setOnglet(id))}>
             <IconeOnglet nom={id} />
             {nom}
           </button>

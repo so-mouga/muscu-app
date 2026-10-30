@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import { informer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
@@ -7,7 +7,7 @@ import VolumeMuscles from '../components/VolumeMuscles'
 import { db } from '../db'
 import { analyser, aRetenir, libelleMesure, type Analyse } from '../lib/analyse'
 import { debutPeriode, genererBilan, type DonneesBilan } from '../lib/bilan'
-import { dateCourte, dateISO, duree, kg, lundi } from '../lib/calc'
+import { dateCourte, dateISO, duree, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
 import { bilan, recordsParSeance, semaineDe } from '../lib/historique'
 import type { Activite, Muscle, Seance } from '../types'
 
@@ -19,9 +19,10 @@ const arrondi = (x: number) => Math.round(x * 10) / 10
 const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
 /** Bilan d'une période : ce qu'il faut retenir, assiduité, muscles, progression, forme et corps. */
-export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
+export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalogue; onExo?: (id: string) => void; onCorps?: () => void }) {
   const cycle = catalogue.cycle
   const [periode, setPeriode] = useState<Periode>('semaine')
+  const [vueMuscles, setVueMuscles] = useState<'fait' | 'prevu'>('fait')
   const [detailMuscles, setDetailMuscles] = useState(false)
   const [muscle, setMuscle] = useState<Muscle | null>(null)
   const seances = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
@@ -29,9 +30,10 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const activites = useLiveQuery(() => db.activites.toArray(), [], [])
   const records = useMemo(() => (seances ? recordsParSeance(seances, catalogue.exo) : {}), [seances, catalogue])
+  const prevuMuscles = useMemo(() => volumePrevu(semaineType(catalogue.actif).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices), [catalogue])
   if (!seances) return null
 
-  // Période choisie, et la précédente de même durée pour comparer.
+  // Période choisie, et la précédente de même durée (ou à jours équivalents sur la semaine en cours) pour comparer.
   const aujourdhui = dateISO()
   const [debut, fin] =
     periode === 'semaine'
@@ -41,17 +43,21 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
         : periode === 'cycle' && cycle
           ? [cycle.debut, aujourdhui]
           : [debutPeriode(periode === '12' ? 13 : 4), aujourdhui]
-  const longueur = Math.round((Date.parse(fin) - Date.parse(debut)) / JOUR)
-  const finAvant = decaler(debut, -1)
-  const debutAvant = decaler(finAvant, -longueur)
 
   const cibles = catalogue.cibles
   const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom }
   const prevues = catalogue.planning.length
   const a = analyser(donnees, debut, fin, prevues)
+  const longueur = Math.round((Date.parse(fin) - Date.parse(a.debut)) / JOUR)
+  const [debutAvant, finAvant] =
+    periode === 'semaine'
+      ? [decaler(debut, -7), decaler(fin, -7)]
+      : [decaler(decaler(a.debut, -1), -longueur), decaler(a.debut, -1)]
   const avant = analyser(donnees, debutAvant, finAvant, prevues)
   const comparable = avant.seances > 0
-  const retenir = aRetenir(a, comparable ? avant : null, cibles)
+  const enCours = periode === 'semaine' && aujourdhui < decaler(lundi(), 6)
+  const retenir = aRetenir(a, comparable ? avant : null, cibles, enCours)
+  const volMuscles = vueMuscles === 'prevu' ? prevuMuscles : a.volume
 
   const partager = async () => {
     const texte = genererBilan(donnees, debut, fin)
@@ -84,7 +90,7 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
         ))}
       </div>
       <div className="faible" style={{ marginBottom: 12 }}>
-        Du {jour(debut)} au {jour(fin)}
+        Du {jour(a.debut)} au {jour(fin)}
         {comparable ? ` · comparé au ${jour(debutAvant)} – ${jour(finAvant)}` : ''}
       </div>
 
@@ -122,38 +128,73 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
       {a.semaines.length > 1 && <SemaineParSemaine semaines={a.semaines} seances={seances} activites={activites} records={records} catalogue={catalogue} />}
 
       <div className="carte">
-        <h3>Muscles</h3>
-        <div className="faible" style={{ margin: '4px 0 8px' }}>
-          Séries dures par semaine en moyenne{a.deloads ? ' (hors déload)' : ''}, face aux objectifs.
+        <div className="ligne entre">
+          <h3>Muscles</h3>
+          <div className="chips mini-chips" role="tablist" aria-label="Volume affiché">
+            <button role="tab" aria-selected={vueMuscles === 'fait'} className={vueMuscles === 'fait' ? 'actif' : ''} onClick={() => setVueMuscles('fait')}>
+              Fait
+            </button>
+            <button role="tab" aria-selected={vueMuscles === 'prevu'} className={vueMuscles === 'prevu' ? 'actif' : ''} onClick={() => setVueMuscles('prevu')}>
+              Prévu
+            </button>
+          </div>
         </div>
-        <SilhouetteVolume volume={a.volume} cibles={cibles} choisi={muscle} onChoisir={setMuscle} legende="objectif de la semaine" quoi="par semaine" />
+        <div className="faible" style={{ margin: '4px 0 8px' }}>
+          {vueMuscles === 'prevu'
+            ? `Séries dures prévues chaque semaine par « ${catalogue.actif.nom} », face aux objectifs.`
+            : `Séries dures par semaine en moyenne${a.deloads ? ' (hors déload)' : ''}, face aux objectifs.`}
+        </div>
+        <SilhouetteVolume volume={volMuscles} cibles={cibles} choisi={muscle} onChoisir={setMuscle} legende="objectif de la semaine" quoi={vueMuscles === 'prevu' ? 'prévues' : 'par semaine'} />
         <button type="button" className="groupe-repli" onClick={() => setDetailMuscles(!detailMuscles)} aria-expanded={detailMuscles}>
           <span>Détail par muscle</span>
           <span className="muted">{detailMuscles ? '▾' : '▸'}</span>
         </button>
-        {detailMuscles && <VolumeMuscles volume={a.volume} cibles={cibles} actif={muscle} onChoix={(m) => setMuscle(m === muscle ? null : m)} />}
+        {detailMuscles && <VolumeMuscles volume={volMuscles} cibles={cibles} actif={muscle} onChoix={(m) => setMuscle(m === muscle ? null : m)} />}
       </div>
 
-      <Progression a={a} />
+      <Progression a={a} onExo={onExo} />
 
-      {(a.rpe !== null || a.ressenti !== null || a.energie !== null) && (
-        <div className="carte">
-          <h3 style={{ marginBottom: 10 }}>Intensité et forme</h3>
-          <div className="tuiles">
-            {a.rpe !== null && <Tuile valeur={kg(arrondi(a.rpe))} label="RPE moyen" n={a.rpe} m={avant.rpe ?? undefined} comparable={avant.rpe !== null} neutre texteAvant={avant.rpe !== null ? kg(arrondi(avant.rpe)) : ''} />}
-            {a.ressenti !== null && (
-              <Tuile valeur={`${kg(arrondi(a.ressenti))}/5`} label="ressenti" n={a.ressenti} m={avant.ressenti ?? undefined} comparable={avant.ressenti !== null} texteAvant={avant.ressenti !== null ? kg(arrondi(avant.ressenti)) : ''} />
-            )}
-            {a.energie !== null && (
-              <Tuile valeur={`${kg(arrondi(a.energie))}/5`} label="énergie" n={a.energie} m={avant.energie ?? undefined} comparable={avant.energie !== null} texteAvant={avant.energie !== null ? kg(arrondi(avant.energie)) : ''} />
-            )}
-          </div>
+      {(a.rpe !== null || a.ressenti !== null || a.energie !== null || a.douleurs.length > 0) && (
+        <div className="carte pile">
+          <h3>Intensité et forme</h3>
+          {(a.rpe !== null || a.ressenti !== null || a.energie !== null) && (
+            <div className="tuiles">
+              {a.rpe !== null && <Tuile valeur={kg(arrondi(a.rpe))} label="RPE moyen" n={a.rpe} m={avant.rpe ?? undefined} comparable={avant.rpe !== null} neutre texteAvant={avant.rpe !== null ? kg(arrondi(avant.rpe)) : ''} />}
+              {a.ressenti !== null && (
+                <Tuile valeur={`${kg(arrondi(a.ressenti))}/5`} label="ressenti" n={a.ressenti} m={avant.ressenti ?? undefined} comparable={avant.ressenti !== null} texteAvant={avant.ressenti !== null ? kg(arrondi(avant.ressenti)) : ''} />
+              )}
+              {a.energie !== null && (
+                <Tuile valeur={`${kg(arrondi(a.energie))}/5`} label="énergie" n={a.energie} m={avant.energie ?? undefined} comparable={avant.energie !== null} texteAvant={avant.energie !== null ? kg(arrondi(avant.energie)) : ''} />
+              )}
+            </div>
+          )}
+          {a.douleurs.length > 0 && (
+            <div>
+              <div className="faible">⚠️ Douleurs signalées</div>
+              {a.douleurs.map((d) => (
+                <LigneExo key={d.exo.id} onClick={onExo ? () => onExo(d.exo.id) : undefined}>
+                  <span>
+                    {d.exo.nom}
+                    {d.n > 1 && <span className="faible petit-detail">{d.n} séances · dernière le {jour(d.date)}</span>}
+                  </span>
+                  <span className="faible">{d.n === 1 ? jour(d.date) : ''}</span>
+                </LigneExo>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {(a.poids || a.mesures.length > 0) && (
         <div className="carte">
-          <h3>Corps</h3>
+          <div className="ligne entre">
+            <h3>Corps</h3>
+            {onCorps && (
+              <button className="btn discret petit lien-action" onClick={onCorps}>
+                Voir Corps ›
+              </button>
+            )}
+          </div>
           {a.poids && (
             <div className="ligne-mesure">
               <span>Poids moyen</span>
@@ -212,8 +253,22 @@ function SemaineParSemaine({ semaines, seances, activites, records, catalogue }:
   )
 }
 
+/** Ligne d'exercice dans le Bilan (cliquable pour ouvrir sa courbe dans Exercices). */
+function LigneExo({ onClick, children }: { onClick?: () => void; children: [ReactNode, ReactNode] }) {
+  if (!onClick) return <div className="semaine-bilan">{children}</div>
+  return (
+    <button type="button" className="semaine-bilan cliquable" onClick={onClick}>
+      {children[0]}
+      <span className="droite-bilan">
+        {children[1]}
+        <span className="muted">›</span>
+      </span>
+    </button>
+  )
+}
+
 /** Records, meilleures progressions et stagnations de la période. */
-function Progression({ a }: { a: Analyse }) {
+function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void }) {
   const progres = a.progressions.filter((p) => p.pct > 0).slice(0, 3)
   if (!a.records.length && !progres.length && !a.stagnations.length) return null
   return (
@@ -229,32 +284,30 @@ function Progression({ a }: { a: Analyse }) {
             .map((l) => {
               const r = l[l.length - 1]
               return (
-                <div key={r.exo.id} className="ligne-mesure">
+                <LigneExo key={r.exo.id} onClick={onExo ? () => onExo(r.exo.id) : undefined}>
                   <span>
                     {r.exo.nom}
-                    {l.length > 1 && <span className="faible"> · {l.length} records</span>}
+                    <span className="faible petit-detail">{l.length > 1 ? `${l.length} records · ${jour(r.date)}` : jour(r.date)}</span>
                   </span>
-                  <span>
-                    <strong>{r.perf}</strong> <span className="faible">{jour(r.date)}</span>
-                  </span>
-                </div>
+                  <strong>{r.perf}</strong>
+                </LigneExo>
               )
             })}
         </div>
       )}
       {progres.length > 0 && (
         <div>
-          <div className="faible">Plus fortes progressions (1RM estimé)</div>
+          <div className="faible">Plus fortes progressions</div>
           {progres.map((p) => (
-            <div key={p.exo.id} className="ligne-mesure">
-              <span>{p.exo.nom}</span>
+            <LigneExo key={p.exo.id} onClick={onExo ? () => onExo(p.exo.id) : undefined}>
               <span>
-                <strong>+{kg(arrondi(p.pct))} %</strong>{' '}
-                <span className="faible">
-                  {kg(arrondi(p.avant))} → {kg(arrondi(p.apres))} kg
+                {p.exo.nom}
+                <span className="faible petit-detail">
+                  {p.detail ?? `1RM estimé : ${kg(arrondi(p.avant))} → ${kg(arrondi(p.apres))} kg`}
                 </span>
               </span>
-            </div>
+              <strong>+{kg(arrondi(p.pct))} %</strong>
+            </LigneExo>
           ))}
         </div>
       )}
@@ -262,10 +315,13 @@ function Progression({ a }: { a: Analyse }) {
         <div>
           <div className="faible">Stagnent</div>
           {a.stagnations.map((s) => (
-            <div key={s.exo.id} className="ligne-mesure">
-              <span>{s.exo.nom}</span>
-              <span className="faible">identique depuis {s.n} séances</span>
-            </div>
+            <LigneExo key={s.exo.id} onClick={onExo ? () => onExo(s.exo.id) : undefined}>
+              <span>
+                {s.exo.nom}
+                <span className="faible petit-detail">identique depuis {s.n} séances</span>
+              </span>
+              <span />
+            </LigneExo>
           ))}
         </div>
       )}

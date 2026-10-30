@@ -1,9 +1,9 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
-import type { Exercice, Muscle, Serie } from '../types'
+import type { Exercice, Muscle, Seance, Serie } from '../types'
 import { chargeQte, dateISO, e1rm, estDure, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
-import { dureeReelle, scoreSerie, semaineDe } from './historique'
+import { dureeReelle, meilleureSerie, scoreSerie, semaineDe } from './historique'
 import { seancesIdentiques } from './progression'
 
 const SEMAINE = 7 * 86400000
@@ -18,6 +18,8 @@ export interface Record_ {
 }
 
 export interface Analyse {
+  /** Début effectif de la période (calé sur la 1re séance enregistrée si l'historique est plus court). */
+  debut: string
   semaines: string[]
   seances: number
   deloads: number
@@ -32,9 +34,10 @@ export interface Analyse {
   /** Séries dures par semaine, moyenne hors semaines de déload. */
   volume: Record<Muscle, number>
   records: Record_[]
-  /** Évolution du meilleur 1RM estimé entre la 1re et la dernière séance de la période. */
-  progressions: { exo: Exercice; avant: number; apres: number; pct: number }[]
+  /** Évolution du meilleur 1RM estimé (ou de la meilleure série pour l'isolation) sur la période. */
+  progressions: { exo: Exercice; avant: number; apres: number; pct: number; detail?: string }[]
   stagnations: { exo: Exercice; n: number }[]
+  douleurs: { exo: Exercice; date: string; n: number }[]
   rpe: number | null
   ressenti: number | null
   energie: number | null
@@ -44,10 +47,13 @@ export interface Analyse {
 
 /** Tout ce qu'on peut dire d'une période, à partir des séances, pesées, mesures et activités. */
 export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesParSemaine = 0): Analyse {
-  const periode = d.seances.filter((s) => s.date >= debut && s.date <= fin).sort((a, b) => a.debut - b.debut)
+  const premiere = d.seances.reduce<string | null>((a, s) => (!a || s.date < a ? s.date : a), null)
+  const depart = premiere && semaineDe(premiere) > semaineDe(debut) && semaineDe(premiere) <= semaineDe(fin) ? semaineDe(premiere) : semaineDe(debut)
+  const debutEffectif = depart > semaineDe(debut) ? depart : debut
+  const periode = d.seances.filter((s) => s.date >= debutEffectif && s.date <= fin).sort((a, b) => a.debut - b.debut)
   const travail = periode.filter((s) => !s.deload)
   const semaines: string[] = []
-  for (let l = semaineDe(debut); l <= semaineDe(fin); l = dateISO(new Date(Date.parse(l + 'T12:00:00') + SEMAINE))) semaines.push(l)
+  for (let l = depart; l <= semaineDe(fin); l = dateISO(new Date(Date.parse(l + 'T12:00:00') + SEMAINE))) semaines.push(l)
   const semainesDeload = new Set(periode.filter((s) => s.deload).map((s) => semaineDe(s.date)))
   const nbTravail = Math.max(1, semaines.filter((l) => !semainesDeload.has(l)).length)
 
@@ -67,7 +73,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
       if (!duJour.has(x.exoId) || score > duJour.get(x.exoId)!.score) duJour.set(x.exoId, { score, serie: x })
     }
     for (const [id, { score, serie }] of duJour) {
-      if (meilleur[id] !== undefined && score > meilleur[id] && s.date >= debut && s.date <= fin)
+      if (meilleur[id] !== undefined && score > meilleur[id] && s.date >= debutEffectif && s.date <= fin)
         records.push({ date: s.date, exo: d.exo(id), perf: chargeQte(d.exo(id), serie.charge, serie.reps) })
       meilleur[id] = Math.max(meilleur[id] ?? 0, score)
     }
@@ -75,34 +81,68 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
 
   // Progressions et stagnations, exercice par exercice
   const ids = [...new Set(travail.flatMap((s) => s.series.map((x) => x.exoId)))]
+  const anterieures = [...d.seances].filter((s) => !s.deload && s.date < debutEffectif).sort((a, b) => b.debut - a.debut)
   const progressions: Analyse['progressions'] = []
   const stagnations: Analyse['stagnations'] = []
   for (const id of ids) {
     const exo = d.exo(id)
     const avec = travail.filter((s) => s.series.some((x) => x.exoId === id))
-    const top = (i: number) => Math.max(0, ...avec[i].series.filter((x) => x.exoId === id).map((x) => e1rm(exo, x, avec[i].poidsCorps) ?? 0))
-    if (avec.length >= 2 && top(0) > 0 && top(avec.length - 1) > 0) {
-      const avant = top(0)
-      const apres = top(avec.length - 1)
-      progressions.push({ exo, avant, apres, pct: ((apres - avant) / avant) * 100 })
+    const sAvant: Seance | undefined = avec.length >= 2 ? avec[0] : anterieures.find((s) => s.series.some((x) => x.exoId === id))
+    const sApres: Seance | undefined = avec[avec.length - 1]
+    const top = (s: Seance) => Math.max(0, ...s.series.filter((x) => x.exoId === id).map((x) => e1rm(exo, x, s.poidsCorps) ?? 0))
+    if (sAvant && sApres && sAvant.id !== sApres.id) {
+      if (top(sAvant) > 0 && top(sApres) > 0) {
+        const avant = top(sAvant)
+        const apres = top(sApres)
+        progressions.push({ exo, avant, apres, pct: ((apres - avant) / avant) * 100 })
+      } else {
+        const mAvant = meilleureSerie(sAvant.series.filter((x) => x.exoId === id && x.reps > 0))
+        const mApres = meilleureSerie(sApres.series.filter((x) => x.exoId === id && x.reps > 0))
+        if (mAvant && mApres && scoreSerie(exo, mApres, sApres.poidsCorps) > scoreSerie(exo, mAvant, sAvant.poidsCorps)) {
+          const pct =
+            mAvant.charge > 0 && mApres.charge !== mAvant.charge
+              ? ((mApres.charge - mAvant.charge) / mAvant.charge) * 100
+              : mAvant.reps > 0
+                ? ((mApres.reps - mAvant.reps) / mAvant.reps) * 100
+                : 0
+          if (pct > 0)
+            progressions.push({
+              exo,
+              avant: mAvant.charge || mAvant.reps,
+              apres: mApres.charge || mApres.reps,
+              pct,
+              detail: `${chargeQte(exo, mAvant.charge, mAvant.reps)} → ${chargeQte(exo, mApres.charge, mApres.reps)}`,
+            })
+        }
+      }
     }
     const n = seancesIdentiques([...avec].reverse().map((s) => s.series.filter((x) => x.exoId === id)))
     if (n >= 3) stagnations.push({ exo, n })
   }
   progressions.sort((a, b) => b.pct - a.pct)
 
+  // Douleurs signalées sur la période
+  const idsDouleur = [...new Set(periode.flatMap((s) => s.series.filter((x) => x.douleur).map((x) => x.exoId)))]
+  const douleurs = idsDouleur
+    .map((id) => {
+      const touchees = periode.filter((s) => s.series.some((x) => x.exoId === id && x.douleur))
+      return { exo: d.exo(id), date: touchees[touchees.length - 1].date, n: touchees.length }
+    })
+    .sort((a, b) => b.date.localeCompare(a.date))
+
   // Semaines enchaînées (en remontant depuis la fin de la période)
   let enchainees = 0
   for (let k = semaines.length - 1; k >= 0 && periode.some((s) => semaineDe(s.date) === semaines[k]); k--) enchainees++
 
   const notes = (f: (s: (typeof periode)[number]) => number | undefined) => moyenne(periode.map(f).filter((x): x is number => x !== undefined))
-  const pesees = d.pesees.filter((p) => p.date >= debut && p.date <= fin)
+  const pesees = d.pesees.filter((p) => p.date >= debutEffectif && p.date <= fin)
   const moyennePesees = (l: string) => moyenne(pesees.filter((p) => semaineDe(p.date) === l).map((p) => p.poids))
   const avecPoids = semaines.map(moyennePesees).filter((x): x is number => x !== null)
-  const mesures = d.mesures.filter((m) => m.date >= debut && m.date <= fin).sort((a, b) => a.date.localeCompare(b.date))
-  const sports = d.activites.filter((a) => a.date >= debut && a.date <= fin)
+  const mesures = d.mesures.filter((m) => m.date >= debutEffectif && m.date <= fin).sort((a, b) => a.date.localeCompare(b.date))
+  const sports = d.activites.filter((a) => a.date >= debutEffectif && a.date <= fin)
 
   return {
+    debut: debutEffectif,
     semaines,
     seances: periode.length,
     deloads: periode.length - travail.length,
@@ -116,6 +156,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     records,
     progressions,
     stagnations,
+    douleurs,
     rpe: moyenne(travail.flatMap((s) => s.series.filter(estDure).map((x) => x.rpe))),
     ressenti: notes((s) => s.ressenti),
     energie: notes((s) => s.energie),
@@ -132,30 +173,37 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
 /**
  * « À retenir » : quelques phrases qui disent quoi faire, par des règles simples et sûres.
  * `avant` : la période précédente de même durée, pour les tendances.
+ * `enCours` : la semaine n'est pas terminée (on ne reproche pas les séances ou muscles restants).
  */
-export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscle, number>): string[] {
+export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscle, number>, enCours = false): string[] {
   if (a.seances < 2) return ['Pas encore assez de séances sur cette période pour en tirer des conclusions : reviens après quelques séances.']
   const r: string[] = []
   const nom = (m: Muscle) => MUSCLES.find((x) => x.id === m)!.nom
 
+  // Douleurs signalées en priorité
+  for (const d of a.douleurs.slice(0, 2))
+    r.push(`⚠️ Douleur signalée sur ${d.exo.nom}${d.n > 1 ? ` (${d.n} séances)` : ''} : adapte la charge ou remplace l’exercice si ça persiste.`)
+
   // Assiduité
   if (a.prevues) {
     if (a.seances >= a.prevues) r.push(`Assiduité parfaite : ${a.seances} séances sur ${a.prevues} prévues.`)
-    else if (a.seances < a.prevues * 0.75) r.push(`${a.seances} séances sur ${a.prevues} prévues : la régularité compte plus que tout le reste.`)
+    else if (!enCours && a.seances < a.prevues * 0.75) r.push(`${a.seances} séances sur ${a.prevues} prévues : la régularité compte plus que tout le reste.`)
   }
 
-  // Muscles à zéro, puis en retard (les plus en retard d'abord)
-  const suivis = MUSCLES.filter((m) => cibles[m.id] > 0)
-  const zero = suivis.filter((m) => a.volume[m.id] === 0)
-  if (zero.length)
-    r.push(`${zero.slice(0, 3).map((m) => m.nom).join(', ')}${zero.length > 3 ? ` et ${zero.length - 3} autre${zero.length > 4 ? 's' : ''}` : ''} : aucune série dure sur la période.`)
-  const retard = suivis
-    .filter((m) => a.volume[m.id] > 0 && a.volume[m.id] < cibles[m.id] * 0.75)
-    .sort((x, y) => a.volume[x.id] / cibles[x.id] - a.volume[y.id] / cibles[y.id])
-    .slice(0, 2)
-  for (const m of retard) {
-    const v = arrondi(a.volume[m.id])
-    r.push(`${nom(m.id)} en retard : ${kg(v)} série${v >= 2 ? 's' : ''} dure${v >= 2 ? 's' : ''} par semaine sur ${kg(cibles[m.id])}.`)
+  // Muscles à zéro, puis en retard (les plus en retard d'abord) — seulement une fois la semaine finie
+  if (!enCours) {
+    const suivis = MUSCLES.filter((m) => cibles[m.id] > 0)
+    const zero = suivis.filter((m) => a.volume[m.id] === 0)
+    if (zero.length)
+      r.push(`${zero.slice(0, 3).map((m) => m.nom).join(', ')}${zero.length > 3 ? ` et ${zero.length - 3} autre${zero.length > 4 ? 's' : ''}` : ''} : aucune série dure sur la période.`)
+    const retard = suivis
+      .filter((m) => a.volume[m.id] > 0 && a.volume[m.id] < cibles[m.id] * 0.75)
+      .sort((x, y) => a.volume[x.id] / cibles[x.id] - a.volume[y.id] / cibles[y.id])
+      .slice(0, 2)
+    for (const m of retard) {
+      const v = arrondi(a.volume[m.id])
+      r.push(`${nom(m.id)} en retard : ${kg(v)} série${v >= 2 ? 's' : ''} dure${v >= 2 ? 's' : ''} par semaine sur ${kg(cibles[m.id])}.`)
+    }
   }
 
   // Stagnations
@@ -180,5 +228,5 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
   return r.slice(0, 5).length ? r.slice(0, 5) : ['Rien à signaler : continue comme ça.']
 }
 
-/** « taille », « bras droit »… */
-export const libelleMesure = (cle: string) => nomCle(cle).toLowerCase()
+/** « Taille », « Bras droit »… */
+export const libelleMesure = (cle: string) => nomCle(cle)

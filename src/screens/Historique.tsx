@@ -41,9 +41,11 @@ interface Props {
   /** Séance ouverte en détail (aussi depuis l'accueil). */
   detail: string | null
   onDetail: (id: string | null) => void
+  /** Ouvre la fiche / courbe d'un exercice dans l'onglet Exercices. */
+  onExo?: (id: string) => void
 }
 
-export default function Historique({ catalogue, detail, onDetail, vue, onVue }: Props) {
+export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo }: Props) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const activites = useLiveQuery(() => db.activites.orderBy('date').reverse().toArray(), [], [])
@@ -91,7 +93,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
     return (
       <div>
         {haut}
-        {vue === 'bilan' && <Bilan catalogue={catalogue} />}
+        {vue === 'bilan' && <Bilan catalogue={catalogue} onExo={onExo} onCorps={() => onVue('corps')} />}
         {vue === 'corps' && <Corps />}
         {vue === 'objectifs' && <Objectifs catalogue={catalogue} />}
       </div>

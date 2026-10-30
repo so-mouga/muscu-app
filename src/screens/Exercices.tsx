@@ -18,10 +18,10 @@ import { confirmer } from '../components/Dialogues'
 
 type Filtre = 'tous' | 'recents' | Zone
 
-export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
+export default function Exercices({ catalogue, initial, onRetourInitial }: { catalogue: Catalogue; initial?: string | null; onRetourInitial?: () => void }) {
   const seances = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [], [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
-  const [choisi, setChoisiEtat] = useState<string | null>(null)
+  const [choisi, setChoisiEtat] = useState<string | null>(initial ?? null)
   const [formulaire, setFormulaire] = useState<{ exo?: Exercice } | null>(null)
   const [relier, setRelier] = useState(false)
   /** Groupes de muscles dépliés (accordéon). */
@@ -36,7 +36,14 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState<Filtre>('tous')
 
-  const setChoisi = (id: string | null) => (transition(() => setChoisiEtat(id), id ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
+  const setChoisi = (id: string | null) => {
+    if (!id && initial && choisi === initial && onRetourInitial) {
+      onRetourInitial()
+      return
+    }
+    transition(() => setChoisiEtat(id), id ? 'avant' : 'arriere')
+    window.scrollTo({ top: 0 })
+  }
   useRetour(!!choisi, () => setChoisi(null))
   useRetour(!!formulaire, () => setFormulaire(null))
 

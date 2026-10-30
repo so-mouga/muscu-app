@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, aRetenir } from './analyse'
+import { analyser, aRetenir, libelleMesure } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -69,5 +69,34 @@ describe('analyse d’une période', () => {
   })
   it('peu de données : le dit au lieu d’inventer', () => {
     expect(aRetenir(analyser(donnees(seances.slice(0, 1)), '2026-10-05', '2026-10-11'), null, cibles())[0]).toContain('Pas encore assez')
+  })
+  it('cale le début sur la 1re séance quand l’historique est plus court que la période', () => {
+    const court = analyser(donnees(seances.slice(1)), '2026-10-05', '2026-11-01', 4)
+    expect(court.debut).toBe('2026-10-12')
+    expect(court.semaines).toHaveLength(3)
+    expect(court.prevues).toBe(12)
+  })
+  it('compare à la dernière séance avant la période sur 1 semaine et signale les douleurs', () => {
+    const avecDouleur = [
+      ...seances.slice(0, 3),
+      seance('d', '2026-10-26', [57.5, 57.5], {
+        series: [
+          { id: 'ds0', exoId: 'smith_incline', type: 'normale', charge: 57.5, reps: 10, rpe: 8, heure: 0, douleur: true },
+          { id: 'dt', exoId: 'elevation_poulie', type: 'normale', charge: 12, reps: 12, rpe: 8, heure: 0 },
+        ],
+      }),
+      seance('e', '2026-10-28', [57.5], {
+        series: [{ id: 'et', exoId: 'elevation_poulie', type: 'normale', charge: 14, reps: 12, rpe: 8, heure: 0 }],
+      }),
+    ]
+    const sem = analyser(donnees(avecDouleur), '2026-10-26', '2026-10-31', 4)
+    expect(sem.progressions.map((p) => p.exo.id)).toContain('smith_incline')
+    expect(sem.progressions.find((p) => p.exo.id === 'elevation_poulie')?.detail).toBe('12 kg × 12 → 14 kg × 12')
+    expect(sem.douleurs).toHaveLength(1)
+    const r = aRetenir(sem, null, cibles(), true).join('\n')
+    expect(r).toContain('⚠️ Douleur signalée')
+    expect(r).not.toContain('sur 4 prévues')
+    expect(r).not.toContain('aucune série dure')
+    expect(libelleMesure('bras_g')).toBe('Bras gauche')
   })
 })

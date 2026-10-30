@@ -2294,18 +2294,40 @@ body.sans-onglets .barre-demarrer {
 .semaine-bilan {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--bord);
 }
-.semaine-bilan > span {
+button.semaine-bilan.cliquable {
+  width: 100%;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.semaine-bilan > span:first-child {
   min-width: 0;
 }
 .semaine-bilan .petit-detail {
   display: block;
 }
-.semaine-bilan > strong {
+.semaine-bilan > strong,
+.droite-bilan {
   white-space: nowrap;
+  flex-shrink: 0;
+}
+.droite-bilan {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tuile > .faible {
+  font-size: 12px;
+  line-height: 1.25;
 }
 .semaine-bilan:last-child {
   border-bottom: none;
