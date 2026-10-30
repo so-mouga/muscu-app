@@ -47,7 +47,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
   }
 
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond">
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div>
           <h2>{exo.nom}</h2>

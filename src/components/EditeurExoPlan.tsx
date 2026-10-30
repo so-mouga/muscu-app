@@ -4,6 +4,7 @@ import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, TypeFinisseur } from '../types'
 import ChoixDuree from './ChoixDuree'
+import { confirmer } from './Dialogues'
 import Interrupteur from './Interrupteur'
 
 const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
@@ -72,10 +73,13 @@ interface Props {
   plan: ExoPlan
   onValider: (p: ExoPlan) => void
   onFermer: () => void
+  /** Enregistrer puis ouvrir l'exercice suivant de la séance (absent pour le dernier). */
+  onSuivant?: (p: ExoPlan) => void
+  /** Remplacer l'exercice par un autre en gardant ce plan (séries, reps, RPE, repos). */
+  onRemplacer?: (p: ExoPlan) => void
 }
 
-export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props) {
-  useRetour(true, onFermer)
+export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuivant, onRemplacer }: Props) {
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
   const [chargeTxt, setChargeTxt] = useState(p.charge === null ? '' : kg(p.charge))
   const [chargesSerie, setChargesSerie] = useState(() => plan.series.map((s) => (s.charge === undefined ? '' : kg(s.charge))))
@@ -111,9 +115,27 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
   const setReps = (min: number, max: number) =>
     maj((q) => q.series.forEach((s) => ((s.repsMin = min), (s.repsMax = Math.max(min, max)))))
 
-  const valider = () => {
+  // Changements non validés : on ne les perd jamais sans le demander (appui à côté, retour, Annuler).
+  const [depart] = useState(() => JSON.stringify([plan, p.charge === null ? '' : kg(p.charge), chargesSerie, plan.chauffes.map(versLigne)]))
+  const modifie = JSON.stringify([p, chargeTxt, chargesSerie, chauffes]) !== depart
+  const fermer = () => {
+    if (!modifie) return onFermer()
+    void confirmer('Les réglages de cet exercice ne seront pas enregistrés.', {
+      titre: 'Quitter sans enregistrer ?',
+      oui: 'Quitter sans enregistrer',
+      non: 'Continuer',
+      danger: true,
+    }).then((ok) => ok && onFermer())
+  }
+  useRetour(true, () => {
+    if (!modifie) return onFermer()
+    fermer()
+    return 'rester'
+  })
+
+  const resultat = (): ExoPlan => {
     const chargeGenerale = lireCharge(chargeTxt)
-    onValider({
+    return {
       ...p,
       charge: chargeGenerale ?? null,
       series: p.series.map((s, i) => {
@@ -129,15 +151,16 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
       }),
       chauffes: chauffes.map(depuisLigne).filter(Boolean),
       note: p.note?.trim() || undefined,
-    })
+    }
   }
+  const valider = () => onValider(resultat())
 
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const libelleCharge =
     exo.mode === 'poids_corps' ? 'Lest de départ (kg, 0 = poids du corps)' : exo.mode === 'elastique' ? 'Niveau d’élastique' : exo.mode === 'par_main' ? 'Charge par main (kg)' : 'Charge de départ (kg)'
 
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond">
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <h2>{exo.nom}</h2>
 
@@ -352,10 +375,26 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer }: Props
           <input value={p.note ?? ''} onChange={(e) => maj((q) => (q.note = e.target.value))} />
         </label>
 
-        <button className="btn primaire grand" onClick={valider}>
-          OK
-        </button>
-        <button className="btn discret plein" onClick={onFermer}>
+        {onSuivant ? (
+          <div className="ligne">
+            <button className="btn grand" style={{ flex: 1 }} onClick={valider}>
+              OK
+            </button>
+            <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => onSuivant(resultat())}>
+              OK · suivant ›
+            </button>
+          </div>
+        ) : (
+          <button className="btn primaire grand" onClick={valider}>
+            OK
+          </button>
+        )}
+        {onRemplacer && (
+          <button className="btn plein" onClick={() => onRemplacer(resultat())}>
+            ⇄ Remplacer par un autre exercice
+          </button>
+        )}
+        <button className="btn discret plein" onClick={fermer}>
           Annuler
         </button>
       </div>

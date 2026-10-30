@@ -63,7 +63,7 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
   }
 
   const form = formulaire && (
-    <div className="modal-fond" onClick={() => setFormulaire(null)}>
+    <div className="modal-fond">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <FormExo
           initial={formulaire.exo}

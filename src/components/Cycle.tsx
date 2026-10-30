@@ -129,7 +129,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
   }
 
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond">
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="ligne entre">
           <h2>{cycle ? 'Modifier le cycle' : 'Lancer un cycle'}</h2>

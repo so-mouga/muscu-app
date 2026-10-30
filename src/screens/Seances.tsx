@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
@@ -465,10 +465,23 @@ function Editeur({
       f(c)
       return c
     })
-  const deplacer = (i: number, d: number) =>
+  // Glisser-déposer : on attrape la poignée ⠿, on glisse, l'exercice s'insère là où on relâche.
+  const liste = useRef<HTMLDivElement>(null)
+  const [glisse, setGlisse] = useState<{ de: number; vers: number } | null>(null)
+  const [remplace, setRemplace] = useState<number | null>(null)
+  /** Position d'insertion (0 … n) sous le doigt. */
+  const positionSous = (y: number) => {
+    const lignes = [...(liste.current?.querySelectorAll<HTMLElement>('.exo-ligne') ?? [])]
+    const k = lignes.findIndex((l) => {
+      const r = l.getBoundingClientRect()
+      return y < r.top + r.height / 2
+    })
+    return k < 0 ? lignes.length : k
+  }
+  const deposer = (de: number, vers: number) =>
     maj((x) => {
-      const [e] = x.exercices.splice(i, 1)
-      x.exercices.splice(i + d, 0, e)
+      const [e] = x.exercices.splice(de, 1)
+      x.exercices.splice(vers > de ? vers - 1 : vers, 0, e)
     })
 
   const finisseurs = m.exercices.filter((e) => e.finisseur).length
@@ -578,10 +591,41 @@ function Editeur({
           {m.exercices.length > 0 && <span className="faible">≈ {minutes(dureeEstimee(m))}</span>}
         </div>
         {m.exercices.length === 0 && <div className="muted petit" style={{ marginTop: 8 }}>Aucun exercice pour l’instant.</div>}
+        <div ref={liste}>
         {m.exercices.map((p, i) => {
           const exo = catalogue.exo(p.exoId)
           return (
-            <div key={p.exoId + i} className="exo-ligne">
+            <div
+              key={p.exoId + i}
+              className={
+                'exo-ligne' +
+                (glisse?.de === i ? ' glisse' : '') +
+                (glisse && glisse.vers === i && glisse.vers !== glisse.de && glisse.vers !== glisse.de + 1 ? ' depot-avant' : '') +
+                (glisse && i === m.exercices.length - 1 && glisse.vers === m.exercices.length && glisse.de !== i ? ' depot-apres' : '')
+              }
+            >
+              <button
+                className="poignee"
+                aria-label={`Déplacer ${exo.nom}`}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId)
+                  setGlisse({ de: i, vers: i })
+                }}
+                onPointerMove={(e) => {
+                  if (!glisse) return
+                  // Défilement automatique près des bords de l'écran
+                  if (e.clientY < 90) window.scrollBy(0, -12)
+                  else if (e.clientY > innerHeight - 110) window.scrollBy(0, 12)
+                  setGlisse({ ...glisse, vers: positionSous(e.clientY) })
+                }}
+                onPointerUp={() => {
+                  if (glisse) deposer(glisse.de, glisse.vers)
+                  setGlisse(null)
+                }}
+                onPointerCancel={() => setGlisse(null)}
+              >
+                ⠿
+              </button>
               <button className="texte" onClick={() => setEditIdx(i)}>
                 <strong>
                   {i + 1}. {exo.nom}
@@ -590,18 +634,14 @@ function Editeur({
                 <div className="faible">{resumePlan(exo, p)}</div>
               </button>
               <BoutonInfos onClick={() => setInfos(exo)} />
-              <button className="icone" disabled={i === 0} onClick={() => deplacer(i, -1)} aria-label="Monter">
-                ↑
-              </button>
-              <button className="icone" disabled={i === m.exercices.length - 1} onClick={() => deplacer(i, 1)} aria-label="Descendre">
-                ↓
-              </button>
               <button className="icone" onClick={async () => (await confirmer(`Retirer « ${exo.nom} » de la séance ?`, { oui: 'Retirer', danger: true })) && maj((x) => x.exercices.splice(i, 1))} aria-label="Retirer">
                 ✕
               </button>
             </div>
           )
         })}
+        </div>
+        {m.exercices.length > 1 && <div className="faible" style={{ marginTop: 6 }}>Pour changer l’ordre, fais glisser un exercice par sa poignée ⠿.</div>}
         <button className="btn plein" style={{ marginTop: 12 }} onClick={() => setChoix(true)}>
           + Ajouter un exercice
         </button>
@@ -679,6 +719,43 @@ function Editeur({
           onValider={(p) => {
             maj((x) => (x.exercices[editIdx] = p))
             setEditIdx(null)
+          }}
+          onSuivant={
+            editIdx < m.exercices.length - 1
+              ? (p) => {
+                  maj((x) => (x.exercices[editIdx] = p))
+                  setEditIdx(editIdx + 1)
+                }
+              : undefined
+          }
+          onRemplacer={(p) => {
+            maj((x) => (x.exercices[editIdx] = p))
+            setRemplace(editIdx)
+            setEditIdx(null)
+          }}
+        />
+      )}
+      {remplace !== null && m.exercices[remplace] && (
+        <ChoixExo
+          catalogue={catalogue}
+          titre={`Remplacer ${catalogue.exo(m.exercices[remplace].exoId).nom}`}
+          muscle={catalogue.exo(m.exercices[remplace].exoId).muscle}
+          exclure={m.exercices.map((e) => e.exoId)}
+          onFermer={() => setRemplace(null)}
+          onChoix={(id) => {
+            // Même plan (séries, reps, RPE, repos) ; charges et échauffements repartent de zéro (autre machine).
+            maj((x) => {
+              const ancien = x.exercices[remplace]
+              x.exercices[remplace] = {
+                ...ancien,
+                exoId: id,
+                charge: null,
+                chauffes: [],
+                series: ancien.series.map(({ charge: _c, ...s }) => s),
+              }
+            })
+            setEditIdx(remplace)
+            setRemplace(null)
           }}
         />
       )}

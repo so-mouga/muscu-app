@@ -31,7 +31,7 @@ export default function FormActivite({ initial, onFermer }: { initial?: Activite
   }
 
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond">
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <h2>{initial ? 'Modifier l’activité' : 'Autre activité'}</h2>
         <div className="chips">

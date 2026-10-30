@@ -2164,3 +2164,23 @@ button.pastille.cliquable {
   padding: 6px 0 0;
   border-top: 1px solid var(--bord);
 }
+/* Glisser-déposer des exercices d'une séance */
+.poignee {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 44px;
+  background: none;
+  color: var(--texte-3);
+  font-size: 20px;
+  touch-action: none;
+  cursor: grab;
+}
+.exo-ligne.glisse {
+  opacity: 0.45;
+}
+.exo-ligne.depot-avant {
+  box-shadow: 0 -3px 0 var(--accent);
+}
+.exo-ligne.depot-apres {
+  box-shadow: 0 3px 0 var(--accent);
+}
