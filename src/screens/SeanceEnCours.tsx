@@ -10,13 +10,14 @@ import Interrupteur from '../components/Interrupteur'
 import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
-import { debloquerSon, ecranAllume } from '../lib/appareil'
-import { volumeParMuscle, calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
+import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
+import { ecartSerie, lireChauffe, volumeParMuscle, calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { cibles, suggestionDeload } from '../lib/cycle'
 import { hausse, pareil, seancesIdentiques, suggestionPour, type Suggestion } from '../lib/progression'
-import type { Objectif, Reglage, Seance, Serie } from '../types'
+import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
+import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
@@ -81,6 +82,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [saisie, setSaisie] = useState(false)
   /** Plein écran : série en cours de correction. */
   const [corrige, setCorrige] = useState<string | null>(null)
+  const reglageSon = useLiveQuery(() => db.reglages.get('sonValidation'), [])
+  /** Fenêtre « suite de la séance » en plein écran. */
+  const [suite, setSuite] = useState(false)
+  const sonValidation = reglageSon?.valeur !== false
   /** Fiche d'exécution ouverte depuis le plein écran. */
   const [infos, setInfos] = useState<string | null>(null)
   // Barre des exercices : dégradé à droite tant qu'il reste des exercices cachés.
@@ -195,6 +200,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   const valider = (s: Serie, repos: number) => {
     debloquerSon()
+    // Signal : mieux que la même série la dernière fois, ou fin de l'exercice (on change de machine).
+    {
+      const k = seance.series.filter((x) => x.exoId === s.exoId).length
+      const i = plans.findIndex((p) => p.exoId === s.exoId)
+      const avantSerie = seance.deload ? undefined : historiqueDe(terminees, s.exoId)[0]?.[k]
+      const fini = i >= 0 && k + 1 >= totalDe(i)
+      signalSerie(fini ? 'finExercice' : avantSerie && ecartSerie(s, avantSerie)?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation)
+    }
     // Verrou levé quand la série est écrite (voir plus haut), au pire après 8 s.
     setVerrou(true)
     setTimeout(() => setVerrou(false), 8000)
@@ -377,11 +390,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       </div>
       <div className="focus-boutons">
-        <button className="btn petit" onClick={() => setFocus(false)}>
+        <button className="btn petit" onClick={() => (enCours >= 0 && setIdx(enCours), setFocus(false))}>
           ⌄ Réduire
         </button>
         {enCours >= 0 && (
-          <button className="btn petit" onClick={() => (setFocus(false), setIdx(enCours), setMachinePrise(true))}>
+          <button className="btn petit" onClick={() => (setIdx(enCours), setMachinePrise(true))}>
             Machine prise
           </button>
         )}
@@ -392,15 +405,75 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     </div>
   )
 
+  // Fenêtres communes à la vue normale et au plein écran (Machine prise, remplacement, lien d'équivalents).
+  const fenetres = (
+    <>
+      {machinePrise && plan && (
+        <MachinePrise
+          nom={exos[idx].nom}
+          entame={nbFaites(plan.exoId) > 0}
+          autres={plans
+            .map((_, j) => j)
+            .filter((j) => j !== idx && !estPasse(j) && nbFaites(plans[j].exoId) < totalDe(j))
+            .map((j) => ({ i: j, nom: exos[j].nom, entame: nbFaites(plans[j].exoId) > 0 }))}
+          onEchanger={(j) => echanger(idx, j)}
+          onRemplacer={() => (setMachinePrise(false), setChoix({ mode: 'remplacer', i: idx }))}
+          onPasser={() => passer(idx)}
+          onFermer={() => setMachinePrise(false)}
+        />
+      )}
+      {choix && (
+        <ChoixExo
+          catalogue={catalogue}
+          titre={choix.mode === 'remplacer' ? `Remplacer ${exos[choix.i].nom}` : 'Ajouter un exercice'}
+          muscle={choix.mode === 'remplacer' ? exos[choix.i].muscle : undefined}
+          equivalents={choix.mode === 'remplacer' ? equivalents[plans[choix.i].exoId] : undefined}
+          exclure={plans.map((p) => p.exoId)}
+          onChoix={choisir}
+          onFermer={() => setChoix(null)}
+        />
+      )}
+      {lien && (
+        <div className="modal-fond" onClick={() => setLien(null)}>
+          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+            <h2>Relier ces deux exercices ?</h2>
+            <div>
+              <strong>{catalogue.exo(lien.a).nom}</strong> ⇄ <strong>{catalogue.exo(lien.b).nom}</strong>
+            </div>
+            <div className="faible">
+              La prochaine fois que l’un est pris, l’autre te sera proposé en premier, et tu verras ta dernière perf sur l’un la première fois que tu fais
+              l’autre. Chacun garde sa propre progression.
+            </div>
+            <button
+              className="btn primaire grand"
+              onClick={() => {
+                void modifierEquivalents((eq) => relies(eq, lien.a, lien.b))
+                setLien(null)
+              }}
+            >
+              Relier
+            </button>
+            <button className="btn discret plein" onClick={() => setLien(null)}>
+              Pas cette fois
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+
   if (focus) {
     const derniereInfo = (() => {
       if (!derniereSerie) return null
       const i = plans.findIndex((p) => p.exoId === derniereSerie.exoId)
       if (i < 0) return null
       const k = seance.series.filter((x) => x.exoId === derniereSerie.exoId).indexOf(derniereSerie)
-      const avant = historiqueDe(terminees, derniereSerie.exoId)[0]?.[k]
+      const avant = seance.deload ? undefined : historiqueDe(terminees, derniereSerie.exoId)[0]?.[k]
+      const e = avant && ecartSerie(derniereSerie, avant, exos[i])
+      const mieux = e?.sens === 'mieux'
       return (
-        <div className="focus-bloc">
+        <div className={'focus-bloc' + (mieux ? ' mieux' : '')}>
+          {mieux && <div className="mieux-titre">↑ {e!.texte} vs la dernière fois 💪</div>}
           <div className="ligne entre">
             <span className="faible">Tu viens de faire · {exos[i].nom}</span>
             <button className="btn discret petit" onClick={() => setCorrige(derniereSerie.id)}>
@@ -411,10 +484,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             <strong>
               S{k + 1} {serieTexte(exos[i], derniereSerie)}
             </strong>
-            {avant && <Ecart s={derniereSerie} avant={avant} exo={exos[i]} />}
+            {avant && !mieux && <Ecart s={derniereSerie} avant={avant} exo={exos[i]} />}
           </div>
         </div>
       )
+    })()
+    // L'exercice qu'on vient de finir, quand la suite change de machine : on le signale clairement.
+    const exoFini = (() => {
+      if (!derniereSerie || enCours < 0) return null
+      const i = plans.findIndex((p) => p.exoId === derniereSerie.exoId)
+      return i >= 0 && i !== enCours && nbFaites(plans[i].exoId) >= totalDe(i) ? exos[i].nom : null
     })()
     const prochaine = (() => {
       if (enCours < 0) return null
@@ -425,8 +504,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
       const plus = hausse(exo, suggestions[enCours], historiqueDe(terminees, p.exoId)[0], n)
       return (
-        <div className="focus-bloc prochaine-grand">
-          <div className="faible">Prochaine série</div>
+        <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
+          {exoFini ? <div className="nouvel-exo-titre">✓ {exoFini} terminé · exercice suivant</div> : <div className="faible">Prochaine série</div>}
           <div className="ligne entre">
             <h2>{exo.nom}</h2>
             <BoutonInfos onClick={() => setInfos(exo.id)} />
@@ -435,12 +514,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             <span className="pastille accent">
               Série {n + 1}/{t}
             </span>
-            {p.finisseur && n === t - 1 && <span className="pastille fin">★ finisseur</span>}
+            {p.finisseur && n === t - 1 && <span className="pastille fin">★ {FINISSEURS[typeFinisseur(p)].nom}</span>}
           </div>
+          <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} />
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand">🔥 ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
-          {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
+          {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
           {(p.note || exo.notes) && <div className="faible">ℹ️ {p.note ?? exo.notes}</div>}
         </div>
       )
@@ -482,9 +562,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           <>
             {derniereInfo}
             {prochaine}
-            {enCours >= 0 && (
-              <button className="btn plein" onClick={() => setSaisie(true)}>
-                Voir la série · valider maintenant ›
+            {plans.some((pl, j) => j !== enCours && !estPasse(j) && nbFaites(pl.exoId) < totalDe(j)) && (
+              <button className="btn discret plein" onClick={() => setSuite(true)}>
+                Voir la suite de la séance ›
               </button>
             )}
           </>
@@ -503,17 +583,18 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   <div style={{ minWidth: 0 }}>
                     <div className="faible">
                       Série {n + 1}/{t}
-                      {p.finisseur && n === t - 1 ? ' · ★ finisseur' : ''}
+                      {p.finisseur && n === t - 1 ? ` · ★ ${FINISSEURS[typeFinisseur(p)].nom}` : ''}
                     </div>
                     <h2>{exo.nom}</h2>
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
+                <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} />
+                {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
                 <div>
                   <strong className="cible-focus">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</strong>
                   {plus && <span className="badge-hausse">↑ {plus}</span>}
                   {derniereFois?.[n] && <div className="faible">Dernière fois : {serieTexte(exo, derniereFois[n])}</div>}
-                  {n === 0 && p.chauffes.length > 0 && <div className="faible">Échauffement : {p.chauffes.join(' · ')}</div>}
                   {noteAvant(p.exoId) && !seance.notes[p.exoId] && <div className="faible">📝 La dernière fois : {noteAvant(p.exoId)}</div>}
                 </div>
                 <Editeur
@@ -541,6 +622,15 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               Terminer la séance
             </button>
           </div>
+        )}
+        {fenetres}
+        {suite && (
+          <SuiteSeance
+            exos={plans
+              .map((pl, j) => ({ j, nom: exos[j].nom, faites: nbFaites(pl.exoId), total: totalDe(j), passe: estPasse(j) }))
+              .filter((x) => x.j !== enCours && !x.passe && x.faites < x.total)}
+            onFermer={() => setSuite(false)}
+          />
         )}
         {toast && <div className="toast">{toast}</div>}
         {objectifDe !== null && plans[objectifDe] && (
@@ -637,57 +727,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )}
 
-      {machinePrise && plan && (
-        <MachinePrise
-          nom={exos[idx].nom}
-          entame={nbFaites(plan.exoId) > 0}
-          autres={plans
-            .map((_, j) => j)
-            .filter((j) => j !== idx && !estPasse(j) && nbFaites(plans[j].exoId) < totalDe(j))
-            .map((j) => ({ i: j, nom: exos[j].nom, entame: nbFaites(plans[j].exoId) > 0 }))}
-          onEchanger={(j) => echanger(idx, j)}
-          onRemplacer={() => (setMachinePrise(false), setChoix({ mode: 'remplacer', i: idx }))}
-          onPasser={() => passer(idx)}
-          onFermer={() => setMachinePrise(false)}
-        />
-      )}
-      {choix && (
-        <ChoixExo
-          catalogue={catalogue}
-          titre={choix.mode === 'remplacer' ? `Remplacer ${exos[choix.i].nom}` : 'Ajouter un exercice'}
-          muscle={choix.mode === 'remplacer' ? exos[choix.i].muscle : undefined}
-          equivalents={choix.mode === 'remplacer' ? equivalents[plans[choix.i].exoId] : undefined}
-          exclure={plans.map((p) => p.exoId)}
-          onChoix={choisir}
-          onFermer={() => setChoix(null)}
-        />
-      )}
-      {lien && (
-        <div className="modal-fond" onClick={() => setLien(null)}>
-          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-            <h2>Relier ces deux exercices ?</h2>
-            <div>
-              <strong>{catalogue.exo(lien.a).nom}</strong> ⇄ <strong>{catalogue.exo(lien.b).nom}</strong>
-            </div>
-            <div className="faible">
-              La prochaine fois que l’un est pris, l’autre te sera proposé en premier, et tu verras ta dernière perf sur l’un la première fois que tu fais
-              l’autre. Chacun garde sa propre progression.
-            </div>
-            <button
-              className="btn primaire grand"
-              onClick={() => {
-                void modifierEquivalents((eq) => relies(eq, lien.a, lien.b))
-                setLien(null)
-              }}
-            >
-              Relier
-            </button>
-            <button className="btn discret plein" onClick={() => setLien(null)}>
-              Pas cette fois
-            </button>
-          </div>
-        </div>
-      )}
+      {fenetres}
       {toast && <div className="toast">{toast}</div>}
       {objectifDe !== null && plans[objectifDe] && (
         <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />
@@ -960,6 +1000,77 @@ function FinSeance({
       <button className="btn discret danger plein" style={{ marginTop: 12, marginBottom: 24 }} onClick={abandonner}>
         {seance.series.length ? 'Supprimer la séance' : 'Annuler la séance'}
       </button>
+    </div>
+  )
+}
+
+/** Toutes les séries de l'exercice sur une ligne : faites (✓), en cours (→), à venir. */
+function LigneSeries({ exo, faites, total, cible }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string }) {
+  return (
+    <div className="ligne-series">
+      {Array.from({ length: total }, (_, k) => {
+        const f = faites[k]
+        return (
+          <span key={k} className={f ? 'faite' : k === faites.length ? 'courante' : ''}>
+            S{k + 1} {f ? `${chargeQte(exo, f.charge, f.reps)} ✓` : k === faites.length ? `→ ${cible(k).split(' · ')[0]}` : cible(k).split(' · ')[0]}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Échauffements de l'exercice, cochables directement (plein écran). */
+function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPlan; exo: Exercice }) {
+  if (!plan.chauffes.length) return null
+  return (
+    <div>
+      {plan.chauffes.map((c, i) => {
+        const cle = `${exo.id}:${i}`
+        const fait = !!seance.chauffes[cle]
+        const l = lireChauffe(c)
+        return (
+          <button
+            key={cle}
+            className={'serie-chauffe' + (fait ? ' fait' : '')}
+            onClick={() =>
+              void majSeance(seance.id, (x) => {
+                x.chauffes[cle] = !fait
+              })
+            }
+          >
+            <span className="case">{fait ? '✓' : ''}</span>
+            <span>
+              <span className="faible">Échauffement {i + 1}</span> {l ? `${chargeQte(exo, l.charge, l.reps)}` : c}
+            </span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Les exercices qui restent, en plein écran, sans quitter le repos. */
+function SuiteSeance({ exos, onFermer }: { exos: { j: number; nom: string; faites: number; total: number }[]; onFermer: () => void }) {
+  useRetour(true, onFermer)
+  return (
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <h2>Suite de la séance</h2>
+        {exos.map((x) => (
+          <div key={x.j} className="ligne-mesure">
+            <span>
+              {x.j + 1}. {x.nom}
+            </span>
+            <span className="faible">
+              {x.faites ? `${x.faites}/${x.total} séries` : `${x.total} série${x.total > 1 ? 's' : ''}`}
+            </span>
+          </div>
+        ))}
+        <button className="btn discret plein" onClick={onFermer}>
+          Fermer
+        </button>
+      </div>
     </div>
   )
 }

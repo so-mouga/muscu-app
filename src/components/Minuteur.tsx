@@ -77,9 +77,12 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
     <>
       {!fini && (
         <>
-          <button className="btn" onClick={basculerPause} aria-label={enPause ? 'Reprendre le repos' : 'Mettre en pause'}>
-            {enPause ? '▶' : '⏸'}
-          </button>
+          {/* En plein écran, la pause est sur le cercle lui-même. */}
+          {variante !== 'grand' && (
+            <button className="btn" onClick={basculerPause} aria-label={enPause ? 'Reprendre le repos' : 'Mettre en pause'}>
+              {enPause ? '▶' : '⏸'}
+            </button>
+          )}
           <button className="btn" onClick={() => decaler(-15000)}>
             −15
           </button>
@@ -101,10 +104,13 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
   if (variante === 'grand') {
     return (
       <div className={'minuteur grand' + (fini ? ' fini' : '') + (enPause ? ' en-pause' : '')}>
-        <Anneau valeur={part} taille={210} epaisseur={10}>
-          <div className="temps-grand">{temps}</div>
-          <div className="libelle">{libelle}</div>
-        </Anneau>
+        <button type="button" className="cercle-pause" onClick={() => !fini && basculerPause()} aria-label={enPause ? 'Reprendre le repos' : 'Mettre le repos en pause'}>
+          <Anneau valeur={part} taille={210} epaisseur={10}>
+            <div className="temps-grand">{temps}</div>
+            <div className="libelle">{fini ? libelle : enPause ? '▶ Reprendre' : libelle}</div>
+            {!fini && <div className="astuce-pause">{enPause ? 'touche le cercle' : '⏸ touche = pause'}</div>}
+          </Anneau>
+        </button>
         <div className="ligne boutons-grand">{boutons}</div>
       </div>
     )

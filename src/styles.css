@@ -2278,3 +2278,53 @@ body.sans-onglets .barre-demarrer {
 .page-dessus .barre-demarrer {
   bottom: env(safe-area-inset-bottom);
 }
+.cercle-pause {
+  background: none;
+  padding: 0;
+  color: inherit;
+  border-radius: 50%;
+}
+/* Plein écran : série meilleure que la dernière fois, changement d'exercice, séries de l'exercice */
+.focus-bloc.mieux {
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+}
+.mieux-titre {
+  color: var(--ok);
+  font-weight: 800;
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+.focus-bloc.nouvel-exo {
+  border-color: var(--accent);
+}
+.nouvel-exo-titre {
+  color: var(--accent);
+  font-weight: 800;
+}
+.ligne-series {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 13px;
+}
+.ligne-series > span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--texte-3);
+  white-space: nowrap;
+}
+.ligne-series > span.faite {
+  color: var(--ok);
+}
+.ligne-series > span.courante {
+  color: var(--accent-texte);
+  background: var(--accent);
+  font-weight: 700;
+}
+.astuce-pause {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.55;
+}

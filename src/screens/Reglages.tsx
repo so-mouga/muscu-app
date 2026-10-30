@@ -6,9 +6,10 @@ import { useRetour } from '../lib/nav'
 import { CATEGORIES, compter, exporter as exporterDonnees, importer as importerDonnees, lire, type Categorie, type Fichier } from '../lib/sauvegarde'
 import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
 import { BIPS_DEFAUT } from '../components/Minuteur'
-import { debloquerSon, tic } from '../lib/appareil'
+import { debloquerSon, signalSerie, tic } from '../lib/appareil'
 import { confirmer } from '../components/Dialogues'
 import { ListeLexique } from '../components/Lexique'
+import Interrupteur from '../components/Interrupteur'
 
 function telecharger(nom: string, contenu: string, type: string) {
   const url = URL.createObjectURL(new Blob([contenu], { type }))
@@ -37,6 +38,7 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
   const pasBoutons = useLiveQuery(() => db.reglages.get('pasBoutons'), [])
   const pasActuel = typeof pasBoutons?.valeur === 'number' ? pasBoutons.valeur : PAS_BOUTONS_DEFAUT
   const bipsReglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
+  const sonValidation = useLiveQuery(() => db.reglages.get('sonValidation'), [])
   const bips = typeof bipsReglage?.valeur === 'number' ? bipsReglage.valeur : BIPS_DEFAUT
   const [persistant, setPersistant] = useState<boolean | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -129,6 +131,19 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="carte pile">
+        <Interrupteur
+          on={sonValidation?.valeur !== false}
+          onChange={(v) => {
+            void setReglage('sonValidation', v)
+            debloquerSon()
+            if (v) signalSerie('mieux')
+          }}
+          label="Son à la validation d’une série"
+          aide="Un petit clic ; deux notes quand tu fais mieux que la dernière fois ; trois quand tu passes à l’exercice suivant. La vibration reste dans tous les cas."
+        />
       </div>
 
       <div className="carte pile">

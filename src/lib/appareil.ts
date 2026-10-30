@@ -40,6 +40,22 @@ export function tic(dernier = false) {
   bip(0, dernier ? 990 : 660, 0.09)
 }
 
+/**
+ * Signal à la validation d'une série : un petit clic ; deux notes montantes si la série bat la
+ * dernière fois ; trois notes et une double vibration quand l'exercice est terminé.
+ */
+export function signalSerie(genre: 'normale' | 'mieux' | 'finExercice', son = true) {
+  try {
+    navigator.vibrate?.(genre === 'finExercice' ? [70, 60, 70] : genre === 'mieux' ? [40, 40, 80] : 40)
+  } catch {
+    /* pas de vibration */
+  }
+  if (!son) return
+  if (genre === 'normale') bip(0, 520, 0.05)
+  else if (genre === 'mieux') (bip(0, 660, 0.08), bip(0.1, 990, 0.12))
+  else (bip(0, 523, 0.09), bip(0.11, 659, 0.09), bip(0.22, 784, 0.16))
+}
+
 export function vibrer(ms = 20) {
   try {
     navigator.vibrate?.(ms)

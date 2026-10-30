@@ -73,7 +73,8 @@ export function chargeProposee(exo: Exercice, sugg: Suggestion, faites: Serie[],
 export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number, faites?: Serie[]): string {
   const j = Math.min(n, sugg.charges.length - 1)
   const p = plan.series[Math.min(n, plan.series.length - 1)]
-  const charge = faites ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
+  // Charge encore inconnue (machine jamais faite, rien de saisi avant) : « à calibrer », pas « 0 kg ».
+  const charge = faites && !(sugg.charges[j] === null && !faites[n - 1]) ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
   return `${chargeQte(exo, charge, sugg.reps[j] ?? p.repsMin)} · RPE ${kg(p.rpe)}`
 }
 
@@ -467,7 +468,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       if (performance.now() - derniereValidation < 1500) return
       derniereValidation = performance.now()
     }
-    vibrer(40)
+    // Nouvelle série : le signal (son, vibration) est donné par la séance, qui sait si c'est mieux ou la fin de l'exercice.
+    if (edition) vibrer(40)
     // Nouvelle série : le repos démarre et le bouton se verrouille dès l'appui, sans attendre
     // l'écriture (parfois lente sur téléphone) qui laissait le bouton actif.
     if (!edition) onFini(s)
