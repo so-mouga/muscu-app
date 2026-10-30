@@ -110,10 +110,25 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const reposTraite = useRef<number | null>(null)
 
   const plans = seance.exercices
-  const idx = Math.max(0, Math.min(idxBrut, plans.length - 1))
+  const avecEchauffement = !!seance.echauffement?.ids.length
+  const idx = idxBrut === -1 && avecEchauffement ? -1 : Math.max(0, Math.min(idxBrut, plans.length - 1))
+  const surEchauffement = idx === -1 || echauffementActif(seance)
+
+  // Quand l'échauffement se termine ou qu'une série est faite, revenir sur le 1er exercice.
+  useEffect(() => {
+    if (idxBrut === -1 && !echauffementActif(seance)) {
+      setIdxEtat(0)
+      range(`idx:${seance.id}`, 0)
+    }
+  }, [idxBrut, seance])
 
   const setIdx = (i: number) => {
-    if (i === idx) return
+    if (i === idx && !(i >= 0 && surEchauffement)) return
+    if (i >= 0 && echauffementActif(seance)) {
+      void majSeance(seance.id, (s) => {
+        if (s.echauffement) s.echauffement.fini = true
+      })
+    }
     transition(() => setIdxEtat(i), i > idx ? 'carte-avant' : 'carte-arriere')
     range(`idx:${seance.id}`, i)
     window.scrollTo({ top: 0 })
@@ -129,6 +144,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   useRetour(true, () => {
     if (fin) ouvrirFin(false)
     else if (focus) setFocus(false)
+    else if (idx === -1) setIdx(0)
     else if (idx > 0) setIdx(idx - 1)
     return 'rester'
   })
@@ -355,15 +371,25 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const derniereSerie = seance.series.reduce<Serie | null>((a, x) => (!a || x.heure > a.heure ? x : a), null)
   const pastilles = (
     <div className="pills" ref={pills} onScroll={marquerDebord}>
+      {avecEchauffement && (
+        <button
+          className={(surEchauffement ? 'actif ' : '') + (!echauffementActif(seance) ? 'fait ' : 'en-cours')}
+          onClick={() => setIdx(-1)}
+          aria-label="Échauffement"
+        >
+          🔥
+        </button>
+      )}
       {plans.map((p, i) => {
         const passe = estPasse(i)
         const fait = !passe && nbFaites(p.exoId) >= totalDe(i)
+        const enCoursExo = !echauffementActif(seance) && i === enCours
         return (
           <button
             key={p.exoId + i}
-            className={(i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (i === enCours ? 'en-cours' : '')}
+            className={(!surEchauffement && i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (enCoursExo ? 'en-cours' : '')}
             onClick={() => setIdx(i)}
-            aria-label={i === enCours ? `Exercice ${i + 1}, en cours` : undefined}
+            aria-label={enCoursExo ? `Exercice ${i + 1}, en cours` : undefined}
           >
             {fait ? '✓' : passe ? '–' : i + 1}
           </button>
@@ -569,8 +595,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               </button>
             )}
           </>
-        ) : echauffementActif(seance) ? (
-          <Echauffement seance={seance} />
+        ) : surEchauffement ? (
+          <Echauffement seance={seance} onPasser={() => setIdx(0)} />
         ) : enCours >= 0 ? (
           // Saisie en plein écran : l'essentiel seulement (exercice, cible, dernière fois, saisie, Valider).
           (() => {
@@ -666,7 +692,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
         {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
         {pastilles}
-        {enCours >= 0 && enCours !== idx && (
+        {!surEchauffement && enCours >= 0 && enCours !== idx && (
           <div className="legende-pills">
             <span>
               <i style={{ background: 'var(--accent)' }} />
@@ -680,8 +706,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         )}
       </div>
 
-      {echauffementActif(seance) && <Echauffement seance={seance} />}
-      {plan ? (
+      {surEchauffement ? (
+        <Echauffement seance={seance} onPasser={() => setIdx(0)} />
+      ) : plan ? (
         <CarteExo
           key={plan.exoId + idx}
           seance={seance}
@@ -714,9 +741,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )}
 
-      {plan && (
+      {!surEchauffement && plan && (
         <div className="ligne entre" style={{ marginBottom: 110 }}>
-          <button className="btn" disabled={idx === 0} onClick={() => setIdx(idx - 1)}>
+          <button className="btn" disabled={idx === 0 && !avecEchauffement} onClick={() => setIdx(idx - 1)}>
             ← Précédent
           </button>
           {idx < plans.length - 1 ? (

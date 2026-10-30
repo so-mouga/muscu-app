@@ -28,7 +28,7 @@ const minutesDe = (ids: string[], liste: MouvementEchauffement[]) => minutes(Mat
 export const echauffementActif = (s: Seance) => !!s.echauffement?.ids.length && !s.echauffement.fini && s.series.length === 0
 
 /** 1re étape de la séance : les mouvements à cocher, avec dessin et consignes. */
-export default function Echauffement({ seance }: { seance: Seance }) {
+export default function Echauffement({ seance, onPasser }: { seance: Seance; onPasser?: () => void }) {
   const [ouvert, setOuvert] = useState<string | null>(null)
   const liste = useMouvements()
   const e = seance.echauffement!
@@ -39,10 +39,12 @@ export default function Echauffement({ seance }: { seance: Seance }) {
       const f = s.echauffement!.faits
       s.echauffement!.faits = f.includes(id) ? f.filter((x) => x !== id) : [...f, id]
     })
-  const finir = () =>
+  const finir = () => {
     void majSeance(seance.id, (s) => {
       s.echauffement!.fini = true
     })
+    onPasser?.()
+  }
 
   return (
     <div className="carte pile echauffement">

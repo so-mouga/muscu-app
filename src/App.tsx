@@ -29,9 +29,9 @@ export default function App() {
     try {
       // Anciens noms : « seances » = Journal ; Mesures, Photos et Poids sont regroupés dans Corps.
       const v = localStorage.getItem('vueProgression')
-      return v === 'seances' || !v ? 'journal' : v === 'mesures' || v === 'photos' || v === 'poids' ? 'corps' : (v as VueProgression)
+      return !v ? 'bilan' : v === 'seances' ? 'journal' : v === 'mesures' || v === 'photos' || v === 'poids' ? 'corps' : (v as VueProgression)
     } catch {
-      return 'journal'
+      return 'bilan'
     }
   })
   const setVue = (v: VueProgression) => {

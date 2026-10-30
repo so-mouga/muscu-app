@@ -181,9 +181,11 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
       <button className="btn primaire grand" disabled={!nom.trim() || !muscle || chargement} onClick={enregistrer}>
         {initial ? 'ENREGISTRER' : 'CRÉER'}
       </button>
-      <button type="button" className="btn discret plein" onClick={onAnnuler}>
-        Annuler
-      </button>
+      {!initial && (
+        <button type="button" className="btn discret plein" onClick={onAnnuler}>
+          Annuler
+        </button>
+      )}
     </div>
   )
   if (!fenetre) return contenu
