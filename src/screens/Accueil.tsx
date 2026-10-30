@@ -2,19 +2,17 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { dateISO, duree, dureeTexte, jourSemaine, lundi, volumeParMuscle, volumePrevu } from '../lib/calc'
+import { dateISO, duree, dureeTexte, jourSemaine, lundi } from '../lib/calc'
 import { creneauxFaits, dureeReelle } from '../lib/historique'
 import { aBattre, suggestionPour } from '../lib/progression'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
-import SilhouetteVolume from '../components/SilhouetteVolume'
-import VolumeMuscles from '../components/VolumeMuscles'
 import FormActivite from '../components/FormActivite'
 import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
-import { cibles, etatCycle, planDeload } from '../lib/cycle'
+import { etatCycle, planDeload } from '../lib/cycle'
 import Apercu from './Apercu'
-import type { Muscle, Programme, SeanceModele } from '../types'
+import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import { echauffementDe } from '../data/echauffements'
 
@@ -75,9 +73,6 @@ export default function Accueil({
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   const [activite, setActivite] = useState(false)
-  const [detailVolume, setDetailVolume] = useState(false)
-  const [vueVolume, setVueVolume] = useState<'fait' | 'prevu'>('fait')
-  const [muscleChoisi, setMuscleChoisi] = useState<Muscle | null>(null)
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
     try {
@@ -140,8 +135,6 @@ export default function Accueil({
   const horsProgramme = catalogue.modeles.filter((m) => !dansUnProgramme.has(m.id))
   const groupeOuvert = ouvert ?? actif.id
 
-  const volume = volumeParMuscle(semaine, catalogue.exercices)
-  const volumeAffiche = vueVolume === 'fait' ? volume : volumePrevu(planning.map((e) => e.modele), catalogue.exercices)
   const derniere = terminees?.reduce<(typeof terminees)[number] | undefined>((a, s) => (!a || s.debut > a.debut ? s : a), undefined)
 
   // Exercices où l'objectif dépasse la dernière fois : « à battre ».
@@ -242,28 +235,13 @@ export default function Accueil({
           </button>
         </div>
       )}
-      {exportVieux && !masque('export') && (
+      { exportVieux && !masque('export') && (
         <div className="rappel-ligne">
           <span>💾 Exporte tes données (Réglages) : elles ne sont que sur ce téléphone.</span>
           <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
             ✕
           </button>
         </div>
-      )}
-
-      {derniere && (
-        <button className="liste-btn" style={{ marginBottom: 12 }} onClick={() => onVoirSeance(derniere.id)}>
-          <span>
-            <span className="faible">Dernière séance</span>
-            <div>
-              <strong>{derniere.nom}</strong>{' '}
-              <span className="muted">
-                · {new Date(derniere.debut).toLocaleDateString('fr-FR', { weekday: 'long' })} · {duree(dureeReelle(derniere))}
-              </span>
-            </div>
-          </span>
-          <span className="muted">›</span>
-        </button>
       )}
 
       <div className="carte">
@@ -275,7 +253,7 @@ export default function Accueil({
             {semaine.length > planning.filter(faite).length && ` · +${semaine.length - planning.filter(faite).length} autre${semaine.length - planning.filter(faite).length > 1 ? 's' : ''}`}
           </span>
         </div>
-        <div className="ligne wrap" style={{ marginBottom: 14 }}>
+        <div className="ligne wrap">
           {planning.map((e) => (
             <button key={e.modele.id + e.jour} className={'pastille cliquable' + (faite(e) ? ' ok' : e.jour === jour ? ' accent' : '')} onClick={() => voir(e.modele)}>
               {JOURS[e.jour]} · {e.modele.nom} {faite(e) ? '✓' : ''}
@@ -287,36 +265,17 @@ export default function Accueil({
             </span>
           ))}
         </div>
-        {/* Fait (séries dures de la semaine) ou Prévu (ce que le programme donne sur une semaine) */}
-        <div className="ligne entre" style={{ marginTop: 4 }}>
-          <span className="faible">{vueVolume === 'fait' ? 'Séries dures faites cette semaine' : 'Séries dures prévues par ton programme'}</span>
-          <div className="chips mini-chips">
-            {(['fait', 'prevu'] as const).map((v) => (
-              <button key={v} className={vueVolume === v ? 'actif' : ''} onClick={() => setVueVolume(v)}>
-                {v === 'fait' ? 'Fait' : 'Prévu'}
-              </button>
-            ))}
-          </div>
-        </div>
-        <SilhouetteVolume
-          volume={volumeAffiche}
-          cibles={cibles(cycle, actif)}
-          choisi={muscleChoisi}
-          onChoisir={setMuscleChoisi}
-          quoi={vueVolume === 'fait' ? 'dures' : 'prévues'}
-        />
-        <button type="button" className="groupe-repli" onClick={() => setDetailVolume(!detailVolume)} aria-expanded={detailVolume}>
-          <span>Détail par muscle</span>
-          <span className="muted">{detailVolume ? '▾' : '▸'}</span>
-        </button>
-        {detailVolume && (
-          <>
-            <VolumeMuscles volume={volumeAffiche} cibles={cibles(cycle, actif)} actif={muscleChoisi} onChoix={(m) => setMuscleChoisi(m === muscleChoisi ? null : m)} />
-            <div className="faible">
-              Séries dures (RPE ≥ 7). Triceps et avant d’épaule : développés et dips comptés à 0,5. Les objectifs se règlent dans le programme (carte « Volume
-              par semaine »). Touche un muscle pour le voir sur la silhouette.
-            </div>
-          </>
+        {derniere && (
+          <button className="ligne-jour" style={{ marginTop: 12, paddingTop: 12, paddingBottom: 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }} onClick={() => onVoirSeance(derniere.id)}>
+            <span style={{ minWidth: 0 }}>
+              <span className="faible">Dernière séance · </span>
+              <strong>{derniere.nom}</strong>{' '}
+              <span className="faible">
+                · {new Date(derniere.debut).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · {duree(dureeReelle(derniere))}
+              </span>
+            </span>
+            <span className="muted">›</span>
+          </button>
         )}
       </div>
 
