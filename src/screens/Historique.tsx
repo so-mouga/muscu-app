@@ -388,6 +388,8 @@ function DetailSeance({
   onRetour: () => void
 }) {
   const [edition, setEdition] = useState<Serie | null>(null)
+  /** Exercice auquel on ajoute une série oubliée. */
+  const [ajout, setAjout] = useState<string | null>(null)
   useRetour(true, onRetour)
   const passes = (seance.passes ?? []).map((id) => catalogue.exo(id).nom)
 
@@ -425,7 +427,18 @@ function DetailSeance({
       <div className="faible" style={{ marginBottom: 10 }}>
         Comparé à la séance d’avant. Touche une série pour la corriger.
       </div>
-      <RecapExos seance={seance} avant={avant} reglages={reglages} catalogue={catalogue} onSerie={setEdition} />
+      <RecapExos
+        seance={seance}
+        avant={avant}
+        reglages={reglages}
+        catalogue={catalogue}
+        onSerie={setEdition}
+        basExo={(exo) => (
+          <button className="btn discret petit lien-action" onClick={() => setAjout(exo.id)}>
+            + Ajouter une série oubliée
+          </button>
+        )}
+      />
 
       <button className="btn discret danger plein" style={{ margin: '12px 0 24px' }} onClick={supprimer}>
         Supprimer cette séance
@@ -434,45 +447,53 @@ function DetailSeance({
       {edition && (
         <CorrectionSerie seance={seance} serie={edition} avant={avant} reglages={reglages} catalogue={catalogue} onFermer={() => setEdition(null)} />
       )}
+      {ajout && <CorrectionSerie seance={seance} exoId={ajout} avant={avant} reglages={reglages} catalogue={catalogue} onFermer={() => setAjout(null)} />}
     </div>
   )
 }
 
-/** Corriger une série d'une séance passée : la même saisie qu'en séance. */
+/** Corriger une série d'une séance passée, ou en ajouter une oubliée (`exoId` sans `serie`) : la même saisie qu'en séance. */
 function CorrectionSerie({
   seance,
   serie,
+  exoId,
   avant,
   reglages,
   catalogue,
   onFermer,
 }: {
   seance: Seance
-  serie: Serie
+  serie?: Serie
+  exoId?: string
   avant: Seance[]
   reglages: Reglage[]
   catalogue: Catalogue
   onFermer: () => void
 }) {
   useRetour(true, onFermer)
-  const exo = exoAvecReglages(catalogue.exo(serie.exoId), reglages)
-  const plan = seance.exercices.find((p) => p.exoId === serie.exoId) ?? planParDefaut(exo)
-  const faites = seance.series.filter((x) => x.exoId === serie.exoId)
+  const id = serie?.exoId ?? exoId!
+  const exo = exoAvecReglages(catalogue.exo(id), reglages)
+  const plan = seance.exercices.find((p) => p.exoId === id) ?? planParDefaut(exo)
+  const faites = seance.series.filter((x) => x.exoId === id)
+  // Série ajoutée : juste après la dernière de l'exercice, pour ne pas fausser les durées.
+  const heure = (faites[faites.length - 1]?.heure ?? seance.fin ?? seance.debut) + 60000
   return (
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="faible">
           {exo.nom} · {jourCourt(seance.date)}
         </div>
+        {!serie && <h3>Série oubliée · S{faites.length + 1}</h3>}
         <Editeur
           seance={seance}
           plan={plan}
           exo={exo}
           sugg={suggestionPour(exo, plan, avant)}
-          index={faites.findIndex((x) => x.id === serie.id)}
-          total={faites.length}
+          index={serie ? faites.findIndex((x) => x.id === serie.id) : faites.length}
+          total={serie ? faites.length : faites.length + 1}
           faites={faites}
           edition={serie}
+          heure={heure}
           reposRestant={0}
           verrou={false}
           onFini={onFermer}

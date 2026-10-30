@@ -2274,3 +2274,7 @@ body.sans-onglets .barre-demarrer {
   flex-direction: column;
   gap: 6px;
 }
+/* Saisie par-dessus un onglet : le bouton collé en bas ne garde pas l'écart de la barre d'onglets */
+.page-dessus .barre-demarrer {
+  bottom: env(safe-area-inset-bottom);
+}

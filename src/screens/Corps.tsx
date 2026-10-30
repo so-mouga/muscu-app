@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Courbe from '../components/Courbe'
 import Poids from '../components/Poids'
 import SilhouetteMesures from '../components/SilhouetteMesures'
@@ -42,6 +42,14 @@ export function OngletPoids() {
 function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: Mesure | 'nouvelle') => void }) {
   const [active, setActive] = useState('taille')
   const [cote, setCote] = useState<'g' | 'd'>('g')
+  const [voirPrises, setVoirPrises] = useState(false)
+  // Mesure choisie plus bas dans la page : on remonte jusqu'à sa carte pour qu'on voie le changement.
+  const carte = useRef<HTMLDivElement>(null)
+  const choisir = (id: string, c?: 'g' | 'd') => {
+    setActive(id)
+    if (c) setCote(c)
+    carte.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   const def = MESURES.find((m) => m.id === active)!
   const remplies = new Set(MESURES.filter((m) => clesDe(m).some((c) => mesures.some((x) => x.valeurs[c] !== undefined))).map((m) => m.id))
   // Côté affiché : celui choisi s'il a des valeurs, sinon l'autre.
@@ -57,22 +65,20 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
 
       <Tendances mesures={mesures} />
 
-      <div className="carte mesures-haut">
-        <SilhouetteMesures active={active} onChoix={setActive} remplies={remplies} />
-        <div className="pile" style={{ gap: 8, minWidth: 0 }}>
-          <div>
-            <div className="faible">{MESURES.indexOf(def) + 1}</div>
-            <h2>{def.nom}</h2>
+      <div className="carte" ref={carte} style={{ scrollMarginTop: 12 }}>
+        <div className="mesures-haut">
+          <SilhouetteMesures active={active} onChoix={(id) => setActive(id)} remplies={remplies} />
+          <div className="pile" style={{ gap: 8, minWidth: 0 }}>
+            <div>
+              <div className="faible">{MESURES.indexOf(def) + 1}</div>
+              <h2>{def.nom}</h2>
+            </div>
+            <div className="petit">{def.consigne}</div>
+            <ValeursMesure def={def} mesures={mesures} />
           </div>
-          <div className="petit">{def.consigne}</div>
-          <ValeursMesure def={def} mesures={mesures} />
         </div>
-      </div>
-
-      {points.length >= 2 && (
-        <div className="carte">
-          <div className="ligne entre">
-            <h3>{def.nom}</h3>
+        {points.length >= 2 && (
+          <div style={{ marginTop: 12 }}>
             {def.cotes && cles.every((c) => serie(mesures, c).length) && (
               <div className="chips">
                 {(['g', 'd'] as const).map((c) => (
@@ -82,16 +88,16 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
                 ))}
               </div>
             )}
+            <Courbe key={cleCourbe} points={points} format={cm} label={`Évolution : ${def.nom}`} />
           </div>
-          <Courbe key={cleCourbe} points={points} format={cm} label={`Évolution : ${def.nom}`} />
-        </div>
-      )}
+        )}
+      </div>
 
       {mesures.length > 0 && (
         <div className="carte">
           <h3>Depuis le début</h3>
           <div className="faible" style={{ margin: '4px 0 8px' }}>
-            Dernière valeur et écart avec la première prise. Un appui sur une ligne la montre sur la silhouette.
+            Dernière valeur et écart avec la première prise. Touche une ligne pour voir sa courbe.
           </div>
           {MESURES.filter((m) => remplies.has(m.id)).map((m) =>
             clesDe(m)
@@ -100,7 +106,7 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
                 const s = serie(mesures, c)
                 const d = s[s.length - 1].valeur - s[0].valeur
                 return (
-                  <button key={c} className={'ligne-mesure' + (m.id === active ? ' active' : '')} onClick={() => (setActive(m.id), c.endsWith('_d') ? setCote('d') : setCote('g'))}>
+                  <button key={c} className={'ligne-mesure' + (m.id === active ? ' active' : '')} onClick={() => choisir(m.id, c.endsWith('_d') ? 'd' : 'g')}>
                     <span>{nomCle(c)}</span>
                     <span>
                       <strong>{cm(s[s.length - 1].valeur)}</strong>
@@ -115,8 +121,13 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
 
       {mesures.length > 0 && (
         <div className="carte">
-          <h3>Prises</h3>
-          {[...mesures].reverse().map((m) => (
+          <button type="button" className="groupe-repli" onClick={() => setVoirPrises(!voirPrises)} aria-expanded={voirPrises}>
+            <span>
+              Prises <span className="faible">({mesures.length})</span>
+            </span>
+            <span className="muted">{voirPrises ? '▾' : '▸'}</span>
+          </button>
+          {voirPrises && [...mesures].reverse().map((m) => (
             <button key={m.date} className="ligne-mesure" onClick={() => onSaisir(m)}>
               <span>{dateCourte(m.date)}</span>
               <span className="faible">
@@ -267,22 +278,61 @@ function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; dern
 }
 
 function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
-  const points = [...pesees].reverse().map((p) => ({ date: p.date, valeur: p.poids }))
+  // Date de la pesée saisie : aujourd'hui, ou celle d'une ligne touchée dans la liste (correction).
+  const [date, setDate] = useState(dateISO())
+  const [jours, setJours] = useState(91)
+  const depuis = jours ? dateISO(new Date(Date.now() - jours * 86400000)) : ''
+  const points = [...pesees]
+    .reverse()
+    .filter((p) => p.date >= depuis)
+    .map((p) => ({ date: p.date, valeur: p.poids }))
+  const ecart = points.length >= 2 ? points[points.length - 1].valeur - points[0].valeur : null
   return (
     <>
-      <Poids pesees={pesees} aujourdhui={dateISO()} />
-      {points.length >= 2 && (
+      <Poids key={date} pesees={pesees} aujourdhui={date} onDate={setDate} />
+      {pesees.length >= 2 && (
         <div className="carte">
-          <h3>Évolution</h3>
-          <Courbe points={points} format={(v) => `${kg(v)} kg`} label="Évolution du poids" />
+          <div className="ligne entre">
+            <h3>Évolution</h3>
+            {ecart !== null && <strong>{signe(ecart).replace(/ $/, '')} kg</strong>}
+          </div>
+          <div className="chips" style={{ margin: '8px 0' }}>
+            {(
+              [
+                ['1 mois', 30],
+                ['3 mois', 91],
+                ['6 mois', 182],
+                ['Tout', 0],
+              ] as [string, number][]
+            ).map(([nom, j]) => (
+              <button key={nom} className={jours === j ? 'actif' : ''} onClick={() => setJours(j)}>
+                {nom}
+              </button>
+            ))}
+          </div>
+          {points.length >= 2 ? (
+            <Courbe key={jours} points={points} format={(v) => `${kg(v)} kg`} label="Évolution du poids" />
+          ) : (
+            <div className="faible">Pas assez de pesées sur cette période.</div>
+          )}
         </div>
       )}
       {pesees.length > 0 && (
         <div className="carte">
           <h3>Pesées</h3>
+          <div className="faible" style={{ marginBottom: 4 }}>
+            Touche une pesée pour la corriger.
+          </div>
           {pesees.slice(0, 30).map((p) => (
-            <div key={p.date} className="ligne-mesure">
-              <span>{dateCourte(p.date)}</span>
+            <div key={p.date} className={'ligne-mesure' + (p.date === date ? ' active' : '')}>
+              <button
+                type="button"
+                className="texte"
+                style={{ flex: 1, textAlign: 'left', background: 'none', padding: '6px 0', color: 'inherit' }}
+                onClick={() => (setDate(p.date), window.scrollTo({ top: 0, behavior: 'smooth' }))}
+              >
+                {dateCourte(p.date)}
+              </button>
               <span className="ligne" style={{ gap: 8 }}>
                 <strong>{kg(p.poids)} kg</strong>
                 <button className="btn discret petit" aria-label="Supprimer" onClick={async () => (await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })) && db.pesees.delete(p.date)}>

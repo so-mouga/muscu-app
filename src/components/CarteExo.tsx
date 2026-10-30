@@ -399,9 +399,11 @@ interface EditeurProps {
   onAnnulerEdition: () => void
   /** Plein écran : sans la ligne de fourchette (la cible est déjà affichée au-dessus). */
   compact?: boolean
+  /** Heure d'une série ajoutée après coup (séance passée), au lieu de maintenant. */
+  heure?: number
 }
 
-export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false }: EditeurProps) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1
@@ -446,7 +448,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     repsMin: p.repsMin,
     repsMax: p.repsMax,
     douleur: douleur || undefined,
-    heure: edition?.heure ?? Date.now(),
+    heure: edition?.heure ?? heure ?? Date.now(),
     ...extra,
   })
 

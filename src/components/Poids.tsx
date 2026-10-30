@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { db } from '../db'
-import { kg } from '../lib/calc'
+import { dateCourte, dateISO, kg } from '../lib/calc'
 import type { Pesee } from '../types'
 import { informer } from './Dialogues'
 
-/** Poids du jour, avec la moyenne sur 7 jours. */
-export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourdhui: string }) {
+/**
+ * Pesée d'un jour (aujourd'hui par défaut), avec la moyenne sur 7 jours. `onDate` : la date se
+ * change (pesée oubliée d'hier, correction d'une ancienne).
+ */
+export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[]; aujourdhui: string; onDate?: (d: string) => void }) {
+  const estAujourdhui = aujourdhui === dateISO()
   const duJour = pesees.find((p) => p.date === aujourdhui)
   const [valeur, setValeur] = useState('')
   const recentes = pesees.filter((p) => Date.parse(p.date) > Date.now() - 7 * 86400000)
@@ -27,12 +31,12 @@ export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourd
   return (
     <div className="carte pile">
       <div className="ligne entre">
-        <h3>Poids du jour</h3>
+        <h3>{estAujourdhui ? 'Poids du jour' : `Pesée du ${dateCourte(aujourdhui)}`}</h3>
         {moyenne !== null && <span className="faible">moyenne 7 j : {kg(Math.round(moyenne * 10) / 10)} kg</span>}
       </div>
       {duJour ? (
         <div className="muted">
-          {kg(duJour.poids)} kg noté aujourd’hui{' '}
+          {kg(duJour.poids)} kg noté {estAujourdhui ? 'aujourd’hui' : 'ce jour-là'}{' '}
           <button className="btn discret petit" onClick={() => setValeur(String(duJour.poids).replace('.', ','))}>
             modifier
           </button>
@@ -51,6 +55,12 @@ export default function Poids({ pesees, aujourdhui }: { pesees: Pesee[]; aujourd
             OK
           </button>
         </div>
+      )}
+      {onDate && (
+        <label className="ligne entre petit">
+          <span className="faible">Date de la pesée</span>
+          <input type="date" value={aujourdhui} max={dateISO()} style={{ width: 'auto' }} onChange={(e) => e.target.value && (onDate(e.target.value), setValeur(''))} />
+        </label>
       )}
       <div className="faible">Sert aussi au calcul de l’e1RM des tractions et dips. Seule la moyenne compte, pas la variation d’un jour.</div>
     </div>
