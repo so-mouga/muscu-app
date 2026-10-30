@@ -52,13 +52,13 @@ describe('déload', () => {
 })
 
 describe('objectifs de volume', () => {
-  it('rattachés au programme, copiés par le cycle au lancement', () => {
+  it('personnels ; avant tout réglage, ceux du cycle ou du programme actif', () => {
     const p = { id: 'p', nom: 'P', seances: [], volume: { pecs: 12, dos: 14 } }
     const c = nouveauCycle('c', p, () => undefined, '2026-11-02')
-    expect(c.volume).toEqual({ pecs: 12, dos: 14 })
-    expect(cibles(c).pecs).toBe(12)
-    expect(cibles(undefined, p).biceps).toBe(0)
-    // Programme sans objectifs : valeurs par défaut de l'appli
-    expect(cibles(undefined, { id: 'q', nom: 'Q', seances: [] }).pecs).toBe(16)
+    expect(cibles({ pecs: 10 }, c, p)).toMatchObject({ pecs: 10, dos: 0 })
+    expect(cibles(undefined, c).pecs).toBe(12)
+    expect(cibles(undefined, undefined, p).biceps).toBe(0)
+    // Rien de réglé nulle part : valeurs par défaut de l'appli
+    expect(cibles(undefined, undefined, { id: 'q', nom: 'Q', seances: [] }).pecs).toBe(16)
   })
 })

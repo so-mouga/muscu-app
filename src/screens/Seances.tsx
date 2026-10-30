@@ -7,7 +7,8 @@ import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
-import { cibles, copieSeances, etatCycle, volumeProgramme } from '../lib/cycle'
+import { copieSeances, etatCycle } from '../lib/cycle'
+import { enregistrerVolume } from '../lib/objectifs'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
@@ -168,7 +169,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
           </button>
         )
       })}
-      <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [], volume: { ...(catalogue.cycle?.volume ?? volumeProgramme(catalogue.actif)) } }, true)}>
+      <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
         + Nouveau programme
       </button>
 
@@ -264,7 +265,7 @@ function EditeurProgramme({
           non: 'Seulement pour le prochain cycle',
         }))
       )
-        await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele), volume: { ...volumeProgramme(finale) } })
+        await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele) })
     }
     onFermer()
   }
@@ -378,7 +379,7 @@ function EditeurProgramme({
         (() => {
           // Replié par défaut : une ligne de résumé, le détail (et le réglage des objectifs) à la demande.
           const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
-          const c = cibles(undefined, p)
+          const c = catalogue.cibles
           const suivis = MUSCLES.filter((m) => c[m.id] > 0)
           const retard = suivis.filter((m) => volume[m.id] < c[m.id]).length
           const dessus = suivis.filter((m) => volume[m.id] > c[m.id] * 1.25).length
@@ -398,10 +399,10 @@ function EditeurProgramme({
               {voirVolume && (
                 <>
                   <div className="faible" style={{ margin: '4px 0 10px' }}>
-                    Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face aux objectifs de ce programme. Touche
-                    un muscle pour changer son objectif.
+                    Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face à tes objectifs (les mêmes pour tous tes programmes,
+                    aussi dans Progression → Objectifs). Touche un muscle pour changer son objectif.
                   </div>
-                  <VolumeMuscles volume={volume} cibles={c} onCible={(muscle, v) => maj((x) => (x.volume = { ...volumeProgramme(x), [muscle]: v }))} />
+                  <VolumeMuscles volume={volume} cibles={c} onCible={(muscle, v) => void enregistrerVolume({ ...c, [muscle]: v })} />
                 </>
               )}
             </div>
@@ -676,7 +677,7 @@ function Editeur({
           <div className="faible" style={{ margin: '4px 0 8px' }}>
             Séries dures de cette séance, face aux objectifs de la semaine. Le total de la semaine est dans le programme.
           </div>
-          <SilhouetteVolume volume={volume} cibles={cibles(catalogue.cycle, catalogue.actif)} legende="objectif de la semaine" quoi="prévues" />
+          <SilhouetteVolume volume={volume} cibles={catalogue.cibles} legende="objectif de la semaine" quoi="prévues" />
           {travailles.map((x) => (
             <div key={x.id} className="ligne entre petit" style={{ padding: '4px 0' }}>
               <span>{x.nom}</span>

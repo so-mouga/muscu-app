@@ -21,7 +21,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - `src/types.ts` : modèle de données (Exercice, ExoPlan, SeanceModele, Programme, Seance, Serie, Cycle…).
 - `src/db.ts` : tables Dexie et migrations (version 6). Toute nouvelle table ou index = nouvelle version.
 - `src/catalogue.ts` : bibliothèque de base (`data/`) fusionnée avec ce que l'utilisateur a créé ou modifié.
-- `src/screens/` : onglets Accueil, Progression (Bilan, Journal, Corps = poids + mensurations + photos), Programmes (`Seances.tsx`), Exercices, Réglages ; `SeanceEnCours.tsx` pour la séance (vue normale et plein écran).
+- `src/screens/` : onglets Accueil, Progression (Bilan, Journal, Corps = poids + mensurations + photos, Objectifs = phase + volume par muscle), Programmes (`Seances.tsx`), Exercices, Réglages ; `SeanceEnCours.tsx` pour la séance (vue normale et plein écran).
 - `src/lib/` : calculs purs, testés (`calc`, `progression`, `cycle`, `analyse`, `bilan`, `historique`…). `nav.ts` : retour Android (`useRetour`). `appareil.ts` : vibrations, sons, écran allumé.
 - `src/data/` : exercices et consignes, programme de départ, échauffements, mesures, lexique.
 
@@ -42,8 +42,9 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 
 - **Pas de progression automatique** : l'objectif par défaut est « refaire pareil » que la dernière fois. L'utilisateur monte lui-même en fin de séance.
 - **Conseil de surcharge** (proposition, jamais appliquée seule) : seulement pour un exercice avec une fourchette de reps. En fin de séance, carte 💡 « Conseil » + [Appliquer] (`conseil` dans `lib/progression.ts` : une rep de plus, puis la charge quand toutes les séries sont au haut ; saut > 10 % à confirmer une fois). En séance, petite ligne « monte d'un cran » si la série d'avant dépasse le haut de 3 reps ou plus (`monterMaintenant`). Pas d'interrupteur par exercice : la fourchette suffit. RPE visé 8 par défaut, même en sèche.
-- Vocabulaire : **Programme** = modèle (séances + planning + objectifs de volume) ; **Cycle** = programme lancé à une date (copie figée, déload en fin de cycle).
+- Vocabulaire : **Programme** = modèle (séances + planning) ; **Cycle** = programme lancé à une date (copie figée, déload en fin de cycle).
 - Les changements faits pendant une séance ne modifient jamais la séance enregistrée (sauf « Modifier l'exercice » depuis la fiche ⓘ).
+- **Objectifs personnels** (Progression → Objectifs) : phase sèche / maintien / prise datée (réglage `phases`, historique gardé) et volume par muscle (réglage `objectifsVolume`, `catalogue.cibles`), les mêmes pour tous les programmes et cycles. `Programme.volume` et `Cycle.volume` ne servent plus que de repli pour les anciennes données. Calories visées : plus tard (Android).
 - Séries dures = RPE ≥ 7 ; volume par muscle = séries dures par semaine, secondaires à 0,5.
 - Exercices équivalents : chacun garde sa propre progression, le lien sert de repère.
 - Échauffement général : 1re étape de la séance (pas un écran avant « Démarrer »), valeurs fixes juste à cocher.

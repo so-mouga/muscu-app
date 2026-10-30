@@ -15,9 +15,13 @@ export const volumeDefaut = (): Partial<Record<Muscle, number>> => Object.fromEn
 /** Objectifs de volume d'un programme : les siens, sinon les valeurs par défaut de l'appli. */
 export const volumeProgramme = (p?: Programme): Partial<Record<Muscle, number>> => p?.volume ?? volumeDefaut()
 
-/** Objectif de chaque muscle : celui du cycle en cours (copié du programme au lancement), sinon celui du programme. */
-export const cibles = (cycle?: Cycle, programme?: Programme): Record<Muscle, number> => {
-  const v = cycle?.volume ?? volumeProgramme(programme)
+/**
+ * Objectif de chaque muscle : les objectifs personnels (partie Objectifs de Progression), les mêmes
+ * quel que soit le programme. Tant qu'ils n'ont jamais été réglés : ceux du cycle en cours ou du
+ * programme actif (anciennes données), sinon les valeurs par défaut.
+ */
+export const cibles = (perso?: Partial<Record<Muscle, number>>, cycle?: Cycle, programme?: Programme): Record<Muscle, number> => {
+  const v = perso ?? cycle?.volume ?? volumeProgramme(programme)
   return Object.fromEntries(MUSCLES.map((m) => [m.id, v[m.id] ?? 0])) as Record<Muscle, number>
 }
 

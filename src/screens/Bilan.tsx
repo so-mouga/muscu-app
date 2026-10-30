@@ -8,7 +8,6 @@ import { db } from '../db'
 import { analyser, aRetenir, libelleMesure, type Analyse } from '../lib/analyse'
 import { debutPeriode, genererBilan, type DonneesBilan } from '../lib/bilan'
 import { dateCourte, dateISO, duree, kg, lundi } from '../lib/calc'
-import { cibles as ciblesDe } from '../lib/cycle'
 import { bilan, recordsParSeance, semaineDe } from '../lib/historique'
 import type { Activite, Muscle, Seance } from '../types'
 
@@ -46,7 +45,7 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
   const finAvant = decaler(debut, -1)
   const debutAvant = decaler(finAvant, -longueur)
 
-  const cibles = ciblesDe(cycle, catalogue.actif)
+  const cibles = catalogue.cibles
   const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom }
   const prevues = catalogue.planning.length
   const a = analyser(donnees, debut, fin, prevues)

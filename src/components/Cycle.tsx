@@ -4,7 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { nomCle } from '../data/mesures'
 import { db, setReglage, uid } from '../db'
 import { dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle } from '../lib/calc'
-import { cibles, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, mettreEnPause, nouveauCycle, type EtatCycle } from '../lib/cycle'
+import { deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, mettreEnPause, nouveauCycle, type EtatCycle } from '../lib/cycle'
 import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import type { Cycle, Programme } from '../types'
@@ -77,7 +77,7 @@ export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cy
   )
 }
 
-/** Lancer un cycle, ou modifier celui en cours (durée, déloads). Les objectifs de volume viennent du programme. */
+/** Lancer un cycle, ou modifier celui en cours (durée, déloads). Les objectifs de volume sont personnels (Progression → Objectifs). */
 export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalogue: Catalogue; programme?: Programme; cycle?: Cycle; onFermer: () => void }) {
   useRetour(true, onFermer)
   const [progId, setProgId] = useState(cycle?.programmeId ?? programme?.id ?? catalogue.actif.id)
@@ -197,7 +197,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
         </div>
 
         <div className="faible">
-          Objectifs de volume par muscle : ceux du programme{cycle ? ' (copiés au lancement)' : ''}. Ils se règlent dans le programme, carte « Volume par semaine ».
+          Objectifs de volume par muscle : les tiens, les mêmes pour tous les programmes. Ils se règlent dans Progression → Objectifs.
         </div>
 
         <button className="btn primaire grand" onClick={enregistrer}>
@@ -417,9 +417,9 @@ export function BilanCycle({ cycle, catalogue, onFermer }: { cycle: Cycle; catal
         <div>
           <h3>Volume moyen par semaine</h3>
           <div className="faible" style={{ margin: '4px 0 8px' }}>
-            Séries dures sur les semaines de travail, face aux objectifs du cycle.
+            Séries dures sur les semaines de travail, face à tes objectifs.
           </div>
-          {normales.length ? <VolumeMuscles volume={moyen} cibles={cibles(cycle)} /> : <div className="faible">Pas encore de semaine de travail terminée.</div>}
+          {normales.length ? <VolumeMuscles volume={moyen} cibles={catalogue.cibles} /> : <div className="faible">Pas encore de semaine de travail terminée.</div>}
         </div>
 
         {(p0 && p1 && p0.date !== p1.date) || ecartsMesures.length ? (

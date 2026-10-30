@@ -3,7 +3,9 @@ import { useMemo } from 'react'
 import { EXERCICES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
 import { db } from './db'
-import type { Cycle, Exercice, Programme, SeanceModele } from './types'
+import { cibles } from './lib/cycle'
+import { CLE_VOLUME } from './lib/objectifs'
+import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
 
 export const ID_PROGRAMME_DEFAUT = 'principal'
 
@@ -26,6 +28,8 @@ export interface Catalogue {
   planning: EntreePlanning[]
   /** Cycle en cours : il pilote l'accueil avec sa propre copie du programme. */
   cycle?: Cycle
+  /** Objectifs de séries dures par semaine, par muscle : personnels, les mêmes pour tous les programmes. */
+  cibles: Record<Muscle, number>
   /** Version d'une séance à lancer : celle du cycle si elle en fait partie, sinon la séance de la bibliothèque. */
   pourDemarrer: (m: SeanceModele) => SeanceModele
 }
@@ -35,7 +39,8 @@ export function construireCatalogue(
   exercicesDb: Exercice[],
   programmesDb: Programme[],
   actifId: string | undefined,
-  cycle?: Cycle
+  cycle?: Cycle,
+  volumePerso?: Partial<Record<Muscle, number>>
 ): Catalogue {
   const parId = new Map<string, SeanceModele>(PROGRAMME.map((m) => [m.id, m]))
   for (const m of modelesDb) parId.set(m.id, m)
@@ -69,6 +74,7 @@ export function construireCatalogue(
       .map((e) => ({ modele: pourPlanning(e.modeleId)!, jour: e.jour! }))
       .sort((a, b) => a.jour - b.jour),
     cycle,
+    cibles: cibles(volumePerso, cycle, actif),
     pourDemarrer: (m) => duCycle.get(m.id) ?? m,
   }
 }
@@ -80,11 +86,12 @@ export function useCatalogue(): Catalogue | null {
   const programmes = useLiveQuery(() => db.programmes.toArray(), [])
   const actif = useLiveQuery(() => db.reglages.get('programmeActif'), [], null)
   const cycles = useLiveQuery(() => db.cycles.toArray(), [])
+  const volume = useLiveQuery(() => db.reglages.get(CLE_VOLUME), [], null)
   return useMemo(
     () =>
-      modeles && exercices && programmes && cycles && actif !== null
-        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin))
+      modeles && exercices && programmes && cycles && actif !== null && volume !== null
+        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), volume?.valeur as Partial<Record<Muscle, number>> | undefined)
         : null,
-    [modeles, exercices, programmes, actif, cycles]
+    [modeles, exercices, programmes, actif, cycles, volume]
   )
 }

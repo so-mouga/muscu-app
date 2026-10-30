@@ -13,6 +13,7 @@ import FormActivite from '../components/FormActivite'
 import { kcalActivite, typeActivite } from '../data/activites'
 import Bilan from './Bilan'
 import Corps from './Corps'
+import Objectifs from './Objectifs'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 
@@ -24,12 +25,13 @@ const dateLongue = (s: Seance) =>
 const jourCourt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
-export type VueProgression = 'bilan' | 'journal' | 'corps'
+export type VueProgression = 'bilan' | 'journal' | 'corps' | 'objectifs'
 
 const VUES: [VueProgression, string][] = [
   ['bilan', 'Bilan'],
   ['journal', 'Journal'],
   ['corps', 'Corps'],
+  ['objectifs', 'Objectifs'],
 ]
 
 interface Props {
@@ -91,6 +93,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
         {haut}
         {vue === 'bilan' && <Bilan catalogue={catalogue} />}
         {vue === 'corps' && <Corps />}
+        {vue === 'objectifs' && <Objectifs catalogue={catalogue} />}
       </div>
     )
 

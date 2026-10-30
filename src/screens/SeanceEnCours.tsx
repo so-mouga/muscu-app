@@ -14,7 +14,7 @@ import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
 import { ecartSerie, lireChauffe, volumeParMuscle, calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
-import { cibles, suggestionDeload } from '../lib/cycle'
+import { suggestionDeload } from '../lib/cycle'
 import { conseil, hausse, pareil, seancesIdentiques, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
@@ -937,7 +937,7 @@ function FinSeance({
           <h3 style={{ marginBottom: 8 }}>Muscles travaillés</h3>
           <SilhouetteVolume
             volume={volumeParMuscle([seance], catalogue.exercices)}
-            cibles={cibles(catalogue.cycle, catalogue.actif)}
+            cibles={catalogue.cibles}
             legende="objectif de la semaine"
           />
         </div>
