@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance, Serie } from '../types'
 import { delies, relies, repere } from './equivalents'
-import { bilan, creneauxFaits, meilleureSerie, parSemaine, recordsParSeance } from './historique'
+import { bilan, creneauxFaits, meilleureSerie, mieuxParSeance, parSemaine, recordsParSeance } from './historique'
 
 const exoId = Object.values(EXERCICES).find((e) => e.suivreE1rm && e.mode !== 'poids_corps')!.id
 const serie = (charge: number, reps: number, rpe = 8): Serie => ({ id: `${charge}-${reps}`, exoId, type: 'normale', charge, reps, rpe, heure: 0 })
@@ -22,6 +22,11 @@ describe('historique', () => {
       ({ ...seance(id, date, [{ ...serie(charge, reps), exoId: 'dips' }]), deload }) as Seance
     const r = recordsParSeance([dip('a', '2026-10-26', 0, 9), dip('d', '2026-10-27', 10, 12, true), dip('b', '2026-10-28', 2, 10)], (id) => EXERCICES[id])
     expect(r).toEqual({ a: 0, d: 0, b: 1 })
+  })
+
+  it('en progrès : mieux que la fois d’avant, même sans record', () => {
+    const d = seance('d', '2026-11-04', [serie(61, 8)])
+    expect(mieuxParSeance([a, b, c, d], (id) => EXERCICES[id])).toEqual({ a: 0, b: 1, c: 0, d: 1 })
   })
 
   it('kg soulevés : les deux haltères, le lest seul au poids du corps', () => {

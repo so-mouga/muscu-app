@@ -27,9 +27,9 @@ export default function App() {
   /** Partie de Progression affichée (mémorisée d'une ouverture à l'autre). */
   const [vue, setVueEtat] = useState<VueProgression>(() => {
     try {
-      // « seances » : ancien nom du Journal.
+      // Anciens noms : « seances » = Journal ; Mesures, Photos et Poids sont regroupés dans Corps.
       const v = localStorage.getItem('vueProgression')
-      return v === 'seances' || !v ? 'journal' : (v as VueProgression)
+      return v === 'seances' || !v ? 'journal' : v === 'mesures' || v === 'photos' || v === 'poids' ? 'corps' : (v as VueProgression)
     } catch {
       return 'journal'
     }
@@ -67,7 +67,7 @@ export default function App() {
   return (
     <>
       <div key={onglet}>
-        {onglet === 'accueil' && <Accueil catalogue={catalogue} onVoirSeance={setDetail} onMesures={() => (setVue('mesures'), setOnglet('historique'))} onProgrammes={() => setOnglet('seances')} />}
+        {onglet === 'accueil' && <Accueil catalogue={catalogue} onVoirSeance={setDetail} onMesures={() => (setVue('corps'), setOnglet('historique'))} onProgrammes={() => setOnglet('seances')} />}
         {onglet === 'historique' && <Historique catalogue={catalogue} detail={detail} onDetail={setDetail} vue={vue} onVue={setVue} />}
         {onglet === 'seances' && <Seances catalogue={catalogue} />}
         {onglet === 'exercices' && <Exercices catalogue={catalogue} />}

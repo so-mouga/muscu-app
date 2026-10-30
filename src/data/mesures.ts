@@ -20,6 +20,9 @@ export const MESURES: DefMesure[] = [
   { id: 'mollet', nom: 'Mollet', cotes: true, consigne: 'Au plus gros, debout, poids réparti sur les deux pieds.', trait: { y: 336, x1: 56, x2: 90 } },
 ]
 
+/** Mesures montrées d'emblée ; les autres sont repliées dans « Autres mesures ». */
+export const PRINCIPALES = ['poitrine', 'bras_g', 'taille', 'cuisse_g']
+
 export const CONSEILS_MESURE = 'Le matin, à jeun, avant l’entraînement, avec le même ruban. Ruban à plat sur la peau, sans serrer. Toutes les 2 à 4 semaines suffisent.'
 
 /** Clés d'une mesure : `taille`, ou `bras_g` / `bras_d`. */

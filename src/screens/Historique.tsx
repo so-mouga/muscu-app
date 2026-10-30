@@ -4,16 +4,15 @@ import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages } from '../db'
-import { chargeQte, dateISO, kgSouleves, duree, estDure, kg, lundi } from '../lib/calc'
-import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, semaineDe } from '../lib/historique'
+import { dateISO, duree, estDure, kg } from '../lib/calc'
+import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
 import type { Activite, Reglage, Seance, Serie } from '../types'
 import FormActivite from '../components/FormActivite'
-import { kcalActivite, typeActivite, INTENSITES } from '../data/activites'
+import { kcalActivite, typeActivite } from '../data/activites'
 import Bilan from './Bilan'
-import { Mesures, OngletPoids } from './Corps'
-import Photos from './Photos'
+import Corps from './Corps'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 
@@ -25,14 +24,12 @@ const dateLongue = (s: Seance) =>
 const jourCourt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
-export type VueProgression = 'bilan' | 'journal' | 'mesures' | 'photos' | 'poids'
+export type VueProgression = 'bilan' | 'journal' | 'corps'
 
 const VUES: [VueProgression, string][] = [
   ['bilan', 'Bilan'],
   ['journal', 'Journal'],
-  ['mesures', 'Mesures'],
-  ['photos', 'Photos'],
-  ['poids', 'Poids'],
+  ['corps', 'Corps'],
 ]
 
 interface Props {
@@ -47,7 +44,6 @@ interface Props {
 export default function Historique({ catalogue, detail, onDetail, vue, onVue }: Props) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
-  const [semaines, setSemaines] = useState(6)
   const activites = useLiveQuery(() => db.activites.orderBy('date').reverse().toArray(), [], [])
   const poids = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
   /** Activité ouverte (ou 'nouvelle'). */
@@ -59,6 +55,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
   const mesuresJour = useLiveQuery(() => db.mesures.toArray(), [], [])
   const peseesJour = useLiveQuery(() => db.pesees.toArray(), [], [])
   const records = useMemo(() => (terminees ? recordsParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
+  const mieux = useMemo(() => (terminees ? mieuxParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
   if (!terminees) return null
   const ouverte = detail ? terminees.find((s) => s.id === detail) : undefined
@@ -93,20 +90,9 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
       <div>
         {haut}
         {vue === 'bilan' && <Bilan catalogue={catalogue} />}
-        {vue === 'mesures' && <Mesures />}
-        {vue === 'photos' && <Photos />}
-        {vue === 'poids' && <OngletPoids />}
+        {vue === 'corps' && <Corps />}
       </div>
     )
-
-  // Semaines avec des séances ou des activités, de la plus récente à la plus ancienne.
-  const parSem = parSemaine(terminees)
-  const groupes = [...new Set([...parSem.map((g) => g.lundi), ...activites.map((a) => semaineDe(a.date))])]
-    .sort((a, b) => b.localeCompare(a))
-    .map((l) => ({ lundi: l, seances: parSem.find((g) => g.lundi === l)?.seances ?? [], activites: activites.filter((a) => semaineDe(a.date) === l) }))
-  const cetteSemaine = lundi()
-  const bilanDe = (l: string) => bilan(groupes.find((g) => g.lundi === l)?.seances ?? [], records, catalogue.exo)
-  const activitesDe = (l: string) => activites.filter((a) => semaineDe(a.date) === l)
 
   return (
     <div>
@@ -133,62 +119,17 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
           <Calendrier seances={terminees} activites={activites} choisi={jourChoisi} onChoix={setJourChoisi} />
           <JourChoisi
             date={jourChoisi}
-            seances={terminees.filter((x) => x.date === jourChoisi)}
+            seances={terminees.filter((x) => x.date === jourChoisi).reverse()}
             activites={activites.filter((x) => x.date === jourChoisi)}
             pesee={peseesJour.find((x) => x.date === jourChoisi)?.poids}
             mesure={mesuresJour.find((x) => x.date === jourChoisi)}
-            semaine={(() => {
-              const l = semaineDe(jourChoisi)
-              const b = bilanDe(l)
-              const sports = activitesDe(l)
-              return [
-                `Semaine du ${jourCourt(l).replace(/^\S+ /, '')}`,
-                pluriel(b.seances, 'séance'),
-                `${b.dures} série${b.dures > 1 ? 's' : ''} dure${b.dures > 1 ? 's' : ''}`,
-                b.records ? `${pluriel(b.records, 'record')} 🏆` : '',
-                sports.length ? `${sports.length} ${sports.length > 1 ? 'autres sports' : 'autre sport'}` : '',
-              ]
-                .filter(Boolean)
-                .join(' · ')
-            })()}
             records={records}
-            reglages={reglages}
-            catalogue={catalogue}
+            mieux={mieux}
             poids={poids?.poids}
             onSeance={(id) => onDetail(id)}
             onActivite={setActivite}
             onAjouter={() => (setDateActivite(jourChoisi), setActivite('nouvelle'))}
           />
-          <h3 style={{ margin: '18px 0 8px' }}>Historique</h3>
-
-          {groupes.slice(0, semaines).map((g) => {
-            const b = bilan(g.seances, records, catalogue.exo)
-            return (
-              <div key={g.lundi}>
-                <div className="semaine-titre">
-                  <strong>{g.lundi === cetteSemaine ? 'Cette semaine' : `Semaine du ${jourCourt(g.lundi).replace(/^\S+ /, '')}`}</strong>
-                  <span className="faible">
-                    {[b.seances ? pluriel(b.seances, 'séance') : '', g.activites.length ? pluriel(g.activites.length, 'activité') : ''].filter(Boolean).join(' · ')} ·{' '}
-                    {duree(b.temps + g.activites.reduce((a, x) => a + x.duree * 60000, 0))}
-                  </span>
-                </div>
-                {[...g.seances.map((s) => ({ date: s.date, t: s.debut, s })), ...g.activites.map((a) => ({ date: a.date, t: 0, a }))]
-                  .sort((x, y) => y.date.localeCompare(x.date) || y.t - x.t)
-                  .map((e) =>
-                    'a' in e ? (
-                      <CarteActivite key={e.a.id} activite={e.a} poids={poids?.poids} onOuvrir={() => setActivite(e.a)} />
-                    ) : (
-                      <CarteSeance key={e.s.id} seance={e.s} records={records[e.s.id] ?? 0} reglages={reglages} catalogue={catalogue} onOuvrir={() => onDetail(e.s.id)} />
-                    )
-                  )}
-              </div>
-            )
-          })}
-          {groupes.length > semaines && (
-            <button className="btn plein" style={{ marginBottom: 16 }} onClick={() => setSemaines((n) => n + 8)}>
-              Semaines précédentes
-            </button>
-          )}
         </>
       )}
     </div>
@@ -260,17 +201,15 @@ function Calendrier({ seances, activites, choisi, onChoix }: { seances: Seance[]
   )
 }
 
-/** Carte du jour choisi : ses séances et activités, poids et mesures, la semaine en une ligne. */
+/** Le jour choisi en court : ses séances (records, exos en progrès), activités, poids et mesures. Le détail s'ouvre en touchant. */
 function JourChoisi({
   date,
   seances,
   activites,
   pesee,
   mesure,
-  semaine,
   records,
-  reglages,
-  catalogue,
+  mieux,
   poids,
   onSeance,
   onActivite,
@@ -281,93 +220,83 @@ function JourChoisi({
   activites: Activite[]
   pesee?: number
   mesure?: { valeurs: Record<string, number> }
-  semaine: string
   records: Record<string, number>
-  reglages: Reglage[]
-  catalogue: Catalogue
+  mieux: Record<string, number>
   poids?: number
   onSeance: (id: string) => void
   onActivite: (a: Activite) => void
   onAjouter: () => void
 }) {
   const vide = !seances.length && !activites.length
+  const nbMesures = mesure ? Object.keys(mesure.valeurs).length : 0
   return (
-    <div className="jour-choisi">
-      <div className="ligne entre" style={{ alignItems: 'baseline', marginBottom: 6 }}>
-        <strong style={{ textTransform: 'capitalize' }}>
-          {date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </strong>
-        {(pesee !== undefined || mesure) && (
-          <span className="faible">
-            {pesee !== undefined ? `⚖️ ${kg(pesee)} kg` : ''}
-            {pesee !== undefined && mesure ? ' · ' : ''}
-            {mesure ? `📏 ${Object.keys(mesure.valeurs).length} mesure${Object.keys(mesure.valeurs).length > 1 ? 's' : ''}` : ''}
-          </span>
-        )}
-      </div>
+    <div className="carte jour-choisi">
+      <strong style={{ textTransform: 'capitalize' }}>
+        {date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+      </strong>
       {seances.map((s) => (
-        <CarteSeance key={s.id} seance={s} records={records[s.id] ?? 0} reglages={reglages} catalogue={catalogue} onOuvrir={() => onSeance(s.id)} />
+        <LigneSeance key={s.id} seance={s} records={records[s.id] ?? 0} mieux={mieux[s.id] ?? 0} onOuvrir={() => onSeance(s.id)} />
       ))}
       {activites.map((a) => (
-        <CarteActivite key={a.id} activite={a} poids={poids} onOuvrir={() => onActivite(a)} />
+        <LigneActivite key={a.id} activite={a} poids={poids} onOuvrir={() => onActivite(a)} />
       ))}
-      {vide && <div className="faible" style={{ marginBottom: 8 }}>Pas d’entraînement ce jour-là.</div>}
+      {vide && <div className="faible ligne-jour">Pas d’entraînement ce jour-là.</div>}
+      {pesee !== undefined && (
+        <div className="ligne-jour">
+          <span>⚖️ Poids</span>
+          <strong>{kg(pesee)} kg</strong>
+        </div>
+      )}
+      {nbMesures > 0 && (
+        <div className="ligne-jour">
+          <span>📏 Mensurations</span>
+          <span className="faible">{pluriel(nbMesures, 'mesure')}</span>
+        </div>
+      )}
       <button className="btn discret petit lien-action" onClick={onAjouter}>
         + Ajouter une activité ce jour-là
       </button>
-      <div className="faible semaine-du-jour">{semaine}</div>
     </div>
   )
 }
 
-function CarteSeance({
-  seance,
-  records,
-  reglages,
-  catalogue,
-  onOuvrir,
-}: {
-  seance: Seance
-  records: number
-  reglages: Reglage[]
-  catalogue: Catalogue
-  onOuvrir: () => void
-}) {
+function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; records: number; mieux: number; onOuvrir: () => void }) {
   const dures = seance.series.filter(estDure).length
-  const tonnage = seance.series.reduce((a, s) => a + kgSouleves(s, catalogue.exo(s.exoId)), 0)
-  const exos = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
   return (
-    <button className="liste-btn carte-seance" onClick={onOuvrir}>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span className="faible">{jourCourt(seance.date)}</span>
-        <span className="ligne entre" style={{ alignItems: 'baseline' }}>
-          <strong>{seance.nom}</strong>
-          {seance.ressenti && <span className="faible">ressenti {seance.ressenti}/5</span>}
+    <button className="ligne-jour" onClick={onOuvrir}>
+      <span style={{ minWidth: 0 }}>
+        <strong>{seance.nom}</strong>
+        <span className="faible">
+          {' '}
+          · {duree(dureeReelle(seance))} · {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
         </span>
-        <span className="ligne wrap" style={{ gap: 6, margin: '6px 0' }}>
-          <span className="pastille">⏱ {duree(dureeReelle(seance))}</span>
-          <span className="pastille">
-            {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
+        {(records > 0 || mieux > 0 || seance.deload) && (
+          <span className="ligne wrap" style={{ gap: 6, marginTop: 4 }}>
+            {records > 0 && <span className="pastille ok">🏆 {pluriel(records, 'record')}</span>}
+            {mieux > 0 && <span className="pastille">↑ {mieux} exo{mieux > 1 ? 's' : ''} mieux que la dernière fois</span>}
+            {seance.deload && <span className="pastille">Déload</span>}
           </span>
-          <span className="pastille">{kg(Math.round(tonnage))} kg</span>
-          {records > 0 && <span className="pastille ok">🏆 {records}</span>}
-        </span>
-        {exos.map((p) => {
-          const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
-          const m = meilleureSerie(seance.series.filter((s) => s.exoId === p.exoId))
-          return (
-            <span key={p.exoId} className="exo-resume">
-              <span>{exo.nom}</span>
-              {m && (
-                <span className="faible">
-                  {chargeQte(exo, m.charge, m.reps)}
-                </span>
-              )}
-            </span>
-          )
-        })}
+        )}
       </span>
       <span className="muted">›</span>
+    </button>
+  )
+}
+
+function LigneActivite({ activite, poids, onOuvrir }: { activite: Activite; poids?: number; onOuvrir: () => void }) {
+  const t = typeActivite(activite.type)
+  return (
+    <button className="ligne-jour" onClick={onOuvrir}>
+      <span style={{ minWidth: 0 }}>
+        <strong>
+          {t.emoji} {t.nom}
+        </strong>
+        <span className="faible">
+          {' '}
+          · {duree(activite.duree * 60000)} · intensité {activite.intensite}/10 · ≈ {kcalActivite(activite, poids)} kcal
+        </span>
+      </span>
+      <span className="muted">✎</span>
     </button>
   )
 }
@@ -501,29 +430,5 @@ function CorrectionSerie({
         />
       </div>
     </div>
-  )
-}
-
-function CarteActivite({ activite, poids, onOuvrir }: { activite: Activite; poids?: number; onOuvrir: () => void }) {
-  const t = typeActivite(activite.type)
-  return (
-    <button className="liste-btn carte-seance carte-activite" onClick={onOuvrir}>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span className="faible">{jourCourt(activite.date)}</span>
-        <span className="ligne entre" style={{ alignItems: 'baseline' }}>
-          <strong>
-            {t.emoji} {t.nom}
-          </strong>
-          <span className="faible">intensité {activite.intensite}/10</span>
-        </span>
-        <span className="ligne wrap" style={{ gap: 6, marginTop: 6 }}>
-          <span className="pastille">⏱ {duree(activite.duree * 60000)}</span>
-          <span className="pastille">🔥 ≈ {kcalActivite(activite, poids)} kcal</span>
-          <span className="pastille">{INTENSITES[activite.intensite]}</span>
-        </span>
-        {activite.note && <span className="faible" style={{ display: 'block', marginTop: 4 }}>📝 {activite.note}</span>}
-      </span>
-      <span className="muted">✎</span>
-    </button>
   )
 }

@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { informer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
@@ -9,7 +9,8 @@ import { analyser, aRetenir, libelleMesure, type Analyse } from '../lib/analyse'
 import { debutPeriode, genererBilan, type DonneesBilan } from '../lib/bilan'
 import { dateCourte, dateISO, duree, kg, lundi } from '../lib/calc'
 import { cibles as ciblesDe } from '../lib/cycle'
-import type { Muscle } from '../types'
+import { bilan, recordsParSeance, semaineDe } from '../lib/historique'
+import type { Activite, Muscle, Seance } from '../types'
 
 type Periode = 'semaine' | 'derniere' | '4' | 'cycle' | '12'
 
@@ -28,6 +29,7 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const activites = useLiveQuery(() => db.activites.toArray(), [], [])
+  const records = useMemo(() => (seances ? recordsParSeance(seances, catalogue.exo) : {}), [seances, catalogue])
   if (!seances) return null
 
   // Période choisie, et la précédente de même durée pour comparer.
@@ -118,6 +120,8 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
         {a.deloads > 0 && <div className="faible" style={{ marginTop: 8 }}>Dont {a.deloads} séance(s) de déload.</div>}
       </div>
 
+      {a.semaines.length > 1 && <SemaineParSemaine semaines={a.semaines} seances={seances} activites={activites} records={records} catalogue={catalogue} />}
+
       <div className="carte">
         <h3>Muscles</h3>
         <div className="faible" style={{ margin: '4px 0 8px' }}>
@@ -178,6 +182,36 @@ export default function Bilan({ catalogue }: { catalogue: Catalogue }) {
 }
 
 const ecart = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(arrondi(d)))} ${u}`
+
+const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
+
+/** Chaque semaine de la période en une ligne, la plus récente en premier. */
+function SemaineParSemaine({ semaines, seances, activites, records, catalogue }: { semaines: string[]; seances: Seance[]; activites: Activite[]; records: Record<string, number>; catalogue: Catalogue }) {
+  const cette = lundi()
+  return (
+    <div className="carte">
+      <h3 style={{ marginBottom: 4 }}>Semaine par semaine</h3>
+      {[...semaines].reverse().map((l) => {
+        const b = bilan(seances.filter((s) => semaineDe(s.date) === l), records, catalogue.exo)
+        const sports = activites.filter((x) => semaineDe(x.date) === l).length
+        const detail = [
+          b.dures ? `${b.dures} série${b.dures > 1 ? 's' : ''} dure${b.dures > 1 ? 's' : ''}` : '',
+          b.records ? `🏆 ${b.records}` : '',
+          sports ? (sports > 1 ? `${sports} autres sports` : '1 autre sport') : '',
+        ].filter(Boolean)
+        return (
+          <div key={l} className="semaine-bilan">
+            <span>
+              {l === cette ? 'Cette semaine' : `Sem. du ${jour(l)}`}
+              {detail.length > 0 && <span className="faible"> · {detail.join(' · ')}</span>}
+            </span>
+            <strong>{b.seances ? pluriel(b.seances, 'séance') : <span className="faible">—</span>}</strong>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 /** Records, meilleures progressions et stagnations de la période. */
 function Progression({ a }: { a: Analyse }) {

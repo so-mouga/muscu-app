@@ -2266,13 +2266,43 @@ body.sans-onglets .barre-demarrer {
   height: 7px;
   margin-left: -3.5px;
 }
-.jour-choisi {
-  margin: 4px 0 8px;
+.ligne-jour {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bord);
+  background: none;
+  color: var(--texte);
+  text-align: left;
 }
-.semaine-du-jour {
+.jour-choisi > strong {
+  display: block;
+  margin-bottom: 2px;
+}
+.jour-choisi .lien-action {
+  margin-top: 6px;
+}
+.titre-corps {
+  margin: 20px 0 10px;
+}
+.titre-corps:first-of-type {
   margin-top: 4px;
-  padding-top: 8px;
-  border-top: 1px solid var(--bord);
+}
+.semaine-bilan {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bord);
+}
+.semaine-bilan > strong {
+  white-space: nowrap;
+}
+.semaine-bilan:last-child {
+  border-bottom: none;
 }
 .a-retenir ul {
   margin: 0;

@@ -21,7 +21,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - `src/types.ts` : modèle de données (Exercice, ExoPlan, SeanceModele, Programme, Seance, Serie, Cycle…).
 - `src/db.ts` : tables Dexie et migrations (version 6). Toute nouvelle table ou index = nouvelle version.
 - `src/catalogue.ts` : bibliothèque de base (`data/`) fusionnée avec ce que l'utilisateur a créé ou modifié.
-- `src/screens/` : onglets Accueil, Progression (Bilan, Journal, Mesures, Photos, Poids), Programmes (`Seances.tsx`), Exercices, Réglages ; `SeanceEnCours.tsx` pour la séance (vue normale et plein écran).
+- `src/screens/` : onglets Accueil, Progression (Bilan, Journal, Corps = poids + mensurations + photos), Programmes (`Seances.tsx`), Exercices, Réglages ; `SeanceEnCours.tsx` pour la séance (vue normale et plein écran).
 - `src/lib/` : calculs purs, testés (`calc`, `progression`, `cycle`, `analyse`, `bilan`, `historique`…). `nav.ts` : retour Android (`useRetour`). `appareil.ts` : vibrations, sons, écran allumé.
 - `src/data/` : exercices et consignes, programme de départ, échauffements, mesures, lexique.
 

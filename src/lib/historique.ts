@@ -48,6 +48,29 @@ export function recordsParSeance(seances: Seance[], exo: (id: string) => Exercic
   return res
 }
 
+/**
+ * Nombre d'exercices en progrès par séance : meilleure série au-dessus de celle de la fois d'avant
+ * sur le même exercice (voir `scoreSerie`). Les déloads ne comptent pas et ne servent pas de référence.
+ */
+export function mieuxParSeance(seances: Seance[], exo: (id: string) => Exercice): Record<string, number> {
+  const derniere: Record<string, number> = {}
+  const res: Record<string, number> = {}
+  for (const s of [...seances].sort((a, b) => a.debut - b.debut)) {
+    res[s.id] = 0
+    if (s.deload) continue
+    const duJour: Record<string, number> = {}
+    for (const x of s.series) {
+      if (x.reps <= 0) continue
+      duJour[x.exoId] = Math.max(duJour[x.exoId] ?? 0, scoreSerie(exo(x.exoId), x, s.poidsCorps))
+    }
+    for (const [id, e] of Object.entries(duJour)) {
+      if (derniere[id] !== undefined && e > derniere[id]) res[s.id]++
+      derniere[id] = e
+    }
+  }
+  return res
+}
+
 export function bilan(seances: Seance[], records: Record<string, number>, exo?: (id: string) => Exercice): Bilan {
   return {
     seances: seances.length,
