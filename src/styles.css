@@ -2184,3 +2184,16 @@ button.pastille.cliquable {
 .exo-ligne.depot-apres {
   box-shadow: 0 3px 0 var(--accent);
 }
+/* Plan d'un exercice : une ligne par série, reps et charge */
+.tableau-series {
+  display: grid;
+  grid-template-columns: 28px auto 1fr;
+  align-items: center;
+  gap: 6px 10px;
+}
+.tableau-series .charge-serie {
+  width: 100%;
+  max-width: 120px;
+  padding: 8px 6px;
+  text-align: center;
+}

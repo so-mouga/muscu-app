@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
-import InfosExo, { BoutonInfos } from '../components/InfosExo'
+import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
@@ -19,16 +19,17 @@ export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'sa
 
 /** Plan par défaut d'un exercice ajouté (modifiable juste après). */
 export function planParDefaut(exo: Exercice): ExoPlan {
-  // Exercice en temps (gainage…) : 3 × 30–45 s, repos court.
+  // Exercice en temps (gainage…) : 3 × 30 s, repos court.
   if (exo.mesure === 'temps')
-    return { exoId: exo.id, repos: 60, series: [0, 1, 2].map(() => ({ repsMin: 30, repsMax: 45, rpe: 8 })), chauffes: [], finisseur: false, charge: 0 }
+    return { exoId: exo.id, repos: 60, series: [0, 1, 2].map(() => ({ repsMin: 30, repsMax: 30, rpe: 8 })), chauffes: [], finisseur: false, charge: 0 }
   const petit = exo.muscle === 'mollets' || exo.muscle === 'abdos'
   const compose = exo.type === 'compose'
-  const [min, max] = compose ? [8, 12] : [12, 15]
+  // Un seul nombre de reps par série (3 × 10, 3 × 12) ; la fourchette reste une option avancée.
+  const reps = compose ? 10 : 12
   return {
     exoId: exo.id,
     repos: petit ? 90 : compose ? 180 : 150,
-    series: [0, 1, 2].map(() => ({ repsMin: min, repsMax: max, rpe: compose ? 8 : 9 })),
+    series: [0, 1, 2].map(() => ({ repsMin: reps, repsMax: reps, rpe: 8 })),
     chauffes: [],
     finisseur: false,
     charge: null,
@@ -36,12 +37,14 @@ export function planParDefaut(exo: Exercice): ExoPlan {
 }
 
 export function resumePlan(exo: Exercice, p: ExoPlan): string {
+  // Le RPE n'apparaît que s'il s'écarte du réglage par défaut (8) : on lit d'abord reps, charge, repos.
+  const rpeParDefaut = p.series.every((x) => x.rpe === 8) || (p.finisseur && p.series.slice(0, -1).every((x) => x.rpe === 8))
   return [
     schemaPlan(exo, p),
-    `RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}`,
+    p.charge === null ? '' : chargeTexte(exo, p.charge),
     `repos ${reposTexte(p)}`,
-    chargeTexte(exo, p.charge),
-    p.finisseur ? '★' : '',
+    rpeParDefaut ? '' : `RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}`,
+    p.finisseur ? '★ finisseur' : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -469,6 +472,9 @@ function Editeur({
   const liste = useRef<HTMLDivElement>(null)
   const [glisse, setGlisse] = useState<{ de: number; vers: number } | null>(null)
   const [remplace, setRemplace] = useState<number | null>(null)
+  /** Exercice dont le menu ⋯ est ouvert (fiche, remplacer, retirer). */
+  const [menu, setMenu] = useState<number | null>(null)
+  useRetour(menu !== null, () => setMenu(null))
   /** Position d'insertion (0 … n) sous le doigt. */
   const positionSous = (y: number) => {
     const lignes = [...(liste.current?.querySelectorAll<HTMLElement>('.exo-ligne') ?? [])]
@@ -633,9 +639,8 @@ function Editeur({
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">{resumePlan(exo, p)}</div>
               </button>
-              <BoutonInfos onClick={() => setInfos(exo)} />
-              <button className="icone" onClick={async () => (await confirmer(`Retirer « ${exo.nom} » de la séance ?`, { oui: 'Retirer', danger: true })) && maj((x) => x.exercices.splice(i, 1))} aria-label="Retirer">
-                ✕
+              <button className="icone" onClick={() => setMenu(i)} aria-label={`Actions pour ${exo.nom}`}>
+                ⋯
               </button>
             </div>
           )
@@ -710,6 +715,33 @@ function Editeur({
         />
       )}
       {infos && <InfosExo exo={infos} onFermer={() => setInfos(null)} />}
+      {menu !== null && m.exercices[menu] && (
+        <div className="modal-fond" onClick={() => setMenu(null)}>
+          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+            <h3>{catalogue.exo(m.exercices[menu].exoId).nom}</h3>
+            <button className="liste-btn" onClick={() => (setInfos(catalogue.exo(m.exercices[menu].exoId)), setMenu(null))}>
+              <span>ⓘ Voir comment faire l’exercice</span>
+            </button>
+            <button className="liste-btn" onClick={() => (setRemplace(menu), setMenu(null))}>
+              <span>⇄ Remplacer par un autre exercice</span>
+            </button>
+            <button
+              className="liste-btn"
+              onClick={async () => {
+                const i = menu
+                setMenu(null)
+                if (await confirmer(`Retirer « ${catalogue.exo(m.exercices[i].exoId).nom} » de la séance ?`, { oui: 'Retirer', danger: true }))
+                  maj((x) => x.exercices.splice(i, 1))
+              }}
+            >
+              <span style={{ color: 'var(--danger)' }}>✕ Retirer de la séance</span>
+            </button>
+            <button className="btn discret plein" onClick={() => setMenu(null)}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
       {editIdx !== null && m.exercices[editIdx] && (
         <EditeurExoPlan
           key={editIdx}

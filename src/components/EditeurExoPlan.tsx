@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { kg, lireChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
@@ -81,18 +81,16 @@ interface Props {
 
 export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuivant, onRemplacer }: Props) {
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
-  const [chargeTxt, setChargeTxt] = useState(p.charge === null ? '' : kg(p.charge))
-  const [chargesSerie, setChargesSerie] = useState(() => plan.series.map((s) => (s.charge === undefined ? '' : kg(s.charge))))
+  // Charge de chaque série (texte saisi) : celle de la série, sinon la charge de départ générale.
+  const [charges, setCharges] = useState(() => plan.series.map((s) => kg(s.charge ?? plan.charge ?? undefined).replace('—', '')))
   const [chauffes, setChauffes] = useState<LigneChauffe[]>(() => plan.chauffes.map(versLigne))
   const [aideFin, setAideFin] = useState(false)
-  const [detail, setDetail] = useState(() =>
-    plan.series.some((s) => s.charge !== undefined || s.repos !== undefined || s.repsMin !== plan.series[0].repsMin || s.repsMax !== plan.series[0].repsMax)
-  )
+  const [avance, setAvance] = useState(false)
+  // Fourchette de reps (8–12) : option avancée ; par défaut un seul nombre par série.
+  const [fourchette, setFourchette] = useState(() => plan.series.some((s) => s.repsMin !== s.repsMax))
 
   const n = p.series.length
   const temps = exo.mesure === 'temps'
-  const repsMin = p.series[0].repsMin
-  const repsMax = p.series[0].repsMax
   const maj = (f: (q: ExoPlan) => void) =>
     setP((q) => {
       const c = structuredClone(q)
@@ -106,18 +104,32 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
       q.series.length = k
       if (q.finisseur) q.series[k - 1].rpe = 10
     })
-    setChargesSerie((c) => {
+    setCharges((c) => {
       const x = [...c]
       while (x.length < k) x.push(x[x.length - 1] ?? '')
       return x.slice(0, k)
     })
   }
-  const setReps = (min: number, max: number) =>
-    maj((q) => q.series.forEach((s) => ((s.repsMin = min), (s.repsMax = Math.max(min, max)))))
 
-  // Changements non validés : on ne les perd jamais sans le demander (appui à côté, retour, Annuler).
-  const [depart] = useState(() => JSON.stringify([plan, p.charge === null ? '' : kg(p.charge), chargesSerie, plan.chauffes.map(versLigne)]))
-  const modifie = JSON.stringify([p, chargeTxt, chargesSerie, chauffes]) !== depart
+  /** Modifier une série : les séries suivantes qui avaient la même valeur suivent (3 × 12 en une saisie). */
+  const majReps = (i: number, champ: 'repsMin' | 'repsMax' | 'les2', v: number) =>
+    maj((q) => {
+      const ancien = q.series[i]
+      const pareil = (j: number) => (champ === 'repsMax' ? q.series[j].repsMax === ancien.repsMax : q.series[j].repsMin === ancien.repsMin && (champ === 'repsMin' || q.series[j].repsMax === ancien.repsMax))
+      const cibles = [i, ...q.series.map((_, j) => j).filter((j) => j > i && pareil(j))]
+      for (const j of cibles) {
+        const s = q.series[j]
+        if (champ === 'les2') (s.repsMin = v), (s.repsMax = v)
+        else if (champ === 'repsMin') (s.repsMin = v), (s.repsMax = Math.max(v, s.repsMax))
+        else (s.repsMax = v), (s.repsMin = Math.min(v, s.repsMin))
+      }
+    })
+  const majCharge = (i: number, t: string) =>
+    setCharges((c) => c.map((x, j) => (j === i || (j > i && x === c[i]) ? t : x)))
+
+  // Changements non validés : on ne les perd jamais sans le demander (retour, Annuler).
+  const [depart] = useState(() => JSON.stringify([plan, charges, plan.chauffes.map(versLigne)]))
+  const modifie = JSON.stringify([p, charges, chauffes]) !== depart
   const fermer = () => {
     if (!modifie) return onFermer()
     void confirmer('Les réglages de cet exercice ne seront pas enregistrés.', {
@@ -134,17 +146,17 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
   })
 
   const resultat = (): ExoPlan => {
-    const chargeGenerale = lireCharge(chargeTxt)
+    // Charge de départ générale = celle de la 1re série ; les autres séries ne la précisent que si elle diffère.
+    const chargeGenerale = lireCharge(charges[0] ?? '')
     return {
       ...p,
       charge: chargeGenerale ?? null,
       series: p.series.map((s, i) => {
         const { charge: _c, repos: _r, ...base } = s
-        // Sans réglage série par série : les mêmes reps pour toutes (celles affichées en haut).
-        if (!detail) return { ...base, repsMin: p.series[0].repsMin, repsMax: p.series[0].repsMax }
-        const charge = lireCharge(chargesSerie[i] ?? '')
+        const charge = lireCharge(charges[i] ?? '')
         return {
           ...base,
+          ...(fourchette ? {} : { repsMax: base.repsMin }),
           ...(charge !== undefined && charge !== chargeGenerale ? { charge } : {}),
           ...(s.repos !== undefined && s.repos !== p.repos ? { repos: s.repos } : {}),
         }
@@ -156,8 +168,16 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
   const valider = () => onValider(resultat())
 
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
-  const libelleCharge =
-    exo.mode === 'poids_corps' ? 'Lest de départ (kg, 0 = poids du corps)' : exo.mode === 'elastique' ? 'Niveau d’élastique' : exo.mode === 'par_main' ? 'Charge par main (kg)' : 'Charge de départ (kg)'
+  const chargeBase = lireCharge(charges[0] ?? '')
+  const resumeAvance = [
+    `RPE ${[...new Set(p.series.map((s) => kg(s.rpe)))].join(', ')}`,
+    fourchette ? 'fourchette' : '',
+    p.series.some((s) => s.repos !== undefined && s.repos !== p.repos) ? 'repos par série' : '',
+    p.finisseur ? '★ finisseur' : '',
+    p.optionnel ? 'optionnel' : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div className="modal-fond">
@@ -168,104 +188,42 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
           <span>Séries</span>
           <MiniStepper valeur={n} min={1} max={10} onChange={setNombre} />
         </div>
-        <div className="ligne entre">
-          <span>
-            {temps ? 'Secondes min' : 'Reps min'}
-            {detail && <span className="faible"> · toutes les séries</span>}
-          </span>
-          <MiniStepper valeur={repsMin} min={1} max={temps ? 600 : 99} pas={temps ? 5 : 1} onChange={(v) => setReps(v, Math.max(v, repsMax))} />
+
+        <div className="tableau-series">
+          <span />
+          <span className="faible">{temps ? 'Secondes' : 'Reps'}</span>
+          <span className="faible">Charge ({unite})</span>
+          {p.series.map((s, i) => (
+            <Fragment key={i}>
+              <span className="faible">S{i + 1}</span>
+              {fourchette ? (
+                <span className="ligne" style={{ gap: 4 }}>
+                  <NombreCourt valeur={s.repsMin} onChange={(v) => majReps(i, 'repsMin', v)} />
+                  <span className="faible">–</span>
+                  <NombreCourt valeur={s.repsMax} onChange={(v) => majReps(i, 'repsMax', v)} />
+                </span>
+              ) : (
+                <NombreCourt valeur={s.repsMin} onChange={(v) => majReps(i, 'les2', v)} />
+              )}
+              <input
+                inputMode="decimal"
+                className="charge-serie"
+                placeholder="—"
+                value={charges[i] ?? ''}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => majCharge(i, e.target.value)}
+              />
+            </Fragment>
+          ))}
         </div>
-        <div className="ligne entre">
-          <span>
-            {temps ? 'Secondes max' : 'Reps max'}
-            {detail && <span className="faible"> · toutes les séries</span>}
-          </span>
-          <MiniStepper valeur={repsMax} min={repsMin} max={temps ? 600 : 99} pas={temps ? 5 : 1} onChange={(v) => setReps(repsMin, v)} />
+        <div className="faible">
+          Change la 1re série : les suivantes identiques suivent. La charge ne sert que la toute première fois (ensuite, l’appli repart de ta dernière
+          séance) ; pas d’idée ? Laisse « — », tu la trouveras pendant la séance.
         </div>
 
         <div className="ligne entre">
           <span>Repos entre les séries</span>
           <ChoixDuree valeur={p.repos} onChange={(v) => maj((q) => (q.repos = v))} />
-        </div>
-
-        <label className="champ">
-          <span>{libelleCharge}</span>
-          <input inputMode="decimal" value={chargeTxt} placeholder="je ne sais pas encore" onChange={(e) => setChargeTxt(e.target.value)} />
-          <span className="faible">
-            Sert seulement la toute première fois. Ensuite, l’appli repart de ce que tu as fait la dernière fois. Pas d’idée ? Laisse vide : tu
-            trouveras la bonne charge pendant la séance, dès la 1re série.
-          </span>
-        </label>
-
-        <div>
-          <Interrupteur
-            on={detail}
-            onChange={setDetail}
-            label="Régler série par série"
-            aide="Reps, charge et repos différents selon la série (ex. 12 / 10 / 8 en montant la charge)."
-          />
-          <div className="faible" style={{ margin: '6px 0' }}>
-            {detail ? `Par série : ${temps ? 'secondes' : 'reps'} min–max, puis RPE · charge (${unite}) · repos après` : 'RPE visé par série'}
-          </div>
-          {p.series.map((s, i) => (
-            <div key={i} className={detail ? 'serie-plan' : undefined}>
-            {detail && (
-              <div className="ligne" style={{ gap: 6 }}>
-                <span className="faible" style={{ width: 22, flex: '0 0 auto' }}>
-                  S{i + 1}
-                </span>
-                <NombreCourt valeur={s.repsMin} onChange={(v) => maj((q) => ((q.series[i].repsMin = v), (q.series[i].repsMax = Math.max(v, q.series[i].repsMax))))} />
-                <span className="faible">–</span>
-                <NombreCourt valeur={s.repsMax} onChange={(v) => maj((q) => ((q.series[i].repsMax = v), (q.series[i].repsMin = Math.min(v, q.series[i].repsMin))))} />
-                <span className="faible">{temps ? 's' : 'reps'}</span>
-              </div>
-            )}
-            <div className="ligne" style={{ marginBottom: 6, gap: 6 }}>
-              <span className="faible" style={{ width: 22, flex: '0 0 auto' }}>
-                {detail ? '' : `S${i + 1}`}
-              </span>
-              <select
-                value={s.rpe}
-                style={detail ? { width: 74, padding: '8px 4px', flex: '0 0 auto' } : undefined}
-                disabled={p.finisseur && i === n - 1}
-                onChange={(e) => maj((q) => (q.series[i].rpe = parseFloat(e.target.value)))}
-              >
-                {RPES.map((r) => (
-                  <option key={r} value={r}>
-                    {detail ? kg(r) : `RPE ${kg(r)}${r === 10 ? ' (échec)' : ''}`}
-                  </option>
-                ))}
-              </select>
-              {detail && (
-                <>
-                  <input
-                    inputMode="decimal"
-                    style={{ width: 62, padding: '8px 4px', textAlign: 'center', flex: '0 0 auto' }}
-                    placeholder={chargeTxt || '—'}
-                    value={chargesSerie[i] ?? ''}
-                    onChange={(e) => setChargesSerie((c) => c.map((x, k) => (k === i ? e.target.value : x)))}
-                  />
-                  <ChoixDuree compact valeur={s.repos ?? p.repos} onChange={(v) => maj((q) => (q.series[i].repos = v))} />
-                </>
-              )}
-            </div>
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <Interrupteur
-            on={p.reposApres !== undefined}
-            onChange={(v) => maj((q) => (q.reposApres = v ? q.repos : undefined))}
-            label="Repos spécifique avant l’exercice suivant"
-            aide="Lancé après la dernière série (changer de machine, souffler)."
-          />
-          {p.reposApres !== undefined && (
-            <div className="ligne entre" style={{ marginTop: 6 }}>
-              <span className="petit">Repos après l’exercice</span>
-              <ChoixDuree valeur={p.reposApres} onChange={(v) => maj((q) => (q.reposApres = v))} />
-            </div>
-          )}
         </div>
 
         <div>
@@ -276,10 +234,9 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
               max={4}
               onChange={(k) =>
                 setChauffes((c) => {
-                  const base = lireCharge(chargeTxt)
                   if (k < c.length) return c.slice(0, k)
                   // Nouvelle ligne : palier suivant de la chauffe auto si la charge est connue.
-                  const auto = base ? chauffeAuto(base, exo.pas, k).map(versLigne) : []
+                  const auto = chargeBase ? chauffeAuto(chargeBase, exo.pas, k).map(versLigne) : []
                   return [...c, ...Array.from({ length: k - c.length }, (_, j) => auto[c.length + j] ?? { charge: '', reps: 8 })]
                 })
               }
@@ -310,70 +267,123 @@ export default function EditeurExoPlan({ exo, plan, onValider, onFermer, onSuiva
               )}
             </div>
           ))}
-          {chauffes.length > 0 && lireCharge(chargeTxt)! > 0 && (
-            <button
-              type="button"
-              className="btn discret petit"
-              onClick={() => setChauffes(chauffeAuto(lireCharge(chargeTxt)!, exo.pas, chauffes.length).map(versLigne))}
-            >
-              Calculer depuis la charge de départ (50 %, 70 %, 85 %)
+          {chauffes.length > 0 && chargeBase! > 0 && (
+            <button type="button" className="btn discret petit" onClick={() => setChauffes(chauffeAuto(chargeBase!, exo.pas, chauffes.length).map(versLigne))}>
+              Calculer depuis la charge de la 1re série (50 %, 70 %, 85 %)
             </button>
           )}
         </div>
-
-        <Interrupteur
-          on={p.finisseur}
-          onChange={(v) =>
-            maj((q) => {
-              q.finisseur = v
-              if (v) q.series[q.series.length - 1].rpe = 10
-            })
-          }
-          label="★ Finisseur sur la dernière série"
-          aide="Une technique d’intensité sur la dernière série. Plutôt sur de l’isolation, un ou deux par séance."
-        />
-        {p.finisseur && (
-          <div className="pile" style={{ gap: 8 }}>
-            <div className="chips">
-              {(Object.keys(FINISSEURS) as TypeFinisseur[]).map((t) => (
-                <button key={t} className={typeFinisseur(p) === t ? 'actif' : ''} onClick={() => maj((q) => (q.typeFinisseur = t))}>
-                  {FINISSEURS[t].nom}
-                </button>
-              ))}
-            </div>
-            <div className="suggestion petit">{FINISSEURS[typeFinisseur(p)].aide}</div>
-            {typeFinisseur(p) === 'partielles' && (
-              <div className="ligne entre wrap">
-                <span className="petit">Zone des demi-reps</span>
-                <div className="chips">
-                  {ZONES.map(([z, nom]) => (
-                    <button key={z} className={(p.zone ?? 'etiree') === z ? 'actif' : ''} onClick={() => maj((q) => (q.zone = z))}>
-                      {nom}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            <button type="button" className="btn discret petit" onClick={() => setAideFin(!aideFin)}>
-              {aideFin ? '▾' : '▸'} C’est quoi, chaque technique ?
-            </button>
-            {aideFin && (
-              <div className="pile petit" style={{ gap: 6 }}>
-                {Object.values(FINISSEURS).map((f) => (
-                  <div key={f.nom}>
-                    <strong>{f.nom}</strong> <span className="muted">— {f.aide}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" />
 
         <label className="champ">
           <span>Note (consigne pour cette séance)</span>
           <input value={p.note ?? ''} onChange={(e) => maj((q) => (q.note = e.target.value))} />
         </label>
+
+        {/* Réglages pour aller plus loin, repliés : par défaut l'appli vise RPE 8 sans qu'on ait à y penser. */}
+        <button type="button" className="groupe-repli" onClick={() => setAvance(!avance)} aria-expanded={avance}>
+          <span>
+            Avancé <span className="faible">· {resumeAvance}</span>
+          </span>
+          <span className="muted">{avance ? '▾' : '▸'}</span>
+        </button>
+        {avance && (
+          <div className="pile">
+            <div>
+              <div className="petit">Difficulté visée (RPE) par série</div>
+              <div className="faible" style={{ marginBottom: 6 }}>
+                8 = il te reste 2 reps en réserve ; 10 = échec. C’est elle qui dit quand une série compte comme « dure ».
+              </div>
+              {p.series.map((s, i) => (
+                <div key={i} className="ligne" style={{ marginBottom: 6, gap: 6 }}>
+                  <span className="faible" style={{ width: 22, flex: '0 0 auto' }}>
+                    S{i + 1}
+                  </span>
+                  <select value={s.rpe} disabled={p.finisseur && i === n - 1} onChange={(e) => maj((q) => (q.series[i].rpe = parseFloat(e.target.value)))}>
+                    {RPES.map((r) => (
+                      <option key={r} value={r}>
+                        RPE {kg(r)}
+                        {r === 10 ? ' (échec)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ChoixDuree compact valeur={s.repos ?? p.repos} onChange={(v) => maj((q) => (q.series[i].repos = v))} />
+                </div>
+              ))}
+              <div className="faible">À droite : repos après chaque série (par défaut, celui réglé plus haut).</div>
+            </div>
+
+            <Interrupteur
+              on={fourchette}
+              onChange={setFourchette}
+              label={temps ? 'Fourchette de secondes' : 'Fourchette de reps'}
+              aide={temps ? 'Un minimum et un maximum par série (ex. 30–45 s).' : 'Un minimum et un maximum par série (ex. 8–12) : tu montes la charge quand tu atteins le haut.'}
+            />
+
+            <div>
+              <Interrupteur
+                on={p.reposApres !== undefined}
+                onChange={(v) => maj((q) => (q.reposApres = v ? q.repos : undefined))}
+                label="Repos spécifique avant l’exercice suivant"
+                aide="Lancé après la dernière série (changer de machine, souffler)."
+              />
+              {p.reposApres !== undefined && (
+                <div className="ligne entre" style={{ marginTop: 6 }}>
+                  <span className="petit">Repos après l’exercice</span>
+                  <ChoixDuree valeur={p.reposApres} onChange={(v) => maj((q) => (q.reposApres = v))} />
+                </div>
+              )}
+            </div>
+
+            <Interrupteur
+              on={p.finisseur}
+              onChange={(v) =>
+                maj((q) => {
+                  q.finisseur = v
+                  if (v) q.series[q.series.length - 1].rpe = 10
+                })
+              }
+              label="★ Finisseur sur la dernière série"
+              aide="Une technique d’intensité sur la dernière série. Plutôt sur de l’isolation, un ou deux par séance."
+            />
+            {p.finisseur && (
+              <div className="pile" style={{ gap: 8 }}>
+                <div className="chips">
+                  {(Object.keys(FINISSEURS) as TypeFinisseur[]).map((t) => (
+                    <button key={t} className={typeFinisseur(p) === t ? 'actif' : ''} onClick={() => maj((q) => (q.typeFinisseur = t))}>
+                      {FINISSEURS[t].nom}
+                    </button>
+                  ))}
+                </div>
+                <div className="suggestion petit">{FINISSEURS[typeFinisseur(p)].aide}</div>
+                {typeFinisseur(p) === 'partielles' && (
+                  <div className="ligne entre wrap">
+                    <span className="petit">Zone des demi-reps</span>
+                    <div className="chips">
+                      {ZONES.map(([z, nom]) => (
+                        <button key={z} className={(p.zone ?? 'etiree') === z ? 'actif' : ''} onClick={() => maj((q) => (q.zone = z))}>
+                          {nom}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button type="button" className="btn discret petit" onClick={() => setAideFin(!aideFin)}>
+                  {aideFin ? '▾' : '▸'} C’est quoi, chaque technique ?
+                </button>
+                {aideFin && (
+                  <div className="pile petit" style={{ gap: 6 }}>
+                    {Object.values(FINISSEURS).map((f) => (
+                      <div key={f.nom}>
+                        <strong>{f.nom}</strong> <span className="muted">— {f.aide}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" aide="À faire seulement si tu as le temps." />
+          </div>
+        )}
 
         {onSuivant ? (
           <div className="ligne">
