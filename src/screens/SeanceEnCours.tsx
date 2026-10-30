@@ -15,7 +15,7 @@ import { ecartSerie, lireChauffe, volumeParMuscle, calories, chargeQte, chargeTe
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { cibles, suggestionDeload } from '../lib/cycle'
-import { hausse, pareil, seancesIdentiques, suggestionPour, type Suggestion } from '../lib/progression'
+import { conseil, hausse, pareil, seancesIdentiques, suggestionPour, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
@@ -881,7 +881,8 @@ function FinSeance({
   const suggestionDe = (exoId: string) => {
     const p = seance.exercices.find((x) => x.exoId === exoId)!
     const exo = exoAvecReglages(catalogue.exo(exoId), reglages)
-    return { exo, s: pareil(exo, p, historiqueDe(avecCelleCi, exoId)) }
+    const histo = historiqueDe(avecCelleCi, exoId)
+    return { exo, s: pareil(exo, p, histo), conseil: conseil(exo, p, histo) }
   }
   const faits = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
 
@@ -948,7 +949,7 @@ function FinSeance({
           <div className="faible" style={{ marginBottom: 10 }}>
             {seance.deload
               ? 'Séance de déload : pas d’objectif à fixer. La prochaine vraie séance reprend là où tu en étais avant le déload.'
-              : 'Tes séries comparées à la dernière fois. La prochaine fois, tu refais pareil : appuie sur ✎ pour monter une charge ou des reps.'}
+              : 'Tes séries comparées à la dernière fois. La prochaine fois, tu refais pareil, sauf si tu appliques un conseil 💡 (exercices avec une fourchette de reps) ; ✎ pour régler toi-même.'}
           </div>
           <RecapExos
             seance={seance}
@@ -957,12 +958,15 @@ function FinSeance({
             catalogue={catalogue}
             basExo={(exo) => {
               if (seance.deload) return null
-              const { s } = suggestionDe(exo.id)
+              const { s, conseil: c } = suggestionDe(exo.id)
               const o = objectifs[exo.id]
               const charges = o?.charges ?? s.charges
               const reps = o?.reps ?? s.reps
               const monte = o && charges.some((c, k) => (c ?? 0) > (s.charges[k] ?? 0) || (c === s.charges[k] && reps[k] > s.reps[k]))
+              // Conseil de surcharge : affiché tant qu'il n'est pas déjà l'objectif retenu.
+              const applique = c && JSON.stringify([c.charges, c.reps]) === JSON.stringify([charges, reps])
               return (
+                <>
                 <button className="prochaine" onClick={() => setAjuste(exo.id)}>
                   <span>
                     <span className="label">Prochaine fois</span>
@@ -975,6 +979,21 @@ function FinSeance({
                   </span>
                   <span className="modifier">✎ Modifier</span>
                 </button>
+                {c && !applique && (
+                  <div className="conseil-surcharge">
+                    <span>
+                      <span className="label">💡 Conseil</span>
+                      <strong>{cibleTexte(exo, c.charges, c.reps)}</strong>
+                      <span className="faible" style={{ display: 'block' }}>
+                        {c.message}
+                      </span>
+                    </span>
+                    <button className="btn petit" onClick={() => setObjectifs((x) => ({ ...x, [exo.id]: { charges: c.charges, reps: c.reps } }))}>
+                      Appliquer
+                    </button>
+                  </div>
+                )}
+                </>
               )
             }}
           />

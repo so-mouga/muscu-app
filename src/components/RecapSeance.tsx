@@ -29,7 +29,7 @@ export function ResumeSeance({ seance, explication = false, exo }: { seance: Sea
       {explication && (
         <div className="faible" style={{ marginTop: 8 }}>
           Calories estimées d’après la durée et{' '}
-          {seance.poidsCorps ? `ton poids (${kg(seance.poidsCorps)} kg)` : `un poids de ${POIDS_DEFAUT} kg : note ton poids dans Progression → Poids pour affiner`}. C’est un ordre de
+          {seance.poidsCorps ? `ton poids (${kg(seance.poidsCorps)} kg)` : `un poids de ${POIDS_DEFAUT} kg : note ton poids dans Progression → Corps pour affiner`}. C’est un ordre de
           grandeur, pas une mesure.
         </div>
       )}

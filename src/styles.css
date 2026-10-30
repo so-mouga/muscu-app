@@ -2457,3 +2457,28 @@ body.sans-onglets .barre-demarrer {
   border-radius: 12px;
   background: var(--surface-2);
 }
+
+/* Conseil de surcharge : proposition à appliquer d'un appui */
+.conseil-surcharge {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+}
+.conseil-surcharge .label {
+  display: block;
+  font-size: 12px;
+  color: var(--accent);
+}
+.conseil-surcharge .btn {
+  flex-shrink: 0;
+}
+.conseil-surcharge.discret {
+  margin-top: 0;
+  padding: 6px 10px;
+  border-color: var(--bord);
+}

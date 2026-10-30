@@ -41,6 +41,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 ## Décisions métier à respecter
 
 - **Pas de progression automatique** : l'objectif par défaut est « refaire pareil » que la dernière fois. L'utilisateur monte lui-même en fin de séance.
+- **Conseil de surcharge** (proposition, jamais appliquée seule) : seulement pour un exercice avec une fourchette de reps. En fin de séance, carte 💡 « Conseil » + [Appliquer] (`conseil` dans `lib/progression.ts` : une rep de plus, puis la charge quand toutes les séries sont au haut ; saut > 10 % à confirmer une fois). En séance, petite ligne « monte d'un cran » si la série d'avant dépasse le haut de 3 reps ou plus (`monterMaintenant`). Pas d'interrupteur par exercice : la fourchette suffit. RPE visé 8 par défaut, même en sèche.
 - Vocabulaire : **Programme** = modèle (séances + planning + objectifs de volume) ; **Cycle** = programme lancé à une date (copie figée, déload en fin de cycle).
 - Les changements faits pendant une séance ne modifient jamais la séance enregistrée (sauf « Modifier l'exercice » depuis la fiche ⓘ).
 - Séries dures = RPE ≥ 7 ; volume par muscle = séries dures par semaine, secondaires à 0,5.

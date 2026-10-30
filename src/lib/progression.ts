@@ -1,4 +1,5 @@
 import type { Exercice, ExoPlan, Seance, Serie } from '../types'
+import { enTemps } from './calc'
 
 export type Decision = 'augmenter' | 'plus_une_rep' | 'consolider' | 'baisser' | 'calibrer' | 'depart' | 'manuel' | 'pareil'
 
@@ -44,7 +45,7 @@ function bilan(series: Serie[], plan: ExoPlan): Bilan | null {
   }
 }
 
-function increment(exo: Exercice, c: number): number {
+export function increment(exo: Exercice, c: number): number {
   if (exo.mode === 'poids_corps' || exo.mode === 'elastique') return exo.pas
   return exo.pas * Math.max(1, Math.ceil((c * 0.025) / exo.pas - EPS))
 }
@@ -219,6 +220,43 @@ export function suggestionPour(exo: Exercice, plan: ExoPlan, seances: Seance[], 
     plan,
     avec.map((s) => s.series.filter((x) => x.exoId === exo.id))
   )
+}
+
+const aFourchette = (plan: ExoPlan) => plan.series.some((x) => x.repsMin < x.repsMax)
+
+/**
+ * Conseil de surcharge pour la prochaine fois, d'après la double progression : seulement pour un
+ * exercice avec une fourchette de reps (sinon on refait pareil). D'abord des reps dans la fourchette,
+ * puis la charge quand toutes les séries atteignent le haut. C'est une proposition : l'utilisateur
+ * l'applique ou non. `historique` : séries de l'exercice par séance, la plus récente en premier.
+ */
+export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Suggestion | null {
+  if (enTemps(exo) || !aFourchette(plan) || !historique.some((h) => h.length)) return null
+  const s = suggere(exo, plan, historique)
+  const bas = plan.series[0].repsMin
+  const haut = plan.series[0].repsMax
+  if (s.decision === 'augmenter') return { ...s, message: `Toutes tes séries ont atteint ${haut} reps : monte la charge, les reps repartent à ${bas}.` }
+  if (s.decision === 'plus_une_rep') return { ...s, message: `Même charge, une rep de plus. Tu monteras la charge quand toutes les séries atteindront ${haut}.` }
+  if (s.decision === 'baisser') return { ...s, message: `Deux séances de suite sous ${bas} reps : baisse un peu pour repartir propre.` }
+  // Haut atteint mais montée trop forte d'un coup (ou matériel au max) : le dire plutôt que se taire.
+  const b = historique.find((h) => h.length) && bilan(historique.find((h) => h.length)!, plan)
+  if (s.decision === 'consolider' && b && b.top && b.rpeOk && b.garde) {
+    const saut = s.message.match(/mais (.+) : confirme/)
+    return { ...s, message: saut ? `Haut de la fourchette atteint, mais ${saut[1]} d’un coup : refais ${haut} reps sur toutes les séries pour confirmer, puis monte.` : s.message }
+  }
+  return null
+}
+
+/**
+ * Pendant la séance : la série d'avant dépasse nettement le haut de la fourchette (3 reps ou plus),
+ * on peut monter d'un cran tout de suite. Renvoie la charge proposée, sinon null.
+ */
+export function monterMaintenant(exo: Exercice, plan: ExoPlan, precedente: Serie | undefined, index: number): number | null {
+  const p = plan.series[Math.min(index - 1, plan.series.length - 1)]
+  if (!precedente || precedente.type !== 'normale' || enTemps(exo) || !p || p.repsMin >= p.repsMax) return null
+  if (precedente.reps < p.repsMax + 3) return null
+  const c = arrondi(precedente.charge + increment(exo, precedente.charge))
+  return exo.chargeMax !== undefined && c > exo.chargeMax + EPS ? null : c
 }
 
 /** Ce que l'objectif demande de plus que la dernière fois pour la série `i` : « +2,5 kg », « +1 rep » (null sinon). */

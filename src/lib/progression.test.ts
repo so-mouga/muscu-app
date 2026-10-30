@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { aBattre, hausse, pareil, seancesIdentiques, suggere, suggestionPour } from './progression'
+import { aBattre, conseil, hausse, monterMaintenant, pareil, seancesIdentiques, suggere, suggestionPour } from './progression'
 
 const planDe = (modele: string, exoId: string) => MODELES[modele].exercices.find((e) => e.exoId === exoId)!
 
@@ -209,5 +209,37 @@ describe('stagnation', () => {
     expect(seancesIdentiques([seance(30, '10@8', '10@8'), seance(30, '10@8', '10@8'), seance(30, '10@8', '10@8'), seance(27.5, '12@8')])).toBe(3)
     expect(seancesIdentiques([seance(30, '11@8', '10@8'), seance(30, '10@8', '10@8')])).toBe(1)
     expect(seancesIdentiques([])).toBe(0)
+  })
+})
+
+describe('conseil de surcharge (proposition, jamais automatique)', () => {
+  const plan = planDe('haut_a', 'butterfly')
+  const fixe = { ...plan, series: plan.series.map((x) => ({ ...x, repsMax: x.repsMin })) }
+
+  it('fourchette atteinte partout → monter la charge', () => {
+    const r = conseil(EXERCICES.butterfly, plan, [seance(30, '15@8', '15@8', '15@9', '!11@10')])
+    expect(r?.decision).toBe('augmenter')
+    expect(r?.message).toMatch(/monte la charge/)
+  })
+
+  it('reps fixes, rien de fait ou on consolide → pas de conseil', () => {
+    expect(conseil(EXERCICES.butterfly, fixe, [seance(30, '15@8', '15@8', '15@9', '!11@10')])).toBeNull()
+    expect(conseil(EXERCICES.butterfly, plan, [])).toBeNull()
+    expect(conseil(EXERCICES.butterfly, plan, [seance(30, '14@10', '13@10', '12@10', '!10@10')])).toBeNull()
+  })
+
+  it('montée de plus de 10 % : conseil de confirmer d’abord au haut de la fourchette', () => {
+    const plan3 = { ...plan, charge: 15, finisseur: false, series: plan.series.slice(0, 3) }
+    const r = conseil(EXERCICES.butterfly, plan3, [seance(15, '20@7')])
+    expect(r?.decision).toBe('consolider')
+    expect(r?.reps).toEqual([15, 15, 15])
+    expect(r?.message).toMatch(/pour confirmer/)
+  })
+
+  it('en séance : 3 reps au-dessus du haut de la fourchette → un cran de plus', () => {
+    const [s] = seance(15, '20@7')
+    expect(monterMaintenant(EXERCICES.butterfly, plan, s, 1)).toBe(17.5)
+    expect(monterMaintenant(EXERCICES.butterfly, plan, seance(15, '16@8')[0], 1)).toBeNull()
+    expect(monterMaintenant(EXERCICES.butterfly, fixe, s, 1)).toBeNull()
   })
 })

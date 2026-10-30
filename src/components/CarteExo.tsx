@@ -8,7 +8,7 @@ import ChronoTenue from './ChronoTenue'
 import InfosExo, { BoutonInfos } from './InfosExo'
 import Vignette from './Vignette'
 import { vibrer } from '../lib/appareil'
-import { hausse, type Suggestion } from '../lib/progression'
+import { hausse, monterMaintenant, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
 import { confirmer, informer } from './Dialogues'
 
@@ -595,6 +595,23 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </div>
         <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
       </div>
+      {/* Série d'avant bien au-dessus de la fourchette : proposer un cran de plus, sans rien imposer. */}
+      {!edition &&
+        (() => {
+          const prec = faites[index - 1]
+          const c = monterMaintenant(exo, plan, prec, index)
+          if (c === null || charge >= c) return null
+          return (
+            <div className="conseil-surcharge discret">
+              <span className="faible">
+                💡 {prec.reps} reps, bien au-dessus de {plan.series[Math.min(index - 1, plan.series.length - 1)].repsMax} : tu peux monter d’un cran.
+              </span>
+              <button className="btn petit" onClick={() => (setCharge(c), setChargeTxt(null))}>
+                {chargeTexte(exo, c)}
+              </button>
+            </div>
+          )
+        })()}
       {/* Charge décalée comme à la série précédente : on le dit, pour ne pas croire à une erreur. */}
       {!edition && sugg.charges[i] !== null && sugg.charges[i] !== undefined && charge === chargeInitiale() && charge !== sugg.charges[i] && (
         <div className="faible" style={{ marginTop: -4 }}>

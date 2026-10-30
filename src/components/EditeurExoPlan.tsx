@@ -220,8 +220,8 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
             {temps ? 'Fourchette de secondes (min – max)' : 'Fourchette de reps (min – max)'}
             <div className="faible">
               {fourchette
-                ? 'Chaque série a un minimum et un maximum : vise le haut, et monte la charge quand tu l’atteins sur toutes les séries.'
-                : 'Un nombre fixe par série. Active pour viser une fourchette (ex. 8–12).'}
+                ? 'Vise le haut. En fin de séance, l’appli te conseille : une rep de plus, puis la charge quand toutes les séries atteignent le haut.'
+                : 'Un nombre fixe par série : tu refais pareil. Active pour viser une fourchette (ex. 12–15) et être guidé pour monter.'}
             </div>
           </span>
           <span className="piste" />
