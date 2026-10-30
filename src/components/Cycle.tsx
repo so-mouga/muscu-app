@@ -1,14 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
-import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
 import { db, setReglage, uid } from '../db'
 import { dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle } from '../lib/calc'
-import { cibles, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, mettreEnPause, nouveauCycle, volumeDefaut, type EtatCycle } from '../lib/cycle'
+import { cibles, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, mettreEnPause, nouveauCycle, type EtatCycle } from '../lib/cycle'
 import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
-import type { Cycle, Muscle, Programme } from '../types'
+import type { Cycle, Programme } from '../types'
 import VolumeMuscles from './VolumeMuscles'
 import { confirmer } from './Dialogues'
 
@@ -78,7 +77,7 @@ export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cy
   )
 }
 
-/** Lancer un cycle, ou modifier celui en cours (durée, déloads, objectifs de volume). */
+/** Lancer un cycle, ou modifier celui en cours (durée, déloads). Les objectifs de volume viennent du programme. */
 export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalogue: Catalogue; programme?: Programme; cycle?: Cycle; onFermer: () => void }) {
   useRetour(true, onFermer)
   const [progId, setProgId] = useState(cycle?.programmeId ?? programme?.id ?? catalogue.actif.id)
@@ -87,8 +86,6 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
   const [debut, setDebut] = useState(cetteSemaine)
   const [semaines, setSemaines] = useState(cycle?.semaines ?? DUREE_DEFAUT)
   const [deloads, setDeloads] = useState<number[]>(cycle?.deloads ?? [DUREE_DEFAUT])
-  const [volume, setVolume] = useState<Partial<Record<Muscle, number>>>(cycle?.volume ?? volumeDefaut())
-  const [voirVolume, setVoirVolume] = useState(false)
   const etat = cycle && etatCycle(cycle)
 
   const changerDuree = (n: number) => {
@@ -99,7 +96,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
 
   const enregistrer = async () => {
     if (cycle) {
-      await db.cycles.update(cycle.id, { semaines, deloads: [...deloads].sort((a, b) => a - b), volume })
+      await db.cycles.update(cycle.id, { semaines, deloads: [...deloads].sort((a, b) => a - b) })
       return onFermer()
     }
     const p = catalogue.programmes.find((x) => x.id === progId)!
@@ -109,7 +106,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
       !(await confirmer(`Le cycle « ${enCours.programme.nom} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer un nouveau cycle ?', oui: 'Lancer le nouveau cycle' }))
     )
       return
-    const c = nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b), volume)
+    const c = nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b))
     await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
       if (enCours) await db.cycles.update(enCours.id, { fin: dateISO() })
       await db.cycles.put(c)
@@ -199,32 +196,8 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
           </span>
         </div>
 
-        <div className="champ">
-          <button type="button" className="groupe-repli" onClick={() => setVoirVolume(!voirVolume)} aria-expanded={voirVolume}>
-            <span>Objectifs de volume (séries dures / semaine)</span>
-            <span className="muted">{voirVolume ? '▾' : '▸'}</span>
-          </button>
-          {voirVolume && (
-            <div>
-              <div className="faible" style={{ margin: '6px 0' }}>
-                Pré-remplis avec les repères habituels (10-20 séries par muscle et par semaine). 0 = pas d’objectif pour ce muscle.
-              </div>
-              {MUSCLES.map((m) => (
-                <div key={m.id} className="ligne entre" style={{ padding: '4px 0' }}>
-                  <span className="petit">{m.nom}</span>
-                  <span className="mini-stepper">
-                    <button type="button" onClick={() => setVolume((v) => ({ ...v, [m.id]: Math.max(0, (v[m.id] ?? 0) - 1) }))}>
-                      −
-                    </button>
-                    <strong>{volume[m.id] ?? 0}</strong>
-                    <button type="button" onClick={() => setVolume((v) => ({ ...v, [m.id]: Math.min(40, (v[m.id] ?? 0) + 1) }))}>
-                      +
-                    </button>
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="faible">
+          Objectifs de volume par muscle : ceux du programme{cycle ? ' (copiés au lancement)' : ''}. Ils se règlent dans le programme, carte « Volume par semaine ».
         </div>
 
         <button className="btn primaire grand" onClick={enregistrer}>

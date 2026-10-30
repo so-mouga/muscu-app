@@ -7,7 +7,7 @@ import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
-import { cibles, copieSeances, etatCycle } from '../lib/cycle'
+import { cibles, copieSeances, etatCycle, volumeProgramme } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
@@ -165,7 +165,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
           </button>
         )
       })}
-      <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
+      <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [], volume: { ...(catalogue.cycle?.volume ?? volumeProgramme(catalogue.actif)) } }, true)}>
         + Nouveau programme
       </button>
 
@@ -260,7 +260,7 @@ function EditeurProgramme({
     // Programme du cycle en cours : on demande avant de toucher au cycle.
     const c = catalogue.cycle
     if (c && c.programmeId === finale.id && modifie && (await confirmer(`« ${finale.nom} » est le programme du cycle en cours. Tes changements sont enregistrés dans le programme ; tu choisis s’ils s’appliquent dès maintenant au cycle, ou seulement au prochain.`, { titre: 'Appliquer au cycle en cours ?', oui: 'Appliquer au cycle en cours', non: 'Seulement pour le prochain cycle' })))
-      await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele) })
+      await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele), volume: { ...volumeProgramme(finale) } })
     onFermer()
   }
   const dupliquer = async () => {
@@ -351,11 +351,13 @@ function EditeurProgramme({
         <div className="carte">
           <h3>Volume par semaine</h3>
           <div className="faible" style={{ margin: '4px 0 10px' }}>
-            Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face à l’objectif.
+            Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face aux objectifs de ce programme. Touche un muscle
+            pour changer son objectif.
           </div>
           <VolumeMuscles
             volume={volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)}
-            cibles={catalogue.cycle?.programmeId === p.id ? cibles(catalogue.cycle) : undefined}
+            cibles={cibles(undefined, p)}
+            onCible={(muscle, v) => maj((x) => (x.volume = { ...volumeProgramme(x), [muscle]: v }))}
           />
         </div>
       )}

@@ -12,9 +12,14 @@ export const DUREE_DEFAUT = 6
 /** Objectifs de volume par défaut (séries dures par semaine). */
 export const volumeDefaut = (): Partial<Record<Muscle, number>> => Object.fromEntries(MUSCLES.filter((m) => m.cible > 0).map((m) => [m.id, m.cible]))
 
-/** Objectif de volume d'un muscle : celui du cycle, sinon la valeur par défaut. */
-export const cibles = (cycle?: Cycle): Record<Muscle, number> =>
-  Object.fromEntries(MUSCLES.map((m) => [m.id, cycle?.volume[m.id] ?? (cycle ? 0 : m.cible)])) as Record<Muscle, number>
+/** Objectifs de volume d'un programme : les siens, sinon les valeurs par défaut de l'appli. */
+export const volumeProgramme = (p?: Programme): Partial<Record<Muscle, number>> => p?.volume ?? volumeDefaut()
+
+/** Objectif de chaque muscle : celui du cycle en cours (copié du programme au lancement), sinon celui du programme. */
+export const cibles = (cycle?: Cycle, programme?: Programme): Record<Muscle, number> => {
+  const v = cycle?.volume ?? volumeProgramme(programme)
+  return Object.fromEntries(MUSCLES.map((m) => [m.id, v[m.id] ?? 0])) as Record<Muscle, number>
+}
 
 export interface EtatCycle {
   /** Numéro de semaine (1 = première) ; ≤ 0 avant le début. */
@@ -53,7 +58,7 @@ export function nouveauCycle(
   debut: string,
   semaines = DUREE_DEFAUT,
   deloads = [semaines],
-  volume = volumeDefaut()
+  volume = volumeProgramme(programme)
 ): Cycle {
   return {
     id,
@@ -64,7 +69,7 @@ export function nouveauCycle(
     semaines,
     deloads,
     pauses: [],
-    volume,
+    volume: { ...volume },
   }
 }
 

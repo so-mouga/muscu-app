@@ -2197,3 +2197,19 @@ button.pastille.cliquable {
   padding: 8px 6px;
   text-align: center;
 }
+.ligne-volume {
+  display: block;
+  width: 100%;
+  background: none;
+  padding: 2px 0;
+  text-align: left;
+  color: inherit;
+}
+.reglage-cible {
+  margin-top: 6px;
+  padding: 6px 0 2px;
+}
+.au-dessus {
+  color: var(--alerte);
+  font-weight: 700;
+}

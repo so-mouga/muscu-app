@@ -282,14 +282,14 @@ export default function Accueil({
             </span>
           ))}
         </div>
-        <SilhouetteVolume volume={volume} cibles={cycle ? cibles(cycle) : undefined} />
+        <SilhouetteVolume volume={volume} cibles={cibles(cycle, actif)} />
         <button type="button" className="groupe-repli" onClick={() => setDetailVolume(!detailVolume)} aria-expanded={detailVolume}>
           <span>Détail par muscle</span>
           <span className="muted">{detailVolume ? '▾' : '▸'}</span>
         </button>
         {detailVolume && (
           <>
-            <VolumeMuscles volume={volume} cibles={cycle ? cibles(cycle) : undefined} />
+            <VolumeMuscles volume={volume} cibles={cibles(cycle, actif)} />
             <div className="faible">
               Séries dures (RPE ≥ 7). Triceps et avant d’épaule : développés et dips comptés à 0,5. « Suivi seulement » : pas d’objectif pour ce muscle, tu
               peux en fixer un dans les réglages du cycle.

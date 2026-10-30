@@ -89,6 +89,8 @@ export interface Programme {
   nom: string
   description?: string
   seances: { modeleId: string; /** 1 = lundi … 7 = dimanche */ jour?: number }[]
+  /** Objectif de séries dures par semaine, par muscle (absent : valeurs par défaut de l'appli). */
+  volume?: Partial<Record<Muscle, number>>
 }
 
 export type TypeSerie = 'normale' | 'echec' | 'serie_longue' | 'drop' | 'rest_pause'

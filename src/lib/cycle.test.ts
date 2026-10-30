@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { deloadMaintenant, etatCycle, lundiDe, mettreEnPause, planDeload, suggestionDeload } from './cycle'
+import { cibles, deloadMaintenant, etatCycle, lundiDe, mettreEnPause, nouveauCycle, planDeload, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -48,5 +48,17 @@ describe('déload', () => {
   it('charges −10 % arrondies au pas', () => {
     const s = suggestionDeload(EXERCICES.butterfly, { decision: 'pareil', charges: [50, 32.5, null], reps: [10, 10, 10], message: '' })
     expect(s.charges).toEqual([45, 30, null])
+  })
+})
+
+describe('objectifs de volume', () => {
+  it('rattachés au programme, copiés par le cycle au lancement', () => {
+    const p = { id: 'p', nom: 'P', seances: [], volume: { pecs: 12, dos: 14 } }
+    const c = nouveauCycle('c', p, () => undefined, '2026-11-02')
+    expect(c.volume).toEqual({ pecs: 12, dos: 14 })
+    expect(cibles(c).pecs).toBe(12)
+    expect(cibles(undefined, p).biceps).toBe(0)
+    // Programme sans objectifs : valeurs par défaut de l'appli
+    expect(cibles(undefined, { id: 'q', nom: 'Q', seances: [] }).pecs).toBe(16)
   })
 })

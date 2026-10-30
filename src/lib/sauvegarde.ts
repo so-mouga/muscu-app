@@ -44,7 +44,7 @@ export async function exporter(cats: Categorie[]): Promise<string> {
   const avecExos = cats.includes('exercices') || cats.includes('programmes') || cats.includes('historique')
   const tables = new Set(cats.flatMap((c) => TABLES[c]))
   if (avecExos) tables.add('exercices')
-  const data: Record<string, unknown> = { app: 'muscu', version: 4, exporteLe: new Date().toISOString(), contenu: cats }
+  const data: Record<string, unknown> = { app: 'muscu', version: 5, exporteLe: new Date().toISOString(), contenu: cats }
   for (const t of tables) data[t] = await table(t).toArray()
   return JSON.stringify(data)
 }
