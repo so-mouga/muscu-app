@@ -9,6 +9,7 @@ import { bilan, dureeReelle, meilleureSerie, parSemaine, recordsParSeance, semai
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
 import type { Activite, Reglage, Seance, Serie } from '../types'
+import BilanPartage from '../components/BilanPartage'
 import FormActivite from '../components/FormActivite'
 import { kcalActivite, typeActivite, INTENSITES } from '../data/activites'
 import { Mesures, OngletPoids } from './Corps'
@@ -50,6 +51,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
   const poids = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
   /** Activité ouverte (ou 'nouvelle'). */
   const [activite, setActivite] = useState<Activite | 'nouvelle' | null>(null)
+  const [bilanPartage, setBilanPartage] = useState(false)
   const records = useMemo(() => (terminees ? recordsParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
   if (!terminees) return null
@@ -104,9 +106,15 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue }: 
     <div>
       {haut}
 
-      <button className="btn plein" style={{ marginBottom: 12 }} onClick={() => setActivite('nouvelle')}>
-        + Autre activité (padel, course…)
-      </button>
+      <div className="ligne" style={{ marginBottom: 12 }}>
+        <button className="btn" style={{ flex: 1 }} onClick={() => setActivite('nouvelle')}>
+          + Autre activité
+        </button>
+        <button className="btn" style={{ flex: 1 }} onClick={() => setBilanPartage(true)}>
+          📋 Bilan détaillé
+        </button>
+      </div>
+      {bilanPartage && <BilanPartage catalogue={catalogue} onFermer={() => setBilanPartage(false)} />}
       {activite && <FormActivite initial={activite === 'nouvelle' ? undefined : activite} onFermer={() => setActivite(null)} />}
 
       {terminees.length === 0 && activites.length === 0 ? (

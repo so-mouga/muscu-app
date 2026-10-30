@@ -2235,3 +2235,15 @@ body.sans-onglets #root {
 body.sans-onglets .barre-demarrer {
   bottom: env(safe-area-inset-bottom);
 }
+.texte-bilan {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 13px/1.5 ui-monospace, 'SF Mono', Menlo, monospace;
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0 0 24px;
+  user-select: text;
+  -webkit-user-select: text;
+}
