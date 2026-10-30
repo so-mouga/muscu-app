@@ -33,6 +33,8 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - **Fenêtres** (`.modal-fond` > `.modal`) : un appui à côté les ferme en gardant ce qui est saisi. Chaque couche ouverte s'enregistre avec `useRetour` pour que le bouton retour Android la ferme.
 - Une fenêtre ouverte depuis l'intérieur d'une carte doit passer par `createPortal(…, document.body)`, sinon l'en-tête de séance passe au-dessus.
 - Nombres saisis au clavier : pris en compte à la fin de la saisie (`NombreCourt`), pas à chaque touche.
+- Réordonner une liste : poignée ⠿ avec appui maintenu, via `useGlisser` (`lib/glisser.ts`). Pas de flèches ↑↓.
+- Exercices de base : « Masquer » (réversible), jamais supprimés. Exercices créés : « Supprimer » (effacés pour de bon s'ils n'ont jamais servi).
 - Couleurs uniquement via les variables CSS de `:root` (`--bg`, `--surface`, `--accent`, `--texte-2`…). Thème sombre.
 - Pas d'illustrations copiées d'autres applis : icônes et pictogrammes maison en SVG.
 

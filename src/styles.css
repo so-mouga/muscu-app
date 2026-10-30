@@ -685,9 +685,14 @@ html[data-sens='arriere']::view-transition-new(root) {
 .exo-ligne {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--bord);
+  gap: 8px;
+  padding: 12px 10px 12px 4px;
+  margin-top: 10px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.exo-ligne .texte .faible {
+  margin-top: 3px;
 }
 .exo-ligne .texte {
   flex: 1;

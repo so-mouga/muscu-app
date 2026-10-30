@@ -80,11 +80,13 @@ interface Props {
   onValider: (p: ExoPlan) => void
   /** Enregistrer puis ouvrir l'exercice suivant de la séance (absent pour le dernier). */
   onSuivant?: (p: ExoPlan) => void
+  /** Enregistrer puis ouvrir l'exercice précédent (absent pour le premier). */
+  onPrecedent?: (p: ExoPlan) => void
   /** Remplacer l'exercice par un autre en gardant ce plan (séries, reps, RPE, repos). */
   onRemplacer?: (p: ExoPlan) => void
 }
 
-export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onRemplacer }: Props) {
+export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrecedent, onRemplacer }: Props) {
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
   // Charge de chaque série (texte saisi) : celle de la série, sinon la charge de départ générale.
   const [charges, setCharges] = useState(() => plan.series.map((s) => kg(s.charge ?? plan.charge ?? undefined).replace('—', '')))
@@ -154,11 +156,12 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onRemp
     }
   }
   // Fermer = enregistrer : par OK, par un appui à côté ou par le bouton retour.
-  const valider = () => {
-    // Un nombre en cours de saisie est pris avant de fermer.
+  // Un nombre en cours de saisie est pris avant de partir.
+  const puis = (f: (p: ExoPlan) => void) => () => {
     ;(document.activeElement as HTMLElement | null)?.blur?.()
-    setTimeout(() => onValider(resultatRef.current()), 0)
+    setTimeout(() => f(resultatRef.current()), 0)
   }
+  const valider = puis(onValider)
   const resultatRef = useRef(resultat)
   resultatRef.current = resultat
   useRetour(true, valider)
@@ -378,20 +381,17 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onRemp
           </div>
         )}
 
-        {onSuivant ? (
-          <div className="ligne">
-            <button className="btn grand" style={{ flex: 1 }} onClick={valider}>
-              OK
+        {/* Tout s'enregistre : on passe d'un exercice à l'autre, on ferme par un appui à côté ou le retour. */}
+        <div className="ligne">
+          {onPrecedent && (
+            <button className="btn grand" style={{ flex: 1 }} onClick={puis(onPrecedent)}>
+              ‹ Précédent
             </button>
-            <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => onSuivant(resultat())}>
-              OK · suivant ›
-            </button>
-          </div>
-        ) : (
-          <button className="btn primaire grand" onClick={valider}>
-            OK
+          )}
+          <button className="btn primaire grand" style={{ flex: 1 }} onClick={onSuivant ? puis(onSuivant) : valider}>
+            {onSuivant ? 'Suivant ›' : 'Terminer'}
           </button>
-        )}
+        </div>
         {onRemplacer && (
           <button className="btn plein" onClick={() => onRemplacer(resultat())}>
             ⇄ Remplacer par un autre exercice

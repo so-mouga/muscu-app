@@ -63,10 +63,14 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
       setChoisi(null)
       return
     }
+    // Exercice de base : on le masque seulement. Exercice perso déjà fait : supprimé, mais l'historique garde son nom.
+    const verbe = exo.perso ? 'Supprimer' : 'Masquer'
     const msg = seancesModeles.length
-      ? `« ${exo.nom} » est utilisé dans : ${seancesModeles.join(', ')}. Le supprimer de la bibliothèque ? Il restera dans ces séances et dans ton historique.`
-      : `Supprimer « ${exo.nom} » ? Ton historique est conservé, tu pourras le restaurer.`
-    if (!(await confirmer(msg, { oui: 'Supprimer l’exercice', danger: true }))) return
+      ? `« ${exo.nom} » est utilisé dans : ${seancesModeles.join(', ')}. ${exo.perso ? 'Le supprimer' : 'Le masquer de la bibliothèque'} ? Il restera dans ces séances et dans ton historique.`
+      : exo.perso
+        ? `Supprimer « ${exo.nom} » ? Ton historique est conservé, tu pourras le restaurer.`
+        : `Masquer « ${exo.nom} » de la bibliothèque ? Tu pourras le réafficher en bas de la liste.`
+    if (!(await confirmer(msg, { oui: `${verbe} l’exercice`, danger: exo.perso }))) return
     await db.exercices.put({ ...exo, supprime: true })
     setChoisi(null)
   }
@@ -217,12 +221,12 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
 
       {supprimes.length > 0 && filtre === 'tous' && !recherche && (
         <div className="carte pile" style={{ marginTop: 20 }}>
-          <div className="faible">Exercices supprimés</div>
+          <div className="faible">Exercices masqués ou supprimés</div>
           {supprimes.map((e) => (
             <div key={e.id} className="ligne entre">
               <span>{e.nom}</span>
               <button className="btn petit" onClick={() => db.exercices.put({ ...e, supprime: undefined })}>
-                Restaurer
+                Réafficher
               </button>
             </div>
           ))}

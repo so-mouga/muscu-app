@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
@@ -16,7 +16,7 @@ import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import { ReglageEchauffement } from '../components/Echauffement'
-import { vibrer } from '../lib/appareil'
+import { deplacer, useGlisser } from '../lib/glisser'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -279,6 +279,15 @@ function EditeurProgramme({
     setP(c)
   }
   const entrees = p.seances.map((e, i) => ({ e, i, m: catalogue.modele(e.modeleId) })).filter((x) => x.m)
+  // Les positions de la liste affichée renvoient aux indices du programme (séances disparues ignorées).
+  const glisser = useGlisser('.exo-ligne', (de, vers) =>
+    maj((x) => {
+      const s = x.seances[entrees[de].i]
+      const avant = vers < entrees.length ? x.seances[entrees[vers].i] : null
+      x.seances.splice(entrees[de].i, 1)
+      x.seances.splice(avant ? x.seances.indexOf(avant) : x.seances.length, 0, s)
+    })
+  )
   const valide = p.nom.trim() !== '' && entrees.length > 0
 
   const activer = async () => {
@@ -326,8 +335,14 @@ function EditeurProgramme({
           Le jour sert à proposer la séance du jour. Sans jour : séance au choix (variante maison, séance d’appoint…).
         </div>
         {entrees.length === 0 && <div className="muted petit" style={{ marginTop: 10 }}>Aucune séance pour l’instant.</div>}
+        <div ref={glisser.liste}>
         {entrees.map(({ e, i, m }, k) => (
-          <div key={e.modeleId + i} className="exo-ligne">
+          <div key={e.modeleId + i} className={'exo-ligne' + glisser.classes(k, entrees.length)}>
+            {entrees.length > 1 && (
+              <button className="poignee" aria-label={`Déplacer ${m!.nom}`} {...glisser.poignee(k)}>
+                ⠿
+              </button>
+            )}
             <button className="texte" onClick={() => onOuvrirSeance(m!)}>
               <strong>{m!.nom}</strong>
               <div className="faible">
@@ -347,24 +362,13 @@ function EditeurProgramme({
                 </option>
               ))}
             </select>
-            <button
-              className="icone"
-              disabled={k === 0}
-              aria-label="Monter"
-              onClick={() =>
-                maj((x) => {
-                  const [s] = x.seances.splice(i, 1)
-                  x.seances.splice(entrees[k - 1].i, 0, s)
-                })
-              }
-            >
-              ↑
-            </button>
             <button className="icone" aria-label="Retirer" onClick={() => maj((x) => x.seances.splice(i, 1))}>
               ✕
             </button>
           </div>
         ))}
+        </div>
+        {entrees.length > 1 && <div className="faible" style={{ marginTop: 6 }}>Pour changer l’ordre, maintiens la poignée ⠿ d’une séance puis fais-la glisser.</div>}
         <button className="btn plein" style={{ marginTop: 12 }} onClick={() => setChoix(true)}>
           + Ajouter une séance
         </button>
@@ -487,7 +491,6 @@ function Editeur({
   const [progs, setProgs] = useState<string[]>(nouvelle ? [catalogue.actif.id] : progsInitiaux)
   const modifie = JSON.stringify(m) !== JSON.stringify(initial) || (!pourProgramme && [...progs].sort().join() !== [...progsInitiaux].sort().join())
   const prechargee = !!MODELES[m.id]
-  const modifieeEnBase = useLiveQuery(() => db.modeles.get(m.id), [m.id])
 
   // Enregistrement automatique : la séance et ses programmes sont écrits peu après chaque changement.
   const [enregistre, setEnregistre] = useState(false)
@@ -538,41 +541,11 @@ function Editeur({
       f(c)
       return c
     })
-  // Glisser-déposer : on maintient la poignée ⠿ un instant, on glisse, l'exercice s'insère là où on
-  // relâche. Un doigt qui bouge avant le délai fait défiler la page, sans rien déplacer.
-  const liste = useRef<HTMLDivElement>(null)
-  const [glisse, setGlisse] = useState<{ de: number; vers: number } | null>(null)
-  const prise = useRef<{ y: number; minuterie: number } | null>(null)
-  const glisseRef = useRef(glisse)
-  glisseRef.current = glisse
-  useEffect(() => {
-    // Pendant un déplacement, le doigt ne fait plus défiler la page.
-    const bloquer = (e: TouchEvent) => glisseRef.current && e.preventDefault()
-    document.addEventListener('touchmove', bloquer, { passive: false })
-    return () => document.removeEventListener('touchmove', bloquer)
-  }, [])
-  const lacher = () => {
-    if (prise.current) clearTimeout(prise.current.minuterie)
-    prise.current = null
-  }
   const [remplace, setRemplace] = useState<number | null>(null)
   /** Exercice dont le menu ⋯ est ouvert (fiche, remplacer, retirer). */
   const [menu, setMenu] = useState<number | null>(null)
   useRetour(menu !== null, () => setMenu(null))
-  /** Position d'insertion (0 … n) sous le doigt. */
-  const positionSous = (y: number) => {
-    const lignes = [...(liste.current?.querySelectorAll<HTMLElement>('.exo-ligne') ?? [])]
-    const k = lignes.findIndex((l) => {
-      const r = l.getBoundingClientRect()
-      return y < r.top + r.height / 2
-    })
-    return k < 0 ? lignes.length : k
-  }
-  const deposer = (de: number, vers: number) =>
-    maj((x) => {
-      const [e] = x.exercices.splice(de, 1)
-      x.exercices.splice(vers > de ? vers - 1 : vers, 0, e)
-    })
+  const glisser = useGlisser('.exo-ligne', (de, vers) => maj((x) => deplacer(x.exercices, de, vers)))
 
   const finisseurs = m.exercices.filter((e) => e.finisseur).length
 
@@ -589,11 +562,6 @@ function Editeur({
     if (!(await confirmer('L’historique des séances faites est conservé.', { titre: `Supprimer « ${m.nom} » ?`, oui: 'Supprimer la séance', danger: true }))) return
     if (prechargee) await db.modeles.put({ ...initial, supprime: true })
     else await db.modeles.delete(m.id)
-    onFermer()
-  }
-  const reinitialiser = async () => {
-    if (!(await confirmer('Tes modifications de cette séance seront perdues.', { titre: 'Revenir à la version d’origine ?', oui: 'Revenir à l’origine' }))) return
-    await db.modeles.delete(m.id)
     onFermer()
   }
 
@@ -666,52 +634,15 @@ function Editeur({
           {m.exercices.length > 0 && <span className="faible">≈ {minutes(dureeEstimee(m))}</span>}
         </div>
         {m.exercices.length === 0 && <div className="muted petit" style={{ marginTop: 8 }}>Aucun exercice pour l’instant.</div>}
-        <div ref={liste}>
+        <div ref={glisser.liste}>
         {m.exercices.map((p, i) => {
           const exo = catalogue.exo(p.exoId)
           return (
             <div
               key={p.exoId + i}
-              className={
-                'exo-ligne' +
-                (glisse?.de === i ? ' glisse' : '') +
-                (glisse && glisse.vers === i && glisse.vers !== glisse.de && glisse.vers !== glisse.de + 1 ? ' depot-avant' : '') +
-                (glisse && i === m.exercices.length - 1 && glisse.vers === m.exercices.length && glisse.de !== i ? ' depot-apres' : '')
-              }
+              className={'exo-ligne' + glisser.classes(i, m.exercices.length)}
             >
-              <button
-                className="poignee"
-                aria-label={`Déplacer ${exo.nom}`}
-                onPointerDown={(e) => {
-                  const cible = e.currentTarget
-                  const pointeur = e.pointerId
-                  lacher()
-                  prise.current = {
-                    y: e.clientY,
-                    minuterie: window.setTimeout(() => {
-                      prise.current = null
-                      if (cible.isConnected) cible.setPointerCapture(pointeur)
-                      vibrer(25)
-                      setGlisse({ de: i, vers: i })
-                    }, 300),
-                  }
-                }}
-                onPointerMove={(e) => {
-                  if (prise.current && Math.abs(e.clientY - prise.current.y) > 8) lacher()
-                  if (!glisse) return
-                  // Défilement automatique près des bords de l'écran
-                  if (e.clientY < 90) window.scrollBy(0, -12)
-                  else if (e.clientY > innerHeight - 110) window.scrollBy(0, 12)
-                  setGlisse({ ...glisse, vers: positionSous(e.clientY) })
-                }}
-                onPointerUp={() => {
-                  lacher()
-                  if (glisse) deposer(glisse.de, glisse.vers)
-                  setGlisse(null)
-                }}
-                onPointerCancel={() => (lacher(), setGlisse(null))}
-                onContextMenu={(e) => e.preventDefault()}
-              >
+              <button className="poignee" aria-label={`Déplacer ${exo.nom}`} {...glisser.poignee(i)}>
                 ⠿
               </button>
               <button className="texte" onClick={() => setEditIdx(i)}>
@@ -763,11 +694,6 @@ function Editeur({
           <button className="btn" onClick={dupliquer}>
             Dupliquer
           </button>
-          {prechargee && modifieeEnBase && !modifieeEnBase.supprime && (
-            <button className="btn" onClick={reinitialiser}>
-              Version d’origine
-            </button>
-          )}
           <button className="btn danger" onClick={supprimer}>
             Supprimer
           </button>
@@ -831,6 +757,14 @@ function Editeur({
             maj((x) => (x.exercices[editIdx] = p))
             setEditIdx(null)
           }}
+          onPrecedent={
+            editIdx > 0
+              ? (p) => {
+                  maj((x) => (x.exercices[editIdx] = p))
+                  setEditIdx(editIdx - 1)
+                }
+              : undefined
+          }
           onSuivant={
             editIdx < m.exercices.length - 1
               ? (p) => {

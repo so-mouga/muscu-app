@@ -110,9 +110,15 @@ export function Detail({
             ⧉ Dupliquer
           </button>
         )}
-        <button className="btn danger" onClick={onSupprimer} aria-label="Supprimer l’exercice">
-          🗑
-        </button>
+        {exo.perso ? (
+          <button className="btn danger" onClick={onSupprimer} aria-label="Supprimer l’exercice">
+            🗑
+          </button>
+        ) : (
+          <button className="btn" onClick={onSupprimer} aria-label="Masquer l’exercice">
+            Masquer
+          </button>
+        )}
       </div>
 
       <div className="carte fiche-tete">
@@ -335,8 +341,8 @@ export function Detail({
             {exo.notes && <div className="petit muted" style={{ marginTop: 8 }}>📝 {exo.notes}</div>}
           </div>
 
-          <button className="btn discret danger plein" style={{ marginBottom: 24 }} onClick={onSupprimer}>
-            Supprimer l’exercice
+          <button className={'btn discret plein' + (exo.perso ? ' danger' : '')} style={{ marginBottom: 24 }} onClick={onSupprimer}>
+            {exo.perso ? 'Supprimer l’exercice' : 'Masquer de la bibliothèque'}
           </button>
         </>
       )}
