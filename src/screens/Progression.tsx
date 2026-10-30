@@ -28,6 +28,7 @@ export function Detail({
   onRetour,
   onModifier,
   onSupprimer,
+  onDupliquer,
   equivalents,
   suggestions,
   onRelier,
@@ -39,6 +40,8 @@ export function Detail({
   onRetour: () => void
   onModifier: () => void
   onSupprimer: () => void
+  /** Copie de l'exercice (variante : autre machine, autre prise), reliée comme équivalent. */
+  onDupliquer?: () => void
   /** Exercices reliés, avec leur dernière meilleure série. */
   equivalents: { exo: Exercice; derniere?: string }[]
   /** Remplaçants possibles non reliés (même muscle). */
@@ -322,6 +325,11 @@ export function Detail({
             {exo.notes && <div className="petit muted" style={{ marginTop: 8 }}>📝 {exo.notes}</div>}
           </div>
 
+          {onDupliquer && (
+            <button className="btn plein" style={{ marginBottom: 8 }} onClick={onDupliquer}>
+              ⧉ Dupliquer (variante de cet exercice)
+            </button>
+          )}
           <button className="btn discret danger plein" style={{ marginBottom: 24 }} onClick={onSupprimer}>
             Supprimer l’exercice
           </button>

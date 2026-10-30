@@ -7,7 +7,7 @@ import FormExo from '../components/FormExo'
 import Vignette from '../components/Vignette'
 import { MUSCLES, ZONES, type Zone } from '../data/exercices'
 import IconeMuscle from '../components/IconeMuscle'
-import { db, exoAvecReglages } from '../db'
+import { db, exoAvecReglages, uid } from '../db'
 import { chargeQte, dateCourte } from '../lib/calc'
 import { delies, lireEquivalents, modifierEquivalents, relies } from '../lib/equivalents'
 import { meilleureSerie } from '../lib/historique'
@@ -62,6 +62,20 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
     setChoisi(null)
   }
 
+  // Copie sans historique, reliée à l'original : chacune garde sa progression, l'une sert de repère à l'autre.
+  const dupliquer = async (exo: Exercice) => {
+    const base = exo.nom.replace(/ \(\d+\)$/, '')
+    let k = 2
+    while (tous.some((e) => !e.supprime && e.nom === `${base} (${k})`)) k++
+    const copie: Exercice = { ...exo, id: 'x_' + uid(), nom: `${base} (${k})`, perso: true }
+    delete copie.supprime
+    await db.exercices.put(copie)
+    await modifierEquivalents((x) => relies(x, exo.id, copie.id))
+    setChoisi(copie.id)
+    // On propose tout de suite de la renommer.
+    setFormulaire({ exo: copie })
+  }
+
   const form = formulaire && (
     <div className="modal-fond">
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -97,6 +111,7 @@ export default function Exercices({ catalogue }: { catalogue: Catalogue }) {
           onRetour={() => setChoisi(null)}
           onModifier={() => setFormulaire({ exo })}
           onSupprimer={() => supprimer(exo)}
+          onDupliquer={() => void dupliquer(exo)}
           equivalents={liste}
           suggestions={tous
             .filter((e) => e.muscle === exo.muscle && e.id !== exo.id && !e.supprime && !(eq[exo.id] ?? []).includes(e.id))
