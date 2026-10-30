@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { consigne } from '../data/consignes'
 import { useRetour } from '../lib/nav'
 import type { Exercice } from '../types'
@@ -50,21 +51,17 @@ export function BoutonInfos({ onClick }: { onClick: () => void }) {
   )
 }
 
-/** Fiche d'exécution par-dessus l'écran (séance, ajout d'exercices) : on la ferme et on reprend où on était. */
+/**
+ * Fiche d'exécution par-dessus l'écran (séance, ajout d'exercices) : on la ferme et on reprend où on était.
+ * Rendue dans <body> : ouverte depuis une carte d'exercice, elle doit couvrir aussi l'en-tête de la séance.
+ */
 export default function InfosExo({ exo, onFermer }: { exo: Exercice; onFermer: () => void }) {
   const [modifier, setModifier] = useState(false)
   useRetour(true, onFermer)
   useRetour(modifier, () => setModifier(false))
   const avecConsignes = !!consigne(exo.id)
-  if (modifier)
-    return (
-      <div className="modal-fond">
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
-          <FormExo initial={exo} onAnnuler={() => setModifier(false)} onEnregistre={() => setModifier(false)} />
-        </div>
-      </div>
-    )
-  return (
+  if (modifier) return createPortal(<FormExo fenetre initial={exo} onAnnuler={() => setModifier(false)} onEnregistre={() => setModifier(false)} />, document.body)
+  return createPortal(
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="ligne" style={{ gap: 12 }}>
@@ -90,6 +87,7 @@ export default function InfosExo({ exo, onFermer }: { exo: Exercice; onFermer: (
           Fermer
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

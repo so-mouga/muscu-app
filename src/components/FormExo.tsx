@@ -20,9 +20,11 @@ interface Props {
   muscleInitial?: Muscle
   onEnregistre: (exo: Exercice) => void
   onAnnuler: () => void
+  /** Dans sa propre fenêtre : un appui à côté la ferme en gardant ce qui est saisi (s'il est complet). */
+  fenetre?: boolean
 }
 
-export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnregistre, onAnnuler }: Props) {
+export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnregistre, onAnnuler, fenetre = false }: Props) {
   const [nom, setNom] = useState(initial?.nom ?? nomInitial)
   // Pas de muscle par défaut : un exercice de jambes ne doit pas finir dans « Pecs » par inattention.
   const [muscle, setMuscle] = useState<Muscle | ''>(initial?.muscle ?? muscleInitial ?? '')
@@ -76,7 +78,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
     onEnregistre(exo)
   }
 
-  return (
+  const contenu = (
     <div className="pile">
       <h2>{initial ? 'Modifier l’exercice' : 'Nouvel exercice'}</h2>
 
@@ -182,6 +184,14 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
       <button type="button" className="btn discret plein" onClick={onAnnuler}>
         Annuler
       </button>
+    </div>
+  )
+  if (!fenetre) return contenu
+  return (
+    <div className="modal-fond" onClick={() => (nom.trim() && muscle && !chargement ? void enregistrer() : onAnnuler())}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        {contenu}
+      </div>
     </div>
   )
 }
