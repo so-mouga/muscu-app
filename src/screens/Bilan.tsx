@@ -203,7 +203,7 @@ function SemaineParSemaine({ semaines, seances, activites, records, catalogue }:
           <div key={l} className="semaine-bilan">
             <span>
               {l === cette ? 'Cette semaine' : `Sem. du ${jour(l)}`}
-              {detail.length > 0 && <span className="faible"> · {detail.join(' · ')}</span>}
+              {detail.length > 0 && <span className="faible petit-detail">{detail.join(' · ')}</span>}
             </span>
             <strong>{b.seances ? pluriel(b.seances, 'séance') : <span className="faible">—</span>}</strong>
           </div>

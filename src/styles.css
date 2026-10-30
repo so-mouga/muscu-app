@@ -2298,6 +2298,12 @@ body.sans-onglets .barre-demarrer {
   padding: 8px 0;
   border-bottom: 1px solid var(--bord);
 }
+.semaine-bilan > span {
+  min-width: 0;
+}
+.semaine-bilan .petit-detail {
+  display: block;
+}
 .semaine-bilan > strong {
   white-space: nowrap;
 }
