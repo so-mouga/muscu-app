@@ -2328,3 +2328,67 @@ body.sans-onglets .barre-demarrer {
   font-size: 11px;
   opacity: 0.55;
 }
+.echauffement .mouvement {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bord);
+}
+.echauffement .mouvement:last-child {
+  border-bottom: none;
+}
+.mouvement-ligne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+}
+.mouvement-ligne .case {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 2px solid var(--texte-3);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+.mouvement.fait .case {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-texte);
+}
+.mouvement.fait .mouvement-texte strong {
+  color: var(--texte-3);
+  text-decoration: line-through;
+}
+.mouvement-texte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mouvement-detail {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 4px 0 8px;
+}
+.mouvement-detail .consignes {
+  margin: 0;
+  flex: 1;
+}
+.picto-echauffement {
+  flex: 0 0 auto;
+  display: inline-block;
+  border-radius: 10px;
+  background: var(--surface-2);
+}

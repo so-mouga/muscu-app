@@ -21,6 +21,7 @@ import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
+import Echauffement, { echauffementActif } from '../components/Echauffement'
 
 function stocke<T>(cle: string, defaut: T): T {
   try {
@@ -568,6 +569,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               </button>
             )}
           </>
+        ) : echauffementActif(seance) ? (
+          <Echauffement seance={seance} />
         ) : enCours >= 0 ? (
           // Saisie en plein écran : l'essentiel seulement (exercice, cible, dernière fois, saisie, Valider).
           (() => {
@@ -677,6 +680,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         )}
       </div>
 
+      {echauffementActif(seance) && <Echauffement seance={seance} />}
       {plan ? (
         <CarteExo
           key={plan.exoId + idx}

@@ -81,6 +81,8 @@ export interface SeanceModele {
   exercices: ExoPlan[]
   /** Séance préchargée masquée par l'utilisateur. */
   supprime?: boolean
+  /** Échauffement avant la séance : absent = proposé d'après les muscles, liste = choisi, `aucun`. */
+  echauffement?: 'aucun' | string[]
 }
 
 /** Un programme regroupe des séances (de la bibliothèque) et leur planning. */
@@ -147,6 +149,8 @@ export interface Seance {
   /** Cycle et semaine du cycle au démarrage. */
   cycleId?: string
   semaine?: number
+  /** Échauffement du jour (mouvements prévus et cochés) ; `fini` quand on l'a terminé ou passé. */
+  echauffement?: { ids: string[]; faits: string[]; fini?: boolean }
   /** Séance de déload : allégée, et ignorée pour la progression (objectifs, records, « dernière fois »). */
   deload?: boolean
 }

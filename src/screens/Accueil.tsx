@@ -16,6 +16,7 @@ import { cibles, etatCycle, planDeload } from '../lib/cycle'
 import Apercu from './Apercu'
 import type { Muscle, Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
+import { echauffementDe } from '../data/echauffements'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 const exercices = (n: number) => `${n} exercice${n > 1 ? 's' : ''}`
@@ -24,20 +25,21 @@ const exercices = (n: number) => `${n} exercice${n > 1 ? 's' : ''}`
 /** Contexte du cycle au démarrage : semaine en cours et déload éventuel. */
 type ContexteCycle = { cycleId: string; semaine?: number; deload: boolean }
 
-async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle) {
+async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle, echauffement: string[] = []) {
   try {
-    await creerSeance(modele, cycle)
+    await creerSeance(modele, cycle, echauffement)
   } catch (e) {
     void informer(`${(e as Error).message}\n(version ${__VERSION__})`, 'Impossible de démarrer la séance')
   }
 }
 
-async function creerSeance(modele?: SeanceModele, cycle?: ContexteCycle) {
+async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycle | undefined, echauffement: string[]) {
   debloquerSon()
   const deload = !!(modele && cycle?.deload)
   await db.seances.add({
     ...(cycle && { cycleId: cycle.cycleId, semaine: cycle.semaine }),
     ...(deload && { deload: true }),
+    ...(echauffement.length && { echauffement: { ids: echauffement, faits: [] } }),
     id: uid(),
     date: dateISO(),
     modeleId: modele?.id,
@@ -157,7 +159,7 @@ export default function Accueil({
   const etat = cycle && etatCycle(cycle)
   const contexte: ContexteCycle | undefined =
     cycle && etat ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.fini && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
-  const lancer = (m?: SeanceModele) => demarrer(m && catalogue.pourDemarrer(m), contexte)
+  const lancer = (m?: SeanceModele) => demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m, catalogue.exo) : [])
 
   if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu)} onFermer={() => voir(null)} />
 

@@ -15,6 +15,7 @@ import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, schemaP
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import SilhouetteVolume from '../components/SilhouetteVolume'
+import { dureeEchauffement, echauffementAuto, echauffementDe, MOUVEMENTS } from '../data/echauffements'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -603,6 +604,7 @@ function Editeur({
           <span>Sous-titre</span>
           <input value={m.sousTitre} placeholder="ex. épaules + bras" onChange={(e) => maj((x) => (x.sousTitre = e.target.value))} />
         </label>
+        <ReglageEchauffement modele={m} exo={catalogue.exo} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />
         <label className="champ">
           <span>Variante de (pour « Pas de salle »)</span>
           <select value={m.varianteDe ?? ''} onChange={(e) => maj((x) => (x.varianteDe = e.target.value || undefined))}>
@@ -844,6 +846,53 @@ function Editeur({
 }
 
 /** « ✓ Enregistré » : l'édition s'enregistre toute seule, on le montre discrètement. */
+/** Échauffement avant la séance : proposé d'après les muscles (auto), choisi (perso) ou aucun. */
+function ReglageEchauffement({ modele, exo, onChange }: { modele: SeanceModele; exo: (id: string) => Exercice; onChange: (v: SeanceModele['echauffement']) => void }) {
+  const mode = modele.echauffement === 'aucun' ? 'aucun' : Array.isArray(modele.echauffement) ? 'perso' : 'auto'
+  const ids = echauffementDe(modele, exo)
+  const choisis = Array.isArray(modele.echauffement) ? modele.echauffement : []
+  const basculer = (id: string) => onChange(choisis.includes(id) ? choisis.filter((x) => x !== id) : [...choisis, id])
+  return (
+    <div className="champ">
+      <span>Échauffement avant la séance</span>
+      <div className="chips">
+        <button type="button" className={mode === 'auto' ? 'actif' : ''} onClick={() => onChange(undefined)}>
+          Auto
+        </button>
+        <button type="button" className={mode === 'perso' ? 'actif' : ''} onClick={() => mode !== 'perso' && onChange(echauffementAuto(modele.exercices.map((p) => exo(p.exoId).muscle)))}>
+          Perso
+        </button>
+        <button type="button" className={mode === 'aucun' ? 'actif' : ''} onClick={() => onChange('aucun')}>
+          Aucun
+        </button>
+      </div>
+      {mode === 'auto' && (
+        <span className="faible">
+          Choisi d’après les muscles de la séance (≈ {minutes(Math.round(dureeEchauffement(ids) / 60))}) : {ids.map((id) => MOUVEMENTS.find((m) => m.id === id)!.nom.toLowerCase()).join(', ')}.
+        </span>
+      )}
+      {mode === 'perso' &&
+        (['general', 'haut', 'bas'] as const).map((z) => (
+          <div key={z}>
+            <div className="faible" style={{ margin: '6px 0 4px' }}>
+              {z === 'general' ? 'Général' : z === 'haut' ? 'Haut du corps' : 'Bas du corps'}
+            </div>
+            <div className="chips">
+              {MOUVEMENTS.filter((m) => m.zone === z).map((m) => (
+                <button key={m.id} type="button" className={choisis.includes(m.id) ? 'actif' : ''} onClick={() => basculer(m.id)}>
+                  {choisis.includes(m.id) ? '✓ ' : ''}
+                  {m.nom}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      {mode === 'perso' && <span className="faible">{choisis.length ? `${choisis.length} mouvement${choisis.length > 1 ? 's' : ''} · ≈ ${minutes(Math.round(dureeEchauffement(choisis) / 60))}` : 'Aucun mouvement choisi : pas d’échauffement.'}</span>}
+      {mode === 'aucun' && <span className="faible">Pas d’échauffement proposé (les séries de chauffe de chaque exercice restent là).</span>}
+    </div>
+  )
+}
+
 function EtatEnregistrement({ nom, enregistre }: { nom: string; enregistre: boolean }) {
   if (!nom.trim()) return <span className="faible">à nommer</span>
   return enregistre ? <span className="faible etat-enregistre">✓ Enregistré</span> : null
