@@ -187,22 +187,28 @@ export const ZONES: { id: Zone; nom: string }[] = [
   { id: 'abdos', nom: 'Abdos' },
 ]
 
-/** `cible` : séries dures par semaine (0 = pas d'objectif, affiché seulement s'il est travaillé). */
-export const MUSCLES: { id: Muscle; nom: string; cible: number; zone: Zone; face: 'avant' | 'arriere' }[] = [
-  { id: 'pecs', nom: 'Pecs', cible: 16, zone: 'pecs', face: 'avant' },
-  { id: 'dos', nom: 'Dos', cible: 18, zone: 'dos', face: 'arriere' },
-  { id: 'trapezes', nom: 'Trapèzes', cible: 0, zone: 'dos', face: 'arriere' },
-  { id: 'lombaires', nom: 'Lombaires', cible: 0, zone: 'dos', face: 'arriere' },
-  { id: 'epaule_avant', nom: 'Avant d’épaule', cible: 0, zone: 'epaules', face: 'avant' },
-  { id: 'epaule_laterale', nom: 'Épaule latérale', cible: 6, zone: 'epaules', face: 'avant' },
-  { id: 'epaule_arriere', nom: "Arrière d'épaule", cible: 5, zone: 'epaules', face: 'arriere' },
-  { id: 'biceps', nom: 'Biceps', cible: 6, zone: 'bras', face: 'avant' },
-  { id: 'triceps', nom: 'Triceps', cible: 9.5, zone: 'bras', face: 'arriere' },
-  { id: 'avant_bras', nom: 'Avant-bras', cible: 0, zone: 'bras', face: 'avant' },
-  { id: 'quadriceps', nom: 'Quadriceps', cible: 5, zone: 'jambes', face: 'avant' },
-  { id: 'ischios', nom: 'Ischios', cible: 6, zone: 'jambes', face: 'arriere' },
-  { id: 'fessiers', nom: 'Fessiers', cible: 0, zone: 'jambes', face: 'arriere' },
-  { id: 'adducteurs', nom: 'Adducteurs', cible: 0, zone: 'jambes', face: 'avant' },
-  { id: 'mollets', nom: 'Mollets', cible: 3, zone: 'jambes', face: 'arriere' },
-  { id: 'abdos', nom: 'Abdos', cible: 3, zone: 'abdos', face: 'avant' },
+/**
+ * Zone utile de séries dures par semaine pour progresser, la même pour tout le monde (repères
+ * courants : 10 à 20 pour les gros muscles, moins pour ceux que les gros exercices travaillent déjà).
+ * `cible` : bas de la zone ; `haut` : au-delà, c'est beaucoup. 0 = pas de zone, suivi seulement
+ * (muscle travaillé surtout par d'autres exercices : trapèzes, lombaires, avant d'épaule…).
+ */
+export const MUSCLES: { id: Muscle; nom: string; cible: number; haut: number; zone: Zone; face: 'avant' | 'arriere' }[] = [
+  { id: 'pecs', nom: 'Pecs', cible: 10, haut: 20, zone: 'pecs', face: 'avant' },
+  { id: 'dos', nom: 'Dos', cible: 10, haut: 20, zone: 'dos', face: 'arriere' },
+  { id: 'trapezes', nom: 'Trapèzes', cible: 0, haut: 0, zone: 'dos', face: 'arriere' },
+  { id: 'lombaires', nom: 'Lombaires', cible: 0, haut: 0, zone: 'dos', face: 'arriere' },
+  { id: 'epaule_avant', nom: 'Avant d’épaule', cible: 0, haut: 0, zone: 'epaules', face: 'avant' },
+  { id: 'epaule_laterale', nom: 'Épaule latérale', cible: 8, haut: 20, zone: 'epaules', face: 'avant' },
+  { id: 'epaule_arriere', nom: "Arrière d'épaule", cible: 6, haut: 16, zone: 'epaules', face: 'arriere' },
+  { id: 'biceps', nom: 'Biceps', cible: 6, haut: 16, zone: 'bras', face: 'avant' },
+  { id: 'triceps', nom: 'Triceps', cible: 6, haut: 16, zone: 'bras', face: 'arriere' },
+  { id: 'avant_bras', nom: 'Avant-bras', cible: 0, haut: 0, zone: 'bras', face: 'avant' },
+  { id: 'quadriceps', nom: 'Quadriceps', cible: 10, haut: 20, zone: 'jambes', face: 'avant' },
+  { id: 'ischios', nom: 'Ischios', cible: 8, haut: 16, zone: 'jambes', face: 'arriere' },
+  { id: 'fessiers', nom: 'Fessiers', cible: 0, haut: 0, zone: 'jambes', face: 'arriere' },
+  { id: 'adducteurs', nom: 'Adducteurs', cible: 0, haut: 0, zone: 'jambes', face: 'avant' },
+  { id: 'mollets', nom: 'Mollets', cible: 6, haut: 16, zone: 'jambes', face: 'arriere' },
+  { id: 'abdos', nom: 'Abdos', cible: 0, haut: 0, zone: 'abdos', face: 'avant' },
 ]
+

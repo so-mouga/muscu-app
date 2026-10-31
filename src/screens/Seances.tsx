@@ -9,6 +9,7 @@ import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
 import { copieSeances, etatCycle, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
+import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
 import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
@@ -418,9 +419,9 @@ function EditeurProgramme({
           // Replié par défaut : une ligne de résumé, le détail (et le réglage des objectifs) à la demande.
           const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
           const c = catalogue.cibles
-          const suivis = MUSCLES.filter((m) => c[m.id] > 0)
-          const retard = suivis.filter((m) => volume[m.id] < c[m.id]).length
-          const dessus = suivis.filter((m) => volume[m.id] > c[m.id] * 1.25).length
+          const etats = MUSCLES.map((m) => etatVolume(m.id, volume[m.id], c[m.id]))
+          const retard = etats.filter((e) => e === 'leger').length
+          const dessus = etats.filter((e) => e === 'beaucoup').length
           return (
             <div className="carte">
               <button type="button" className="groupe-repli" onClick={() => setVoirVolume(!voirVolume)} aria-expanded={voirVolume}>
@@ -428,8 +429,8 @@ function EditeurProgramme({
                   <strong>Volume par semaine</strong>
                   <div className="faible">
                     {retard || dessus
-                      ? [retard ? `${retard} muscle${retard > 1 ? 's' : ''} sous l’objectif` : '', dessus ? `${dessus} au-dessus` : ''].filter(Boolean).join(' · ')
-                      : 'Tous les objectifs sont atteints'}
+                      ? [retard ? `${retard} muscle${retard > 1 ? 's' : ''} un peu léger${retard > 1 ? 's' : ''}` : '', dessus ? `${dessus} avec beaucoup` : ''].filter(Boolean).join(' · ')
+                      : 'Tous les muscles sont dans la zone utile'}
                   </div>
                 </span>
                 <span className="muted">{voirVolume ? '▾' : '▸'}</span>
@@ -437,10 +438,10 @@ function EditeurProgramme({
               {voirVolume && (
                 <>
                   <div className="faible" style={{ margin: '4px 0 10px' }}>
-                    Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face à tes objectifs (les mêmes pour tous tes programmes,
-                    aussi dans Progression → Objectifs). Touche un muscle pour changer son objectif.
+                    Ce que ce programme donne à chaque muscle par semaine{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, en séries dures : des séries proches de l’échec (RPE 7 ou plus).
+                    La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle.
                   </div>
-                  <VolumeMuscles volume={volume} cibles={c} onCible={(muscle, v) => void changerObjectifs(catalogue, { volume: { ...c, [muscle]: v } })} />
+                  <VolumeMuscles volume={volume} cibles={c} perso={catalogue.ciblesPerso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
                 </>
               )}
             </div>

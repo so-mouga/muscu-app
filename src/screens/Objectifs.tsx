@@ -1,43 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { changerObjectifs, type Catalogue } from '../catalogue'
-import { confirmer } from '../components/Dialogues'
-import VolumeMuscles from '../components/VolumeMuscles'
 import Phases from '../components/Phases'
 import { db } from '../db'
 import ChampNombre from '../components/ChampNombre'
 import { AJUSTEMENT, CLE_PROFIL, objectifDuJour, profilComplet, type Profil } from '../lib/nutrition'
-import { dateISO, kg, semaineType, volumePrevu } from '../lib/calc'
-import { BONUS_PRIORITE, nomCycle, volumeDefaut } from '../lib/cycle'
-import { MUSCLES } from '../data/exercices'
+import { dateISO, kg } from '../lib/calc'
 import { nomPhase, objectifsA } from '../lib/objectifs'
 
-/** Partie Objectifs de Progression : phases (sèche, maintien, prise) en blocs, volume par muscle, calories. */
+/** Partie Objectifs de Progression : phases (sèche, maintien, prise) en blocs et calories. Le volume par muscle se lit dans le programme. */
 export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
-  const volume = volumePrevu(semaineType(catalogue.actif).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
-  const reinitialiser = async () => {
-    if (await confirmer('Chaque muscle reprend l’objectif conseillé par l’appli.', { titre: 'Revenir aux objectifs conseillés ?', oui: 'Revenir aux objectifs conseillés' }))
-      void changerObjectifs(catalogue, { volume: volumeDefaut() })
-  }
 
   return (
     <div>
       <Phases catalogue={catalogue} />
-
-      <div className="carte">
-        <h3>Volume par semaine</h3>
-        <div className="faible" style={{ margin: '4px 0 10px' }}>
-          Séries dures par muscle et par semaine : tes objectifs, les mêmes pour tous tes programmes. En face : ce que prévoit « {catalogue.actif.nom} ». Touche un muscle pour changer son objectif ; chaque changement est daté, pour relire plus tard ce que tu visais.
-        </div>
-        <VolumeMuscles volume={volume} cibles={catalogue.ciblesPerso} onCible={(m, v) => void changerObjectifs(catalogue, { volume: { ...catalogue.ciblesPerso, [m]: v } })} />
-        {catalogue.cycle?.priorites?.length ? (
-          <div className="faible" style={{ marginTop: 8 }}>
-            🎯 Priorité du cycle « {nomCycle(catalogue.cycle)} » : +{BONUS_PRIORITE} séries par semaine pour {catalogue.cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom).join(' et ')}, le temps du cycle (le Bilan en tient compte).
-          </div>
-        ) : null}
-        <button className="btn discret petit lien-action" style={{ marginTop: 8 }} onClick={reinitialiser}>
-          Revenir aux objectifs conseillés
-        </button>
-      </div>
 
       <CaloriesVisees catalogue={catalogue} />
     </div>

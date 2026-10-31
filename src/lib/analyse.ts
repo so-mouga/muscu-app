@@ -242,7 +242,7 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
       .slice(0, 2)
     for (const m of retard) {
       const v = arrondi(a.volume[m.id])
-      r.push(`${nom(m.id)} en retard : ${kg(v)} série${v >= 2 ? 's' : ''} dure${v >= 2 ? 's' : ''} par semaine sur ${kg(cibles[m.id])}.`)
+      r.push(`${nom(m.id)} un peu léger : ${kg(v)} série${v >= 2 ? 's' : ''} dure${v >= 2 ? 's' : ''} par semaine, la zone utile commence à ${kg(cibles[m.id])}.`)
     }
   }
 

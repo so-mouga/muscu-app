@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MUSCLES } from '../data/exercices'
 import { kg } from '../lib/calc'
+import { etatVolume, LIBELLE_VOLUME, zone } from '../lib/volume'
 import type { Muscle } from '../types'
 import { ARRIERE, AVANT, CONTOUR_CORPS, ZONES_TACTILES_ARRIERE, ZONES_TACTILES_AVANT, type Forme } from './IconeMuscle'
 
@@ -85,7 +86,7 @@ export default function SilhouetteVolume({ volume, cibles, choisi: choisiExterne
         {def ? (
           <span>
             <strong>{def.nom}</strong> : {kg(volume[def.id])} série{volume[def.id] >= 2 ? 's' : ''} {quoi === 'dures' && volume[def.id] >= 2 ? 'dures' : quoi}
-            {cible(def.id) ? ` sur ${kg(cible(def.id))}` : ' · suivi seulement'}
+            {cible(def.id) ? ` · ${LIBELLE_VOLUME[etatVolume(def.id, volume[def.id], cible(def.id))]} (zone utile ${kg(zone(def.id, cible(def.id))!.bas)} à ${kg(zone(def.id, cible(def.id))!.haut)})` : ' · suivi seulement'}
           </span>
         ) : (
           <span className="faible">Appuie sur un muscle pour voir ses séries.</span>

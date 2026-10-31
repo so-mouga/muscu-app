@@ -73,7 +73,7 @@ describe('objectifs de volume', () => {
     expect(cibles(undefined, c).pecs).toBe(12)
     expect(cibles(undefined, undefined, p).biceps).toBe(0)
     // Rien de réglé nulle part : valeurs par défaut de l'appli
-    expect(cibles(undefined, undefined, { id: 'q', nom: 'Q', seances: [] }).pecs).toBe(16)
+    expect(cibles(undefined, undefined, { id: 'q', nom: 'Q', seances: [] }).pecs).toBe(10)
   })
 })
 

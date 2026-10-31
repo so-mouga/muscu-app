@@ -40,7 +40,7 @@ describe('bilan à partager', () => {
   it('contient vue d’ensemble, volume par muscle, exercices, corps et autres sports', () => {
     const t = genererBilan(donnees([seance('s1', '2026-10-20', [50, 50, 50], { ressenti: 4, notes: { smith_incline: 'Siège cran 4' } }), seance('s2', '2026-10-27', [52.5, 52.5, 52.5])]), '2026-10-19', '2026-10-29')
     expect(t).toContain('2 séances')
-    expect(t).toContain('Pecs : 3/sem. (objectif 16) · RPE moyen 8 · par semaine : 3 / 3')
+    expect(t).toContain('Pecs : 3/sem. (objectif 10) · RPE moyen 8 · par semaine : 3 / 3')
     expect(t).toContain('Développé incliné Smith (pecs)')
     expect(t).toContain('50 kg × 10 @8')
     expect(t).toContain('1RM estimé : 70 → 73,5 kg (+5 %)')

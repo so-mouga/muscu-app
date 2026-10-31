@@ -2699,3 +2699,51 @@ button.semaine-bilan.cliquable {
   padding: 8px 6px;
   white-space: nowrap;
 }
+
+/* Volume par muscle en jauge : zone utile en fond, niveau de la semaine par-dessus. */
+.jauge {
+  position: relative;
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.jauge .zone-utile {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+}
+.jauge .niveau {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.jauge .niveau.optimal {
+  background: var(--ok);
+}
+.jauge .niveau.beaucoup {
+  background: var(--alerte);
+}
+.etat-volume {
+  font-size: 0.85em;
+  color: var(--texte-3);
+}
+.etat-volume.leger {
+  color: var(--accent);
+}
+.etat-volume.optimal {
+  color: var(--ok);
+}
+.etat-volume.beaucoup {
+  color: var(--alerte);
+}
+.ajuster-cibles {
+  margin-top: 8px;
+  border-top: 1px solid var(--bord);
+  padding-top: 4px;
+}

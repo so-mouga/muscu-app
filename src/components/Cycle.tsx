@@ -78,7 +78,7 @@ export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cy
   )
 }
 
-/** Lancer un cycle, ou modifier celui en cours (durée, déloads). Les objectifs de volume sont personnels (Progression → Objectifs). */
+/** Lancer un cycle, ou modifier celui en cours (durée, déloads). Le volume par muscle se lit dans le programme. */
 export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalogue: Catalogue; programme?: Programme; cycle?: Cycle; onFermer: () => void }) {
   useRetour(true, onFermer)
   const [progId, setProgId] = useState(cycle?.programmeId ?? programme?.id ?? catalogue.actif.id)
@@ -210,12 +210,15 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
           </span>
         </div>
 
+        {/* Ancienne priorité de cycle : remplacée par ★ Priorité dans les cibles du programme, gardée pour les cycles qui en ont une. */}
+        {cycle?.priorites?.length ? (
         <button type="button" className="groupe-repli" onClick={() => setOptions(!options)} aria-expanded={options}>
           <span>
             Plus d’options{priorites.length > 0 && <span className="faible"> · priorité : {priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}</span>}
           </span>
           <span className="muted">{options ? '▾' : '▸'}</span>
         </button>
+        ) : null}
         {options && (
         <div className="champ">
           <span>Muscle prioritaire pendant ce cycle (facultatif, {MAX_PRIORITES} au plus)</span>
@@ -244,7 +247,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
         )}
 
         <div className="faible">
-          Objectifs de volume par muscle : les tiens, les mêmes pour tous les programmes. Ils se règlent dans Progression → Objectifs.
+          Volume par muscle : voir la carte « Volume par semaine » du programme (et ★ Priorité pour pousser un muscle).
         </div>
 
         <button className="btn primaire grand" onClick={enregistrer}>
