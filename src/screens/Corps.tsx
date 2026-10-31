@@ -18,17 +18,61 @@ const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(
 /** Valeurs d'une clé dans le temps (prises qui la contiennent, de la plus ancienne à la plus récente). */
 const serie = (mesures: Mesure[], cle: string) => mesures.filter((m) => m.valeurs[cle] !== undefined).map((m) => ({ date: m.date, valeur: m.valeurs[cle] }))
 
-/** Onglet Corps de Progression : le poids en haut, puis les mensurations et les photos. */
+type SousOngletCorps = 'poids' | 'mensurations' | 'photos'
+
+/** Onglet Corps de Progression : 3 sous-onglets Poids, Mensurations, Photos. */
 export default function Corps() {
+  const [onglet, setOnglet] = useState<SousOngletCorps>(() => {
+    try {
+      return (localStorage.getItem('sous_onglet_corps') as SousOngletCorps) || 'poids'
+    } catch {
+      return 'poids'
+    }
+  })
+
+  const changerOnglet = (o: SousOngletCorps) => {
+    setOnglet(o)
+    try {
+      localStorage.setItem('sous_onglet_corps', o)
+    } catch {}
+  }
+
   return (
-    <>
-      <h2 className="titre-corps">Poids</h2>
-      <OngletPoids />
-      <h2 className="titre-corps">Mensurations</h2>
-      <Mesures />
-      <h2 className="titre-corps">Photos</h2>
-      <Photos />
-    </>
+    <div>
+      <div className="segments" role="tablist" style={{ marginTop: 2, marginBottom: 14 }}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={onglet === 'poids'}
+          className={onglet === 'poids' ? 'actif' : ''}
+          onClick={() => changerOnglet('poids')}
+        >
+          Poids
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={onglet === 'mensurations'}
+          className={onglet === 'mensurations' ? 'actif' : ''}
+          onClick={() => changerOnglet('mensurations')}
+        >
+          Mensurations
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={onglet === 'photos'}
+          className={onglet === 'photos' ? 'actif' : ''}
+          onClick={() => changerOnglet('photos')}
+        >
+          Photos
+        </button>
+      </div>
+
+      {onglet === 'poids' && <OngletPoids />}
+      {onglet === 'mensurations' && <Mesures />}
+      {onglet === 'photos' && <Photos />}
+    </div>
   )
 }
 
