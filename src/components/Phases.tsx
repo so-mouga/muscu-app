@@ -264,7 +264,21 @@ function BlocPhase({
           <div className="ligne entre">
             <span>Objectif de poids</span>
             <span className="ligne" style={{ gap: 6 }}>
-              <ChampNombre valeur={p.ecartVise} placeholder="±" largeur={64} onChange={(v) => enregistrer(ecartPhase(frise, p.debut, v ? Math.round(v * 10) / 10 : undefined, aujourdhui))} />
+              <ChampNombre
+                valeur={p.ecartVise}
+                placeholder="±"
+                largeur={64}
+                signe
+                onChange={(v) => {
+                  if (v === undefined) {
+                    enregistrer(ecartPhase(frise, p.debut, undefined, aujourdhui))
+                    return
+                  }
+                  // Corrige le signe selon la phase si l'utilisateur a juste tapé un chiffre positif (ex: "4" en sèche -> -4)
+                  const signed = p.phase === 'seche' ? -Math.abs(v) : Math.abs(v)
+                  enregistrer(ecartPhase(frise, p.debut, Math.round(signed * 10) / 10, aujourdhui))
+                }}
+              />
               <span className="faible">kg</span>
             </span>
           </div>

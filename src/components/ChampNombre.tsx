@@ -4,12 +4,26 @@ import { useState } from 'react'
  * Champ numérique facultatif : la valeur n'est prise qu'une fois la saisie finie (champ quitté ou
  * Entrée), vide = pas de valeur. Accepte la virgule.
  */
-export default function ChampNombre({ valeur, onChange, placeholder, largeur = 80 }: { valeur?: number; onChange: (v: number | undefined) => void; placeholder?: string; largeur?: number }) {
+export default function ChampNombre({
+  valeur,
+  onChange,
+  placeholder,
+  largeur = 80,
+  signe = false,
+}: {
+  valeur?: number
+  onChange: (v: number | undefined) => void
+  placeholder?: string
+  largeur?: number
+  /** Accepte les nombres négatifs (ex: −4 kg en sèche). */
+  signe?: boolean
+}) {
   const [texte, setTexte] = useState<string | null>(null)
   const valider = () => {
     if (texte === null) return
-    const v = parseFloat(texte.replace(',', '.'))
-    const n = texte.trim() === '' || isNaN(v) || v <= 0 ? undefined : v
+    const propre = texte.replace('−', '-').replace(',', '.')
+    const v = parseFloat(propre)
+    const n = texte.trim() === '' || isNaN(v) || (!signe && v <= 0) || v === 0 ? undefined : v
     if (n !== valeur) onChange(n)
     setTexte(null)
   }
