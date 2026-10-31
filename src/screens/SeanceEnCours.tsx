@@ -179,6 +179,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     range(`idx:${seance.id}`, i)
     window.scrollTo({ top: 0 })
   }
+  // Navigation faite par l'utilisateur (pastilles, Précédent/Suivant, Y aller, plein écran ↔ liste) :
+  // gardée dans l'ordre pour que le retour la défasse. Les déplacements automatiques n'y entrent pas.
+  const pileNav = useRef<{ idx: number; focus: boolean }[]>([])
+  const naviguer = (fn: () => void) => {
+    pileNav.current = [...pileNav.current.slice(-49), { idx, focus }]
+    fn()
+  }
   const setMinuteur = (m: EtatMinuteur | null) => {
     const avecSeance = m && { ...m, seanceId: seance.id }
     setMinuteurEtat(avecSeance)
@@ -213,13 +220,22 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const ouvrirFin = (v: boolean) => (transition(() => setFin(v), v ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
 
   // Retour Android : fin → séance, puis exercice précédent. Ne quitte jamais une séance en cours.
-  // Retour Android : les fenêtres se ferment d'abord (chacune a son propre retour), puis Fin de séance
-  // revient à la séance. Sinon : aucune série validée → la séance est annulée et on revient à l'écran
-  // d'où on l'a lancée ; des séries faites → on demande (continuer, terminer, supprimer).
+  // Retour Android : les fenêtres se ferment d'abord (chacune a son propre retour), Fin de séance revient
+  // à la séance, puis on défait la dernière navigation (exercice, plein écran ↔ liste). À l'écran de
+  // départ : aucune série validée → séance annulée, retour d'où on l'a lancée ; sinon on demande.
   const [sortie, setSortie] = useState(false)
   useRetour(true, () => {
-    if (fin) ouvrirFin(false)
-    else if (seance.series.length === 0) void annulerSeance(seance.id)
+    if (fin) {
+      ouvrirFin(false)
+      return 'rester'
+    }
+    // Dernière navigation qui a vraiment changé l'écran.
+    let e = pileNav.current.pop()
+    while (e && e.idx === idx && e.focus === focus) e = pileNav.current.pop()
+    if (e) {
+      if (e.focus !== focus) setFocus(e.focus)
+      if (e.idx !== idx) setIdx(e.idx)
+    } else if (seance.series.length === 0) void annulerSeance(seance.id)
     else setSortie(true)
     return 'rester'
   })
@@ -375,7 +391,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       s.courant = plans[i].exoId
     })
   }
-  const allerEnCours = () => (enCours >= 0 ? setIdx(enCours) : ouvrirFin(true))
+  const allerEnCours = () => (enCours >= 0 ? naviguer(() => setIdx(enCours)) : ouvrirFin(true))
 
   /** Passer : l'exercice reste dans la séance, grisé ; le modèle ne change pas. */
   const passer = async (i: number) => {
@@ -449,7 +465,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       {avecEchauffement && (
         <button
           className={(surEchauffement ? 'actif ' : '') + (!echauffementActif(seance) ? 'fait echauffement-fini' : 'en-cours')}
-          onClick={() => setIdx(-1)}
+          onClick={() => naviguer(() => setIdx(-1))}
           aria-label="Échauffement (terminé, le revoir)"
         >
           🤸
@@ -463,7 +479,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           <button
             key={p.exoId + i}
             className={(!surEchauffement && i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (enCoursExo ? 'en-cours' : '')}
-            onClick={() => setIdx(i)}
+            onClick={() => naviguer(() => setIdx(i))}
             aria-label={enCoursExo ? `Exercice ${i + 1}, en cours` : undefined}
           >
             {fait ? '✓' : passe ? '–' : i + 1}
@@ -493,7 +509,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       </div>
       <div className="focus-boutons">
         {/* Pendant l'échauffement : on y reste (pas de saut vers un exercice, pas de « Machine prise »). */}
-        <button className="btn petit" onClick={() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false))}>
+        <button className="btn petit" onClick={() => naviguer(() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false)))}>
           ☰ Vue liste
         </button>
         {enCours >= 0 && !echauffementActif(seance) && (
@@ -747,7 +763,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       <div className="entete colle">
         <div className="ligne entre" style={{ marginBottom: 10 }}>
           {/* Avancement et chrono ; un appui ouvre le plein écran. */}
-          <button className="resume-seance" onClick={() => setFocus(true)} aria-label="Plein écran">
+          <button className="resume-seance" onClick={() => naviguer(() => setFocus(true))} aria-label="Plein écran">
             <Anneau valeur={avancement} taille={40} label={`${Math.round(avancement * 100)} % de la séance fait`}>
               <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
             </Anneau>
@@ -816,11 +832,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
       {!surEchauffement && plan && (
         <div className="ligne entre" style={{ marginBottom: 110 }}>
-          <button className="btn" disabled={idx === 0 && !avecEchauffement} onClick={() => setIdx(idx - 1)}>
+          <button className="btn" disabled={idx === 0 && !avecEchauffement} onClick={() => naviguer(() => setIdx(idx - 1))}>
             ← Précédent
           </button>
           {idx < plans.length - 1 ? (
-            <button className="btn primaire" onClick={() => setIdx(idx + 1)}>
+            <button className="btn primaire" onClick={() => naviguer(() => setIdx(idx + 1))}>
               Suivant →
             </button>
           ) : (
@@ -841,8 +857,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           etat={minuteur}
           onChange={setMinuteur}
           ensuite={ensuite}
-          onAller={enCours >= 0 && enCours !== idx ? () => setIdx(enCours) : enCours < 0 ? () => ouvrirFin(true) : undefined}
-          onAgrandir={() => setFocus(true)}
+          onAller={enCours >= 0 && enCours !== idx ? () => naviguer(() => setIdx(enCours)) : enCours < 0 ? () => ouvrirFin(true) : undefined}
+          onAgrandir={() => naviguer(() => setFocus(true))}
         />
       )}
     </div>
