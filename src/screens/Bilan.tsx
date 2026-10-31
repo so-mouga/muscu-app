@@ -5,6 +5,7 @@ import { informer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { db } from '../db'
+import { phaseA } from '../lib/objectifs'
 import { analyser, aRetenir, libelleMesure, type Analyse } from '../lib/analyse'
 import { debutPeriode, genererBilan, type DonneesBilan } from '../lib/bilan'
 import { dateCourte, dateISO, duree, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
@@ -57,7 +58,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
   const avant = analyser(donnees, debutAvant, finAvant, prevues)
   const comparable = avant.seances > 0
   const enCours = periode === 'semaine' && aujourdhui < decaler(lundi(), 6)
-  const retenir = aRetenir(a, comparable ? avant : null, cibles, enCours)
+  const retenir = aRetenir(a, comparable ? avant : null, cibles, enCours, phaseA(catalogue.objectifs, fin)?.phase)
   const volMuscles = vueMuscles === 'prevu' ? prevuMuscles : a.volume
 
   const partager = async () => {

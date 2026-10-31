@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, aRetenir, libelleMesure } from './analyse'
+import { analyser, aRetenir, lecturePhase, libelleMesure, type Analyse } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -55,7 +55,7 @@ describe('analyse d’une période', () => {
     expect(a.records.map((r) => r.exo.id)).toEqual(['smith_incline', 'smith_incline', 'smith_incline'])
     expect(a.progressions[0].exo.id).toBe('smith_incline')
     expect(a.stagnations.map((s) => s.exo.id)).toEqual(['tirage_large'])
-    expect(a.poids).toEqual({ debut: 74, fin: 73.5 })
+    expect(a.poids).toEqual({ debut: 74, fin: 73.5, semaines: 3 })
   })
   it('à retenir : assiduité, muscles, stagnation, recompo, records', () => {
     const t = aRetenir(a, null, cibles()).join('\n')
@@ -98,5 +98,29 @@ describe('analyse d’une période', () => {
     expect(r).not.toContain('sur 4 prévues')
     expect(r).not.toContain('aucune série dure')
     expect(libelleMesure('bras_g')).toBe('Bras gauche')
+  })
+})
+
+describe('lecture selon la phase', () => {
+  const base = (pcts: number[], poids: [number, number, number] | null) =>
+    ({ seances: 8, progressions: pcts.map((pct) => ({ pct })), poids: poids && { debut: poids[0], fin: poids[1], semaines: poids[2] } }) as unknown as Analyse
+
+  it('sèche : force en baisse et perte trop rapide signalées', () => {
+    const t = lecturePhase(base([-6, -8], [80, 76, 4]), 'seche').join('\n')
+    expect(t).toMatch(/charges baissent/)
+    expect(t).toMatch(/Tu perds vite \(−1 kg par semaine/)
+  })
+  it('sèche réussie : poids qui baisse, charges tenues', () => {
+    expect(lecturePhase(base([1, -1], [80, 78.4, 4]), 'seche')[0]).toMatch(/Sèche qui marche : −0,4 kg par semaine/)
+  })
+  it('prise : poids qui ne monte pas, charges qui stagnent', () => {
+    const t = lecturePhase(base([0, -1], [75, 74.8, 3]), 'prise').join('\n')
+    expect(t).toMatch(/ton poids ne monte pas/)
+    expect(t).toMatch(/charges ne montent pas/)
+  })
+  it('prise qui marche ; maintien : rien de spécial ; trop peu de données : rien', () => {
+    expect(lecturePhase(base([4, 6], [75, 76, 4]), 'prise')[0]).toMatch(/Prise qui marche : \+0,25 kg par semaine/)
+    expect(lecturePhase(base([4, 6], [75, 76, 4]), 'maintien')).toEqual([])
+    expect(lecturePhase(base([4], [75, 76, 1]), 'prise')).toEqual([])
   })
 })

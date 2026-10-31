@@ -4,6 +4,7 @@ import type { Exercice, Muscle, Seance, Serie } from '../types'
 import { chargeQte, dateISO, e1rm, estDure, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
 import { dureeReelle, meilleureSerie, scoreSerie, semaineDe } from './historique'
+import type { Phase } from './objectifs'
 import { seancesIdentiques } from './progression'
 
 const SEMAINE = 7 * 86400000
@@ -41,7 +42,8 @@ export interface Analyse {
   rpe: number | null
   ressenti: number | null
   energie: number | null
-  poids: { debut: number; fin: number } | null
+  /** Poids moyen de la première et de la dernière semaine pesées, et les semaines qui les séparent. */
+  poids: { debut: number; fin: number; semaines: number } | null
   mesures: { cle: string; debut: number; fin: number }[]
 }
 
@@ -137,7 +139,10 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const notes = (f: (s: (typeof periode)[number]) => number | undefined) => moyenne(periode.map(f).filter((x): x is number => x !== undefined))
   const pesees = d.pesees.filter((p) => p.date >= debutEffectif && p.date <= fin)
   const moyennePesees = (l: string) => moyenne(pesees.filter((p) => semaineDe(p.date) === l).map((p) => p.poids))
-  const avecPoids = semaines.map(moyennePesees).filter((x): x is number => x !== null)
+  const parSemainePoids = semaines.map(moyennePesees)
+  const avecPoids = parSemainePoids.filter((x): x is number => x !== null)
+  const pesees1 = parSemainePoids.map((x, k) => (x !== null ? k : -1)).filter((k) => k >= 0)
+  const ecartSemaines = pesees1.length ? pesees1[pesees1.length - 1] - pesees1[0] : 0
   const mesures = d.mesures.filter((m) => m.date >= debutEffectif && m.date <= fin).sort((a, b) => a.date.localeCompare(b.date))
   const sports = d.activites.filter((a) => a.date >= debutEffectif && a.date <= fin)
 
@@ -160,7 +165,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     rpe: moyenne(travail.flatMap((s) => s.series.filter(estDure).map((x) => x.rpe))),
     ressenti: notes((s) => s.ressenti),
     energie: notes((s) => s.energie),
-    poids: avecPoids.length >= 2 ? { debut: avecPoids[0], fin: avecPoids[avecPoids.length - 1] } : null,
+    poids: avecPoids.length >= 2 ? { debut: avecPoids[0], fin: avecPoids[avecPoids.length - 1], semaines: ecartSemaines } : null,
     mesures:
       mesures.length >= 2
         ? Object.keys(mesures[mesures.length - 1].valeurs)
@@ -175,7 +180,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
  * `avant` : la période précédente de même durée, pour les tendances.
  * `enCours` : la semaine n'est pas terminée (on ne reproche pas les séances ou muscles restants).
  */
-export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscle, number>, enCours = false): string[] {
+export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscle, number>, enCours = false, phase?: Phase): string[] {
   if (a.seances < 2) return ['Pas encore assez de séances sur cette période pour en tirer des conclusions : reviens après quelques séances.']
   const r: string[] = []
   const nom = (m: Muscle) => MUSCLES.find((x) => x.id === m)!.nom
@@ -183,6 +188,9 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
   // Douleurs signalées en priorité
   for (const d of a.douleurs.slice(0, 2))
     r.push(`⚠️ Douleur signalée sur ${d.exo.nom}${d.n > 1 ? ` (${d.n} séances)` : ''} : adapte la charge ou remplace l’exercice si ça persiste.`)
+
+  // Lecture selon la phase : perfs et poids n'ont pas le même sens en sèche et en prise.
+  if (phase) r.push(...lecturePhase(a, phase))
 
   // Assiduité
   if (a.prevues) {
@@ -226,6 +234,34 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
   }
 
   return r.slice(0, 5).length ? r.slice(0, 5) : ['Rien à signaler : continue comme ça.']
+}
+
+/**
+ * Ce que disent les perfs et le poids selon la phase (règles simples, sans IA). Force = moyenne des
+ * progressions de la période ; vitesse du poids en % par semaine entre la 1re et la dernière semaine pesées.
+ */
+export function lecturePhase(a: Analyse, phase: Phase): string[] {
+  const r: string[] = []
+  const force = a.progressions.length >= 2 ? moyenne(a.progressions.map((p) => p.pct)) : null
+  const p = a.poids && a.poids.semaines >= 2 ? a.poids : null
+  const parSemaine = p ? (p.fin - p.debut) / p.semaines : null
+  const pctSemaine = p && parSemaine !== null ? (parSemaine / p.debut) * 100 : null
+  const kgSem = (x: number) => `${x > 0 ? '+' : '−'}${kg(Math.abs(arrondi(x, 2)))} kg par semaine`
+  const forceTxt = force !== null ? `${force > 0 ? '+' : '−'}${kg(Math.abs(arrondi(force)))} %` : ''
+
+  if (phase === 'seche') {
+    if (force !== null && force <= -5) r.push(`En sèche, tes charges baissent (${forceTxt} en moyenne) : ton déficit est peut-être trop fort, ou tu dors trop peu. Mange un peu plus autour des séances.`)
+    if (pctSemaine !== null && pctSemaine < -1) r.push(`Tu perds vite (${kgSem(parSemaine!)}, plus de 1 % de ton poids) : risque de perdre du muscle, ralentis un peu.`)
+    else if (pctSemaine !== null && pctSemaine >= -0.1) r.push(`En sèche, mais ton poids ne baisse pas (${kgSem(parSemaine!)}) : réduis un peu ce que tu manges.`)
+    else if (pctSemaine !== null && force !== null && force > -2) r.push(`Sèche qui marche : ${kgSem(parSemaine!)} et des charges tenues (${forceTxt}).`)
+  }
+  if (phase === 'prise') {
+    if (pctSemaine !== null && pctSemaine <= 0) r.push(`En prise, mais ton poids ne monte pas (${kgSem(parSemaine!)}) : mange un peu plus.`)
+    else if (pctSemaine !== null && pctSemaine > 0.5) r.push(`Tu prends vite (${kgSem(parSemaine!)}) : une partie risque d’être du gras, ralentis un peu.`)
+    if (force !== null && force <= 0 && a.seances >= 4) r.push(`En prise, tes charges ne montent pas (${forceTxt}) : vise +1 rep ou un cran à chaque séance (les conseils 💡 en fin de séance t’aident).`)
+    else if (force !== null && force > 0 && pctSemaine !== null && pctSemaine > 0 && pctSemaine <= 0.5) r.push(`Prise qui marche : ${kgSem(parSemaine!)} et des charges en hausse (${forceTxt}).`)
+  }
+  return r
 }
 
 /** « Taille », « Bras droit »… */
