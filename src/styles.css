@@ -2859,3 +2859,13 @@ a.btn {
   background: var(--accent);
   color: var(--accent-texte);
 }
+
+/* Fin de séance : Enregistrer toujours sous le pouce, sans défiler jusqu'en bas. */
+.barre-enregistrer {
+  position: sticky;
+  bottom: 0;
+  margin: 12px -16px 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 75%, transparent);
+  z-index: 5;
+}

@@ -1,3 +1,4 @@
+import { MUSCLES } from '../data/exercices'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -891,6 +892,7 @@ function FinSeance({
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
   const [ajuste, setAjuste] = useState<string | null>(null)
+  const [voirMuscles, setVoirMuscles] = useState(false)
   const libre = !modele && seance.exercices.length > 0
 
   // « Prochaine fois » : par défaut, refaire exactement cette séance ; l'utilisateur monte lui-même.
@@ -949,16 +951,31 @@ function FinSeance({
         <h2>{seance.nom}</h2>
         <ResumeSeance seance={seance} exo={catalogue.exo} />
       </div>
+
       {seance.series.length > 0 && (
-        <div className="carte">
-          <h3 style={{ marginBottom: 8 }}>Muscles travaillés</h3>
-          <SilhouetteVolume
-            volume={volumeParMuscle([seance], catalogue.exercices)}
-            cibles={catalogue.cibles}
-            legende="objectif de la semaine"
-          />
+        <div className="carte pile">
+          {echelle(ressenti, setRessenti, 'Ressenti global (1 = dur, 5 = excellent) · facultatif')}
+          {echelle(energie, setEnergie, 'Énergie (1 = vidé, 5 = au top) · facultatif')}
         </div>
       )}
+
+      {seance.series.length > 0 &&
+        (() => {
+          const volume = volumeParMuscle([seance], catalogue.exercices)
+          const travailles = MUSCLES.filter((m) => volume[m.id] >= 1).sort((a, b) => volume[b.id] - volume[a.id])
+          return (
+            <div className="carte">
+              <button type="button" className="groupe-repli" onClick={() => setVoirMuscles(!voirMuscles)} aria-expanded={voirMuscles}>
+                <span>
+                  <strong>Muscles travaillés</strong>
+                  <span className="faible"> · {travailles.slice(0, 4).map((m) => m.nom.toLowerCase()).join(', ')}{travailles.length > 4 ? '…' : ''}</span>
+                </span>
+                <span className="muted">{voirMuscles ? '▾' : '▸'}</span>
+              </button>
+              {voirMuscles && <SilhouetteVolume volume={volume} cibles={catalogue.cibles} legende="objectif de la semaine" />}
+            </div>
+          )
+        })()}
 
       {faits.length > 0 && (
         <>
@@ -1017,10 +1034,6 @@ function FinSeance({
         </>
       )}
 
-      <div className="carte pile">
-        {echelle(ressenti, setRessenti, 'Ressenti global (1 = dur, 5 = excellent) · facultatif')}
-        {echelle(energie, setEnergie, 'Énergie (1 = vidé, 5 = au top) · facultatif')}
-      </div>
 
       {libre && (
         <div className="carte pile">
@@ -1063,16 +1076,15 @@ function FinSeance({
 
       {seance.series.length > 0 ? (
         <>
-          <button className="btn primaire grand" onClick={enregistrer}>
-            ENREGISTRER
-          </button>
-          <button
-            className="btn discret danger plein"
-            style={{ marginTop: 12, marginBottom: 24 }}
-            onClick={abandonner}
-          >
+          {/* Loin du bouton Enregistrer : effacer une séance ne doit jamais se faire d'un appui de travers. */}
+          <button className="btn discret danger plein" style={{ marginTop: 12 }} onClick={abandonner}>
             Supprimer la séance
           </button>
+          <div className="barre-enregistrer">
+            <button className="btn primaire grand" onClick={enregistrer}>
+              ✓ ENREGISTRER LA SÉANCE
+            </button>
+          </div>
         </>
       ) : (
         <>
