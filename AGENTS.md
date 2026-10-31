@@ -13,7 +13,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Vite + React 19 + TypeScript, Dexie (IndexedDB, base `muscu`), Vitest. Service worker écrit à la main. Pas de backend : tout est sur le téléphone.
 - `npm run dev`, `npm test`, `npm run build`.
 - Vérifier les types avec `npx tsc --noEmit -p tsconfig.json`. **Jamais `tsc -b`** : il écrit des `.js` dans `src/` que Vite prend à la place des `.ts`.
-- **Ne pas lancer Prettier** (pas de config dans le projet : il reformate des fichiers entiers). Garder le style existant : lignes longues, pas de point-virgule, guillemets simples.
+- **Ne pas lancer Prettier** (pas de config dans le projet : il reformate des fichiers entiers). Garder le style existant : lignes longues, pas de point-virgule, guillemets simples. Le formatage à l'enregistrement est coupé dans `.vscode/settings.json` (local, non versionné).
 - Git : compte perso uniquement — `git -c user.email=kevin.mougammadaly@gmail.com commit …`, dépôt `so-mouga/muscu-app`.
 
 ## Organisation
