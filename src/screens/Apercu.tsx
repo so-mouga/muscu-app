@@ -4,10 +4,12 @@ import type { Catalogue } from '../catalogue'
 import { ObjectifApres } from '../components/EditeurObjectif'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
-import { chargeQte, cibleTexte, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
+import { chargeQte, cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
-import { hausse, seancesIdentiques, suggestionPour } from '../lib/progression'
+import { hausse, suggestionPour } from '../lib/progression'
+import { diagnostic, texteBlocage } from '../lib/blocages'
+import { phaseA } from '../lib/objectifs'
 import type { SeanceModele } from '../types'
 import { BoutonLexique } from '../components/Lexique'
 
@@ -29,6 +31,12 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
   // Les déloads ne servent pas de référence pour la progression.
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours && !s.deload).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
+  // Pour expliquer un blocage : déloads, sommeil, calories et poids.
+  const deloads = useLiveQuery(() => db.seances.filter((s) => !s.enCours && !!s.deload).toArray(), [], [])
+  const journal = useLiveQuery(() => db.journal.toArray(), [], [])
+  const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
+  const aujourdhui = dateISO()
+  const contexte = terminees && { seances: [...terminees, ...deloads], journal, pesees, phase: phaseA(catalogue.objectifs, aujourdhui)?.phase }
   // En-tête : la séance telle qu'elle sera faite (allégée en déload).
   const prevu = deload ? { ...modele, exercices: modele.exercices.map(planDeload) } : modele
   const series = prevu.exercices.reduce((a, p) => a + p.series.length, 0)
@@ -74,6 +82,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
         const derniere = terminees && historiqueDe(terminees, p.exoId)[0]
         const hausses = sugg ? sugg.charges.map((_, n) => hausse(exo, sugg, derniere, n)) : []
         const battre = hausses.some(Boolean)
+        const bloque = !deload && contexte ? diagnostic(exo, contexte, aujourdhui) : null
         return (
           <div key={p.exoId + i} className="carte pile">
             <div className="ligne" style={{ gap: 12 }}>
@@ -107,9 +116,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
                   </div>
                 ) : (
                   <div className="muted">
-                    {terminees && seancesIdentiques(historiqueDe(terminees, p.exoId)) >= 3
-                      ? `⏸ Mêmes charges et mêmes reps depuis ${seancesIdentiques(historiqueDe(terminees, p.exoId))} séances : tente +1 rep ou un cran de charge (✎).`
-                      : sugg.message}
+                    {bloque ? `⏸ ${texteBlocage(bloque)}` : sugg.message}
                   </div>
                 )}
                 {derniere && !deload && (

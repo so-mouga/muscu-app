@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { aBattre, conseil, hausse, monterMaintenant, pareil, seancesIdentiques, suggere, suggestionPour } from './progression'
+import { aBattre, conseil, hausse, monterMaintenant, pareil, suggere, suggestionPour } from './progression'
 
 const planDe = (modele: string, exoId: string) => MODELES[modele].exercices.find((e) => e.exoId === exoId)!
 
@@ -201,14 +201,6 @@ describe('séance incomplète', () => {
     const r = pareil(EXERCICES.butterfly, plan, [seance(30, '9@8')])
     expect(r.reps[0]).toBe(9)
     expect(r.reps[1]).toBe(plan.series[1].repsMin)
-  })
-})
-
-describe('stagnation', () => {
-  it('compte les séances identiques les plus récentes', () => {
-    expect(seancesIdentiques([seance(30, '10@8', '10@8'), seance(30, '10@8', '10@8'), seance(30, '10@8', '10@8'), seance(27.5, '12@8')])).toBe(3)
-    expect(seancesIdentiques([seance(30, '11@8', '10@8'), seance(30, '10@8', '10@8')])).toBe(1)
-    expect(seancesIdentiques([])).toBe(0)
   })
 })
 

@@ -50,16 +50,17 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
   const cibles = catalogue.ciblesA(fin)
   const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal }
   const prevues = catalogue.planning.length
-  const a = analyser(donnees, debut, fin, prevues)
+  const phaseFin = phaseA(catalogue.objectifs, fin)?.phase
+  const a = analyser(donnees, debut, fin, prevues, phaseFin)
   const longueur = Math.round((Date.parse(fin) - Date.parse(a.debut)) / JOUR)
   const [debutAvant, finAvant] =
     periode === 'semaine'
       ? [decaler(debut, -7), decaler(fin, -7)]
       : [decaler(decaler(a.debut, -1), -longueur), decaler(a.debut, -1)]
-  const avant = analyser(donnees, debutAvant, finAvant, prevues)
+  const avant = analyser(donnees, debutAvant, finAvant, prevues, phaseA(catalogue.objectifs, finAvant)?.phase)
   const comparable = avant.seances > 0
   const enCours = periode === 'semaine' && aujourdhui < decaler(lundi(), 6)
-  const retenir = aRetenir(a, comparable ? avant : null, cibles, enCours, phaseA(catalogue.objectifs, fin)?.phase)
+  const retenir = aRetenir(a, comparable ? avant : null, cibles, enCours, phaseFin)
   const volMuscles = vueMuscles === 'prevu' ? prevuMuscles : a.volume
 
   const partager = async () => {
@@ -283,7 +284,7 @@ function LigneExo({ onClick, children }: { onClick?: () => void; children: [Reac
   )
 }
 
-/** Records, meilleures progressions et stagnations de la période. */
+/** Records, meilleures progressions et blocages de la période. */
 function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void }) {
   const progres = a.progressions.filter((p) => p.pct > 0).slice(0, 3)
   if (!a.records.length && !progres.length && !a.stagnations.length) return null
@@ -329,12 +330,14 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
       )}
       {a.stagnations.length > 0 && (
         <div>
-          <div className="faible">Stagnent</div>
+          <div className="faible">Bloqués</div>
           {a.stagnations.map((s) => (
             <LigneExo key={s.exo.id} onClick={onExo ? () => onExo(s.exo.id) : undefined}>
               <span>
                 {s.exo.nom}
-                <span className="faible petit-detail">identique depuis {s.n} séances</span>
+                <span className="faible petit-detail">
+                  sans progrès depuis {s.semaines} semaines{s.pistes.length ? ` · ${s.pistes.join(', ')}` : ''}
+                </span>
               </span>
               <span />
             </LigneExo>

@@ -5,7 +5,7 @@ import { chargeQte, dateISO, e1rm, estDure, kg, kgSouleves, volumeParMuscle } fr
 import type { DonneesBilan } from './bilan'
 import { dureeReelle, meilleureSerie, scoreSerie, semaineDe } from './historique'
 import type { Phase } from './objectifs'
-import { seancesIdentiques } from './progression'
+import { diagnostic } from './blocages'
 
 const SEMAINE = 7 * 86400000
 const arrondi = (x: number, d = 1) => Math.round(x * 10 ** d) / 10 ** d
@@ -37,7 +37,8 @@ export interface Analyse {
   records: Record_[]
   /** Évolution du meilleur 1RM estimé (ou de la meilleure série pour l'isolation) sur la période. */
   progressions: { exo: Exercice; avant: number; apres: number; pct: number; detail?: string }[]
-  stagnations: { exo: Exercice; n: number }[]
+  /** Exercices sans progrès depuis 3 semaines ou plus à la fin de la période, avec les pistes (voir `lib/blocages`). */
+  stagnations: { exo: Exercice; semaines: number; seances: number; pistes: string[] }[]
   douleurs: { exo: Exercice; date: string; n: number }[]
   rpe: number | null
   ressenti: number | null
@@ -52,7 +53,7 @@ export interface Analyse {
 }
 
 /** Tout ce qu'on peut dire d'une période, à partir des séances, pesées, mesures et activités. */
-export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesParSemaine = 0): Analyse {
+export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesParSemaine = 0, phase?: Phase): Analyse {
   const premiere = d.seances.reduce<string | null>((a, s) => (!a || s.date < a ? s.date : a), null)
   const depart = premiere && semaineDe(premiere) > semaineDe(debut) && semaineDe(premiere) <= semaineDe(fin) ? semaineDe(premiere) : semaineDe(debut)
   const debutEffectif = depart > semaineDe(debut) ? depart : debut
@@ -122,8 +123,8 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
         }
       }
     }
-    const n = seancesIdentiques([...avec].reverse().map((s) => s.series.filter((x) => x.exoId === id)))
-    if (n >= 3) stagnations.push({ exo, n })
+    const b = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase }, fin)
+    if (b) stagnations.push({ exo, semaines: b.semaines, seances: b.seances, pistes: b.pistes })
   }
   progressions.sort((a, b) => b.pct - a.pct)
 
@@ -228,8 +229,9 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
     }
   }
 
-  // Stagnations
-  for (const s of a.stagnations.slice(0, 2)) r.push(`${s.exo.nom} : mêmes charges et mêmes reps depuis ${s.n} séances. Tente +1 rep ou un cran de charge.`)
+  // Blocages, avec ce qui peut les expliquer
+  for (const s of a.stagnations.slice(0, 2))
+    r.push(`${s.exo.nom} : pas de progrès depuis ${s.semaines} semaines (${s.seances} séances). ${s.pistes.length ? `Pistes : ${s.pistes.join(', ')}.` : 'Tente +1 rep ou un cran de charge, ou une variante.'}`)
 
   // Recompo : la taille baisse pendant que la force monte
   const taille = a.mesures.find((m) => m.cle === 'taille')

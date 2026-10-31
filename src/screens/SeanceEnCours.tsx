@@ -15,7 +15,9 @@ import { ecartSerie, lireChauffe, volumeParMuscle, calories, chargeQte, chargeTe
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
-import { conseil, hausse, pareil, seancesIdentiques, suggestionPour, type Suggestion } from '../lib/progression'
+import { conseil, hausse, pareil, suggestionPour, type Suggestion } from '../lib/progression'
+import { blocage } from '../lib/blocages'
+import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
@@ -733,7 +735,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           repere={repereDe(plan.exoId)}
           onObjectif={!seance.deload && historiqueDe(terminees, plan.exoId).length ? () => setObjectifDe(idx) : undefined}
           noteAvant={noteAvant(plan.exoId)}
-          identiques={seance.deload ? 0 : seancesIdentiques(historiqueDe(terminees, plan.exoId))}
+          bloque={seance.deload || phaseA(catalogue.objectifs, seance.date)?.phase === 'seche' ? 0 : (blocage(exos[idx], terminees ?? [], seance.date)?.semaines ?? 0)}
         />
       ) : (
         <div className="carte pile">

@@ -63,7 +63,7 @@ describe('analyse d’une période', () => {
     expect(t).toContain('aucune série dure')
     expect(t).toContain('Dos en retard : 1 série dure par semaine sur 18')
     expect(t).toContain('et 4 autres : aucune série dure')
-    expect(t).toContain('Tirage poitrine prise large : mêmes charges')
+    expect(t).toContain('Tirage poitrine prise large : pas de progrès depuis 3 semaines')
     // 5 phrases au plus : la recompo et les records passent après
     expect(aRetenir(a, null, cibles()).length).toBeLessThanOrEqual(5)
   })

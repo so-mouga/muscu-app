@@ -48,8 +48,8 @@ interface Props {
   onObjectif?: () => void
   /** Note laissée sur cet exercice à une séance précédente (réglage machine, sensation…). */
   noteAvant?: string
-  /** Séances d'affilée avec exactement les mêmes séries (stagnation à partir de 3). */
-  identiques?: number
+  /** Semaines sans progrès (voir `lib/blocages`), 0 sinon. */
+  bloque?: number
 }
 
 /** Instant de la dernière validation (horloge monotone, insensible aux changements d'heure du
@@ -101,7 +101,7 @@ export default function CarteExo({
   repere,
   onObjectif,
   noteAvant,
-  identiques = 0,
+  bloque = 0,
 }: Props) {
   const faites = seance.series.filter((s) => s.exoId === exo.id)
   const total = passe ? faites.length : Math.max(faites.length, plan.series.length + (seance.ajustSeries[exo.id] ?? 0))
@@ -212,8 +212,8 @@ export default function CarteExo({
         <div className="muted">
           {battre
             ? 'Tu as prévu de faire mieux que la dernière fois : c’est ici qu’on progresse.'
-            : identiques >= 3
-              ? `⏸ Mêmes charges et mêmes reps depuis ${identiques} séances : tente +1 rep ou un cran de charge${onObjectif ? ' (✎ Modifier)' : ''}.`
+            : bloque >= 3
+              ? `⏸ Pas de progrès depuis ${bloque} semaines : tente +1 rep ou un cran de charge${onObjectif ? ' (✎ Modifier)' : ''}, et regarde ton sommeil et tes repas.`
               : sugg.message}
         </div>
         {battre && onObjectif && (

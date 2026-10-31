@@ -1,11 +1,11 @@
 import { MUSCLES } from '../data/exercices'
 import { typeActivite } from '../data/activites'
 import { nomCle } from '../data/mesures'
-import type { Activite, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance, Serie } from '../types'
+import type { Activite, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
 import { dateCourte, dateISO, duree, e1rm, estDure, kg, lundi, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, recordsParSeance, semaineDe } from './historique'
-import { periodes, textePhase, type EtapeObjectifs } from './objectifs'
-import { seancesIdentiques } from './progression'
+import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
+import { diagnostic, texteBlocage } from './blocages'
 
 export interface DonneesBilan {
   /** Séances terminées (toutes : les plus anciennes servent de référence aux records). */
@@ -146,9 +146,8 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
       const b = meilleur(normales[normales.length - 1])
       lignes.push(`  1RM estimé : ${kg(arrondi(a))} → ${kg(arrondi(b))} kg (${b >= a ? '+' : '−'}${kg(Math.abs(arrondi(((b - a) / a) * 100)))} %)`)
     }
-    const historique: Serie[][] = [...normales].reverse().map((s) => s.series.filter((x) => x.exoId === id))
-    const n = seancesIdentiques(historique)
-    if (n >= 3) lignes.push(`  Stagnation : mêmes charges et reps depuis ${n} séances`)
+    const bloque = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase: d.objectifs && phaseA(d.objectifs, fin)?.phase }, fin)
+    if (bloque) lignes.push(`  ${texteBlocage(bloque)}`)
   }
 
   // Corps

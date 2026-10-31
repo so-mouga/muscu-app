@@ -13,6 +13,7 @@ import JournalMatin from '../components/JournalMatin'
 import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
 import { etatCycle, planDeload } from '../lib/cycle'
+import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
@@ -185,6 +186,8 @@ export default function Accueil({
 
   const joursExport = dernierExport ? Math.floor((Date.now() - (dernierExport.valeur as number)) / 86400000) : null
   const exportVieux = nbSeances > 0 && (joursExport === null || joursExport >= 7)
+  // Déload à avancer : seulement pendant une semaine de travail du cycle (le bouton est dans le cycle).
+  const deloadPlusTot = cycle && etat && etat.n >= 1 && !etat.fini && !etat.deload && !etat.pause && terminees ? deloadConseille(terminees, catalogue.exo, dateISO()) : null
   const sauvegarderTout = async () => {
     try {
       await sauvegarder(CATEGORIES_COURANTES)
@@ -280,6 +283,17 @@ export default function Accueil({
       <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
+      {deloadPlusTot && !masque('deload') && (
+        <div className="rappel-ligne">
+          <button className="texte" onClick={onProgrammes}>
+            🧘 Force en baisse sur {deloadPlusTot.baisses.length} exercices{deloadPlusTot.energieBasse ? ' et énergie basse' : ''} : un déload cette semaine ?
+            <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span> ›
+          </button>
+          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('deload')}>
+            ✕
+          </button>
+        </div>
+      )}
       {mesuresEnRetard && !masque('mesures') && (
         <div className="rappel-ligne">
           <button className="texte" onClick={onMesures}>
