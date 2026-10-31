@@ -11,7 +11,7 @@ describe('objectif calories', () => {
     // 1750 × (1,2 + 0,2) = 2450
     expect(objectifCalories(80, p, 'maintien', 4, 2026)).toEqual({ kcal: 2450, maintien: 2450, proteines: 160 })
     expect(objectifCalories(80, p, 'seche', 4, 2026)).toEqual({ kcal: 2100, maintien: 2450, proteines: 176 })
-    expect(objectifCalories(80, p, 'prise', 4, 2026).kcal).toBe(2700)
+    expect(objectifCalories(80, p, 'prise', 4, 2026).kcal).toBe(2550)
   })
 
   it('profil incomplet : pas de calcul', () => {
@@ -24,7 +24,7 @@ describe('objectif du jour', () => {
   const p = { taille: 180, naissance: 1990, sexe: 'h' as const, activite: 'assis' as const }
   const frise = [{ depuis: '2026-11-02', phase: 'prise' as const, volume: {} }]
   it('calculé selon la phase du jour, ou fixé à la main', () => {
-    expect(objectifDuJour(frise, '2026-11-05', p, 80, 4)).toMatchObject({ kcal: 2700, manuel: false, phase: 'prise' })
+    expect(objectifDuJour(frise, '2026-11-05', p, 80, 4)).toMatchObject({ kcal: 2550, manuel: false, phase: 'prise' })
     expect(objectifDuJour([{ ...frise[0], calories: 3000 }], '2026-11-05', p, 80, 4)).toMatchObject({ kcal: 3000, manuel: true, proteines: 160 })
     expect(objectifDuJour(frise, '2026-11-05', undefined, 80, 4)).toBeNull()
   })

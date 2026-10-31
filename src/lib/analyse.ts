@@ -280,18 +280,23 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
       )
     else if (pctSemaine !== null && force !== null && force > -2) r.push(`Sèche qui marche : ${kgSem(parSemaine!)} et des charges tenues (${forceTxt}).`)
   }
-  if (phase === 'prise') {
-    if (pctSemaine !== null && pctSemaine <= 0)
+  // Prise : viser +0,15 à +0,25 kg par semaine ; on corrige de 100 kcal sous +0,1 ou au-dessus de +0,4.
+  if (phase === 'prise' && parSemaine !== null) {
+    const constat = parSemaine <= 0 ? 'ne monte pas' : 'monte trop peu'
+    if (parSemaine < 0.1)
       r.push(
         tenues
-          ? `En prise, ton poids ne monte pas (${kgSem(parSemaine!)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est sans doute trop bas, monte-le de 150 kcal.`
+          ? `En prise, ton poids ${constat} (${kgSem(parSemaine)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est sans doute trop bas, monte-le de 100 kcal.`
           : notes >= 4 && c.pasAssez >= 2
-            ? `En prise, ton poids ne monte pas (${kgSem(parSemaine!)}) : ${c.pasAssez} jours sous l’objectif l’expliquent sans doute.`
-            : `En prise, mais ton poids ne monte pas (${kgSem(parSemaine!)}) : mange un peu plus.`
+            ? `En prise, ton poids ${constat} (${kgSem(parSemaine)}) : ${c.pasAssez} jours sous l’objectif l’expliquent sans doute.`
+            : `En prise, mais ton poids ${constat} (${kgSem(parSemaine)}) : mange un peu plus (vise +0,15 à +0,25 kg par semaine).`
       )
-    else if (pctSemaine !== null && pctSemaine > 0.5) r.push(`Tu prends vite (${kgSem(parSemaine!)}) : une partie risque d’être du gras, ralentis un peu.`)
-    if (force !== null && force <= 0 && a.seances >= 4) r.push(`En prise, tes charges ne montent pas (${forceTxt}) : vise +1 rep ou un cran à chaque séance (les conseils 💡 en fin de séance t’aident).`)
-    else if (force !== null && force > 0 && pctSemaine !== null && pctSemaine > 0 && pctSemaine <= 0.5) r.push(`Prise qui marche : ${kgSem(parSemaine!)} et des charges en hausse (${forceTxt}).`)
+    else if (parSemaine > 0.4) r.push(`Tu prends vite (${kgSem(parSemaine)}) : une partie risque d’être du gras, baisse de 100 kcal.`)
+  }
+  if (phase === 'prise') {
+    if (force !== null && force <= 0 && a.seances >= 4)
+      r.push(`En prise, tes charges ne montent pas (${forceTxt}) : vise +1 rep par semaine sur la moitié de tes exercices, et un cran de charge toutes les 2 à 4 semaines sur les gros mouvements (les conseils 💡 en fin de séance t’aident).`)
+    else if (force !== null && force > 0 && parSemaine !== null && parSemaine >= 0.1 && parSemaine <= 0.4) r.push(`Prise qui marche : ${kgSem(parSemaine)} et des charges en hausse (${forceTxt}).`)
   }
   return r
 }

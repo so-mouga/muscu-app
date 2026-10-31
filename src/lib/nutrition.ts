@@ -21,7 +21,7 @@ export const ACTIVITES: { id: Activite; nom: string; detail: string; facteur: nu
 ]
 
 /** Ajustement selon la phase : déficit modéré en sèche, léger surplus en prise. */
-export const AJUSTEMENT: Record<Phase, number> = { seche: -0.15, maintien: 0, prise: 0.1 }
+export const AJUSTEMENT: Record<Phase, number> = { seche: -0.15, maintien: 0, prise: 0.05 }
 
 export const profilComplet = (p?: Profil): p is Required<Profil> => !!(p?.taille && p.naissance && p.sexe && p.activite)
 

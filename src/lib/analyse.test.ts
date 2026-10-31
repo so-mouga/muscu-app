@@ -118,6 +118,10 @@ describe('lecture selon la phase', () => {
     expect(t).toMatch(/ton poids ne monte pas/)
     expect(t).toMatch(/charges ne montent pas/)
   })
+  it('prise : poids qui monte trop peu ou trop vite, corrigé de 100 kcal', () => {
+    expect(lecturePhase(base([4, 6], [75, 75.2, 4]), 'prise')[0]).toMatch(/ton poids monte trop peu \(\+0,05 kg par semaine\)/)
+    expect(lecturePhase(base([4, 6], [75, 77, 4]), 'prise')[0]).toMatch(/Tu prends vite .* baisse de 100 kcal/)
+  })
   it('prise qui marche ; maintien : rien de spécial ; trop peu de données : rien', () => {
     expect(lecturePhase(base([4, 6], [75, 76, 4]), 'prise')[0]).toMatch(/Prise qui marche : \+0,25 kg par semaine/)
     expect(lecturePhase(base([4, 6], [75, 76, 4]), 'maintien')).toEqual([])
