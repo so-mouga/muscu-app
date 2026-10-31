@@ -22,7 +22,6 @@ import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
-const exercices = (n: number) => `${n} exercice${n > 1 ? 's' : ''}`
 
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
 /** Contexte du cycle au démarrage : semaine en cours et déload éventuel. */
@@ -224,8 +223,8 @@ export default function Accueil({
     <div>
       <div className="entete">
         <div>
-          <h1 style={{ textTransform: 'capitalize' }}>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
-          {phase && (
+          <h1 style={{ textTransform: 'capitalize', fontSize: '1.35rem', margin: '0 0 3px' }}>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
+          {phase && !bandeauCycleVisible && (
             <div className="phase-accueil">
               <span className={`point-phase phase-${phase.phase}`} />
               {phase.aVenir
@@ -289,9 +288,7 @@ export default function Accueil({
               <h2>
                 {proposee.modele.nom} {proposee.modele.sousTitre && <span className="muted">— {proposee.modele.sousTitre}</span>}
               </h2>
-              <div className="faible">
-                {exercices(proposee.modele.exercices.length)} · {dureeTexte(proposee.modele, terminees)}
-              </div>
+              <div className="faible">{dureeTexte(proposee.modele, terminees)}</div>
               {!etat?.deload &&
                 (() => {
                   const l = aBattreDe(proposee.modele)

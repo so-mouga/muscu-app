@@ -41,6 +41,8 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   // Poids au départ de la phase : pour situer l'objectif (± kg) en poids réel.
   const depart = useLiveQuery(async () => (phase?.ecartVise ? poidsDepart(await db.pesees.toArray(), phase.debut) : null), [phase?.debut, phase?.ecartVise], null)
   const [nuit, setNuit] = useState<number | null>(null)
+  const [saisiePoids, setSaisiePoids] = useState(false)
+  const [valPoids, setValPoids] = useState<string>('')
   if (journal === null || profil === null) return null
 
   const duJour = journal.find((j) => j.date === aujourdhui)
@@ -58,6 +60,33 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const repas = conseilRepas(phase?.phase, entrainement, deload)
   const progres = terminees ? meilleureProgression(terminees, catalogue.exo, phase ? phase.debut : dateISO(new Date(Date.now() - 28 * JOUR))) : null
   const peser = phase?.phase === 'seche' || phase?.phase === 'prise' || pesees.length > 0
+
+  const ouvrirSaisiePoids = () => {
+    const init = pesee ? pesee.poids : poids ?? 70
+    setValPoids(kg(init))
+    setSaisiePoids(true)
+  }
+
+  const enregistrerPoids = async () => {
+    const t = (valPoids || (poids ? kg(poids) : '70')).trim().replace(',', '.')
+    const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
+    if (val > 30 && val < 250) {
+      const arr = Math.round(val * 10) / 10
+      await db.pesees.put({ date: aujourdhui, poids: arr })
+      await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
+        s.poidsCorps = arr
+      })
+      setSaisiePoids(false)
+    }
+  }
+
+  const ajusterPoids = (delta: number) => {
+    const t = (valPoids || (poids ? kg(poids) : '70')).trim().replace(',', '.')
+    const cur = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : (poids ?? 70)
+    const nouv = Math.round((cur + delta) * 10) / 10
+    setValPoids(kg(nouv))
+  }
+
   // Sommeil : rien de pré-rempli (un appui distrait noterait une fausse nuit) ; on choisit, ça enregistre.
   const enSaisie = nuit !== null || duJour?.sommeil === undefined
 
@@ -65,14 +94,92 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
     <div className="carte pile journal-matin">
       <h3>Aujourd’hui</h3>
       {peser && (
-        <button className="ligne-jour" onClick={onCorps}>
-          <span>
-            ⚖️ {pesee ? <strong>{kg(pesee.poids)} kg ce matin</strong> : 'Pèse-toi ce matin, à jeun'}
-            {moyenne !== null && <span className="faible"> · moyenne 7 j {kg(Math.round(moyenne * 10) / 10)} kg</span>}
-            {vise && <span className="faible"> · visé {kg(cible!)} kg{vise.atteint ? ' ✓' : ` (encore ${vise.reste > 0 ? '+' : '−'}${kg(Math.abs(vise.reste))})`}</span>}
-          </span>
-          <span className="muted">›</span>
-        </button>
+        saisiePoids || !pesee ? (
+          <div className="ligne-jour" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '4px 0' }}>
+            <span>
+              ⚖️ <strong>Poids :</strong>
+            </span>
+            <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
+              <span className="mini-stepper compact">
+                <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
+                  −
+                </button>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  enterKeyHint="done"
+                  className="duree"
+                  value={valPoids || (poids ? kg(poids) : '70')}
+                  onFocus={(e) => {
+                    if (!valPoids) setValPoids(poids ? kg(poids) : '70')
+                    e.target.select()
+                  }}
+                  onChange={(e) => setValPoids(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
+                />
+                <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
+                  +
+                </button>
+              </span>
+              <span className="faible" style={{ fontSize: '0.85rem' }}>kg</span>
+              <button
+                type="button"
+                className="btn primaire petit"
+                style={{ padding: '6px 12px', minHeight: 34 }}
+                onClick={() => void enregistrerPoids()}
+              >
+                ✓ OK
+              </button>
+              {pesee && (
+                <button
+                  type="button"
+                  className="btn discret petit"
+                  style={{ minHeight: 34, padding: '6px 8px' }}
+                  onClick={() => setSaisiePoids(false)}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="ligne entre" style={{ width: '100%' }}>
+            <button
+              type="button"
+              className="ligne-jour"
+              style={{ flex: 1, padding: 0, background: 'none', border: 'none', textAlign: 'left' }}
+              onClick={ouvrirSaisiePoids}
+            >
+              <span>
+                ⚖️ <strong>{kg(pesee.poids)} kg ce matin</strong>
+                {moyenne !== null && <span className="faible"> · moyenne 7 j {kg(Math.round(moyenne * 10) / 10)} kg</span>}
+                {vise && <span className="faible"> · visé {kg(cible!)} kg{vise.atteint ? ' ✓' : ` (encore ${vise.reste > 0 ? '+' : '−'}${kg(Math.abs(vise.reste))})`}</span>}
+              </span>
+            </button>
+            <div className="ligne" style={{ gap: 2 }}>
+              <button
+                type="button"
+                className="btn discret petit"
+                aria-label="Modifier la pesée"
+                onClick={ouvrirSaisiePoids}
+                style={{ padding: '4px 8px' }}
+              >
+                ✎
+              </button>
+              {onCorps && (
+                <button
+                  type="button"
+                  className="btn discret petit"
+                  aria-label="Voir les courbes de poids"
+                  onClick={onCorps}
+                  style={{ padding: '4px 8px' }}
+                >
+                  ›
+                </button>
+              )}
+            </div>
+          </div>
+        )
       )}
 
       {enSaisie ? (
@@ -97,9 +204,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
 
       {(objectifHier || dHier?.calories) && (
         <div className="ligne-jour calories-hier">
-          <span>
-            🍽 Hier{objectifHier && <span className="faible"> · objectif {objectifHier.kcal.toLocaleString('fr-FR')} kcal</span>}
-          </span>
+          <span>🍽 Hier</span>
           <div className="chips">
             {CALORIES.map(([id, nom]) => (
               <button key={id} className={dHier?.calories === id ? 'actif' : ''} onClick={() => void noter(hier, { calories: dHier?.calories === id ? undefined : id })}>
@@ -116,7 +221,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
             {repas && <>🥗 {repas}</>}
             {objectif && (
               <span className={repas ? 'faible' : ''} style={{ display: 'block', marginTop: repas ? 2 : 0 }}>
-                {repas ? '' : '🥗 '}Objectif aujourd’hui : {objectif.kcal.toLocaleString('fr-FR')} kcal{objectif.proteines ? ` · ${objectif.proteines} g de protéines` : ''}
+                {repas ? '' : '🥗 '}Aujourd’hui : {objectif.kcal.toLocaleString('fr-FR')} kcal{objectif.proteines ? ` · ${objectif.proteines} g de protéines` : ''}
               </span>
             )}
           </span>
