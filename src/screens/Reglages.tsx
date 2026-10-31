@@ -360,7 +360,7 @@ function MonProfil() {
 }
 
 /** Adresse des retours : celle de l'auteur de l'appli (publique, choisie par lui). */
-const CONTACT_AVIS = 'kevin.mougammadaly@gmail.com'
+const CONTACT_AVIS = 'kevin.mougammadaly+muscu@gmail.com'
 
 /** Retours des utilisateurs : un mail pré-rempli, avec de quoi reproduire un souci (version, appareil). */
 function DonnerAvis() {
