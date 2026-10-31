@@ -64,7 +64,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
       </div>
       <BoutonLexique />
 
-      {deload && <div className="bandeau-deload">🧘 Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère.</div>}
+      {deload && <div className="bandeau-deload">🧘 Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
       {modele.exercices.map((p0, i) => {
         const p = deload ? planDeload(p0) : p0

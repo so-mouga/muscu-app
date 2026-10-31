@@ -277,7 +277,7 @@ export default function Accueil({
       </div>
 
       {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
-      <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} onCorps={onMesures} />
+      <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
       {mesuresEnRetard && !masque('mesures') && (

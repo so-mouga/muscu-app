@@ -21,7 +21,7 @@ const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
  * chacun, tout facultatif), l'assiette du jour selon la phase et un vrai progrès. Ce qui est noté va
  * dans la table `journal`, pour le Bilan.
  */
-export default function JournalMatin({ catalogue, terminees, entrainement, onCorps }: { catalogue: Catalogue; terminees?: Seance[]; entrainement: boolean; onCorps: () => void }) {
+export default function JournalMatin({ catalogue, terminees, entrainement, deload = false, onCorps }: { catalogue: Catalogue; terminees?: Seance[]; entrainement: boolean; deload?: boolean; onCorps: () => void }) {
   const aujourdhui = dateISO()
   const hier = dateISO(new Date(Date.now() - JOUR))
   const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * JOUR))).sortBy('date'), [], [])
@@ -42,7 +42,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, onCor
   const poids = pesees[pesees.length - 1]?.poids
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
   const objectifHier = objectifDuJour(catalogue.objectifs, hier, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
-  const repas = conseilRepas(phase?.phase, entrainement)
+  const repas = conseilRepas(phase?.phase, entrainement, deload)
   const progres = terminees ? meilleureProgression(terminees, catalogue.exo, phase ? phase.debut : dateISO(new Date(Date.now() - 28 * JOUR))) : null
   const peser = phase?.phase === 'seche' || phase?.phase === 'prise' || pesees.length > 0
   // Sommeil proposé : la dernière nuit notée, sinon 7 h 30.

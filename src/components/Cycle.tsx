@@ -14,7 +14,7 @@ import { confirmer } from './Dialogues'
 export const AIDE_CYCLE =
   'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut), avec une semaine de déload à la fin. Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, l’appli te demande si tu veux l’appliquer tout de suite ou seulement au prochain cycle.'
 export const AIDE_DELOAD =
-  'Déload : une semaine allégée pour récupérer et repartir plus fort. L’appli divise les séries par deux, baisse les charges d’environ 10 %, vise un RPE de 6-7 et retire les finisseurs. Ces séances ne comptent pas pour ta progression : ensuite, tu reprends là où tu en étais.'
+  'Déload : une semaine allégée pour récupérer et repartir plus fort. L’appli divise les séries par deux, baisse les charges d’environ 10 %, vise un RPE de 6-7 et retire les finisseurs. Garde tes repas et tes pas comme d’habitude : une semaine allégée ne fait pas perdre de muscle. Ces séances ne comptent pas pour ta progression : ensuite, tu reprends là où tu en étais.'
 
 const debutSemaine = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
