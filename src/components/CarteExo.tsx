@@ -7,6 +7,7 @@ import { usePasBoutons } from '../lib/pasBoutons'
 import ChronoTenue from './ChronoTenue'
 import InfosExo, { BoutonInfos } from './InfosExo'
 import Vignette from './Vignette'
+import { PuceDisques } from './CalculateurDisques'
 import { vibrer } from '../lib/appareil'
 import { hausse, monterMaintenant, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
@@ -594,6 +595,9 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           <span className="unite">{unite}</span>
         </div>
         <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 4px' }}>
+        <PuceDisques exoId={exo.id} exoNom={exo.nom} charge={charge} unite={unite} />
       </div>
       {/* Série d'avant bien au-dessus de la fourchette : proposer un cran de plus, sans rien imposer. */}
       {!edition &&
