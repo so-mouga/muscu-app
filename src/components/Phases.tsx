@@ -48,6 +48,8 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
   const aujourdhui = dateISO()
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const [voirAvant, setVoirAvant] = useState(false)
+  // Phases à venir repliées en une ligne ; on en ouvre une pour la modifier.
+  const [ouverte, setOuverte] = useState<string | null>(null)
   const enregistrer = (f: EtapeObjectifs[]) => void setReglage(CLE_OBJECTIFS, f)
   const toutes = periodes(frise)
   const enCours = phaseA(frise, aujourdhui)
@@ -81,9 +83,22 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
 
       <div className="carte pile">
         <h3>Phases</h3>
-        <div className="faible">Sèche, maintien ou prise : chaque phase a sa durée et son objectif de poids. Ajoute la suivante à la fin de celle-ci ; le Bilan lit tes perfs et ton poids selon la phase du moment.</div>
+        <div className="faible">Sèche, maintien ou prise, avec une durée et un objectif de poids. Le Bilan lit tes perfs et ton poids selon la phase.</div>
 
-        {blocs.map((p, i) => (
+        {blocs.map((p, i) =>
+          i > 0 && ouverte !== p.debut ? (
+            <button key={p.debut} type="button" className="groupe-repli" onClick={() => setOuverte(p.debut)} aria-expanded={false}>
+              <span>
+                <span className={`point-phase phase-${p.phase}`} /> {nomPhase(p.phase)}
+                <span className="faible">
+                  {' '}
+                  · à venir, du {jour(p.debut)}
+                  {p.finPrevue ? ` au ${jour(plusJours(p.finPrevue, -1))}` : ''}
+                </span>
+              </span>
+              <span className="muted">▸</span>
+            </button>
+          ) : (
           <BlocPhase
             key={p.debut}
             p={p}
@@ -96,7 +111,8 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
             aujourdhui={aujourdhui}
             enregistrer={enregistrer}
           />
-        ))}
+          )
+        )}
 
         {!blocs.length && (
           <>

@@ -89,6 +89,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
   const [deloads, setDeloads] = useState<number[]>(cycle?.deloads ?? [DUREE_DEFAUT])
   const [nom, setNom] = useState(cycle?.nom ?? '')
   const [priorites, setPriorites] = useState<Muscle[]>(cycle?.priorites ?? [])
+  const [options, setOptions] = useState(!!cycle?.priorites?.length)
   const basculerPriorite = (m: Muscle) => setPriorites((l) => (l.includes(m) ? l.filter((x) => x !== m) : [...l, m].slice(-MAX_PRIORITES)))
   // Ce que le programme prévoit pour chaque muscle, face à l'objectif relevé par la priorité.
   const progChoisi = cycle?.programme ?? catalogue.programmes.find((x) => x.id === progId)
@@ -209,8 +210,15 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
           </span>
         </div>
 
+        <button type="button" className="groupe-repli" onClick={() => setOptions(!options)} aria-expanded={options}>
+          <span>
+            Plus d’options{priorites.length > 0 && <span className="faible"> · priorité : {priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}</span>}
+          </span>
+          <span className="muted">{options ? '▾' : '▸'}</span>
+        </button>
+        {options && (
         <div className="champ">
-          <span>Priorité de ce cycle (facultatif, {MAX_PRIORITES} au plus)</span>
+          <span>Muscle prioritaire pendant ce cycle (facultatif, {MAX_PRIORITES} au plus)</span>
           <div className="chips">
             {MUSCLES.filter((m) => m.cible > 0).map((m) => (
               <button key={m.id} className={priorites.includes(m.id) ? 'actif' : ''} onClick={() => basculerPriorite(m.id)}>
@@ -233,6 +241,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
             <span className="faible">Un muscle à pousser pendant ce bloc (ex. les bras) : son objectif de volume monte de {BONUS_PRIORITE} séries par semaine, le temps du cycle. Tes objectifs habituels ne changent pas.</span>
           )}
         </div>
+        )}
 
         <div className="faible">
           Objectifs de volume par muscle : les tiens, les mêmes pour tous les programmes. Ils se règlent dans Progression → Objectifs.
