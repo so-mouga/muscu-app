@@ -11,7 +11,7 @@ import type { JourJournal, Seance } from '../types'
 const JOUR = 86400000
 export const heures = (h: number) => `${Math.floor(h)} h${h % 1 ? ` ${String(Math.round((h % 1) * 60)).padStart(2, '0')}` : ''}`
 /** Choix du sommeil en un appui : de 5 h (ou moins) à 9 h (ou plus) en heures pleines. */
-const HEURES: [number, string][] = [
+export const HEURES: [number, string][] = [
   [5, '≤5h'],
   [6, '6h'],
   [7, '7h'],

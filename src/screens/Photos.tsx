@@ -251,34 +251,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
           ⤢ Plein écran et zoom
         </button>
       )}
-      {pleinEcran &&
-        createPortal(
-          <div className="comparaison-plein">
-            <div className="ligne entre">
-              <div className="chips">
-                {POSES.map((p) => (
-                  <button key={p.id} className={pose === p.id ? 'actif' : ''} onClick={() => setPose(p.id)}>
-                    {p.nom}
-                  </button>
-                ))}
-              </div>
-              <button className="btn discret petit" onClick={() => setPleinEcran(false)}>
-                ✕ Fermer
-              </button>
-            </div>
-            <div className="comparaison-plein-photos">
-              {[
-                [a, pa],
-                [b, pb],
-              ].map(([d, p], i) => (
-                <PhotoZoomable key={`${i}-${pose}-${d}`} image={(p as PhotoCorps | undefined)?.image} date={d as string} />
-              ))}
-            </div>
-            <div className="faible" style={{ textAlign: 'center', fontSize: 13 }}>Écarte deux doigts sur une photo pour zoomer, glisse pour te déplacer, touche deux fois pour revenir.</div>
-            <RetourPleinEcran onFermer={() => setPleinEcran(false)} />
-          </div>,
-          document.body,
-        )}
+      {pleinEcran && <PlanchePhotos photos={dates.flatMap(([, p]) => Object.values(p))} dates={[a, b]} pose={pose} onFermer={() => setPleinEcran(false)} />}
 
       {(poidsA && poidsB && poidsA.date !== poidsB.date) || ecarts.length ? (
         <div>
@@ -303,10 +276,45 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
   )
 }
 
-/** Ferme le plein écran de comparaison au bouton retour Android. */
-function RetourPleinEcran({ onFermer }: { onFermer: () => void }) {
+/**
+ * Photos en plein écran, chacune zoomable seule : une date (vue d'un jour) ou deux côte à côte.
+ * `comparerAvec` : depuis une date seule, un bouton la met à côté de cette autre date.
+ */
+export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, comparerAvec, onFermer }: { photos: PhotoCorps[]; dates: string[]; pose?: Pose; comparerAvec?: string; onFermer: () => void }) {
   useRetour(true, onFermer)
-  return null
+  const [dates, setDates] = useState(depart)
+  const [pose, setPose] = useState<Pose>(() => poseDepart ?? POSES.find((p) => photos.some((x) => x.date === depart[0] && x.pose === p.id))?.id ?? 'face')
+  const photo = (d: string) => photos.find((p) => p.date === d && p.pose === pose)
+  return createPortal(
+    <div className="comparaison-plein">
+      <div className="ligne entre">
+        <div className="chips">
+          {POSES.filter((p) => dates.some((d) => photos.some((x) => x.date === d && x.pose === p.id))).map((p) => (
+            <button key={p.id} className={pose === p.id ? 'actif' : ''} onClick={() => setPose(p.id)}>
+              {p.nom}
+            </button>
+          ))}
+        </div>
+        <button className="btn discret petit" onClick={onFermer}>
+          ✕ Fermer
+        </button>
+      </div>
+      <div className="comparaison-plein-photos" style={dates.length === 1 ? { gridTemplateColumns: '1fr' } : undefined}>
+        {dates.map((d, i) => (
+          <PhotoZoomable key={`${i}-${pose}-${d}`} image={photo(d)?.image} date={d} />
+        ))}
+      </div>
+      {dates.length === 1 && comparerAvec && comparerAvec !== dates[0] && (
+        <button className="btn plein" onClick={() => setDates(comparerAvec < dates[0] ? [comparerAvec, dates[0]] : [dates[0], comparerAvec])}>
+          ⇆ Comparer avec le {dateCourte(comparerAvec)}
+        </button>
+      )}
+      <div className="faible" style={{ textAlign: 'center', fontSize: 13 }}>
+        Écarte deux doigts sur {dates.length > 1 ? 'une' : 'la'} photo pour zoomer, glisse pour te déplacer, touche deux fois pour revenir.
+      </div>
+    </div>,
+    document.body,
+  )
 }
 
 /** Photo qu'on zoome à deux doigts (ou à la molette) et qu'on déplace au doigt, chacune de son côté. Deux appuis rapides : on revient. */

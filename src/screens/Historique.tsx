@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useRef, useState } from 'react'
+import { type ReactNode, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
@@ -8,8 +8,10 @@ import { dateISO, duree, estDure, kg } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
-import type { Activite, JourJournal, Reglage, Seance, Serie } from '../types'
-import { CALORIES, heures, noterJournal } from '../components/JournalMatin'
+import type { Activite, JourJournal, Mesure, PhotoCorps, Reglage, Seance, Serie } from '../types'
+import { CALORIES, HEURES, heures, noterJournal } from '../components/JournalMatin'
+import { MESURES, clesDe, nomCle } from '../data/mesures'
+import { PlanchePhotos, POSES } from './Photos'
 import FormActivite from '../components/FormActivite'
 import { typeActivite } from '../data/activites'
 import Bilan from './Bilan'
@@ -63,6 +65,17 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   const mesuresJour = useLiveQuery(() => db.mesures.toArray(), [], [])
   const peseesJour = useLiveQuery(() => db.pesees.toArray(), [], [])
   const journalJour = useLiveQuery(() => db.journal.get(jourChoisi), [jourChoisi])
+  // Photos du jour choisi, et celles à mettre à côté : les plus récentes, ou celles d'avant si ce sont elles.
+  // Chargées à la demande : elles sont lourdes.
+  const photosJour = useLiveQuery(
+    async () => {
+      const dates = (await db.photos.orderBy('date').uniqueKeys()) as string[]
+      const derniere = dates[dates.length - 1] === jourChoisi ? dates.filter((d) => d < jourChoisi).pop() : dates[dates.length - 1]
+      return { derniere, liste: await db.photos.where('date').anyOf([jourChoisi, derniere ?? jourChoisi]).toArray() }
+    },
+    [jourChoisi],
+    { derniere: undefined, liste: [] as PhotoCorps[] },
+  )
   const records = useMemo(() => (terminees ? recordsParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
   const mieux = useMemo(() => (terminees ? mieuxParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
@@ -133,6 +146,9 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             activites={activites.filter((x) => x.date === jourChoisi)}
             pesee={peseesJour.find((x) => x.date === jourChoisi)?.poids}
             mesure={mesuresJour.find((x) => x.date === jourChoisi)}
+            mesures={mesuresJour}
+            photos={photosJour.liste}
+            dernieresPhotos={photosJour.derniere}
             journal={journalJour}
             records={records}
             mieux={mieux}
@@ -256,44 +272,118 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
   )
 }
 
-/** Sommeil de la nuit d'avant et calories du jour : vus et corrigés ici, enregistrés à chaque appui. */
+/**
+ * Sommeil de la nuit d'avant et calories du jour : une ligne qu'on touche pour noter ou corriger.
+ * Rien de pré-rempli (une fausse nuit fausserait le Bilan) ; choisir enregistre et referme.
+ */
 function NotesDuJour({ date, journal }: { date: string; journal?: JourJournal }) {
+  const [ouvert, setOuvert] = useState<'sommeil' | 'calories' | null>(null)
+  const noter = (c: Partial<JourJournal>) => void noterJournal(date, c).then(() => setOuvert(null))
   const sommeil = journal?.sommeil
-  const noter = (c: Partial<JourJournal>) => void noterJournal(date, c)
-  return (
-    <>
-      <div className="ligne-jour">
-        <span>😴 Sommeil</span>
-        {sommeil === undefined ? (
-          <button className="btn petit" onClick={() => noter({ sommeil: 7 })}>
-            + Noter
+  const calories = CALORIES.find(([id]) => id === journal?.calories)?.[1]
+  const choix = (titre: string, boutons: ReactNode, efface: Partial<JourJournal> | null) => (
+    <div className="ligne-jour" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
+      <span>{titre}</span>
+      {boutons}
+      <div className="ligne" style={{ gap: 8 }}>
+        <button className="btn discret petit" onClick={() => setOuvert(null)}>
+          Annuler
+        </button>
+        {efface && (
+          <button className="btn discret petit" onClick={() => noter(efface)}>
+            Effacer
           </button>
-        ) : (
-          <span className="ligne" style={{ gap: 6 }}>
-            <button className="btn petit" aria-label="Moins" onClick={() => noter({ sommeil: Math.max(0, Math.round(sommeil - 1)) })}>
-              −
-            </button>
-            <strong style={{ minWidth: 56, textAlign: 'center' }}>{heures(sommeil)}</strong>
-            <button className="btn petit" aria-label="Plus" onClick={() => noter({ sommeil: Math.min(14, Math.round(sommeil + 1)) })}>
-              +
-            </button>
-            <button className="btn petit discret" aria-label="Effacer le sommeil" onClick={() => noter({ sommeil: undefined })}>
-              ✕
-            </button>
-          </span>
         )}
       </div>
-      <div className="ligne-jour calories-hier">
-        <span>🍽 Calories</span>
-        <div className="chips">
-          {CALORIES.map(([id, nom]) => (
-            <button key={id} className={journal?.calories === id ? 'actif' : ''} onClick={() => noter({ calories: journal?.calories === id ? undefined : id })}>
-              {nom}
-            </button>
-          ))}
-        </div>
-      </div>
+    </div>
+  )
+  return (
+    <>
+      {ouvert === 'sommeil' ? (
+        choix(
+          '😴 La nuit d’avant, tu as dormi (heures) :',
+          <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+            {HEURES.map(([h, txt]) => (
+              <button key={h} className={sommeil === h ? 'actif' : ''} onClick={() => noter({ sommeil: h })}>
+                {txt}
+              </button>
+            ))}
+          </div>,
+          sommeil !== undefined ? { sommeil: undefined } : null,
+        )
+      ) : (
+        <button className="ligne-jour" onClick={() => setOuvert('sommeil')}>
+          <span>😴 Sommeil</span>
+          {sommeil !== undefined ? <strong>{heures(sommeil)}</strong> : <span className="faible">Noter ›</span>}
+        </button>
+      )}
+      {ouvert === 'calories' ? (
+        choix(
+          '🍽 Calories ce jour-là :',
+          <div className="chips">
+            {CALORIES.map(([id, nom]) => (
+              <button key={id} className={journal?.calories === id ? 'actif' : ''} onClick={() => noter({ calories: id })}>
+                {nom}
+              </button>
+            ))}
+          </div>,
+          journal?.calories ? { calories: undefined } : null,
+        )
+      ) : (
+        <button className="ligne-jour" onClick={() => setOuvert('calories')}>
+          <span>🍽 Calories</span>
+          {calories ? <strong>{calories}</strong> : <span className="faible">Noter ›</span>}
+        </button>
+      )}
     </>
+  )
+}
+
+/** Écart d'une valeur de mensuration avec la prise précédente de cette même mesure (« −1 cm »). */
+function ecartMesure(mesures: Mesure[], date: string, cle: string) {
+  const avant = mesures.filter((m) => m.date < date && m.valeurs[cle] !== undefined).sort((a, b) => b.date.localeCompare(a.date))[0]
+  const ici = mesures.find((m) => m.date === date)?.valeurs[cle]
+  if (!avant || ici === undefined) return null
+  const d = Math.round((ici - avant.valeurs[cle]) * 10) / 10
+  return { texte: `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(d))}`, depuis: avant.date }
+}
+
+/** Toutes les mensurations d'un jour, avec l'écart depuis la prise précédente de chacune. */
+function FenetreMesures({ date, mesures, onFermer }: { date: string; mesures: Mesure[]; onFermer: () => void }) {
+  useRetour(true, onFermer)
+  const valeurs = mesures.find((m) => m.date === date)?.valeurs ?? {}
+  const cles = MESURES.flatMap(clesDe).filter((c) => valeurs[c] !== undefined)
+  const depuis = [...new Set(cles.map((c) => ecartMesure(mesures, date, c)?.depuis).filter(Boolean))]
+  return (
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <h3>📏 Mensurations · {jourCourt(date)}</h3>
+        {depuis.length === 1 && <div className="faible">Écart avec la prise du {jourCourt(depuis[0]!)}</div>}
+        <div>
+          {cles.map((c) => {
+            const e = ecartMesure(mesures, date, c)
+            return (
+              <div key={c} className="ligne-mesure">
+                <span>{nomCle(c)}</span>
+                <span>
+                  <strong>{kg(valeurs[c])} cm</strong>
+                  {e && (
+                    <span className="faible">
+                      {' '}
+                      ({e.texte}
+                      {depuis.length > 1 ? ` depuis le ${jourCourt(e.depuis)}` : ''})
+                    </span>
+                  )}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        <button className="btn plein" onClick={onFermer}>
+          Fermer
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -306,6 +396,9 @@ function JourChoisi({
   activites,
   pesee,
   mesure,
+  mesures,
+  photos,
+  dernieresPhotos,
   journal,
   records,
   mieux,
@@ -322,6 +415,11 @@ function JourChoisi({
   activites: Activite[]
   pesee?: number
   mesure?: { valeurs: Record<string, number> }
+  /** Toutes les mensurations, pour l'écart avec la prise d'avant. */
+  mesures: Mesure[]
+  /** Photos de ce jour-là et de la date à mettre à côté pour comparer (les plus récentes, ou celles d'avant). */
+  photos: PhotoCorps[]
+  dernieresPhotos?: string
   /** Sommeil et calories notés ce jour-là. */
   journal?: JourJournal
   records: Record<string, number>
@@ -331,7 +429,13 @@ function JourChoisi({
   onAjouter: () => void
 }) {
   const vide = !seances.length && !activites.length
-  const nbMesures = mesure ? Object.keys(mesure.valeurs).length : 0
+  const [voirMesures, setVoirMesures] = useState(false)
+  const [voirPhotos, setVoirPhotos] = useState(false)
+  // Mensurations : la taille d'abord (la plus parlante), sinon la première prise ; l'écart avec la fois d'avant.
+  const clesMesure = mesure ? MESURES.flatMap(clesDe).filter((c) => mesure.valeurs[c] !== undefined) : []
+  const cleUne = clesMesure.includes('taille') ? 'taille' : clesMesure[0]
+  const ecartUne = cleUne ? ecartMesure(mesures, date, cleUne) : null
+  const poses = POSES.flatMap((p) => photos.filter((x) => x.date === date && x.pose === p.id))
   return (
     <div className="carte jour-choisi">
       <strong style={{ textTransform: 'capitalize' }}>
@@ -367,13 +471,30 @@ function JourChoisi({
           <strong>{kg(pesee)} kg</strong>
         </div>
       )}
-      {nbMesures > 0 && (
-        <div className="ligne-jour">
-          <span>📏 Mensurations</span>
-          <span className="faible">{pluriel(nbMesures, 'mesure')}</span>
-        </div>
+      {cleUne && (
+        <button className="ligne-jour" onClick={() => setVoirMesures(true)}>
+          <span style={{ minWidth: 0 }}>
+            📏 {nomCle(cleUne)} <strong>{kg(mesure!.valeurs[cleUne])} cm</strong>
+            {ecartUne && <span className="faible"> ({ecartUne.texte})</span>}
+            {clesMesure.length > 1 && <span className="faible"> · +{clesMesure.length - 1} autre{clesMesure.length > 2 ? 's' : ''}</span>}
+          </span>
+          <span className="faible">›</span>
+        </button>
       )}
-      {date <= dateISO() && <NotesDuJour date={date} journal={journal} />}
+      {poses.length > 0 && (
+        <button className="ligne-jour" onClick={() => setVoirPhotos(true)}>
+          <span>📸 Photos</span>
+          <span className="vignettes">
+            {poses.map((p) => (
+              <img key={p.id} src={p.image} alt={p.pose} />
+            ))}
+            <span className="faible">›</span>
+          </span>
+        </button>
+      )}
+      {voirMesures && <FenetreMesures date={date} mesures={mesures} onFermer={() => setVoirMesures(false)} />}
+      {voirPhotos && <PlanchePhotos photos={photos} dates={[date]} comparerAvec={dernieresPhotos} onFermer={() => setVoirPhotos(false)} />}
+      {date <= dateISO() && <NotesDuJour key={date} date={date} journal={journal} />}
       {date <= dateISO() && (
         <button className="btn discret petit lien-action" onClick={onAjouter}>
           + Ajouter une activité ce jour-là

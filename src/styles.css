@@ -2360,6 +2360,17 @@ body.sans-onglets .barre-demarrer {
   color: var(--texte);
   text-align: left;
 }
+.ligne-jour .vignettes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ligne-jour .vignettes img {
+  width: 32px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+}
 .jour-choisi > strong {
   display: block;
   margin-bottom: 2px;
