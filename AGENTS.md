@@ -52,6 +52,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 ## Nouvel utilisateur
 
 - Pas de compte. **Première ouverture** (aucun programme enregistré, aucune séance) : l'accueil montre seulement « Pour commencer, choisis ton programme » (`ChoixProgramme`). Choisir copie les séances (ids suffixés) et rend le programme actif (`installerProgramme`). Aussi dans Programmes → « Programmes tout prêts ».
+- **Retours** : Réglages → « 💬 Donner mon avis » (en haut) ouvre un mail pré-rempli vers l'auteur (`CONTACT_AVIS`, adresse publique choisie par lui), avec la version et l'appareil.
 - Les séances de base (Recompo) n'apparaissent dans la bibliothèque que si un programme s'en sert ou si l'utilisateur les a modifiées.
 
 ## Décisions métier à respecter

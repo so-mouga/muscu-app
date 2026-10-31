@@ -1,3 +1,4 @@
+import { natif } from '../lib/natif'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -74,6 +75,8 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
       <div className="entete">
         <h1>Réglages</h1>
       </div>
+
+      <DonnerAvis />
 
       <MonProfil />
 
@@ -352,6 +355,24 @@ function MonProfil() {
         </div>
         {p.activite && <div className="faible" style={{ marginTop: 4 }}>{ACTIVITES.find((a) => a.id === p.activite)!.detail}</div>}
       </div>
+    </div>
+  )
+}
+
+/** Adresse des retours : celle de l'auteur de l'appli (publique, choisie par lui). */
+const CONTACT_AVIS = 'kevin.mougammadaly@gmail.com'
+
+/** Retours des utilisateurs : un mail pré-rempli, avec de quoi reproduire un souci (version, appareil). */
+function DonnerAvis() {
+  const corps = `Ce qui m’a plu :\n\n\nCe qui m’a bloqué ou pas clair :\n\n\nCe qui m’a manqué :\n\n\n---\nVersion du ${__VERSION__} · ${natif ? 'appli Android' : 'navigateur'} · ${navigator.userAgent}`
+  const lien = `mailto:${CONTACT_AVIS}?subject=${encodeURIComponent('Muscu : mon avis')}&body=${encodeURIComponent(corps)}`
+  return (
+    <div className="carte pile">
+      <h3>💬 Donner mon avis</h3>
+      <div className="faible">Un bug, une idée, quelque chose de pas clair ? Ça ouvre un mail déjà préparé : écris ce que tu veux, même en deux mots.</div>
+      <a className="btn plein" href={lien}>
+        Écrire mon avis
+      </a>
     </div>
   )
 }

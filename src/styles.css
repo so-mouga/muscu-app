@@ -2787,3 +2787,12 @@ button.semaine-bilan.cliquable {
   font-weight: 600;
   margin: 2px 0;
 }
+
+/* Lien qui a l'allure d'un bouton (ex. « Écrire mon avis » vers un mail). */
+a.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--texte);
+  text-decoration: none;
+}
