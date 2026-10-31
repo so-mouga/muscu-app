@@ -81,7 +81,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   })
   const [toast, setToast] = useState<string | null>(null)
   // Mode plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
-  const [focus, setFocusEtat] = useState<boolean>(() => stocke('modeFocus', false))
+  // Plein écran par défaut : un nouveau découvre le grand chrono dès sa 1re série ; son choix est ensuite gardé.
+  const [focus, setFocusEtat] = useState<boolean>(() => stocke('modeFocus', true))
   const setFocus = (v: boolean) => (transition(() => setFocusEtat(v), 'fondu'), range('modeFocus', v), window.scrollTo({ top: 0 }))
   /** Plein écran pendant le repos : afficher quand même la saisie. */
   const [saisie, setSaisie] = useState(false)
@@ -446,7 +447,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       </div>
       <div className="focus-boutons">
         <button className="btn petit" onClick={() => (enCours >= 0 && setIdx(enCours), setFocus(false))}>
-          ⌄ Réduire
+          ☰ Vue liste
         </button>
         {enCours >= 0 && (
           <button className="btn petit" onClick={() => (setIdx(enCours), setMachinePrise(true))}>
@@ -712,6 +713,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               <span className="faible">
                 {totalSeries > 0 && (restantes > 0 ? `reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'tout est fait 💪')}
               </span>
+              <span className="indice-plein-ecran">⤢ Plein écran</span>
             </span>
           </button>
           <button className="btn" onClick={() => ouvrirFin(true)}>

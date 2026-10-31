@@ -126,6 +126,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
           <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? '#04140c' : 'var(--accent)'}>
             <span className="temps-petit">{temps}</span>
           </Anneau>
+          {onAgrandir && <span className="indice-plein-ecran">⤢ Plein écran</span>}
         </button>
         <span className="espace" />
         {boutons}
