@@ -16,6 +16,7 @@ import { etatCycle, planDeload } from '../lib/cycle'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
+import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
@@ -182,8 +183,15 @@ export default function Accueil({
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
   const mesuresEnRetard = nbSeances > 0 && (joursMesure === null || joursMesure > 21)
 
-  const exportVieux =
-    nbSeances > 0 && (!dernierExport || Date.now() - (dernierExport.valeur as number) > 7 * 86400000)
+  const joursExport = dernierExport ? Math.floor((Date.now() - (dernierExport.valeur as number)) / 86400000) : null
+  const exportVieux = nbSeances > 0 && (joursExport === null || joursExport >= 7)
+  const sauvegarderTout = async () => {
+    try {
+      await sauvegarder(CATEGORIES_COURANTES)
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') void informer((e as Error).message, 'Sauvegarde impossible')
+    }
+  }
 
   return (
     <div>
@@ -285,7 +293,10 @@ export default function Accueil({
       )}
       {exportVieux && !masque('export') && (
         <div className="rappel-ligne">
-          <span>💾 Exporte tes données (Réglages) : elles ne sont que sur ce téléphone.</span>
+          <button className="texte" onClick={sauvegarderTout}>
+            💾 Sauvegarder (Drive, mail…)
+            <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span> ›
+          </button>
           <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
             ✕
           </button>

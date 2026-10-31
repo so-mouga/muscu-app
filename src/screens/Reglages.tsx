@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { useRetour } from '../lib/nav'
-import { CATEGORIES, compter, exporter as exporterDonnees, importer as importerDonnees, lire, type Categorie, type Fichier } from '../lib/sauvegarde'
+import { CATEGORIES, CATEGORIES_COURANTES, compter, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type Categorie, type Fichier } from '../lib/sauvegarde'
 import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
@@ -12,28 +12,6 @@ import { ListeLexique } from '../components/Lexique'
 import Interrupteur from '../components/Interrupteur'
 import ChampNombre from '../components/ChampNombre'
 import { ACTIVITES, CLE_PROFIL, type Profil } from '../lib/nutrition'
-
-function telecharger(nom: string, contenu: string, type: string) {
-  const url = URL.createObjectURL(new Blob([contenu], { type }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = nom
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
-
-async function partagerOuTelecharger(nom: string, contenu: string, type: string) {
-  const fichier = new File([contenu], nom, { type })
-  try {
-    if (navigator.canShare?.({ files: [fichier] })) {
-      await navigator.share({ files: [fichier], title: nom })
-      return
-    }
-  } catch (e) {
-    if ((e as Error).name === 'AbortError') throw e
-  }
-  telecharger(nom, contenu, type)
-}
 
 export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
@@ -55,9 +33,7 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
 
   const exporter = async (cats: Categorie[]) => {
     try {
-      await partagerOuTelecharger(`muscu-${jour}${cats.length === 1 ? '-' + cats[0] : ''}.json`, await exporterDonnees(cats), 'application/json')
-      // Le rappel d'export ne se calme que si l'historique est sauvegardé.
-      if (cats.includes('historique')) await setReglage('dernierExport', Date.now())
+      await sauvegarder(cats)
       setChoixExport(false)
       setMessage('Export prêt ✓')
     } catch {
@@ -230,8 +206,7 @@ const basculer = <T,>(x: T[], v: T) => (x.includes(v) ? x.filter((y) => y !== v)
 function ChoixExport({ onExporter, onFermer }: { onExporter: (cats: Categorie[]) => void; onFermer: () => void }) {
   useRetour(true, onFermer)
   const nombres = useLiveQuery(compter, [])
-  // Tout sauf les photos, lourdes, par défaut.
-  const [cats, setCats] = useState<Categorie[]>(CATEGORIES.filter((c) => c.id !== 'photos').map((c) => c.id))
+  const [cats, setCats] = useState<Categorie[]>(CATEGORIES_COURANTES)
   return (
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>

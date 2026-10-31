@@ -1,6 +1,6 @@
 import type { Table } from 'dexie'
 import { MODELES } from '../data/programme'
-import { db } from '../db'
+import { db, setReglage } from '../db'
 import type { Seance } from '../types'
 
 export type Categorie = 'programmes' | 'historique' | 'exercices' | 'corps' | 'photos' | 'reglages'
@@ -48,6 +48,39 @@ export async function exporter(cats: Categorie[]): Promise<string> {
   for (const t of tables) data[t] = await table(t).toArray()
   return JSON.stringify(data)
 }
+
+function telecharger(nom: string, contenu: string, type: string) {
+  const url = URL.createObjectURL(new Blob([contenu], { type }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nom
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** Menu de partage Android (Drive, mail…), sinon téléchargement. Lève `AbortError` si l'utilisateur annule. */
+export async function partagerOuTelecharger(nom: string, contenu: string, type: string) {
+  const fichier = new File([contenu], nom, { type })
+  try {
+    if (navigator.canShare?.({ files: [fichier] })) {
+      await navigator.share({ files: [fichier], title: nom })
+      return
+    }
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw e
+  }
+  telecharger(nom, contenu, type)
+}
+
+/** Exporte puis partage les catégories choisies ; le rappel de l'Accueil ne se calme que si l'historique est sauvegardé. */
+export async function sauvegarder(cats: Categorie[]) {
+  const jour = new Date().toISOString().slice(0, 10)
+  await partagerOuTelecharger(`muscu-${jour}${cats.length === 1 ? '-' + cats[0] : ''}.json`, await exporter(cats), 'application/json')
+  if (cats.includes('historique')) await setReglage('dernierExport', Date.now())
+}
+
+/** Tout sauf les photos, trop lourdes pour une sauvegarde régulière. */
+export const CATEGORIES_COURANTES = CATEGORIES.filter((c) => c.id !== 'photos').map((c) => c.id)
 
 export interface Fichier {
   data: Record<string, unknown[]>

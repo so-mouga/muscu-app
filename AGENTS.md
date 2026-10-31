@@ -53,6 +53,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Séries dures = RPE ≥ 7 ; volume par muscle = séries dures par semaine, secondaires à 0,5.
 - Exercices équivalents : chacun garde sa propre progression, le lien sert de repère.
 - Échauffement général : 1re étape de la séance (pas un écran avant « Démarrer »), valeurs fixes juste à cocher.
+- **Sauvegarde** : données uniquement sur le téléphone. Rappel sur l'Accueil après 7 jours sans export (masquable une semaine) ; un appui exporte tout sauf les photos et ouvre le partage Android (Drive, mail…) via `sauvegarder` (`lib/sauvegarde.ts`), qui met à jour `dernierExport`. Sauvegarde Drive automatique : plus tard si besoin.
 - Le Bilan ne mentionne pas d'IA pour l'instant. Sommeil, pas, calories : plus tard (version Android, Health Connect).
 
 ## Tester
