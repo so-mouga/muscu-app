@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { MUSCLES } from '../data/exercices'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -16,14 +17,14 @@ import { ecartSerie, lireChauffe, volumeParMuscle, chargeQte, chargeTexte, cible
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
-import { arreterSeanceNatif, natif, pauseNatif, quitterAppli, reposNatif, seanceNatif, suivreNatif } from '../lib/natif'
+import { arreterSeanceNatif, natif, pauseNatif, reposNatif, seanceNatif, suivreNatif } from '../lib/natif'
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
-import { confirmer, informer } from '../components/Dialogues'
+import { confirmer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import Echauffement, { echauffementActif } from '../components/Echauffement'
 
@@ -44,8 +45,43 @@ function range(cle: string, v: unknown) {
   }
 }
 
+/**
+ * Séance annulée ou supprimée : effacée, et on revient à l'écran d'où on l'avait lancée (l'Accueil
+ * relit `retourSeance`). Après un enregistrement, on revient simplement à l'accueil.
+ */
+async function annulerSeance(seanceId: string) {
+  await db.seances.delete(seanceId)
+  oublierEtatLocal(seanceId, true)
+}
+
+/** Fenêtre du retour quand des séries sont déjà faites : continuer (le plus probable), terminer, supprimer. */
+function SortieSeance({ series, onContinuer, onTerminer, onSupprimer }: { series: number; onContinuer: () => void; onTerminer: () => void; onSupprimer: () => void }) {
+  useRetour(true, onContinuer)
+  return createPortal(
+    <div className="modal-fond" onClick={onContinuer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <h2>Séance commencée</h2>
+        <div className="faible">
+          {series} série{series > 1 ? 's' : ''} déjà faite{series > 1 ? 's' : ''}.
+        </div>
+        <button className="btn primaire grand" onClick={onContinuer}>
+          Continuer la séance
+        </button>
+        <button className="btn grand" onClick={onTerminer}>
+          Terminer et enregistrer
+        </button>
+        <button className="btn discret danger plein" onClick={onSupprimer}>
+          Supprimer la séance
+        </button>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 /** Minuteur et exercice affiché d'une séance terminée ou abandonnée. */
-function oublierEtatLocal(seanceId: string) {
+function oublierEtatLocal(seanceId: string, garderOrigine = false) {
+  if (!garderOrigine) range('retourSeance', null)
   range('minuteur', null)
   void arreterSeanceNatif()
   range(`idx:${seanceId}`, null)
@@ -178,18 +214,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   // Retour Android : fin → séance, puis exercice précédent. Ne quitte jamais une séance en cours.
   // Retour Android : les fenêtres se ferment d'abord (chacune a son propre retour), puis Fin de séance
-  // revient à la séance ; sinon on demande, toujours de la même façon : continuer, ou quitter l'appli
-  // (la séance continue, la notification y ramène). Jamais d'exercice précédent ni de changement de vue.
+  // revient à la séance. Sinon : aucune série validée → la séance est annulée et on revient à l'écran
+  // d'où on l'a lancée ; des séries faites → on demande (continuer, terminer, supprimer).
+  const [sortie, setSortie] = useState(false)
   useRetour(true, () => {
     if (fin) ouvrirFin(false)
-    else
-      void (natif
-        ? confirmer('Elle continue pendant que tu fais autre chose : la notification te ramène ici. Pour la finir, touche « Fin de séance ».', {
-            titre: 'Séance en cours',
-            oui: 'Quitter l’appli',
-            non: 'Continuer la séance',
-          }).then((q) => void (q && quitterAppli()))
-        : informer('Pour la finir, touche « Fin de séance » en haut. Tu peux aussi changer d’appli : ta séance t’attendra ici.', 'Séance en cours'))
+    else if (seance.series.length === 0) void annulerSeance(seance.id)
+    else setSortie(true)
     return 'rester'
   })
 
@@ -480,6 +511,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   // Fenêtres communes à la vue normale et au plein écran (Machine prise, remplacement, lien d'équivalents).
   const fenetres = (
     <>
+      {sortie && (
+        <SortieSeance
+          series={seance.series.length}
+          onContinuer={() => setSortie(false)}
+          onTerminer={() => (setSortie(false), setFocus(false), ouvrirFin(true))}
+          onSupprimer={async () => {
+            if (await confirmer('Les séries déjà faites seront effacées.', { titre: 'Supprimer cette séance ?', oui: 'Supprimer la séance', non: 'Garder', danger: true })) void annulerSeance(seance.id)
+          }}
+        />
+      )}
       {machinePrise && plan && (
         <MachinePrise
           nom={exos[idx].nom}
@@ -934,8 +975,7 @@ function FinSeance({
       ? await confirmer('Les séries déjà faites seront effacées.', { titre: 'Supprimer cette séance ?', oui: 'Supprimer la séance', non: 'Reprendre', danger: true })
       : await confirmer('Rien n’a encore été enregistré.', { titre: 'Annuler la séance ?', oui: 'Annuler la séance', non: 'Reprendre', danger: true })
     if (!ok) return
-    await db.seances.delete(seance.id)
-    oublierEtatLocal(seance.id)
+    await annulerSeance(seance.id)
   }
 
   const echelle = (v: number | undefined, set: (n: number | undefined) => void, label: string) => (
@@ -1112,10 +1152,7 @@ function FinSeance({
         <>
           <button
             className="btn primaire grand"
-            onClick={async () => {
-              await db.seances.delete(seance.id)
-              oublierEtatLocal(seance.id)
-            }}
+            onClick={() => void annulerSeance(seance.id)}
           >
             Quitter sans enregistrer
           </button>

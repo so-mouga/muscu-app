@@ -78,7 +78,17 @@ export default function Accueil({
   const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
-  const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
+  // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
+  const [apercu, setApercuEtat] = useState<SeanceModele | null>(() => {
+    try {
+      const o = JSON.parse(localStorage.getItem('retourSeance') ?? 'null') as { apercu?: string } | null
+      localStorage.removeItem('retourSeance')
+      const m = o?.apercu ? catalogue.modele(o.apercu) : undefined
+      return m ? catalogue.pourDemarrer(m) : null
+    } catch {
+      return null
+    }
+  })
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
@@ -170,7 +180,15 @@ export default function Accueil({
   const etat = cycle && etatCycle(cycle)
   const contexte: ContexteCycle | undefined =
     cycle && etat ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.fini && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
-  const lancer = (m?: SeanceModele) => demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
+  // On retient d'où la séance est lancée (accueil, ou « Voir ») pour y revenir si on l'annule.
+  const lancer = (m?: SeanceModele, depuisApercu = false) => {
+    try {
+      localStorage.setItem('retourSeance', JSON.stringify(depuisApercu && m ? { apercu: m.id } : {}))
+    } catch {
+      /* stockage indisponible */
+    }
+    return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
+  }
   const bandeauCycleVisible = !!(cycle && etat && (etat.fini || etat.deload || etat.pause || etat.n <= 0))
   const sousTitreProg =
     cycle && etat && etat.n >= 1 && !etat.fini
@@ -184,7 +202,7 @@ export default function Accueil({
       })()
     : 0
 
-  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu)} onFermer={() => voir(null)} />
+  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu, true)} onFermer={() => voir(null)} />
 
   // Rappel des mensurations : seulement après 3 semaines sans en prendre.
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null

@@ -28,7 +28,6 @@ interface PluginMinuteur {
   arreter(): Promise<void>
   etat(): Promise<EtatNatif>
   version(): Promise<{ versionName: string }>
-  quitter(): Promise<void>
   addListener(evenement: 'action', f: (e: EtatNatif) => void): Promise<PluginListenerHandle>
 }
 
@@ -41,8 +40,6 @@ const silencieux = <T,>(p: () => Promise<T>) => (natif ? p().catch(() => undefin
 export const seanceNatif = (c: Commun) => silencieux(() => MinuteurRepos.seance(c))
 export const reposNatif = (c: Commun, fin: number) => silencieux(() => MinuteurRepos.demarrer({ ...c, fin }))
 export const pauseNatif = (c: Commun, reste: number) => silencieux(() => MinuteurRepos.pause({ ...c, reste }))
-/** Met l'appli en arrière-plan (comme le bouton d'accueil du téléphone) : la séance continue. */
-export const quitterAppli = () => silencieux(() => MinuteurRepos.quitter())
 /** Fin de la séance (enregistrée ou supprimée) : la notification disparaît. */
 export const arreterSeanceNatif = () => silencieux(() => MinuteurRepos.arreter())
 
