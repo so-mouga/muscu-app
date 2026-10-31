@@ -11,7 +11,7 @@ export const CATEGORIES: { id: Categorie; nom: string; detail: string }[] = [
   { id: 'exercices', nom: 'Exercices perso', detail: 'les exercices que tu as créés, avec leurs photos' },
   { id: 'corps', nom: 'Poids et mensurations', detail: 'pesées et prises de mensurations' },
   { id: 'photos', nom: 'Photos de progression', detail: 'lourd : à sauvegarder à part, de temps en temps' },
-  { id: 'reglages', nom: 'Réglages', detail: 'pas de charge, bips, équivalents, programme actif…' },
+  { id: 'reglages', nom: 'Réglages et objectifs', detail: 'phases (sèche, prise…) et volume par muscle datés, pas de charge, bips, équivalents, programme actif…' },
 ]
 
 type NomTable = 'seances' | 'activites' | 'cycles' | 'pesees' | 'mesures' | 'reglages' | 'modeles' | 'exercices' | 'programmes' | 'photos'

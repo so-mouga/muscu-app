@@ -52,4 +52,14 @@ describe('bilan à partager', () => {
   it('sans séance : le dit simplement', () => {
     expect(genererBilan(donnees([]), '2026-10-19', '2026-10-29')).toContain('Aucune séance sur la période.')
   })
+
+  it('donne la phase de la période, pour qu’on sache comment lire les perfs', () => {
+    const objectifs = [
+      { depuis: '2026-09-01', phase: 'prise' as const, volume: {} },
+      { depuis: '2026-10-22', phase: 'seche' as const, finPrevue: '2027-01-14', volume: {} },
+    ]
+    const t = genererBilan({ ...donnees([seance('s1', '2026-10-20', [50, 50, 50])]), objectifs }, '2026-10-19', '2026-10-29')
+    expect(t).toMatch(/Phase : Sèche depuis le .*22 oct.* \(semaine 2 sur 12, fin prévue/)
+    expect(t).toMatch(/Phase précédente pendant la période : prise de muscle du .* au .*21 oct/)
+  })
 })

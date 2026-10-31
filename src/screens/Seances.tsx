@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
+import { changerObjectifs, ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
@@ -8,7 +8,6 @@ import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
 import { copieSeances, etatCycle } from '../lib/cycle'
-import { enregistrerVolume } from '../lib/objectifs'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
@@ -402,7 +401,7 @@ function EditeurProgramme({
                     Séries dures prévues par muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, face à tes objectifs (les mêmes pour tous tes programmes,
                     aussi dans Progression → Objectifs). Touche un muscle pour changer son objectif.
                   </div>
-                  <VolumeMuscles volume={volume} cibles={c} onCible={(muscle, v) => void enregistrerVolume({ ...c, [muscle]: v })} />
+                  <VolumeMuscles volume={volume} cibles={c} onCible={(muscle, v) => void changerObjectifs(catalogue, { volume: { ...c, [muscle]: v } })} />
                 </>
               )}
             </div>

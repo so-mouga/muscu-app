@@ -4,6 +4,7 @@ import { nomCle } from '../data/mesures'
 import type { Activite, Exercice, Mesure, Muscle, Pesee, Seance, Serie } from '../types'
 import { dateCourte, dateISO, duree, e1rm, estDure, kg, lundi, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, recordsParSeance, semaineDe } from './historique'
+import { periodes, textePhase, type EtapeObjectifs } from './objectifs'
 import { seancesIdentiques } from './progression'
 
 export interface DonneesBilan {
@@ -17,6 +18,8 @@ export interface DonneesBilan {
   /** Objectif de séries dures par semaine, par muscle. */
   cibles: Record<Muscle, number>
   programme?: string
+  /** Objectifs dans le temps (phase, fin prévue, volume). */
+  objectifs?: EtapeObjectifs[]
   /** « Cycle Recompo 4 jours, semaine 3/6 » */
   cycle?: string
 }
@@ -53,6 +56,13 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
   lignes.push(`BILAN D'ENTRAÎNEMENT · du ${jour(depart)} au ${jour(fin)} (${nbSemaines} semaine${nbSemaines > 1 ? 's' : ''})`)
   if (d.programme) lignes.push(`Programme : ${d.programme}`)
   if (d.cycle) lignes.push(d.cycle)
+  // Phase(s) de la période : en cours à la fin, et celles qui ont commencé ou fini pendant.
+  if (d.objectifs?.length) {
+    const phase = textePhase(d.objectifs, fin, jour)
+    if (phase) lignes.push(`Phase : ${phase}`)
+    const autres = periodes(d.objectifs).filter((p) => p.debut <= fin && (p.fin ?? fin) >= depart && !(p.debut <= fin && !p.fin))
+    for (const p of autres) lignes.push(`Phase précédente pendant la période : ${p.phase === 'seche' ? 'sèche' : p.phase === 'prise' ? 'prise de muscle' : 'maintien'} du ${jour(p.debut)} au ${jour(p.fin!)}`)
+  }
   const dernierPoids = [...d.pesees].filter((p) => p.date <= fin).sort((a, b) => b.date.localeCompare(a.date))[0]
   if (dernierPoids) lignes.push(`Poids actuel : ${kg(dernierPoids.poids)} kg`)
   lignes.push('Séries dures = RPE ≥ 7 (ou échec). RPE 10 = échec, 8 = 2 reps en réserve. PDC = poids du corps (+ lest).')

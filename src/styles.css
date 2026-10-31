@@ -2504,3 +2504,60 @@ button.semaine-bilan.cliquable {
   padding: 6px 10px;
   border-color: var(--bord);
 }
+
+/* Phases (sèche, maintien, prise) : trait sous les jours du calendrier, barre d'avancement */
+:root {
+  --phase-seche: #56b4e9;
+  --phase-maintien: #a9b0bf;
+  --phase-prise: #4cc38a;
+}
+.phase-seche { --phase: var(--phase-seche); }
+.phase-maintien { --phase: var(--phase-maintien); }
+.phase-prise { --phase: var(--phase-prise); }
+.grille-mois {
+  row-gap: 9px;
+}
+.grille-mois .jour {
+  position: relative;
+}
+.grille-mois .jour[class*='phase-']::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  bottom: -6px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--phase);
+}
+.legende-phases {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.legende-phases span::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 2px;
+  background: var(--phase);
+}
+.barre-phase {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.barre-phase span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.rappel-phase {
+  border: 1px solid var(--alerte);
+}

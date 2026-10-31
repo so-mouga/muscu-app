@@ -2,9 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { EXERCICES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
-import { db } from './db'
+import { db, setReglage } from './db'
+import { dateISO } from './lib/calc'
 import { cibles } from './lib/cycle'
-import { CLE_VOLUME } from './lib/objectifs'
+import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
 
 export const ID_PROGRAMME_DEFAUT = 'principal'
@@ -28,8 +29,12 @@ export interface Catalogue {
   planning: EntreePlanning[]
   /** Cycle en cours : il pilote l'accueil avec sa propre copie du programme. */
   cycle?: Cycle
-  /** Objectifs de séries dures par semaine, par muscle : personnels, les mêmes pour tous les programmes. */
+  /** Objectifs dans le temps (phase, fin prévue, volume), les mêmes pour tous les programmes. */
+  objectifs: EtapeObjectifs[]
+  /** Objectifs de séries dures par semaine, par muscle, en vigueur aujourd'hui. */
   cibles: Record<Muscle, number>
+  /** Objectifs de volume en vigueur à une date (bilan d'une période passée). */
+  ciblesA: (date: string) => Record<Muscle, number>
   /** Version d'une séance à lancer : celle du cycle si elle en fait partie, sinon la séance de la bibliothèque. */
   pourDemarrer: (m: SeanceModele) => SeanceModele
 }
@@ -40,7 +45,7 @@ export function construireCatalogue(
   programmesDb: Programme[],
   actifId: string | undefined,
   cycle?: Cycle,
-  volumePerso?: Partial<Record<Muscle, number>>
+  objectifs: EtapeObjectifs[] = []
 ): Catalogue {
   const parId = new Map<string, SeanceModele>(PROGRAMME.map((m) => [m.id, m]))
   for (const m of modelesDb) parId.set(m.id, m)
@@ -74,7 +79,9 @@ export function construireCatalogue(
       .map((e) => ({ modele: pourPlanning(e.modeleId)!, jour: e.jour! }))
       .sort((a, b) => a.jour - b.jour),
     cycle,
-    cibles: cibles(volumePerso, cycle, actif),
+    objectifs,
+    cibles: cibles(objectifsA(objectifs, dateISO())?.volume, cycle, actif),
+    ciblesA: (date) => cibles(objectifsA(objectifs, date)?.volume, cycle, actif),
     pourDemarrer: (m) => duCycle.get(m.id) ?? m,
   }
 }
@@ -86,12 +93,16 @@ export function useCatalogue(): Catalogue | null {
   const programmes = useLiveQuery(() => db.programmes.toArray(), [])
   const actif = useLiveQuery(() => db.reglages.get('programmeActif'), [], null)
   const cycles = useLiveQuery(() => db.cycles.toArray(), [])
-  const volume = useLiveQuery(() => db.reglages.get(CLE_VOLUME), [], null)
+  const objectifs = useLiveQuery(() => db.reglages.bulkGet([CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME]), [], null)
   return useMemo(
     () =>
-      modeles && exercices && programmes && cycles && actif !== null && volume !== null
-        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), volume?.valeur as Partial<Record<Muscle, number>> | undefined)
+      modeles && exercices && programmes && cycles && actif !== null && objectifs !== null
+        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])))
         : null,
-    [modeles, exercices, programmes, actif, cycles, volume]
+    [modeles, exercices, programmes, actif, cycles, objectifs]
   )
 }
+
+/** Change les objectifs à partir d'une date (aujourd'hui par défaut) : une étape de plus dans la frise. */
+export const changerObjectifs = (c: Catalogue, changement: Parameters<typeof modifier>[2], date = dateISO()) =>
+  setReglage(CLE_OBJECTIFS, modifier(c.objectifs, date, changement, c.cibles))

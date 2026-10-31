@@ -14,6 +14,7 @@ import { kcalActivite, typeActivite } from '../data/activites'
 import Bilan from './Bilan'
 import Corps from './Corps'
 import Objectifs from './Objectifs'
+import { periodes, PHASES, textePhase, type EtapeObjectifs } from '../lib/objectifs'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 
@@ -121,9 +122,10 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
         </div>
       ) : (
         <>
-          <Calendrier seances={terminees} activites={activites} choisi={jourChoisi} onChoix={setJourChoisi} />
+          <Calendrier seances={terminees} activites={activites} frise={catalogue.objectifs} choisi={jourChoisi} onChoix={setJourChoisi} />
           <JourChoisi
             date={jourChoisi}
+            phase={textePhase(catalogue.objectifs, jourChoisi, (iso) => jourCourt(iso).replace(/^\S+ /, ''))}
             seances={terminees.filter((x) => x.date === jourChoisi).reverse()}
             activites={activites.filter((x) => x.date === jourChoisi)}
             pesee={peseesJour.find((x) => x.date === jourChoisi)?.poids}
@@ -141,8 +143,11 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   )
 }
 
-/** Mois en calendrier : chaque jour entraîné est marqué ; un appui choisit le jour (sa carte s'affiche dessous). */
-function Calendrier({ seances, activites, choisi, onChoix }: { seances: Seance[]; activites: Activite[]; choisi: string; onChoix: (iso: string) => void }) {
+/** Mois en calendrier : chaque jour entraîné est marqué, la phase soulignée ; un appui choisit le jour (sa carte s'affiche dessous). */
+function Calendrier({ seances, activites, frise, choisi, onChoix }: { seances: Seance[]; activites: Activite[]; frise: EtapeObjectifs[]; choisi: string; onChoix: (iso: string) => void }) {
+  // Phase de chaque jour : jusqu'à sa vraie fin, sinon jusqu'à sa fin prévue (jours à venir en pointillé), sinon aujourd'hui.
+  const phases = periodes(frise)
+  const phaseDuJour = (iso: string) => phases.find((p) => p.debut <= iso && iso <= (p.fin ?? (p.finPrevue && p.finPrevue > dateISO() ? p.finPrevue : dateISO())))?.phase
   const auj = new Date()
   const [mois, setMois] = useState(() => new Date(auj.getFullYear(), auj.getMonth(), 1))
   const parJour = new Map<string, Seance[]>()
@@ -187,11 +192,12 @@ function Calendrier({ seances, activites, choisi, onChoix }: { seances: Seance[]
           const iso = dateISO(d)
           const s = parJour.get(iso)
           const a = activitesDuJour.get(iso)
-          // Séance de muscu : case pleine ; autre activité : point en dessous ; jour choisi : contour.
+          const ph = phaseDuJour(iso)
+          // Séance de muscu : case pleine ; autre activité : point en dessous ; jour choisi : contour ; phase : trait sous la case.
           return (
             <button
               key={i}
-              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '') + (iso === choisi ? ' choisi' : '')}
+              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '') + (iso === choisi ? ' choisi' : '') + (ph ? ` phase-${ph}` : '')}
               disabled={iso > aujourdhui}
               onClick={() => onChoix(iso)}
               aria-pressed={iso === choisi}
@@ -202,6 +208,15 @@ function Calendrier({ seances, activites, choisi, onChoix }: { seances: Seance[]
           )
         })}
       </div>
+      {phases.some((p) => p.debut <= dateISO(new Date(mois.getFullYear(), mois.getMonth() + 1, 0)) && (p.fin ?? p.finPrevue ?? dateISO()) >= dateISO(mois)) && (
+        <div className="legende-phases faible">
+          {PHASES.filter((x) => phases.some((p) => p.phase === x.id)).map((x) => (
+            <span key={x.id} className={`phase-${x.id}`}>
+              {x.nom}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -209,6 +224,7 @@ function Calendrier({ seances, activites, choisi, onChoix }: { seances: Seance[]
 /** Le jour choisi en court : ses séances (records, exos en progrès), activités, poids et mesures. Le détail s'ouvre en touchant. */
 function JourChoisi({
   date,
+  phase,
   seances,
   activites,
   pesee,
@@ -221,6 +237,8 @@ function JourChoisi({
   onAjouter,
 }: {
   date: string
+  /** « Sèche depuis le 3 nov. (semaine 3 sur 12…) » */
+  phase: string | null
   seances: Seance[]
   activites: Activite[]
   pesee?: number
@@ -239,6 +257,7 @@ function JourChoisi({
       <strong style={{ textTransform: 'capitalize' }}>
         {date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
       </strong>
+      {phase && <div className="faible">🎯 {phase}</div>}
       {seances.map((s) => (
         <LigneSeance key={s.id} seance={s} records={records[s.id] ?? 0} mieux={mieux[s.id] ?? 0} onOuvrir={() => onSeance(s.id)} />
       ))}

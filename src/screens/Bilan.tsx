@@ -44,8 +44,9 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
           ? [cycle.debut, aujourdhui]
           : [debutPeriode(periode === '12' ? 13 : 4), aujourdhui]
 
-  const cibles = catalogue.cibles
-  const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom }
+  // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
+  const cibles = catalogue.ciblesA(fin)
+  const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs }
   const prevues = catalogue.planning.length
   const a = analyser(donnees, debut, fin, prevues)
   const longueur = Math.round((Date.parse(fin) - Date.parse(a.debut)) / JOUR)
