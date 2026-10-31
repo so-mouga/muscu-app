@@ -47,7 +47,7 @@ export function resumePlan(exo: Exercice, p: ExoPlan): string {
   return [
     schemaPlan(exo, p),
     p.charge === null ? '' : chargeTexte(exo, p.charge),
-    `repos ${reposTexte(p)}`,
+    p.enchaine ? (p.repos > 0 ? `repos ${p.repos} s (enchaîné)` : 'enchaîné direct') : `repos ${reposTexte(p)}`,
     rpeParDefaut ? '' : `RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}`,
     p.finisseur ? '★ finisseur' : '',
   ]
@@ -594,7 +594,13 @@ function Editeur({
   /** Exercice dont le menu ⋯ est ouvert (fiche, remplacer, retirer). */
   const [menu, setMenu] = useState<number | null>(null)
   useRetour(menu !== null, () => setMenu(null))
-  const glisser = useGlisser('.exo-ligne', (de, vers) => maj((x) => deplacer(x.exercices, de, vers)))
+  const glisser = useGlisser('.exo-ligne', (de, vers) =>
+    maj((x) => {
+      if (x.exercices[de]) x.exercices[de].enchaine = undefined
+      if (de > 0 && x.exercices[de - 1]) x.exercices[de - 1].enchaine = undefined
+      deplacer(x.exercices, de, vers)
+    })
+  )
 
   const finisseurs = m.exercices.filter((e) => e.finisseur).length
 
@@ -686,18 +692,31 @@ function Editeur({
         <div ref={glisser.liste}>
         {m.exercices.map((p, i) => {
           const exo = catalogue.exo(p.exoId)
+          const enchaine = !!p.enchaine
+          const precEnchaine = i > 0 && !!m.exercices[i - 1]?.enchaine
+          const dansSuperset = enchaine || precEnchaine
           return (
             <div
               key={p.exoId + i}
-              className={'exo-ligne' + glisser.classes(i, m.exercices.length)}
+              className={
+                'exo-ligne' +
+                glisser.classes(i, m.exercices.length) +
+                (dansSuperset ? ' en-superset' : '') +
+                (enchaine ? ' enchaine-vers-suivant' : '') +
+                (precEnchaine && !enchaine ? ' suite-superset' : '')
+              }
             >
               <button className="poignee" aria-label={`Déplacer ${exo.nom}`} {...glisser.poignee(i)}>
                 ⠿
               </button>
               <button className="texte" onClick={() => setEditIdx(i)}>
-                <strong>
-                  {i + 1}. {exo.nom}
-                </strong>
+                <div className="ligne entre" style={{ gap: 4 }}>
+                  <strong>
+                    {i + 1}. {exo.nom}
+                  </strong>
+                  {enchaine && <span className="badge-superset">🔗 Superset ⇣</span>}
+                  {precEnchaine && !enchaine && <span className="badge-superset">🔗 Fin superset</span>}
+                </div>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">{resumePlan(exo, p)}</div>
               </button>
@@ -780,6 +799,22 @@ function Editeur({
             <button className="liste-btn" onClick={() => (setRemplace(menu), setMenu(null))}>
               <span>⇄ Remplacer par un autre exercice</span>
             </button>
+            {menu < m.exercices.length - 1 && (
+              <button
+                className="liste-btn"
+                onClick={() => {
+                  const i = menu
+                  maj((x) => {
+                    const actif = !x.exercices[i].enchaine
+                    x.exercices[i].enchaine = actif ? true : undefined
+                    if (actif && x.exercices[i].repos > 30) x.exercices[i].repos = 0
+                  })
+                  setMenu(null)
+                }}
+              >
+                <span>{m.exercices[menu].enchaine ? '✕ Délier le superset' : '🔗 Enchaîner avec l’exercice suivant (superset)'}</span>
+              </button>
+            )}
             <button
               className="liste-btn"
               onClick={async () => {

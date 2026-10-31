@@ -83,14 +83,19 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
         const hausses = sugg ? sugg.charges.map((_, n) => hausse(exo, sugg, derniere, n)) : []
         const battre = hausses.some(Boolean)
         const bloque = !deload && contexte ? diagnostic(exo, contexte, aujourdhui) : null
+        const dansSuperset = p.enchaine || (i > 0 && !!modele.exercices[i - 1]?.enchaine)
         return (
-          <div key={p.exoId + i} className="carte pile">
+          <div key={p.exoId + i} className={'carte pile' + (dansSuperset ? ' en-superset' : '')} style={dansSuperset ? { borderLeft: '3px solid var(--accent)' } : undefined}>
             <div className="ligne" style={{ gap: 12 }}>
               <Vignette exo={exo} taille={44} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <strong>
-                  {i + 1}. {exo.nom}
-                </strong>
+                <div className="ligne entre" style={{ gap: 4 }}>
+                  <strong>
+                    {i + 1}. {exo.nom}
+                  </strong>
+                  {p.enchaine && <span className="badge-superset">🔗 Superset ⇣</span>}
+                  {i > 0 && modele.exercices[i - 1]?.enchaine && !p.enchaine && <span className="badge-superset">🔗 Fin superset</span>}
+                </div>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">
                   {schemaPlan(exo, p)}

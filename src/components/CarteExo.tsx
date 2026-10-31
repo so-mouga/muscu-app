@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { db, uid } from '../db'
 import { chargeQte, chargeTexte, chrono, cibleTexte, ecartSerie, enTemps, fourchette, kg, lireChauffe, reposApres, reposTexte, RIR, schemaPlan, serieTexte } from '../lib/calc'
+import { reposApresSuperset } from '../lib/superset'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import { usePasBoutons } from '../lib/pasBoutons'
@@ -143,7 +144,7 @@ export default function CarteExo({
       verrou={verrou}
       onFini={(s) => {
         if (enEdition) setEditId(null)
-        else onValide(s, reposApres(plan, index, total))
+        else onValide(s, reposApresSuperset(seance.exercices, seance.exercices.findIndex((p) => p.exoId === plan.exoId), index, total))
       }}
       onAnnulerEdition={() => setEditId(null)}
     />
@@ -173,6 +174,7 @@ export default function CarteExo({
           </button>
         </div>
         <div className="faible">
+          {plan.enchaine && <span className="badge-superset" style={{ marginRight: 6 }}>🔗 Superset</span>}
           {schemaPlan(exo, plan)} · RPE{' '}
           {plan.series.map((p) => kg(p.rpe)).join(', ')} · repos {reposTexte(plan)}
           {plan.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ {FINISSEURS[typeFinisseur(plan)].nom.toLowerCase()}</span>}

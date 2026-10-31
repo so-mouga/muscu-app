@@ -69,6 +69,8 @@ export interface ExoPlan {
   charge: number | null
   optionnel?: boolean
   note?: string
+  /** Enchaîné avec l'exercice suivant sans ou avec court repos (superset). */
+  enchaine?: boolean
 }
 
 export interface SeanceModele {

@@ -173,6 +173,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
     p.series.some((s) => s.repos !== undefined && s.repos !== p.repos) ? 'repos par série' : '',
     p.finisseur ? '★ finisseur' : '',
     p.optionnel ? 'optionnel' : '',
+    p.enchaine ? '🔗 superset' : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -232,17 +233,22 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
         </div>
 
         <div className="ligne entre">
-          <span>Repos entre les séries</span>
+          <span>
+            {p.enchaine ? 'Repos avant l’exercice suivant (transition)' : 'Repos entre les séries'}
+            {p.enchaine && <div className="faible">0:00 = enchaîné direct sans pause</div>}
+          </span>
           <ChoixDuree valeur={p.repos} onChange={(v) => maj((q) => (q.repos = v))} />
         </div>
-        {/* Réglé presque à chaque exercice : à côté du repos, pas dans « Avancé ». */}
-        <div className="ligne entre">
-          <span>
-            Repos avant l’exercice suivant
-            <div className="faible">après la dernière série (changer de machine, souffler)</div>
-          </span>
-          <ChoixDuree valeur={p.reposApres ?? p.repos} onChange={(v) => maj((q) => (q.reposApres = v === q.repos ? undefined : v))} />
-        </div>
+        {/* Réglé presque à chaque exercice : à côté du repos, pas dans « Avancé » (sauf si enchaîné). */}
+        {!p.enchaine && (
+          <div className="ligne entre">
+            <span>
+              Repos avant l’exercice suivant
+              <div className="faible">après la dernière série (changer de machine, souffler)</div>
+            </span>
+            <ChoixDuree valeur={p.reposApres ?? p.repos} onChange={(v) => maj((q) => (q.reposApres = v === q.repos ? undefined : v))} />
+          </div>
+        )}
 
         <div>
           <div className="ligne entre">
@@ -378,6 +384,19 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
               </div>
             )}
             <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" aide="À faire seulement si tu as le temps." />
+            {onSuivant && (
+              <Interrupteur
+                on={!!p.enchaine}
+                onChange={(v) =>
+                  maj((q) => {
+                    q.enchaine = v || undefined
+                    if (v && q.repos > 30) q.repos = 0
+                  })
+                }
+                label="🔗 Enchaîner en superset avec l’exercice suivant"
+                aide="Alterne les séries avec le prochain exercice de la séance."
+              />
+            )}
           </div>
         )}
 

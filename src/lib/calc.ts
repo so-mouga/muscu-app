@@ -159,6 +159,9 @@ export function lireDuree(texte: string): number | null {
 
 /** « 3:00 », ou « 2:00–3:00 » si le repos varie selon la série. */
 export function reposTexte(plan: ExoPlan): string {
+  if (plan.enchaine) {
+    return plan.repos > 0 ? `${chrono(plan.repos)} (transition)` : 'enchaîné direct'
+  }
   const valeurs = [...new Set(plan.series.map((s) => s.repos ?? plan.repos))].sort((a, b) => a - b)
   const t = valeurs.length > 1 ? `${chrono(valeurs[0])}–${chrono(valeurs[valeurs.length - 1])}` : chrono(valeurs[0] ?? plan.repos)
   return plan.reposApres !== undefined ? `${t}, puis ${chrono(plan.reposApres)}` : t
