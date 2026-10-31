@@ -114,12 +114,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const idx = idxBrut === -1 && avecEchauffement ? -1 : Math.max(0, Math.min(idxBrut, plans.length - 1))
   const surEchauffement = idx === -1 || echauffementActif(seance)
 
-  // Quand l'échauffement se termine ou qu'une série est faite, revenir sur le 1er exercice.
+  // Quand l'échauffement se termine (tout coché, « Passer », 1re série), aller au 1er exercice. Une fois
+  // fini, on peut toujours y revenir par la pastille 🔥 : seul le passage actif → fini fait avancer.
+  const echauffementAvant = useRef(echauffementActif(seance))
   useEffect(() => {
-    if (idxBrut === -1 && !echauffementActif(seance)) {
+    const actif = echauffementActif(seance)
+    if (echauffementAvant.current && !actif && idxBrut === -1) {
       setIdxEtat(0)
       range(`idx:${seance.id}`, 0)
     }
+    echauffementAvant.current = actif
   }, [idxBrut, seance])
 
   const setIdx = (i: number) => {

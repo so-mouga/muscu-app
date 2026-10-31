@@ -2602,3 +2602,65 @@ button.semaine-bilan.cliquable {
   min-width: 0;
   width: 100%;
 }
+
+.bandeau-copie {
+  border: 1px solid var(--ok);
+  margin-bottom: 12px;
+}
+.bandeau-copie .btn {
+  align-self: flex-start;
+}
+
+/* Calendrier : le mois glisse dans le sens du geste */
+.grille-mois.glisse-avant {
+  animation: mois-avant 0.2s ease-out;
+}
+.grille-mois.glisse-arriere {
+  animation: mois-arriere 0.2s ease-out;
+}
+@keyframes mois-avant {
+  from { transform: translateX(24px); opacity: 0.3; }
+}
+@keyframes mois-arriere {
+  from { transform: translateX(-24px); opacity: 0.3; }
+}
+
+/* Accueil, journal du matin */
+.phase-accueil {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--texte-2);
+}
+.point-phase {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--phase);
+}
+.a-battre {
+  margin-top: 8px;
+}
+.ligne-battre {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+.ligne-battre > span:first-child {
+  min-width: 0;
+}
+.ligne-battre > span:last-child {
+  white-space: nowrap;
+}
+.a-battre .plus,
+.journal-matin .plus {
+  color: var(--ok);
+  font-weight: 700;
+}
+.journal-matin .ligne-jour:last-child {
+  border-bottom: none;
+}

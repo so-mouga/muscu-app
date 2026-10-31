@@ -83,6 +83,8 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
   }
 
   // Copie sans historique, reliée à l'original : chacune garde sa progression, l'une sert de repère à l'autre.
+  /** Copie qui vient d'être créée (bandeau sur sa fiche). */
+  const [copieDe, setCopieDe] = useState<{ id: string; nom: string } | null>(null)
   const dupliquer = async (exo: Exercice) => {
     const base = exo.nom.replace(/ \(\d+\)$/, '')
     let k = 2
@@ -91,9 +93,9 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
     delete copie.supprime
     await db.exercices.put(copie)
     await modifierEquivalents((x) => relies(x, exo.id, copie.id))
+    // Fiche de la copie, avec un bandeau qui le dit (ouvrir directement le formulaire faisait croire qu'on modifiait l'original).
     setChoisi(copie.id)
-    // On propose tout de suite de la renommer.
-    setFormulaire({ exo: copie })
+    setCopieDe({ id: copie.id, nom: exo.nom })
   }
 
   const form = formulaire && (
@@ -129,6 +131,7 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
           onModifier={() => setFormulaire({ exo })}
           onSupprimer={() => supprimer(exo)}
           onDupliquer={() => void dupliquer(exo)}
+          copieDe={copieDe?.id === exo.id ? copieDe.nom : undefined}
           equivalents={liste}
           suggestions={tous
             .filter((e) => e.muscle === exo.muscle && e.id !== exo.id && !e.supprime && !(eq[exo.id] ?? []).includes(e.id))

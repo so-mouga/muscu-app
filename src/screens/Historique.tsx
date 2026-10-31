@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
@@ -163,12 +163,30 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
   const activitesMois = activites.filter((a) => a.date.startsWith(dateISO(mois).slice(0, 7))).length
   // Vers l'avenir : un an, pour voir le cycle, ses déloads et les phases prévues.
   const dernierMois = mois.getFullYear() * 12 + mois.getMonth() >= auj.getFullYear() * 12 + auj.getMonth() + 12
-  const aller = (d: number) => setMois(new Date(mois.getFullYear(), mois.getMonth() + d, 1))
+  const aller = (d: number) => {
+    if (d > 0 && dernierMois) return
+    setSens(d > 0 ? 'avant' : 'arriere')
+    setMois(new Date(mois.getFullYear(), mois.getMonth() + d, 1))
+  }
+  // Glisser à gauche / à droite pour changer de mois (geste surtout horizontal).
+  const depart = useRef<{ x: number; y: number } | null>(null)
+  const [sens, setSens] = useState<'avant' | 'arriere' | null>(null)
+  const glisse = {
+    onTouchStart: (e: React.TouchEvent) => (depart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }),
+    onTouchEnd: (e: React.TouchEvent) => {
+      const d = depart.current
+      depart.current = null
+      if (!d) return
+      const dx = e.changedTouches[0].clientX - d.x
+      const dy = e.changedTouches[0].clientY - d.y
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) aller(dx < 0 ? 1 : -1)
+    },
+  }
   const aujourdhui = dateISO()
   const prevuesMois = cases.reduce((n, d) => n + (d ? (prevu(dateISO(d))?.seances.length ?? 0) : 0), 0)
 
   return (
-    <div className="carte calendrier">
+    <div className="carte calendrier" {...glisse}>
       <div className="ligne entre">
         <button className="icone" onClick={() => aller(-1)} aria-label="Mois précédent">
           ‹
@@ -185,7 +203,7 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
           ›
         </button>
       </div>
-      <div className="grille-mois">
+      <div key={dateISO(mois)} className={'grille-mois' + (sens ? ` glisse-${sens}` : '')}>
         {JOURS.map((j, i) => (
           <span key={i} className="jour-nom">
             {j}

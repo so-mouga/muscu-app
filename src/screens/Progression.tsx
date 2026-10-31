@@ -29,6 +29,7 @@ export function Detail({
   onModifier,
   onSupprimer,
   onDupliquer,
+  copieDe,
   equivalents,
   suggestions,
   onRelier,
@@ -42,6 +43,8 @@ export function Detail({
   onSupprimer: () => void
   /** Copie de l'exercice (variante : autre machine, autre prise), reliée comme équivalent. */
   onDupliquer?: () => void
+  /** Nom de l'exercice d'origine, juste après un « Dupliquer » : on le dit clairement. */
+  copieDe?: string
   /** Exercices reliés, avec leur dernière meilleure série. */
   equivalents: { exo: Exercice; derniere?: string }[]
   /** Remplaçants possibles non reliés (même muscle). */
@@ -101,6 +104,15 @@ export function Detail({
         </button>
         <h2 style={{ flex: 1 }}>{exo.nom}</h2>
       </div>
+      {copieDe && (
+        <div className="carte pile bandeau-copie">
+          <strong>⧉ Copie de « {copieDe} » créée</strong>
+          <div className="faible">C’est un nouvel exercice, sans historique, relié à l’original comme équivalent. L’original n’a pas changé.</div>
+          <button className="btn petit" onClick={onModifier}>
+            Renommer la copie
+          </button>
+        </div>
+      )}
       <div className="ligne" style={{ gap: 8, marginBottom: 12 }}>
         <button className="btn" style={{ flex: 1 }} onClick={onModifier}>
           ✎ Modifier

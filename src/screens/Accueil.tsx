@@ -2,9 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { dateISO, duree, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
+import { chargeQte, dateISO, duree, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
 import { creneauxFaits, dureeReelle, recordsParSeance } from '../lib/historique'
-import { aBattre, suggestionPour } from '../lib/progression'
+import { hausse, suggestionPour } from '../lib/progression'
+import { conseilRepas, meilleureProgression } from '../lib/journal'
+import { nomPhase, phaseAffichee } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import FormActivite from '../components/FormActivite'
@@ -140,15 +142,24 @@ export default function Accueil({
 
   const derniere = terminees?.reduce<(typeof terminees)[number] | undefined>((a, s) => (!a || s.debut > a.debut ? s : a), undefined)
 
-  // Exercices où l'objectif dépasse la dernière fois : « à battre ».
+  // Exercices où l'objectif dépasse la dernière fois : « à battre », avec la série visée et ce qu'elle demande de plus.
   const recentes = terminees && [...terminees].filter((s) => !s.deload).sort((a, b) => b.debut - a.debut)
-  const nbABattre = (m: SeanceModele) =>
+  const aBattreDe = (m: SeanceModele) =>
     recentes
-      ? m.exercices.filter((p) => {
+      ? m.exercices.flatMap((p) => {
           const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
-          return aBattre(exo, suggestionPour(exo, p, recentes), historiqueDe(recentes, p.exoId)[0])
-        }).length
-      : 0
+          const sugg = suggestionPour(exo, p, recentes)
+          const der = historiqueDe(recentes, p.exoId)[0]
+          const i = sugg.charges.findIndex((_, k) => hausse(exo, sugg, der, k) !== null)
+          return i < 0 ? [] : [{ exo, cible: chargeQte(exo, sugg.charges[i], sugg.reps[i]), plus: hausse(exo, sugg, der, i)! }]
+        })
+      : []
+
+  // Journal du matin : phase, pesée, assiette, progrès réel.
+  const aujourdhui = dateISO()
+  const phase = phaseAffichee(catalogue.objectifs, aujourdhui)
+  const phaseEnCours = phase?.aVenir ? phase.enCours : phase
+  const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * 86400000))).sortBy('date'), [], [])
 
   // Cycle en cours : semaine, déload, pause ; chaque séance lancée y est rattachée.
   const cycle = catalogue.cycle
@@ -183,6 +194,14 @@ export default function Accueil({
       <div className="entete">
         <div>
           <h1 style={{ textTransform: 'capitalize' }}>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
+          {phase && (
+            <div className="phase-accueil">
+              <span className={`point-phase phase-${phase.phase}`} />
+              {phase.aVenir
+                ? `${phase.enCours ? `${nomPhase(phase.enCours.phase)} · ` : ''}${nomPhase(phase.phase).toLowerCase()} à partir du ${new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                : `${nomPhase(phase.phase)} · semaine ${phase.semaine}${phase.total ? ` sur ${phase.total}` : ''}`}
+            </div>
+          )}
           <button type="button" className="btn discret petit lien-action" style={{ color: 'var(--texte-3)', marginTop: 2 }} onClick={onProgrammes}>
             {sousTitreProg} ›
           </button>
@@ -206,11 +225,25 @@ export default function Accueil({
               <div className="faible">
                 {exercices(proposee.modele.exercices.length)} · {dureeTexte(proposee.modele, terminees)}
               </div>
-              {!etat?.deload && nbABattre(proposee.modele) > 0 && (
-                <div className="badge-hausse grand" style={{ marginTop: 6 }}>
-                  🔥 {nbABattre(proposee.modele)} objectif{nbABattre(proposee.modele) > 1 ? 's' : ''} à battre
-                </div>
-              )}
+              {!etat?.deload &&
+                (() => {
+                  const l = aBattreDe(proposee.modele)
+                  if (!l.length) return null
+                  return (
+                    <div className="a-battre">
+                      <div className="badge-hausse grand">🔥 À battre {proposee === duJour ? 'aujourd’hui' : 'à la prochaine'}</div>
+                      {l.slice(0, 3).map((x) => (
+                        <div key={x.exo.id} className="ligne-battre">
+                          <span>{x.exo.nom}</span>
+                          <span>
+                            <strong>{x.cible}</strong> <span className="plus">{x.plus}</span>
+                          </span>
+                        </div>
+                      ))}
+                      {l.length > 3 && <div className="faible">+ {l.length - 3} autre{l.length > 4 ? 's' : ''}</div>}
+                    </div>
+                  )
+                })()}
             </div>
             <div className="ligne">
               <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => lancer(proposee.modele)}>
@@ -238,6 +271,42 @@ export default function Accueil({
           )}
         </div>
       </div>
+
+      {/* Journal du matin : de quoi se mettre en route (pesée, assiette, un vrai progrès). */}
+      {(() => {
+        const entrainement = !!duJour
+        const pesee = pesees.find((p) => p.date === aujourdhui)
+        const semaineP = pesees.filter((p) => p.date > dateISO(new Date(Date.now() - 7 * 86400000)))
+        const moyenne = semaineP.length ? semaineP.reduce((a, p) => a + p.poids, 0) / semaineP.length : null
+        const repas = conseilRepas(phaseEnCours?.phase, entrainement)
+        const depuis = phaseEnCours ? phaseEnCours.debut : dateISO(new Date(Date.now() - 28 * 86400000))
+        const progres = terminees ? meilleureProgression(terminees, catalogue.exo, depuis) : null
+        const peser = phaseEnCours?.phase === 'seche' || phaseEnCours?.phase === 'prise' || pesees.length > 0
+        if (!peser && !repas && !progres) return null
+        return (
+          <div className="carte pile journal-matin">
+            <h3>Aujourd’hui</h3>
+            {peser && (
+              <button className="ligne-jour" onClick={onMesures}>
+                <span>
+                  ⚖️ {pesee ? <strong>{kg(pesee.poids)} kg ce matin</strong> : 'Pèse-toi ce matin, à jeun'}
+                  {moyenne !== null && <span className="faible"> · moyenne 7 j {kg(Math.round(moyenne * 10) / 10)} kg</span>}
+                </span>
+                <span className="muted">›</span>
+              </button>
+            )}
+            {repas && <div className="ligne-jour">🍽 {repas}</div>}
+            {progres && (
+              <div className="ligne-jour">
+                <span>
+                  📈 {phaseEnCours ? `Depuis le début de ta ${nomPhase(phaseEnCours.phase).toLowerCase()}` : 'En 4 semaines'} : <strong>{progres.exo.nom}</strong>{' '}
+                  <span className="plus">+{kg(Math.round(progres.pct * 10) / 10)} %</span>
+                </span>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
       {mesuresEnRetard && !masque('mesures') && (
