@@ -15,6 +15,7 @@ import { ecartSerie, lireChauffe, volumeParMuscle, chargeQte, chargeTexte, cible
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
+import { arreterReposNatif, natif, reposNatif, suivreReposNatif } from '../lib/natif'
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
@@ -45,6 +46,7 @@ function range(cle: string, v: unknown) {
 /** Minuteur et exercice affiché d'une séance terminée ou abandonnée. */
 function oublierEtatLocal(seanceId: string) {
   range('minuteur', null)
+  void arreterReposNatif()
   range(`idx:${seanceId}`, null)
 }
 
@@ -144,6 +146,26 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     setMinuteurEtat(avecSeance)
     range('minuteur', avecSeance)
   }
+
+  // Appli Android : le repos est aussi tenu par Android (décompte sur l'écran verrouillé, alarme écran éteint).
+  const ensuiteRef = useRef('')
+  const minuteurRef = useRef({ minuteur, setMinuteur })
+  minuteurRef.current = { minuteur, setMinuteur }
+  useEffect(() => {
+    if (!natif) return
+    if (minuteur && minuteur.pause === undefined && minuteur.fin > Date.now()) void reposNatif(minuteur.fin, ensuiteRef.current)
+    else void arreterReposNatif()
+  }, [minuteur?.fin, minuteur?.pause])
+  useEffect(
+    () =>
+      suivreReposNatif(({ type, fin: finNatif }) => {
+        const { minuteur: m, setMinuteur: maj } = minuteurRef.current
+        if (!m || m.pause !== undefined) return
+        if (type === 'passer') maj(null)
+        else if (finNatif > Date.now() && finNatif !== m.fin) maj({ ...m, fin: finNatif })
+      }),
+    []
+  )
   const ouvrirFin = (v: boolean) => (transition(() => setFin(v), v ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
 
   // Retour Android : fin → séance, puis exercice précédent. Ne quitte jamais une séance en cours.
@@ -354,6 +376,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   }, 0)
 
   const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance 💪'
+  ensuiteRef.current = ensuite
   const reposRestant = minuteur ? Math.max(0, Math.ceil(resteRepos(minuteur, maintenant))) : 0
 
   // Fin du repos : sans geste pendant le repos (téléphone posé), retour sur la série à faire.

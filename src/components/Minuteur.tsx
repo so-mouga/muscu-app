@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import { alarme, tic } from '../lib/appareil'
 import { chrono } from '../lib/calc'
+import { natif } from '../lib/natif'
 import Anneau from './Anneau'
 
 export interface EtatMinuteur {
@@ -55,14 +56,15 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
     // Sonne une seule fois par repos, y compris au retour au premier plan.
     if (fini && sonne.current !== etat.fin) {
       sonne.current = etat.fin
-      if (maintenant - etat.fin < 60000) alarme()
+      // Appli Android en arrière-plan : c'est l'alarme d'Android qui a sonné, pas de bips en retard.
+      if (maintenant - etat.fin < 60000 && !(natif && document.hidden)) alarme()
     }
   }, [fini, etat.fin, maintenant])
 
   // Décompte sonore des dernières secondes, une fois par seconde.
   const seconde = Math.ceil(reste)
   useEffect(() => {
-    if (enPause || fini || seconde > bips || dernierTic.current === seconde) return
+    if (enPause || fini || seconde > bips || dernierTic.current === seconde || (natif && document.hidden)) return
     dernierTic.current = seconde
     tic(seconde === 1)
   }, [seconde, bips, enPause, fini])

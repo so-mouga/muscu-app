@@ -5,3 +5,4 @@ src/**/*.js
 *.tsbuildinfo
 /index.js
 /vite.config.js
+/muscu.apk
