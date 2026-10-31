@@ -9,15 +9,15 @@ export interface DefMesure {
 }
 
 export const MESURES: DefMesure[] = [
-  { id: 'cou', nom: 'Cou', cotes: false, consigne: 'Juste sous la pomme d’Adam, ruban horizontal, sans serrer.', trait: { y: 66, x1: 86, x2: 114 } },
-  { id: 'epaules', nom: 'Épaules', cotes: false, consigne: 'Au plus large des épaules, bras le long du corps, ruban horizontal.', trait: { y: 86, x1: 24, x2: 176 } },
-  { id: 'poitrine', nom: 'Poitrine', cotes: false, consigne: 'Au niveau des tétons, bras le long du corps, en fin d’expiration normale.', trait: { y: 112, x1: 50, x2: 150 } },
-  { id: 'bras', nom: 'Bras', cotes: true, consigne: 'Au plus gros du biceps, bras contracté à l’horizontale.', trait: { y: 128, x1: 22, x2: 54 } },
-  { id: 'avant_bras', nom: 'Avant-bras', cotes: true, consigne: 'Au plus gros, juste sous le coude, main ouverte et bras tendu.', trait: { y: 186, x1: 16, x2: 44 } },
-  { id: 'taille', nom: 'Taille', cotes: false, consigne: 'Au niveau du nombril, ventre relâché (ne rentre pas le ventre), en fin d’expiration.', trait: { y: 166, x1: 60, x2: 140 } },
-  { id: 'hanches', nom: 'Hanches', cotes: false, consigne: 'Au plus large des fesses, pieds joints.', trait: { y: 212, x1: 52, x2: 148 } },
-  { id: 'cuisse', nom: 'Cuisse', cotes: true, consigne: 'Au plus gros, juste sous le pli de la fesse, jambe relâchée, poids réparti sur les deux pieds.', trait: { y: 258, x1: 54, x2: 96 } },
-  { id: 'mollet', nom: 'Mollet', cotes: true, consigne: 'Au plus gros, debout, poids réparti sur les deux pieds.', trait: { y: 336, x1: 56, x2: 90 } },
+  { id: 'cou', nom: 'Cou', cotes: false, consigne: 'Juste sous la pomme d’Adam, ruban horizontal, sans serrer.', trait: { y: 38, x1: 72, x2: 92 } },
+  { id: 'epaules', nom: 'Épaules', cotes: false, consigne: 'Au plus large des épaules, bras le long du corps, ruban horizontal.', trait: { y: 52, x1: 36, x2: 124 } },
+  { id: 'poitrine', nom: 'Poitrine', cotes: false, consigne: 'Au niveau des tétons, bras le long du corps, en fin d’expiration normale.', trait: { y: 64, x1: 48, x2: 112 } },
+  { id: 'bras', nom: 'Bras', cotes: true, consigne: 'Au plus gros du biceps, bras contracté à l’horizontale.', trait: { y: 74, x1: 28, x2: 50 } },
+  { id: 'avant_bras', nom: 'Avant-bras', cotes: true, consigne: 'Au plus gros, juste sous le coude, main ouverte et bras tendu.', trait: { y: 96, x1: 24, x2: 44 } },
+  { id: 'taille', nom: 'Taille', cotes: false, consigne: 'Au niveau du nombril, ventre relâché (ne rentre pas le ventre), en fin d’expiration.', trait: { y: 88, x1: 54, x2: 106 } },
+  { id: 'hanches', nom: 'Hanches', cotes: false, consigne: 'Au plus large des fesses, pieds joints.', trait: { y: 110, x1: 52, x2: 108 } },
+  { id: 'cuisse', nom: 'Cuisse', cotes: true, consigne: 'Au plus gros, juste sous le pli de la fesse, jambe relâchée, poids réparti sur les deux pieds.', trait: { y: 134, x1: 56, x2: 82 } },
+  { id: 'mollet', nom: 'Mollet', cotes: true, consigne: 'Au plus gros, debout, poids réparti sur les deux pieds.', trait: { y: 174, x1: 56, x2: 76 } },
 ]
 
 /** Mesures montrées d'emblée ; les autres sont repliées dans « Autres mesures ». */
