@@ -18,8 +18,8 @@ export interface EtapeObjectifs {
   phase?: Phase
   /** Fin prévue de la phase (AAAA-MM-JJ), facultative. */
   finPrevue?: string
-  /** Poids visé à la fin de la phase (kg), facultatif. */
-  poidsVise?: number
+  /** Variation de poids visée sur la phase (kg, + ou −), depuis le poids au début de la phase. */
+  ecartVise?: number
   /** Séries dures par semaine, par muscle. */
   volume: Partial<Record<Muscle, number>>
   /** Objectif calories fixé à la main (sinon calculé d'après le profil et la phase). */
@@ -33,7 +33,7 @@ export interface PeriodePhase {
   /** Dernier jour réel (veille de la phase suivante) ; absent si elle est en cours. */
   fin?: string
   finPrevue?: string
-  poidsVise?: number
+  ecartVise?: number
 }
 
 export const PHASES: { id: Phase; nom: string; court: string; explication: string }[] = [
@@ -74,12 +74,12 @@ export function modifier(frise: EtapeObjectifs[], date: string, changement: Part
     volume: { ...(avant?.volume ?? base) },
     ...(avant?.phase && { phase: avant.phase }),
     ...(!nouvellePhase && avant?.finPrevue && { finPrevue: avant.finPrevue }),
-    ...(!nouvellePhase && avant?.poidsVise && { poidsVise: avant.poidsVise }),
+    ...(!nouvellePhase && avant?.ecartVise && { ecartVise: avant.ecartVise }),
     ...changement,
     depuis: date,
   }
   if (!etape.finPrevue) delete etape.finPrevue
-  if (!etape.poidsVise) delete etape.poidsVise
+  if (!etape.ecartVise) delete etape.ecartVise
   if (!etape.phase) delete etape.phase
   if (!etape.calories) delete etape.calories
   const apres = (e: EtapeObjectifs) => ('volume' in changement && e.depuis > date ? { ...e, volume: { ...etape.volume } } : e)
@@ -93,11 +93,11 @@ export function periodes(frise: EtapeObjectifs[]): PeriodePhase[] {
     const der = res[res.length - 1]
     if (der && !der.fin && der.phase === e.phase) {
       der.finPrevue = e.finPrevue
-      der.poidsVise = e.poidsVise
+      der.ecartVise = e.ecartVise
       continue
     }
     if (der && !der.fin) der.fin = veille(e.depuis)
-    if (e.phase) res.push({ phase: e.phase, debut: e.depuis, ...(e.finPrevue && { finPrevue: e.finPrevue }), ...(e.poidsVise && { poidsVise: e.poidsVise }) })
+    if (e.phase) res.push({ phase: e.phase, debut: e.depuis, ...(e.finPrevue && { finPrevue: e.finPrevue }), ...(e.ecartVise && { ecartVise: e.ecartVise }) })
   }
   return res
 }
@@ -128,8 +128,12 @@ export function phaseAffichee(frise: EtapeObjectifs[], aujourdhui: string) {
 export function textePhase(frise: EtapeObjectifs[], date: string, jour: (iso: string) => string): string | null {
   const p = phaseA(frise, date)
   if (!p) return null
-  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.total ? ` sur ${p.total}, fin prévue le ${jour(p.finPrevue!)}` : ''}${p.poidsVise ? `, poids visé ${String(p.poidsVise).replace('.', ',')} kg` : ''})`
+  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.total ? ` sur ${p.total}, fin prévue le ${jour(p.finPrevue!)}` : ''}${p.ecartVise ? `, objectif ${ecartTexte(p.ecartVise)}` : ''})`
 }
+
+const virgule = (x: number) => String(Math.round(x * 100) / 100).replace('.', ',')
+/** « +2 kg », « −1,5 kg » */
+export const ecartTexte = (x: number) => `${x > 0 ? '+' : x < 0 ? '−' : '±'}${virgule(Math.abs(x))} kg`
 
 /**
  * Poids face au poids visé : ce qu'il reste (kg, signé), le rythme qu'il faut tenir d'ici la fin prévue
@@ -145,4 +149,103 @@ export function avancePoids(phase: Phase, actuel: number, vise: number, aujourdh
 /** Corrige la date d'une étape (ex. sèche commencée en fait lundi dernier). */
 export function deplacer(frise: EtapeObjectifs[], de: string, vers: string): EtapeObjectifs[] {
   return tri([...frise.filter((e) => e.depuis !== vers || e.depuis === de)].map((e) => (e.depuis === de ? { ...e, depuis: vers } : e)))
+}
+
+// --- Phases en blocs : en cours (modifiable par une étape datée d'aujourd'hui), à venir (modifiables librement), passées (figées) ---
+
+const plusJours = (iso: string, n: number) => new Date(Date.parse(iso + 'T12:00:00') + n * JOUR).toISOString().slice(0, 10)
+const joursEntre = (a: string, b: string) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / JOUR)
+export const finApres = (debut: string, semaines: number) => plusJours(debut, semaines * 7)
+
+/** Étapes d'une phase : celles qui suivent son début tant que la phase ne change pas. */
+function etapesDe(frise: EtapeObjectifs[], debut: string) {
+  const t = tri(frise)
+  const i = t.findIndex((e) => e.depuis === debut)
+  const res: EtapeObjectifs[] = []
+  for (let k = i; k >= 0 && k < t.length && t[k].phase === t[i].phase; k++) res.push(t[k])
+  return res
+}
+/** Début de ce qui suit la phase (autre phase, ou arrêt), s'il y en a. */
+const apres = (frise: EtapeObjectifs[], debut: string) => {
+  const l = etapesDe(frise, debut)
+  return tri(frise).find((e) => e.depuis > l[l.length - 1].depuis)?.depuis
+}
+const enPlace = (frise: EtapeObjectifs[], debut: string, f: (e: EtapeObjectifs) => EtapeObjectifs) => {
+  const siens = new Set(etapesDe(frise, debut).map((e) => e.depuis))
+  return tri(frise.map((e) => (siens.has(e.depuis) ? f(e) : e)))
+}
+/** Décale de `jours` les étapes à partir de `date` (phases à venir qui suivent une phase allongée, raccourcie ou supprimée). */
+const decaler = (frise: EtapeObjectifs[], date: string, jours: number) =>
+  jours ? tri(frise.map((e) => (e.depuis >= date ? { ...e, depuis: plusJours(e.depuis, jours), ...(e.finPrevue && { finPrevue: plusJours(e.finPrevue, jours) }) } : e))) : frise
+
+/**
+ * Durée d'une phase (en semaines depuis son début ; undefined = sans fin). La phase en cours change par une
+ * étape d'aujourd'hui (le passé n'est jamais réécrit) ; les phases à venir qui la suivaient glissent avec elle.
+ */
+export function dureePhase(frise: EtapeObjectifs[], debut: string, semaines: number | undefined, aujourdhui: string): EtapeObjectifs[] {
+  const ancienne = etapesDe(frise, debut).at(-1)?.finPrevue
+  const suite = apres(frise, debut)
+  const fin = semaines ? finApres(debut, semaines) : undefined
+  const f = debut <= aujourdhui ? modifier(frise, aujourdhui, { finPrevue: fin }) : enPlace(frise, debut, (e) => ({ ...e, finPrevue: fin }))
+  return suite && suite > aujourdhui && fin && fin > aujourdhui && ancienne === suite ? decaler(f, suite, joursEntre(suite, fin)) : f
+}
+
+/** Change la date de début d'une phase en gardant sa durée : elle et les suivantes glissent ensemble. */
+export const deplacerPhase = (frise: EtapeObjectifs[], debut: string, vers: string) => decaler(frise, debut, joursEntre(debut, vers))
+
+/** Variation de poids visée sur une phase (kg, signée ; undefined = aucune). */
+export const ecartPhase = (frise: EtapeObjectifs[], debut: string, ecart: number | undefined, aujourdhui: string) =>
+  debut <= aujourdhui ? modifier(frise, aujourdhui, { ecartVise: ecart }) : enPlace(frise, debut, (e) => ({ ...e, ecartVise: ecart }))
+
+/** Type d'une phase à venir (sèche, maintien, prise). */
+export const typePhase = (frise: EtapeObjectifs[], debut: string, phase: Phase) => enPlace(frise, debut, (e) => ({ ...e, phase }))
+
+/** Nouvelle phase à la suite de la dernière (qui doit avoir une fin prévue). */
+export function ajouterApres(frise: EtapeObjectifs[], phase: Phase, semaines: number, base: Partial<Record<Muscle, number>> = {}): EtapeObjectifs[] {
+  const derniere = periodes(frise).at(-1)
+  if (!derniere?.finPrevue) return frise
+  return modifier(frise, derniere.finPrevue, { phase, finPrevue: finApres(derniere.finPrevue, semaines) }, base)
+}
+
+/** Supprime une phase à venir ; celles d'après avancent d'autant. */
+export function supprimerPhase(frise: EtapeObjectifs[], debut: string): EtapeObjectifs[] {
+  const suite = apres(frise, debut)
+  const siens = new Set(etapesDe(frise, debut).map((e) => e.depuis))
+  const f = frise.filter((e) => !siens.has(e.depuis))
+  return suite ? decaler(f, suite, -joursEntre(debut, suite)) : f
+}
+
+/** La phase en cours s'arrête aujourd'hui : la suivante (s'il y en a une) commence tout de suite, sinon plus de phase. */
+export function terminerPhase(frise: EtapeObjectifs[], debut: string, aujourdhui: string): EtapeObjectifs[] {
+  if (debut >= aujourdhui) return supprimerPhase(frise, debut)
+  const suite = apres(frise, debut)
+  // Une étape d'aujourd'hui (fin ou objectif changés ce matin) laisse la place à la phase suivante.
+  if (suite && suite > aujourdhui) return decaler(frise.filter((e) => e.depuis !== aujourdhui || e.depuis === debut), suite, -joursEntre(aujourdhui, suite))
+  return modifier(frise, aujourdhui, { phase: undefined })
+}
+
+type PeseeSimple = { date: string; poids: number }
+const moyennePoids = (l: PeseeSimple[]) => (l.length ? Math.round((l.reduce((a, p) => a + p.poids, 0) / l.length) * 10) / 10 : null)
+
+/** Poids au début d'une phase : moyenne des pesées de J−3 à J+6, sinon la dernière avant. */
+export function poidsDepart(pesees: PeseeSimple[], debut: string): number | null {
+  const autour = moyennePoids(pesees.filter((p) => p.date >= plusJours(debut, -3) && p.date <= plusJours(debut, 6)))
+  return autour ?? [...pesees].filter((p) => p.date < debut).sort((a, b) => a.date.localeCompare(b.date)).at(-1)?.poids ?? null
+}
+
+/** Moyenne des pesées des 7 jours qui finissent à `date`. */
+export const poidsSemaine = (pesees: PeseeSimple[], date: string) => moyennePoids(pesees.filter((p) => p.date > plusJours(date, -7) && p.date <= date))
+
+/** Rythme d'une variation visée : un mot si c'est trop lent ou trop rapide pour la phase (repères du programme). */
+export function avisRythme(phase: Phase, ecart: number, semaines: number): string | null {
+  const r = ecart / semaines
+  if (phase === 'prise') {
+    if (r < 0.15) return 'un peu lent pour une prise : vise +0,15 à +0,25 kg par semaine'
+    if (r > 0.4) return 'rapide : une partie risque d’être du gras, vise +0,15 à +0,25 kg par semaine'
+  }
+  if (phase === 'seche') {
+    if (r > -0.2) return 'lent pour une sèche : vise −0,3 à −0,7 kg par semaine'
+    if (r < -1) return 'trop rapide : risque de perdre du muscle, vise −0,3 à −0,7 kg par semaine'
+  }
+  return null
 }

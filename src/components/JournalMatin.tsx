@@ -5,7 +5,7 @@ import { db } from '../db'
 import { dateISO, kg } from '../lib/calc'
 import { conseilRepas, meilleureProgression } from '../lib/journal'
 import { CLE_PROFIL, objectifDuJour, type Profil } from '../lib/nutrition'
-import { avancePoids, nomPhase, phaseA } from '../lib/objectifs'
+import { avancePoids, nomPhase, phaseA, poidsDepart } from '../lib/objectifs'
 import type { JourJournal, Seance } from '../types'
 
 const JOUR = 86400000
@@ -29,6 +29,9 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * JOUR))).sortBy('date'), [], [])
   const journal = useLiveQuery(() => db.journal.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 30 * JOUR))).sortBy('date'), [], null)
   const profil = useLiveQuery(() => db.reglages.get(CLE_PROFIL), [], null)
+  const phase = phaseA(catalogue.objectifs, aujourdhui)
+  // Poids au départ de la phase : pour situer l'objectif (± kg) en poids réel.
+  const depart = useLiveQuery(async () => (phase?.ecartVise ? poidsDepart(await db.pesees.toArray(), phase.debut) : null), [phase?.debut, phase?.ecartVise], null)
   const [nuit, setNuit] = useState<number | null>(null)
   if (journal === null || profil === null) return null
 
@@ -36,11 +39,11 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const dHier = journal.find((j) => j.date === hier)
   const noter = noterJournal
 
-  const phase = phaseA(catalogue.objectifs, aujourdhui)
   const pesee = pesees.find((p) => p.date === aujourdhui)
   const semaine = pesees.filter((p) => p.date > dateISO(new Date(Date.now() - 7 * JOUR)))
   const moyenne = semaine.length ? semaine.reduce((a, p) => a + p.poids, 0) / semaine.length : null
-  const vise = phase?.poidsVise && moyenne !== null ? avancePoids(phase.phase, moyenne, phase.poidsVise, aujourdhui, phase.finPrevue) : null
+  const cible = depart !== null && phase?.ecartVise ? Math.round((depart + phase.ecartVise) * 10) / 10 : null
+  const vise = cible !== null && moyenne !== null ? avancePoids(phase!.phase, moyenne, cible, aujourdhui, phase!.finPrevue) : null
   const poids = pesees[pesees.length - 1]?.poids
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
   const objectifHier = objectifDuJour(catalogue.objectifs, hier, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
@@ -60,7 +63,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
           <span>
             ⚖️ {pesee ? <strong>{kg(pesee.poids)} kg ce matin</strong> : 'Pèse-toi ce matin, à jeun'}
             {moyenne !== null && <span className="faible"> · moyenne 7 j {kg(Math.round(moyenne * 10) / 10)} kg</span>}
-            {vise && <span className="faible"> · visé {kg(phase!.poidsVise!)} kg{vise.atteint ? ' ✓' : ` (encore ${vise.reste > 0 ? '+' : '−'}${kg(Math.abs(vise.reste))})`}</span>}
+            {vise && <span className="faible"> · visé {kg(cible!)} kg{vise.atteint ? ' ✓' : ` (encore ${vise.reste > 0 ? '+' : '−'}${kg(Math.abs(vise.reste))})`}</span>}
           </span>
           <span className="muted">›</span>
         </button>

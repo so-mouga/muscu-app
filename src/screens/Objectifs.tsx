@@ -1,46 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
 import { changerObjectifs, type Catalogue } from '../catalogue'
 import { confirmer } from '../components/Dialogues'
 import VolumeMuscles from '../components/VolumeMuscles'
-import { db, setReglage } from '../db'
+import Phases from '../components/Phases'
+import { db } from '../db'
 import ChampNombre from '../components/ChampNombre'
 import { AJUSTEMENT, CLE_PROFIL, objectifDuJour, profilComplet, type Profil } from '../lib/nutrition'
-import { dateCourte, dateISO, kg, semaineType, volumePrevu } from '../lib/calc'
+import { dateISO, kg, semaineType, volumePrevu } from '../lib/calc'
 import { BONUS_PRIORITE, nomCycle, volumeDefaut } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { avancePoids, CLE_OBJECTIFS, deplacer, nomPhase, objectifsA, PHASES, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
+import { nomPhase, objectifsA } from '../lib/objectifs'
 
-const JOUR = 86400000
-const plusJours = (iso: string, n: number) => dateISO(new Date(Date.parse(iso + 'T12:00:00') + n * JOUR))
-const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
-const DUREES = [8, 12, 16]
-
-/** Partie Objectifs de Progression : phase (sèche, maintien, prise) avec sa durée, volume par muscle, plus tard les calories. */
+/** Partie Objectifs de Progression : phases (sèche, maintien, prise) en blocs, volume par muscle, calories. */
 export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
-  const [voirAvant, setVoirAvant] = useState(false)
-  const frise = catalogue.objectifs
-  const aujourdhui = dateISO()
-  // Phase montrée : celle programmée à l'avance s'il y en a une, sinon celle en cours.
-  const phase = phaseAffichee(frise, aujourdhui)
-  const avant = periodes(frise)
-    .filter((p) => p.fin && p.debut !== phase?.debut)
-    .reverse()
-  // Une phase à venir se modifie à sa date ; sinon, le changement part d'aujourd'hui.
-  const changer = (c: Parameters<typeof changerObjectifs>[1]) => void changerObjectifs(catalogue, c, phase?.aVenir ? phase.debut : aujourdhui)
-  const choisir = (id: Phase | undefined) => {
-    if (id === phase?.phase) return
-    // « Aucune » sur une phase à venir : on l'annule, la phase en cours continue.
-    if (!id && phase?.aVenir) void setReglage(CLE_OBJECTIFS, frise.filter((e) => e.depuis !== phase.debut))
-    else if (id || phase) changer({ phase: id })
-  }
-  // Bornes pour déplacer le début : après l'étape d'avant, avant l'étape suivante (l'avenir est permis).
-  const etapes = frise.map((e) => e.depuis)
-  const k = phase ? etapes.indexOf(phase.debut) : -1
-  const minDebut = k > 0 ? plusJours(etapes[k - 1], 1) : undefined
-  const maxDebut = k >= 0 && k < etapes.length - 1 ? plusJours(etapes[k + 1], -1) : undefined
-  const finie = phase && !phase.aVenir && phase.finPrevue && phase.finPrevue < aujourdhui
-
   const volume = volumePrevu(semaineType(catalogue.actif).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
   const reinitialiser = async () => {
     if (await confirmer('Chaque muscle reprend l’objectif conseillé par l’appli.', { titre: 'Revenir aux objectifs conseillés ?', oui: 'Revenir aux objectifs conseillés' }))
@@ -49,110 +21,7 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
 
   return (
     <div>
-      {phase && finie && (
-        <div className="carte pile rappel-phase">
-          <strong>
-            Ta {nomPhase(phase.phase).toLowerCase()} prévue jusqu’au {jour(phase.finPrevue!)} est finie.
-          </strong>
-          <div className="ligne wrap" style={{ gap: 8 }}>
-            {phase.phase !== 'maintien' && (
-              <button className="btn petit" onClick={() => changer({ phase: 'maintien' })}>
-                Passer en maintien
-              </button>
-            )}
-            <button className="btn petit" onClick={() => changer({ finPrevue: plusJours(phase.finPrevue!, 28) })}>
-              Prolonger de 4 semaines
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="carte pile">
-        <h3>Phase</h3>
-        <div className="segments" role="radiogroup" aria-label="Phase">
-          {[{ id: undefined, court: 'Aucune' }, ...PHASES].map((p) => (
-            <button key={p.court} role="radio" aria-checked={phase?.phase === p.id} className={phase?.phase === p.id ? 'actif' : ''} onClick={() => choisir(p.id)}>
-              {p.court}
-            </button>
-          ))}
-        </div>
-        {phase ? (
-          <>
-            <div className="faible">{PHASES.find((p) => p.id === phase.phase)!.explication}</div>
-            <div>
-              <div className="ligne entre">
-                <strong>
-                  {phase.aVenir ? `Commence le ${dateCourte(phase.debut)}` : `Semaine ${phase.semaine}${phase.total ? ` sur ${phase.total}` : ''}`}
-                </strong>
-                {phase.finPrevue && <span className="faible">jusqu’au {jour(phase.finPrevue)}</span>}
-              </div>
-              {!phase.aVenir && phase.total && (
-                <div className="barre-phase">
-                  <span style={{ width: `${Math.min(100, (phase.semaine / phase.total) * 100)}%` }} />
-                </div>
-              )}
-              {phase.enCours && (
-                <div className="faible" style={{ marginTop: 4 }}>
-                  Jusque-là : {nomPhase(phase.enCours.phase).toLowerCase()} (semaine {phase.enCours.semaine}
-                  {phase.enCours.total ? ` sur ${phase.enCours.total}` : ''}).
-                </div>
-              )}
-            </div>
-            <div className="ligne" style={{ gap: 12 }}>
-              <label className="champ" style={{ flex: 1, minWidth: 0 }}>
-                <span>Début</span>
-                <input
-                  type="date"
-                  value={phase.debut}
-                  min={minDebut}
-                  max={maxDebut}
-                  onChange={(e) => e.target.value && void setReglage(CLE_OBJECTIFS, deplacer(frise, phase.debut, e.target.value))}
-                />
-              </label>
-              <label className="champ" style={{ flex: 1, minWidth: 0 }}>
-                <span>Fin prévue</span>
-                <input type="date" value={phase.finPrevue ?? ''} min={phase.debut} onChange={(e) => changer({ finPrevue: e.target.value || undefined })} />
-              </label>
-            </div>
-            <div className="chips">
-              {DUREES.map((n) => {
-                const fin = plusJours(phase.debut, n * 7)
-                return (
-                  <button key={n} className={phase.finPrevue === fin ? 'actif' : ''} onClick={() => changer({ finPrevue: fin })}>
-                    {n} semaines
-                  </button>
-                )
-              })}
-              <button className={!phase.finPrevue ? 'actif' : ''} onClick={() => changer({ finPrevue: undefined })}>
-                Sans fin prévue
-              </button>
-            </div>
-            <div className="faible">Le début peut être dans le futur (ex. lundi prochain) : la phase est alors prévue, et visible dans le calendrier du Journal.</div>
-            <PoidsVise phase={phase.phase} vise={phase.poidsVise} finPrevue={phase.finPrevue} onChange={(v) => changer({ poidsVise: v })} />
-          </>
-        ) : (
-          <div className="faible">Choisis ta phase : le Bilan s’en servira pour lire tes perfs et ton poids (une baisse de force n’a pas le même sens en sèche qu’en prise). Tu pourras la faire commencer plus tard.</div>
-        )}
-        {avant.length > 0 && (
-          <>
-            <button type="button" className="groupe-repli" onClick={() => setVoirAvant(!voirAvant)} aria-expanded={voirAvant}>
-              <span>
-                Phases précédentes <span className="faible">({avant.length})</span>
-              </span>
-              <span className="muted">{voirAvant ? '▾' : '▸'}</span>
-            </button>
-            {voirAvant &&
-              avant.map((p) => (
-                <div key={p.debut} className="ligne-mesure">
-                  <span>{nomPhase(p.phase)}</span>
-                  <span className="faible">
-                    {jour(p.debut)} → {jour(p.fin!)} · {Math.max(1, Math.round((Date.parse(p.fin!) - Date.parse(p.debut)) / (7 * JOUR)))} sem.
-                  </span>
-                </div>
-              ))}
-          </>
-        )}
-      </div>
+      <Phases catalogue={catalogue} />
 
       <div className="carte">
         <h3>Volume par semaine</h3>
@@ -172,33 +41,6 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
 
       <CaloriesVisees catalogue={catalogue} />
     </div>
-  )
-}
-
-/** Poids visé à la fin de la phase, face à la moyenne des 7 derniers jours. */
-function PoidsVise({ phase, vise, finPrevue, onChange }: { phase: Phase; vise?: number; finPrevue?: string; onChange: (v: number | undefined) => void }) {
-  const aujourdhui = dateISO()
-  const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(plusJours(aujourdhui, -6)).toArray(), [aujourdhui], [])
-  const moyenne = pesees.length ? Math.round((pesees.reduce((a, p) => a + p.poids, 0) / pesees.length) * 10) / 10 : null
-  const a = vise && moyenne !== null ? avancePoids(phase, moyenne, vise, aujourdhui, finPrevue) : null
-  return (
-    <>
-      <div className="ligne entre">
-        <span>Poids visé à la fin</span>
-        <span className="ligne" style={{ gap: 6 }}>
-          <ChampNombre valeur={vise} placeholder="—" onChange={(v) => onChange(v ? Math.round(v * 10) / 10 : undefined)} />
-          <span className="faible">kg</span>
-        </span>
-      </div>
-      {a && (
-        <div className="faible">
-          {a.atteint
-            ? `Atteint : ${kg(moyenne!)} kg en moyenne sur 7 jours 🎉`
-            : `${kg(moyenne!)} kg en moyenne sur 7 jours : encore ${a.reste > 0 ? '+' : '−'}${kg(Math.abs(a.reste))} kg${a.parSemaine !== null ? `, soit ${a.parSemaine > 0 ? '+' : '−'}${kg(Math.abs(a.parSemaine))} kg par semaine d’ici le ${jour(finPrevue!)}` : ''}.`}
-        </div>
-      )}
-      {vise && moyenne === null && <div className="faible">Pèse-toi cette semaine pour voir où tu en es.</div>}
-    </>
   )
 }
 

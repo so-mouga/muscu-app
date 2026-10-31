@@ -2561,6 +2561,21 @@ button.semaine-bilan.cliquable {
 .rappel-phase {
   border: 1px solid var(--alerte);
 }
+.bloc-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--bord);
+}
+.bloc-phase.en-cours {
+  border-style: solid;
+  background: var(--surface-2);
+}
+.bloc-phase .point-phase {
+  display: inline-block;
+}
 
 /* Calendrier : séances prévues (cercle pointillé), déload dans la couleur des finisseurs */
 .grille-mois .jour.prevu {
