@@ -1,4 +1,4 @@
-import type { Exercice, Muscle, SeanceModele } from '../types'
+import type { SeanceModele } from '../types'
 
 /** Mouvement d'échauffement général (mobilité, cardio léger), fait avant la séance. */
 export interface MouvementEchauffement {
@@ -35,27 +35,12 @@ export const MOUVEMENTS: MouvementEchauffement[] = [
 /** `liste` : la bibliothèque et les mouvements ajoutés par l'utilisateur. */
 export const mouvement = (id: string, liste = MOUVEMENTS) => liste.find((m) => m.id === id)
 
-const HAUT: Muscle[] = ['pecs', 'dos', 'trapezes', 'epaule_avant', 'epaule_laterale', 'epaule_arriere', 'biceps', 'triceps', 'avant_bras']
-const BAS: Muscle[] = ['quadriceps', 'ischios', 'fessiers', 'adducteurs', 'mollets', 'lombaires']
-
 /**
- * Échauffement proposé d'après les muscles principaux des exercices de la séance (les abdos ne
- * comptent pas) : haut du corps, bas du corps ou mixte, 6 à 7 mouvements, environ 6-8 min.
+ * Mouvements prévus pour une séance : seulement ceux choisis par l'utilisateur. Rien par défaut,
+ * pas de proposition automatique (`undefined` ou `'aucun'` = pas d'échauffement).
  */
-export function echauffementAuto(muscles: Muscle[]): string[] {
-  const haut = muscles.filter((m) => HAUT.includes(m)).length
-  const bas = muscles.filter((m) => BAS.includes(m)).length
-  const total = haut + bas
-  if (total && bas / total < 0.25) return ['cardio', 'moulinets', 'passages', 'ecartes_elastique', 'rotations_externes', 'thoracique']
-  if (total && haut / total < 0.25) return ['cardio', 'balances_jambes', 'chevilles', 'hanches_9090', 'pont_fessier', 'fentes_rotation', 'squat_tenu']
-  return ['cardio', 'moulinets', 'passages', 'balances_jambes', 'fentes_rotation', 'squat_tenu']
-}
-
-/** Mouvements prévus pour une séance, selon son réglage. */
-export function echauffementDe(m: SeanceModele, exo: (id: string) => Exercice): string[] {
-  if (m.echauffement === 'aucun') return []
-  if (Array.isArray(m.echauffement)) return m.echauffement
-  return echauffementAuto(m.exercices.map((p) => exo(p.exoId).muscle))
+export function echauffementDe(m: SeanceModele): string[] {
+  return Array.isArray(m.echauffement) ? m.echauffement : []
 }
 
 /** Durée totale approximative, en secondes. */

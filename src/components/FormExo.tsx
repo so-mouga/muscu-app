@@ -171,7 +171,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         on={compose}
         onChange={setCompose}
         label="Exercice composé"
-        aide="Plusieurs articulations (développé, rowing, squat…). Active le suivi de l’e1RM."
+        aide="Composé : plusieurs articulations bougent ensemble (développé, rowing, squat, soulevé de terre). Ta force y est suivie par une charge maximale estimée, et on lui donne plus de repos. Isolation (interrupteur coupé) : une seule articulation (curl, élévation latérale, extension de jambes), suivie par ta meilleure série."
       />
       <label className="champ">
         <span>Réglages machine / consignes</span>

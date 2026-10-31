@@ -8,7 +8,6 @@ import { hausse, suggestionPour } from '../lib/progression'
 import { nomPhase, phaseAffichee } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
-import FormActivite from '../components/FormActivite'
 import JournalMatin from '../components/JournalMatin'
 import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
@@ -80,7 +79,6 @@ export default function Accueil({
   const [ouvert, setOuvert] = useState<string | null>(null)
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(null)
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
-  const [activite, setActivite] = useState(false)
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
     try {
@@ -168,7 +166,7 @@ export default function Accueil({
   const etat = cycle && etatCycle(cycle)
   const contexte: ContexteCycle | undefined =
     cycle && etat ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.fini && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
-  const lancer = (m?: SeanceModele) => demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m, catalogue.exo) : [])
+  const lancer = (m?: SeanceModele) => demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
   const bandeauCycleVisible = !!(cycle && etat && (etat.fini || etat.deload || etat.pause || etat.n <= 0))
   const sousTitreProg =
     cycle && etat && etat.n >= 1 && !etat.fini
@@ -290,9 +288,6 @@ export default function Accueil({
               Autre séance
             </button>
           )}
-          <button className="btn" onClick={() => setActivite(true)}>
-            + Activité
-          </button>
           {variante && proposee === duJour && (
             <button className="btn" onClick={() => voir(variante)}>
               🏠 Pas de salle
@@ -396,7 +391,6 @@ export default function Accueil({
       )}
 
 
-      {activite && <FormActivite onFermer={() => setActivite(false)} />}
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

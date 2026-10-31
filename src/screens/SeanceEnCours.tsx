@@ -120,7 +120,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const surEchauffement = idx === -1 || echauffementActif(seance)
 
   // Quand l'échauffement se termine (tout coché, « Passer », 1re série), aller au 1er exercice. Une fois
-  // fini, on peut toujours y revenir par la pastille 🔥 : seul le passage actif → fini fait avancer.
+  // fini, on peut toujours y revenir par la pastille 🤸 : seul le passage actif → fini fait avancer.
   const echauffementAvant = useRef(echauffementActif(seance))
   useEffect(() => {
     const actif = echauffementActif(seance)
@@ -402,11 +402,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     <div className="pills" ref={pills} onScroll={marquerDebord}>
       {avecEchauffement && (
         <button
-          className={(surEchauffement ? 'actif ' : '') + (!echauffementActif(seance) ? 'fait ' : 'en-cours')}
+          className={(surEchauffement ? 'actif ' : '') + (!echauffementActif(seance) ? 'fait echauffement-fini' : 'en-cours')}
           onClick={() => setIdx(-1)}
-          aria-label="Échauffement"
+          aria-label="Échauffement (terminé, le revoir)"
         >
-          🔥
+          🤸
         </button>
       )}
       {plans.map((p, i) => {
@@ -446,16 +446,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       </div>
       <div className="focus-boutons">
-        <button className="btn petit" onClick={() => (enCours >= 0 && setIdx(enCours), setFocus(false))}>
+        {/* Pendant l'échauffement : on y reste (pas de saut vers un exercice, pas de « Machine prise »). */}
+        <button className="btn petit" onClick={() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false))}>
           ☰ Vue liste
         </button>
-        {enCours >= 0 && (
+        {enCours >= 0 && !echauffementActif(seance) && (
           <button className="btn petit" onClick={() => (setIdx(enCours), setMachinePrise(true))}>
             Machine prise
           </button>
         )}
         <button className="btn petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
-          Terminer
+          Fin de séance
         </button>
       </div>
     </div>
@@ -703,11 +704,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </span>
           </button>
           <button className="btn" onClick={() => ouvrirFin(true)}>
-            Terminer
+            Fin de séance
           </button>
         </div>
         {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
-        {pastilles}
+        {!echauffementActif(seance) && pastilles}
         {!surEchauffement && enCours >= 0 && enCours !== idx && (
           <div className="legende-pills">
             <span>

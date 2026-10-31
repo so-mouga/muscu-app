@@ -1,11 +1,14 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import { confirmer } from '../components/Dialogues'
+import { db } from '../db'
 import { nomMuscle } from '../components/ChoixExo'
 import { MODES } from '../components/FormExo'
 import Courbe from '../components/Courbe'
 import IconeMuscle from '../components/IconeMuscle'
 import { Consignes } from '../components/InfosExo'
 import { consigne } from '../data/consignes'
-import { MUSCLES } from '../data/exercices'
+import { EXERCICES, MUSCLES } from '../data/exercices'
 import { chargeTexte, dateCourte, duree, e1rm, enTemps, kg, kgSouleves, qte, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, Seance } from '../types'
 import { Aide } from '../components/Cycle'
@@ -54,6 +57,17 @@ export function Detail({
   onDelier: (id: string) => void
 }) {
   const [onglet, setOnglet] = useState<Onglet>('stats')
+  // Exercice de base modifié par l'utilisateur (sa version est enregistrée par-dessus) : on peut revenir à l'original.
+  const modifie = useLiveQuery(async () => !exo.perso && !!EXERCICES[exo.id] && !!(await db.exercices.get(exo.id)), [exo.id, exo.perso], false)
+  const revenirOriginal = async () => {
+    if (
+      await confirmer(`Nom, muscles, matériel, pas de charge et consignes reprennent les valeurs de l’appli${exo.image ? ', et ta photo est retirée' : ''}. Ton historique ne change pas.`, {
+        titre: 'Revenir à l’original ?',
+        oui: 'Revenir à l’original',
+      })
+    )
+      await db.exercices.delete(exo.id)
+  }
   const temps = enTemps(exo)
   const secondaires = exo.secondaires?.map((x) => x.muscle) ?? []
   const unite1rm = exo.mode === 'par_main' ? 'kg/main' : 'kg'
@@ -132,6 +146,15 @@ export function Detail({
           </button>
         )}
       </div>
+
+      {modifie && (
+        <div className="ligne entre bandeau-copie carte" style={{ gap: 8 }}>
+          <span className="faible">Tu as modifié cet exercice de base.</span>
+          <button className="btn petit" onClick={() => void revenirOriginal()}>
+            ↺ Revenir à l’original
+          </button>
+        </div>
+      )}
 
       <div className="carte fiche-tete">
         {exo.image ? (

@@ -35,7 +35,7 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
   const ids = e.ids.filter((id) => mouvement(id, liste))
   const nbFaits = ids.filter((id) => e.faits.includes(id)).length
   const tousFaits = nbFaits === ids.length
-  // Revenu par la pastille 🔥 une fois la séance commencée : on consulte, on ne recommence pas.
+  // Revenu par la pastille 🤸 une fois la séance commencée : on consulte, on ne recommence pas.
   const revoir = !echauffementActif(seance)
   const cocher = (id: string) =>
     void majSeance(seance.id, (s) => {
@@ -98,47 +98,41 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
   )
 }
 
-/** Réglage de l'échauffement d'une séance (éditeur) : interrupteur, résumé, choix des mouvements dans une fenêtre. */
-export function ReglageEchauffement({ modele, exo, onChange }: { modele: SeanceModele; exo: (id: string) => Exercice; onChange: (v: SeanceModele['echauffement']) => void }) {
+/** Réglage de l'échauffement d'une séance (éditeur) : coupé par défaut ; activé, on choisit ses mouvements dans une liste. */
+export function ReglageEchauffement({ modele, onChange }: { modele: SeanceModele; exo?: (id: string) => Exercice; onChange: (v: SeanceModele['echauffement']) => void }) {
   const [choix, setChoix] = useState(false)
   const liste = useMouvements()
-  const actif = modele.echauffement !== 'aucun'
-  const ids = echauffementDe(modele, exo).filter((id) => mouvement(id, liste))
+  const actif = Array.isArray(modele.echauffement)
+  const ids = echauffementDe(modele).filter((id) => mouvement(id, liste))
   return (
     <div className="carte pile">
-      <Interrupteur on={actif} onChange={(v) => onChange(v ? undefined : 'aucun')} label="Échauffement avant la séance" aide={actif ? undefined : 'Les séries de chauffe de chaque exercice restent.'} />
+      <Interrupteur
+        on={actif}
+        onChange={(v) => {
+          onChange(v ? [] : undefined)
+          if (v) setChoix(true)
+        }}
+        label="Échauffement avant la séance"
+        aide={actif ? undefined : 'Des mouvements à cocher avant la 1re série. Les séries de chauffe de chaque exercice restent, elles, toujours là.'}
+      />
       {actif && (
         <>
-          <div className="faible">
-            {ids.length ? `${ids.map((id) => mouvement(id, liste)!.nom).join(' · ')} (≈ ${minutesDe(ids, liste)})` : 'Aucun mouvement choisi.'}
-            {modele.echauffement === undefined && ' — proposé d’après les muscles de la séance.'}
-          </div>
+          <div className="faible">{ids.length ? `${ids.map((id) => mouvement(id, liste)!.nom).join(' · ')} (≈ ${minutesDe(ids, liste)})` : 'Aucun mouvement choisi.'}</div>
           <button type="button" className="btn" onClick={() => setChoix(true)}>
-            Choisir les mouvements
+            {ids.length ? 'Modifier les mouvements' : 'Choisir les mouvements'}
           </button>
         </>
       )}
-      {choix && <ChoixMouvements modele={modele} ids={ids} liste={liste} onChange={onChange} onFermer={() => setChoix(false)} />}
+      {choix && <ChoixMouvements ids={ids} liste={liste} onChange={onChange} onFermer={() => setChoix(false)} />}
     </div>
   )
 }
 
-function ChoixMouvements({
-  modele,
-  ids,
-  liste,
-  onChange,
-  onFermer,
-}: {
-  modele: SeanceModele
-  ids: string[]
-  liste: MouvementEchauffement[]
-  onChange: (v: SeanceModele['echauffement']) => void
-  onFermer: () => void
-}) {
+/** Choix des mouvements : une liste par zone, avec le dessin, la quantité et les consignes (ⓘ). */
+function ChoixMouvements({ ids, liste, onChange, onFermer }: { ids: string[]; liste: MouvementEchauffement[]; onChange: (v: SeanceModele['echauffement']) => void; onFermer: () => void }) {
   const [ajout, setAjout] = useState<MouvementEchauffement['zone'] | null>(null)
+  const [ouvert, setOuvert] = useState<string | null>(null)
   useRetour(true, onFermer)
-  // Toucher un mouvement fige la liste : on part de celle proposée d'après les muscles.
   const basculer = (id: string) => onChange(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id])
   const supprimer = async (m: MouvementEchauffement) => {
     if (!(await confirmer(`Supprimer « ${m.nom} » de tes mouvements ?`, { oui: 'Supprimer', danger: true }))) return
@@ -154,31 +148,47 @@ function ChoixMouvements({
           {ids.length} choisi{ids.length > 1 ? 's' : ''} · ≈ {minutesDe(ids, liste)}
         </div>
         {ZONES.map(([z, nom]) => (
-          <div key={z}>
-            <div className="faible" style={{ margin: '4px 0' }}>
-              {nom}
-            </div>
-            <div className="chips">
-              {liste
-                .filter((m) => m.zone === z)
-                .map((m) => (
-                  <span key={m.id} className="chip-groupe">
-                    <button type="button" className={ids.includes(m.id) ? 'actif' : ''} onClick={() => basculer(m.id)}>
-                      {ids.includes(m.id) ? '✓ ' : ''}
-                      {m.nom}
+          <div key={z} className="echauffement">
+            <h3 style={{ margin: '8px 0 4px' }}>{nom}</h3>
+            {liste
+              .filter((m) => m.zone === z)
+              .map((m) => {
+                const choisi = ids.includes(m.id)
+                return (
+                  <div key={m.id} className={'mouvement' + (choisi ? ' choisi' : '')}>
+                    <button type="button" className="mouvement-ligne" onClick={() => basculer(m.id)} aria-pressed={choisi}>
+                      <span className="case">{choisi ? '✓' : ''}</span>
+                      <PictoEchauffement id={m.id} taille={44} />
+                      <span className="mouvement-texte">
+                        <strong>{m.nom}</strong>
+                        {m.quantite && <span className="faible">{m.quantite}</span>}
+                      </span>
                     </button>
-                    {m.perso && (
-                      <button type="button" className="chip-suppr" onClick={() => void supprimer(m)} aria-label={`Supprimer ${m.nom}`}>
+                    {m.perso ? (
+                      <button type="button" className="btn-infos" onClick={() => void supprimer(m)} aria-label={`Supprimer ${m.nom}`}>
                         ×
                       </button>
+                    ) : (
+                      m.consignes.length > 0 && (
+                        <button type="button" className="btn-infos" onClick={() => setOuvert(ouvert === m.id ? null : m.id)} aria-expanded={ouvert === m.id} aria-label={`Comment faire : ${m.nom}`}>
+                          {ouvert === m.id ? '×' : 'i'}
+                        </button>
+                      )
                     )}
-                  </span>
-                ))}
-              <button type="button" className="chip-ajout" onClick={() => setAjout(z)}>
-                + Ajouter
-              </button>
-            </div>
-            {ajout === z && (
+                    {ouvert === m.id && (
+                      <div className="mouvement-detail">
+                        <PictoEchauffement id={m.id} taille={120} />
+                        <ul className="consignes">
+                          {m.consignes.map((c) => (
+                            <li key={c}>{c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            {ajout === z ? (
               <NouveauMouvement
                 zone={z}
                 onAnnuler={() => setAjout(null)}
@@ -188,14 +198,13 @@ function ChoixMouvements({
                   setAjout(null)
                 }}
               />
+            ) : (
+              <button type="button" className="btn discret petit lien-action" onClick={() => setAjout(z)}>
+                + Ajouter un mouvement
+              </button>
             )}
           </div>
         ))}
-        {modele.echauffement !== undefined && (
-          <button type="button" className="btn discret plein" onClick={() => onChange(undefined)}>
-            ↺ Reprendre la proposition d’après les muscles
-          </button>
-        )}
         <button className="btn primaire plein" onClick={onFermer}>
           OK
         </button>
