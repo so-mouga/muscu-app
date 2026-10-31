@@ -9,15 +9,17 @@ import { nomPhase, phaseA } from '../lib/objectifs'
 import type { JourJournal, Seance } from '../types'
 
 const JOUR = 86400000
-const heures = (h: number) => `${Math.floor(h)} h${h % 1 ? ` ${String(Math.round((h % 1) * 60)).padStart(2, '0')}` : ''}`
-const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
+export const heures = (h: number) => `${Math.floor(h)} h${h % 1 ? ` ${String(Math.round((h % 1) * 60)).padStart(2, '0')}` : ''}`
+export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
   ['ok', '✓ Dans l’objectif'],
   ['trop', 'Trop'],
   ['pasAssez', 'Pas assez'],
 ]
 
-/**
- * Carte « Aujourd'hui » de l'accueil : pesée, sommeil de la nuit, calories de la veille (un appui
+/** Relu en base : sommeil et calories notés coup sur coup ne s'écrasent pas. */
+export const noterJournal = (date: string, c: Partial<JourJournal>) => db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
+
+/** de l'accueil : pesée, sommeil de la nuit, calories de la veille (un appui
  * chacun, tout facultatif), l'assiette du jour selon la phase et un vrai progrès. Ce qui est noté va
  * dans la table `journal`, pour le Bilan.
  */
@@ -32,8 +34,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
 
   const duJour = journal.find((j) => j.date === aujourdhui)
   const dHier = journal.find((j) => j.date === hier)
-  // Relu en base : sommeil et calories notés coup sur coup ne s'écrasent pas.
-  const noter = (date: string, c: Partial<JourJournal>) => db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
+  const noter = noterJournal
 
   const phase = phaseA(catalogue.objectifs, aujourdhui)
   const pesee = pesees.find((p) => p.date === aujourdhui)

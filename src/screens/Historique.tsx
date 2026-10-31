@@ -8,7 +8,8 @@ import { dateISO, duree, estDure, kg } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
-import type { Activite, Reglage, Seance, Serie } from '../types'
+import type { Activite, JourJournal, Reglage, Seance, Serie } from '../types'
+import { CALORIES, heures, noterJournal } from '../components/JournalMatin'
 import FormActivite from '../components/FormActivite'
 import { kcalActivite, typeActivite } from '../data/activites'
 import Bilan from './Bilan'
@@ -62,6 +63,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   const [dateActivite, setDateActivite] = useState<string | undefined>(undefined)
   const mesuresJour = useLiveQuery(() => db.mesures.toArray(), [], [])
   const peseesJour = useLiveQuery(() => db.pesees.toArray(), [], [])
+  const journalJour = useLiveQuery(() => db.journal.get(jourChoisi), [jourChoisi])
   const records = useMemo(() => (terminees ? recordsParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
   const mieux = useMemo(() => (terminees ? mieuxParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
@@ -132,6 +134,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             activites={activites.filter((x) => x.date === jourChoisi)}
             pesee={peseesJour.find((x) => x.date === jourChoisi)?.poids}
             mesure={mesuresJour.find((x) => x.date === jourChoisi)}
+            journal={journalJour}
             records={records}
             mieux={mieux}
             poids={poids?.poids}
@@ -255,6 +258,47 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
   )
 }
 
+/** Sommeil de la nuit d'avant et calories du jour : vus et corrigés ici, enregistrés à chaque appui. */
+function NotesDuJour({ date, journal }: { date: string; journal?: JourJournal }) {
+  const sommeil = journal?.sommeil
+  const noter = (c: Partial<JourJournal>) => void noterJournal(date, c)
+  return (
+    <>
+      <div className="ligne-jour">
+        <span>😴 Sommeil</span>
+        {sommeil === undefined ? (
+          <button className="btn petit" onClick={() => noter({ sommeil: 7.5 })}>
+            + Noter
+          </button>
+        ) : (
+          <span className="ligne" style={{ gap: 6 }}>
+            <button className="btn petit" aria-label="Moins" onClick={() => noter({ sommeil: Math.max(0, sommeil - 0.5) })}>
+              −
+            </button>
+            <strong style={{ minWidth: 56, textAlign: 'center' }}>{heures(sommeil)}</strong>
+            <button className="btn petit" aria-label="Plus" onClick={() => noter({ sommeil: Math.min(14, sommeil + 0.5) })}>
+              +
+            </button>
+            <button className="btn petit discret" aria-label="Effacer le sommeil" onClick={() => noter({ sommeil: undefined })}>
+              ✕
+            </button>
+          </span>
+        )}
+      </div>
+      <div className="ligne-jour calories-hier">
+        <span>🍽 Calories</span>
+        <div className="chips">
+          {CALORIES.map(([id, nom]) => (
+            <button key={id} className={journal?.calories === id ? 'actif' : ''} onClick={() => noter({ calories: journal?.calories === id ? undefined : id })}>
+              {nom}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
 /** Le jour choisi en court : ses séances (records, exos en progrès), activités, poids et mesures. Le détail s'ouvre en touchant. */
 function JourChoisi({
   date,
@@ -264,6 +308,7 @@ function JourChoisi({
   activites,
   pesee,
   mesure,
+  journal,
   records,
   mieux,
   poids,
@@ -280,6 +325,8 @@ function JourChoisi({
   activites: Activite[]
   pesee?: number
   mesure?: { valeurs: Record<string, number> }
+  /** Sommeil et calories notés ce jour-là. */
+  journal?: JourJournal
   records: Record<string, number>
   mieux: Record<string, number>
   poids?: number
@@ -330,6 +377,7 @@ function JourChoisi({
           <span className="faible">{pluriel(nbMesures, 'mesure')}</span>
         </div>
       )}
+      {date <= dateISO() && <NotesDuJour date={date} journal={journal} />}
       {date <= dateISO() && (
         <button className="btn discret petit lien-action" onClick={onAjouter}>
           + Ajouter une activité ce jour-là
