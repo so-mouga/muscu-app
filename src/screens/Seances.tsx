@@ -72,6 +72,20 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
   const [lancer, setLancer] = useState(false)
+  const [onglet, setOnglet] = useState<'programmes' | 'seances'>(() => {
+    try {
+      return (localStorage.getItem('onglet_seances') as 'programmes' | 'seances') || 'programmes'
+    } catch {
+      return 'programmes'
+    }
+  })
+
+  const changerOnglet = (o: 'programmes' | 'seances') => {
+    setOnglet(o)
+    try {
+      localStorage.setItem('onglet_seances', o)
+    } catch {}
+  }
 
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
   const fermer = (f?: (pile: Vue[]) => Vue[]) =>
@@ -123,91 +137,116 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
       <div className="entete">
         <h1>Programmes</h1>
       </div>
-      {catalogue.cycle ? (
-        (() => {
-          const e = etatCycle(catalogue.cycle)
-          return (
-            <button className="liste-btn bandeau-cycle" style={{ borderColor: 'var(--accent)' }} onClick={() => ouvrir({ type: 'cycle' })}>
-              <span>
-                <span className="faible">Cycle en cours</span>
-                <strong>🔁 {nomCycle(catalogue.cycle)}</strong>
-                <span className="faible">
-                  {e.fini ? 'terminé : voir le bilan' : e.n <= 0 ? 'commence la semaine prochaine' : e.pause ? 'semaine en pause' : `semaine ${e.n}/${e.total}${e.deload ? ' · 🧘 déload' : ''}`}
-                </span>
-              </span>
-              <span className="muted">›</span>
-            </button>
-          )
-        })()
-      ) : (
-        <div className="carte pile">
-          <div className="ligne entre">
-            <strong>Pas de cycle en cours</strong>
-            <Aide texte={AIDE_CYCLE} />
-          </div>
-          <div className="faible">Lance ton programme pour 6 semaines avec un déload à la fin : l’appli suit les semaines et allège le déload toute seule.</div>
-          <button className="btn primaire plein" onClick={() => setLancer(true)}>
-            Lancer un cycle
-          </button>
-        </div>
-      )}
-      {lancer && <LancerCycle catalogue={catalogue} onFermer={() => setLancer(false)} />}
-      {catalogue.programmes.map((p) => {
-        const seances = p.seances.filter((e) => catalogue.modele(e.modeleId))
-        const jours = seances.filter((e) => e.jour).sort((a, b) => a.jour! - b.jour!)
-        return (
-          <button key={p.id} className="liste-btn" style={p.id === catalogue.actif.id ? { borderColor: 'var(--accent)' } : undefined} onClick={() => ouvrirProgramme(p)}>
-            <span>
-              <strong>{p.nom}</strong> {p.id === catalogue.actif.id && <span className="pastille accent">actif</span>}
-              <div className="faible">
-                {seances.length} séance{seances.length > 1 ? 's' : ''}
-                {jours.length > 0 && ' · ' + jours.map((e) => jourCourt(e.jour)).join(', ')}
-              </div>
-            </span>
-            <span className="muted">›</span>
-          </button>
-        )
-      })}
-      <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
-        + Nouveau programme
-      </button>
 
-      <div className="ligne entre" style={{ marginBottom: 10 }}>
-        <h2>Bibliothèque de séances</h2>
+      <div className="segments" role="tablist">
+        <button
+          role="tab"
+          aria-selected={onglet === 'programmes'}
+          className={onglet === 'programmes' ? 'actif' : ''}
+          onClick={() => changerOnglet('programmes')}
+        >
+          Programmes ({catalogue.programmes.length})
+        </button>
+        <button
+          role="tab"
+          aria-selected={onglet === 'seances'}
+          className={onglet === 'seances' ? 'actif' : ''}
+          onClick={() => changerOnglet('seances')}
+        >
+          Séances ({catalogue.modeles.length})
+        </button>
       </div>
-      <button className="btn primaire plein" style={{ marginBottom: 12 }} onClick={() => nouvelleSeance()}>
-        + Nouvelle séance
-      </button>
-      {[...catalogue.modeles]
-        .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
-        .map((m) => {
-          const progs = utilisations(m)
-          return (
-            <button key={m.id} className="liste-btn" onClick={() => ouvrirSeance(m)}>
-              <span>
-                <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
-                <div className="faible">
-                  {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {dureeTexte(m, terminees)}
-                  {m.varianteDe ? ` · variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : ''}
-                  {progs.length ? ` · ${progs.join(', ')}` : ' · dans aucun programme'}
-                </div>
-              </span>
-              <span className="muted">›</span>
-            </button>
-          )
-        })}
-      {masquees.length > 0 && (
-        <div className="carte pile" style={{ marginTop: 16 }}>
-          <div className="faible">Séances préchargées supprimées</div>
-          {masquees.map((m) => (
-            <div key={m.id} className="ligne entre">
-              <span>{m.nom}</span>
-              <button className="btn petit" onClick={() => db.modeles.delete(m.id)}>
-                Restaurer
+
+      {onglet === 'programmes' && (
+        <>
+          {catalogue.cycle ? (
+            (() => {
+              const e = etatCycle(catalogue.cycle)
+              return (
+                <button className="liste-btn bandeau-cycle" style={{ borderColor: 'var(--accent)' }} onClick={() => ouvrir({ type: 'cycle' })}>
+                  <span>
+                    <span className="faible">Cycle en cours</span>
+                    <strong>🔁 {nomCycle(catalogue.cycle)}</strong>
+                    <span className="faible">
+                      {e.fini ? 'terminé : voir le bilan' : e.n <= 0 ? 'commence la semaine prochaine' : e.pause ? 'semaine en pause' : `semaine ${e.n}/${e.total}${e.deload ? ' · 🧘 déload' : ''}`}
+                    </span>
+                  </span>
+                  <span className="muted">›</span>
+                </button>
+              )
+            })()
+          ) : (
+            <div className="carte pile">
+              <div className="ligne entre">
+                <strong>Pas de cycle en cours</strong>
+                <Aide texte={AIDE_CYCLE} />
+              </div>
+              <div className="faible">Lance ton programme pour 6 semaines avec un déload à la fin : l’appli suit les semaines et allège le déload toute seule.</div>
+              <button className="btn primaire plein" onClick={() => setLancer(true)}>
+                Lancer un cycle
               </button>
             </div>
-          ))}
-        </div>
+          )}
+          {lancer && <LancerCycle catalogue={catalogue} onFermer={() => setLancer(false)} />}
+          {catalogue.programmes.map((p) => {
+            const seances = p.seances.filter((e) => catalogue.modele(e.modeleId))
+            const jours = seances.filter((e) => e.jour).sort((a, b) => a.jour! - b.jour!)
+            return (
+              <button key={p.id} className="liste-btn" style={p.id === catalogue.actif.id ? { borderColor: 'var(--accent)' } : undefined} onClick={() => ouvrirProgramme(p)}>
+                <span>
+                  <strong>{p.nom}</strong> {p.id === catalogue.actif.id && <span className="pastille accent">actif</span>}
+                  <div className="faible">
+                    {seances.length} séance{seances.length > 1 ? 's' : ''}
+                    {jours.length > 0 && ' · ' + jours.map((e) => jourCourt(e.jour)).join(', ')}
+                  </div>
+                </span>
+                <span className="muted">›</span>
+              </button>
+            )
+          })}
+          <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
+            + Nouveau programme
+          </button>
+        </>
+      )}
+
+      {onglet === 'seances' && (
+        <>
+          <button className="btn primaire plein" style={{ marginBottom: 12 }} onClick={() => nouvelleSeance()}>
+            + Nouvelle séance
+          </button>
+          {[...catalogue.modeles]
+            .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
+            .map((m) => {
+              const progs = utilisations(m)
+              return (
+                <button key={m.id} className="liste-btn" onClick={() => ouvrirSeance(m)}>
+                  <span>
+                    <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
+                    <div className="faible">
+                      {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {dureeTexte(m, terminees)}
+                      {m.varianteDe ? ` · variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : ''}
+                      {progs.length ? ` · ${progs.join(', ')}` : ' · dans aucun programme'}
+                    </div>
+                  </span>
+                  <span className="muted">›</span>
+                </button>
+              )
+            })}
+          {masquees.length > 0 && (
+            <div className="carte pile" style={{ marginTop: 16 }}>
+              <div className="faible">Séances préchargées supprimées</div>
+              {masquees.map((m) => (
+                <div key={m.id} className="ligne entre">
+                  <span>{m.nom}</span>
+                  <button className="btn petit" onClick={() => db.modeles.delete(m.id)}>
+                    Restaurer
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
