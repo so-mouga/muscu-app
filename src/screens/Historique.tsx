@@ -11,7 +11,7 @@ import { suggestionPour } from '../lib/progression'
 import type { Activite, JourJournal, Reglage, Seance, Serie } from '../types'
 import { CALORIES, heures, noterJournal } from '../components/JournalMatin'
 import FormActivite from '../components/FormActivite'
-import { kcalActivite, typeActivite } from '../data/activites'
+import { typeActivite } from '../data/activites'
 import Bilan from './Bilan'
 import Corps from './Corps'
 import Objectifs from './Objectifs'
@@ -54,7 +54,6 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const activites = useLiveQuery(() => db.activites.orderBy('date').reverse().toArray(), [], [])
-  const poids = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
   /** Activité ouverte (ou 'nouvelle'). */
   const [activite, setActivite] = useState<Activite | 'nouvelle' | null>(null)
   /** Jour choisi dans le calendrier (aujourd'hui par défaut). */
@@ -137,7 +136,6 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             journal={journalJour}
             records={records}
             mieux={mieux}
-            poids={poids?.poids}
             onSeance={(id) => onDetail(id)}
             onActivite={setActivite}
             onAjouter={() => (setDateActivite(jourChoisi), setActivite('nouvelle'))}
@@ -311,7 +309,6 @@ function JourChoisi({
   journal,
   records,
   mieux,
-  poids,
   onSeance,
   onActivite,
   onAjouter,
@@ -329,7 +326,6 @@ function JourChoisi({
   journal?: JourJournal
   records: Record<string, number>
   mieux: Record<string, number>
-  poids?: number
   onSeance: (id: string) => void
   onActivite: (a: Activite) => void
   onAjouter: () => void
@@ -346,7 +342,7 @@ function JourChoisi({
         <LigneSeance key={s.id} seance={s} records={records[s.id] ?? 0} mieux={mieux[s.id] ?? 0} onOuvrir={() => onSeance(s.id)} />
       ))}
       {activites.map((a) => (
-        <LigneActivite key={a.id} activite={a} poids={poids} onOuvrir={() => onActivite(a)} />
+        <LigneActivite key={a.id} activite={a} onOuvrir={() => onActivite(a)} />
       ))}
       {prevu?.pause && <div className="faible ligne-jour">Semaine en pause dans le cycle.</div>}
       {prevu?.seances.map((m) => (
@@ -410,7 +406,7 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
   )
 }
 
-function LigneActivite({ activite, poids, onOuvrir }: { activite: Activite; poids?: number; onOuvrir: () => void }) {
+function LigneActivite({ activite, onOuvrir }: { activite: Activite; onOuvrir: () => void }) {
   const t = typeActivite(activite.type)
   return (
     <button className="ligne-jour" onClick={onOuvrir}>
@@ -420,7 +416,7 @@ function LigneActivite({ activite, poids, onOuvrir }: { activite: Activite; poid
         </strong>
         <span className="faible">
           {' '}
-          · {duree(activite.duree * 60000)} · intensité {activite.intensite}/10 · ≈ {kcalActivite(activite, poids)} kcal
+          · {duree(activite.duree * 60000)} · intensité {activite.intensite}/10
         </span>
       </span>
       <span className="muted">✎</span>

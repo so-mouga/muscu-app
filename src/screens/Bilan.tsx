@@ -52,8 +52,11 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
   const cibles = catalogue.ciblesA(fin)
   const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycle && `Cycle « ${nomCycle(cycle)} » (${cycle.programme.nom}), semaine ${Math.max(1, etatCycle(cycle).n)}/${cycle.semaines}${cycle.priorites?.length ? `, priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
   const prevues = catalogue.planning.length
-  const phaseFin = phaseA(catalogue.objectifs, fin)?.phase
+  const phaseEnCours = phaseA(catalogue.objectifs, fin)
+  const phaseFin = phaseEnCours?.phase
   const a = analyser(donnees, debut, fin, prevues, phaseFin)
+  // La phase a commencé pendant la période : on ne la juge que depuis son début.
+  const depuisPhase = phaseEnCours && phaseEnCours.debut > debut ? analyser(donnees, phaseEnCours.debut, fin, prevues, phaseFin) : undefined
   const longueur = Math.round((Date.parse(fin) - Date.parse(a.debut)) / JOUR)
   const [debutAvant, finAvant] =
     periode === 'semaine'
@@ -62,7 +65,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
   const avant = analyser(donnees, debutAvant, finAvant, prevues, phaseA(catalogue.objectifs, finAvant)?.phase)
   const comparable = avant.seances > 0
   const enCours = periode === 'semaine' && aujourdhui < decaler(lundi(), 6)
-  const retenir = aRetenir(a, comparable ? avant : null, cibles, enCours, phaseFin)
+  const retenir = aRetenir(a, comparable ? avant : null, cibles, enCours, phaseFin, depuisPhase)
   const volMuscles = vueMuscles === 'prevu' ? prevuMuscles : a.volume
 
   const partager = async () => {
@@ -112,7 +115,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
       <div className="carte">
         <h3 style={{ marginBottom: 10 }}>Assiduité et travail</h3>
         <div className="tuiles">
-          <Tuile valeur={a.prevues ? `${a.seances}/${a.prevues}` : String(a.seances)} label={a.prevues ? 'séances faites / prévues' : 'séances'} n={a.seances} m={avant.seances} comparable={comparable} />
+          <Tuile valeur={a.prevues ? `${a.faites}/${a.prevues}` : String(a.seances)} label={a.prevues ? `séances faites / prévues${a.enPlus ? ` · +${a.enPlus} en plus` : ''}` : 'séances'} n={a.seances} m={avant.seances} comparable={comparable} />
           <Tuile valeur={a.temps ? duree(a.temps) : '0'} label="d’entraînement" n={a.temps} m={avant.temps} comparable={comparable} texteAvant={avant.temps ? duree(avant.temps) : '0'} />
           <Tuile valeur={String(a.dures)} label={a.dures > 1 ? 'séries dures' : 'série dure'} n={a.dures} m={avant.dures} comparable={comparable} />
           <Tuile valeur={kg(Math.round(a.tonnage))} label="kg soulevés" n={a.tonnage} m={avant.tonnage} comparable={comparable} texteAvant={kg(Math.round(avant.tonnage))} />

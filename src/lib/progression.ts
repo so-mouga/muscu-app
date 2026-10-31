@@ -231,19 +231,41 @@ const aFourchette = (plan: ExoPlan) => plan.series.some((x) => x.repsMin < x.rep
  * l'applique ou non. `historique` : séries de l'exercice par séance, la plus récente en premier.
  */
 export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Suggestion | null {
-  if (enTemps(exo) || !aFourchette(plan) || !historique.some((h) => h.length)) return null
+  if (enTemps(exo) || !historique.some((h) => h.length)) return null
   const s = suggere(exo, plan, historique)
   const bas = plan.series[0].repsMin
   const haut = plan.series[0].repsMax
+  const b = bilan(historique.find((h) => h.length)!, plan)
+  // Série ratée (sous le bas, à l'effort visé) : viser le bas plutôt que refaire le score raté.
+  if (b?.sous && s.decision !== 'baisser') {
+    const p = pareil(exo, plan, historique)
+    const reps = p.reps.map((r) => Math.max(r, bas))
+    if (reps.some((r, i) => r !== p.reps[i]))
+      return { decision: 'consolider', charges: p.charges, reps, message: `Sous ${bas} reps aujourd’hui : même charge, vise ${bas}. Si ça se répète, baisse un peu.` }
+  }
+  if (!aFourchette(plan)) return null
   if (s.decision === 'augmenter') return { ...s, message: `Toutes tes séries ont atteint ${haut} reps : monte la charge, les reps repartent à ${bas}.` }
   if (s.decision === 'plus_une_rep') return { ...s, message: `Même charge, une rep de plus. Tu monteras la charge quand toutes les séries atteindront ${haut}.` }
   if (s.decision === 'baisser') return { ...s, message: `Deux séances de suite sous ${bas} reps : baisse un peu pour repartir propre.` }
   // Haut atteint mais montée trop forte d'un coup (ou matériel au max) : le dire plutôt que se taire.
-  const b = historique.find((h) => h.length) && bilan(historique.find((h) => h.length)!, plan)
   if (s.decision === 'consolider' && b && b.top && b.rpeOk && b.garde) {
     const saut = s.message.match(/mais (.+) : confirme/)
     return { ...s, message: saut ? `Haut de la fourchette atteint, mais ${saut[1]} d’un coup : refais ${haut} reps sur toutes les séries pour confirmer, puis monte.` : s.message }
   }
+  return null
+}
+
+/**
+ * Pourquoi on refait pareil quand il n'y a pas de conseil (exercice avec fourchette) : effort plus
+ * dur que prévu ou série d'échec trop courte. Null si rien à expliquer.
+ */
+export function raisonPareil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): string | null {
+  if (enTemps(exo) || !aFourchette(plan)) return null
+  const derniere = historique.find((h) => h.length)
+  const b = derniere && bilan(derniere, plan)
+  if (!b) return null
+  if (!b.garde) return `Série d’échec trop courte (moins de ${plan.series[0].repsMin - 3} reps) : refais pareil avant de monter.`
+  if (!b.rpeOk) return `Plus dur que prévu (${b.ecartMoyen > 0.5 + EPS ? `RPE +${nombre(Math.round(b.ecartMoyen * 2) / 2)} en moyenne` : 'une série bien au-dessus du RPE visé'}) : refais pareil pour consolider avant de monter.`
   return null
 }
 

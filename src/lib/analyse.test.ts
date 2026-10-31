@@ -76,6 +76,12 @@ describe('analyse d’une période', () => {
     expect(court.semaines).toHaveLength(3)
     expect(court.prevues).toBe(12)
   })
+  it('assiduité par semaine : les séances en plus ne rattrapent pas une semaine sautée', () => {
+    const charge = [seance('a', '2026-10-05', [50]), seance('b', '2026-10-06', [50]), seance('c', '2026-10-07', [50]), seance('d', '2026-10-19', [50])]
+    const x = analyser(donnees(charge), '2026-10-05', '2026-10-25', 2)
+    expect([x.faites, x.enPlus, x.prevues]).toEqual([3, 1, 6])
+    expect(aRetenir(x, null, cibles()).join('\n')).toContain('3 séances sur 6 prévues (+1 en plus)')
+  })
   it('compare à la dernière séance avant la période sur 1 semaine et signale les douleurs', () => {
     const avecDouleur = [
       ...seances.slice(0, 3),
@@ -134,8 +140,15 @@ describe('calories et sommeil dans la lecture', () => {
     ({ seances: 8, progressions: [{ pct: 1 }, { pct: 2 }], poids: { debut: 80, fin: 80.2, semaines: 4 }, calories: cal }) as unknown as Analyse
 
   it('sèche, poids immobile mais calories tenues : l’objectif est trop haut', () => {
-    expect(lecturePhase(base({ ok: 6, trop: 1, pasAssez: 0 }), 'seche')[0]).toMatch(/objectif est sans doute trop haut/)
-    expect(lecturePhase(base({ ok: 2, trop: 3, pasAssez: 0 }), 'seche')[0]).toMatch(/3 jours au-dessus/)
+    expect(lecturePhase(base({ ok: 6, trop: 1, pasAssez: 0 }), 'seche')[0]).toMatch(/objectif est peut-être trop haut/)
+    expect(lecturePhase(base({ ok: 2, trop: 3, pasAssez: 0 }), 'seche')[0]).toMatch(/3 jours notés au-dessus/)
+  })
+  it('phase commencée en cours de période : jugée seulement depuis son début', () => {
+    const a = { ...base({ ok: 0, trop: 0, pasAssez: 0 }), douleurs: [], prevues: null, volume: {}, stagnations: [], mesures: [], records: [], rpe: null, energie: null, sommeil: null } as unknown as Analyse
+    const debutPhase = { ...a, progressions: [], poids: { debut: 80, fin: 80.2, semaines: 1 } } as Analyse
+    const t = aRetenir(a, null, cibles(), true, 'seche', debutPhase).join('\n')
+    expect(t).not.toMatch(/ne baisse pas/)
+    expect(t).toMatch(/pas encore assez de données depuis le début de la phase/)
   })
   it('sommeil court signalé dans « À retenir »', () => {
     const a = { ...base({ ok: 0, trop: 0, pasAssez: 0 }), douleurs: [], prevues: null, volume: {}, stagnations: [], mesures: [], records: [], rpe: null, energie: null, sommeil: { moyenne: 6, nuits: 5 } } as unknown as Analyse

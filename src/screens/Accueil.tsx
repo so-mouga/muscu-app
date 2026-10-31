@@ -262,17 +262,24 @@ export default function Accueil({
             </div>
           </>
         ) : (
-          <div>Semaine complète 💪</div>
+          <>
+            <div>Semaine complète 💪 Tout ce que tu fais en plus est du bonus.</div>
+            <button className="btn primaire grand" onClick={() => setChoix(true)}>
+              Démarrer une séance
+            </button>
+          </>
         )}
-        <div className="ligne wrap" style={{ justifyContent: 'space-around', borderTop: '1px solid var(--bord)', paddingTop: 6, marginTop: 4 }}>
-          <button className="btn discret petit lien-action" onClick={() => setChoix(true)}>
-            Autre séance ›
-          </button>
-          <button className="btn discret petit lien-action" onClick={() => setActivite(true)}>
+        <div className="ligne actions-accueil">
+          {proposee && (
+            <button className="btn" onClick={() => setChoix(true)}>
+              Autre séance
+            </button>
+          )}
+          <button className="btn" onClick={() => setActivite(true)}>
             + Activité
           </button>
           {variante && proposee === duJour && (
-            <button className="btn discret petit lien-action" onClick={() => voir(variante)}>
+            <button className="btn" onClick={() => voir(variante)}>
               🏠 Pas de salle
             </button>
           )}

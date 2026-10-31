@@ -11,11 +11,11 @@ import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { ecartSerie, lireChauffe, volumeParMuscle, calories, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
+import { ecartSerie, lireChauffe, volumeParMuscle, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
-import { conseil, hausse, pareil, suggestionPour, type Suggestion } from '../lib/progression'
+import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
@@ -352,7 +352,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     for (let k = nbFaites(p.exoId); k < t; k++) a += 60 + reposApres(p, k, t)
     return a
   }, 0)
-  const kcal = calories(maintenant - seance.debut, seance.poidsCorps)
 
   const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance 💪'
   const reposRestant = minuteur ? Math.max(0, Math.ceil(resteRepos(minuteur, maintenant))) : 0
@@ -418,7 +417,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
           </div>
           <div className="faible">
-            ⏱ {chronoSeance(maintenant - seance.debut)} · 🔥 ≈ {kcal} kcal
+            ⏱ {chronoSeance(maintenant - seance.debut)}
           </div>
         </div>
       </div>
@@ -888,7 +887,7 @@ function FinSeance({
     const p = seance.exercices.find((x) => x.exoId === exoId)!
     const exo = exoAvecReglages(catalogue.exo(exoId), reglages)
     const histo = historiqueDe(avecCelleCi, exoId)
-    return { exo, s: pareil(exo, p, histo), conseil: conseil(exo, p, histo) }
+    return { exo, s: pareil(exo, p, histo), conseil: conseil(exo, p, histo), raison: raisonPareil(exo, p, histo) }
   }
   const faits = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
 
@@ -936,7 +935,7 @@ function FinSeance({
       </div>
       <div className="carte">
         <h2>{seance.nom}</h2>
-        <ResumeSeance seance={seance} explication exo={catalogue.exo} />
+        <ResumeSeance seance={seance} exo={catalogue.exo} />
       </div>
       {seance.series.length > 0 && (
         <div className="carte">
@@ -964,7 +963,7 @@ function FinSeance({
             catalogue={catalogue}
             basExo={(exo) => {
               if (seance.deload) return null
-              const { s, conseil: c } = suggestionDe(exo.id)
+              const { s, conseil: c, raison } = suggestionDe(exo.id)
               const o = objectifs[exo.id]
               const charges = o?.charges ?? s.charges
               const reps = o?.reps ?? s.reps
@@ -980,7 +979,7 @@ function FinSeance({
                       {cibleTexte(exo, charges, reps)}
                     </strong>
                     <span className="faible" style={{ display: 'block' }}>
-                      {!o ? 'Comme aujourd’hui.' : monte ? '↑ Tu as prévu de monter.' : '✎ Fixé par toi.'}
+                      {!o ? ((!c && raison) || 'Comme aujourd’hui.') : monte ? '↑ Tu as prévu de monter.' : '✎ Fixé par toi.'}
                     </span>
                   </span>
                   <span className="modifier">✎ Modifier</span>

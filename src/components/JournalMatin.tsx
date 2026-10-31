@@ -10,6 +10,8 @@ import type { JourJournal, Seance } from '../types'
 
 const JOUR = 86400000
 export const heures = (h: number) => `${Math.floor(h)} h${h % 1 ? ` ${String(Math.round((h % 1) * 60)).padStart(2, '0')}` : ''}`
+/** Choix du sommeil en un appui : de 5 h (ou moins) à 9 h (ou plus), par demi-heure jusqu'à 8 h. */
+const HEURES: [number, string][] = [[5, '≤5'], [5.5, '5½'], [6, '6'], [6.5, '6½'], [7, '7'], [7.5, '7½'], [8, '8'], [9, '9+']]
 export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
   ['ok', '✓ Dans l’objectif'],
   ['trop', 'Trop'],
@@ -50,10 +52,8 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const repas = conseilRepas(phase?.phase, entrainement, deload)
   const progres = terminees ? meilleureProgression(terminees, catalogue.exo, phase ? phase.debut : dateISO(new Date(Date.now() - 28 * JOUR))) : null
   const peser = phase?.phase === 'seche' || phase?.phase === 'prise' || pesees.length > 0
-  // Sommeil proposé : la dernière nuit notée, sinon 7 h 30.
-  const habituel = [...journal].reverse().find((j) => j.sommeil !== undefined)?.sommeil ?? 7.5
+  // Sommeil : rien de pré-rempli (un appui distrait noterait une fausse nuit) ; on choisit, ça enregistre.
   const enSaisie = nuit !== null || duJour?.sommeil === undefined
-  const valeurNuit = nuit ?? duJour?.sommeil ?? habituel
 
   return (
     <div className="carte pile journal-matin">
@@ -70,20 +70,15 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
       )}
 
       {enSaisie ? (
-        <div className="ligne-jour">
-          <span>😴 Cette nuit</span>
-          <span className="ligne" style={{ gap: 6 }}>
-            <button className="btn petit" aria-label="Moins" onClick={() => setNuit(Math.max(0, valeurNuit - 0.5))}>
-              −
-            </button>
-            <strong style={{ minWidth: 56, textAlign: 'center' }}>{heures(valeurNuit)}</strong>
-            <button className="btn petit" aria-label="Plus" onClick={() => setNuit(Math.min(14, valeurNuit + 0.5))}>
-              +
-            </button>
-            <button className="btn petit primaire" aria-label="Noter" onClick={() => void noter(aujourdhui, { sommeil: valeurNuit }).then(() => setNuit(null))}>
-              ✓
-            </button>
-          </span>
+        <div className="pile" style={{ gap: 6 }}>
+          <span>😴 Cette nuit, tu as dormi (heures) :</span>
+          <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+            {HEURES.map(([h, txt]) => (
+              <button key={h} className={duJour?.sommeil === h ? 'actif' : ''} onClick={() => void noter(aujourdhui, { sommeil: h }).then(() => setNuit(null))}>
+                {txt}
+              </button>
+            ))}
+          </div>
         </div>
       ) : (
         <button className="ligne-jour" onClick={() => setNuit(duJour!.sommeil!)}>

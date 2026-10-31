@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { aBattre, conseil, hausse, monterMaintenant, pareil, suggere, suggestionPour } from './progression'
+import { aBattre, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
 
 const planDe = (modele: string, exoId: string) => MODELES[modele].exercices.find((e) => e.exoId === exoId)!
 
@@ -226,6 +226,21 @@ describe('conseil de surcharge (proposition, jamais automatique)', () => {
     expect(r?.decision).toBe('consolider')
     expect(r?.reps).toEqual([15, 15, 15])
     expect(r?.message).toMatch(/pour confirmer/)
+  })
+
+  it('série ratée sous le bas → même charge, vise le bas (même sans fourchette)', () => {
+    const bas = plan.series[0].repsMin
+    const r = conseil(EXERCICES.butterfly, plan, [seance(30, `${bas}@8`, `${bas - 3}@10`, `${bas - 4}@10`, '!8@10')])
+    expect(r?.charges.slice(0, 3)).toEqual([30, 30, 30])
+    expect(r?.reps.slice(0, 3)).toEqual([bas, bas, bas])
+    expect(r?.message).toMatch(new RegExp(`vise ${bas}`))
+    expect(conseil(EXERCICES.butterfly, fixe, [seance(30, `${bas - 2}@10`, `${bas - 2}@10`, `${bas - 2}@10`, '!8@10')])?.reps[0]).toBe(bas)
+  })
+
+  it('pas de conseil : la raison est dite', () => {
+    expect(raisonPareil(EXERCICES.butterfly, plan, [seance(30, '14@10', '13@10', '12@10', '!10@10')])).toMatch(/Plus dur que prévu/)
+    expect(raisonPareil(EXERCICES.butterfly, plan, [seance(30, '15@8', '15@8', '15@9', '!8@10')])).toMatch(/échec trop courte/)
+    expect(raisonPareil(EXERCICES.butterfly, plan, [seance(30, '14@8', '13@8', '12@9', '!10@10')])).toBeNull()
   })
 
   it('en séance : 3 reps au-dessus du haut de la fourchette → un cran de plus', () => {

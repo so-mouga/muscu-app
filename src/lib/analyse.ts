@@ -4,7 +4,7 @@ import type { Exercice, Muscle, Seance, Serie } from '../types'
 import { chargeQte, dateISO, e1rm, estDure, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
 import { dureeReelle, meilleureSerie, scoreSerie, semaineDe } from './historique'
-import type { Phase } from './objectifs'
+import { nomPhase, type Phase } from './objectifs'
 import { diagnostic } from './blocages'
 
 const SEMAINE = 7 * 86400000
@@ -26,6 +26,9 @@ export interface Analyse {
   deloads: number
   /** Séances prévues par le programme sur la période (null sans planning). */
   prevues: number | null
+  /** Séances qui comptent face au prévu (plafonnées au prévu de chaque semaine), et celles en plus. */
+  faites: number
+  enPlus: number
   temps: number
   dures: number
   tonnage: number
@@ -157,6 +160,12 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     seances: periode.length,
     deloads: periode.length - travail.length,
     prevues: prevuesParSemaine ? prevuesParSemaine * semaines.length : null,
+    ...(() => {
+      // Par semaine : 5 séances une semaine ne rattrapent pas une semaine sautée.
+      const parSem = semaines.map((l) => periode.filter((s) => semaineDe(s.date) === l).length)
+      if (!prevuesParSemaine) return { faites: periode.length, enPlus: 0 }
+      return { faites: parSem.reduce((a, n) => a + Math.min(n, prevuesParSemaine), 0), enPlus: parSem.reduce((a, n) => a + Math.max(0, n - prevuesParSemaine), 0) }
+    })(),
     temps: periode.reduce((a, s) => a + dureeReelle(s), 0),
     dures: travail.reduce((a, s) => a + s.series.filter(estDure).length, 0),
     tonnage: periode.reduce((a, s) => a + s.series.reduce((b, x) => b + kgSouleves(x, d.exo(x.exoId)), 0), 0),
@@ -191,7 +200,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
  * `avant` : la période précédente de même durée, pour les tendances.
  * `enCours` : la semaine n'est pas terminée (on ne reproche pas les séances ou muscles restants).
  */
-export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscle, number>, enCours = false, phase?: Phase): string[] {
+export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscle, number>, enCours = false, phase?: Phase, depuisPhase?: Analyse): string[] {
   if (a.seances < 2) return ['Pas encore assez de séances sur cette période pour en tirer des conclusions : reviens après quelques séances.']
   const r: string[] = []
   const nom = (m: Muscle) => MUSCLES.find((x) => x.id === m)!.nom
@@ -200,8 +209,15 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
   for (const d of a.douleurs.slice(0, 2))
     r.push(`⚠️ Douleur signalée sur ${d.exo.nom}${d.n > 1 ? ` (${d.n} séances)` : ''} : adapte la charge ou remplace l’exercice si ça persiste.`)
 
-  // Lecture selon la phase : perfs et poids n'ont pas le même sens en sèche et en prise.
-  if (phase) r.push(...lecturePhase(a, phase))
+  // Lecture selon la phase : perfs et poids n'ont pas le même sens en sèche et en prise. On ne juge
+  // que depuis le début de la phase (`depuisPhase`), pas sur des semaines d'une autre phase.
+  if (phase) {
+    const ap = depuisPhase ?? a
+    const lecture = lecturePhase(ap, phase)
+    r.push(...lecture)
+    if (!lecture.length && phase !== 'maintien' && !(ap.poids && ap.poids.semaines >= 2) && ap.progressions.length < 2)
+      r.push(`${nomPhase(phase)} : pas encore assez de données depuis le début de la phase pour juger (il faut 2 semaines de pesées).`)
+  }
 
   // Sommeil court : il explique souvent une baisse de forme avant le programme.
   if (a.sommeil && a.sommeil.nuits >= 3 && a.sommeil.moyenne < 6.5)
@@ -209,8 +225,9 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
 
   // Assiduité
   if (a.prevues) {
-    if (a.seances >= a.prevues) r.push(`Assiduité parfaite : ${a.seances} séances sur ${a.prevues} prévues.`)
-    else if (!enCours && a.seances < a.prevues * 0.75) r.push(`${a.seances} séances sur ${a.prevues} prévues : la régularité compte plus que tout le reste.`)
+    const enPlus = a.enPlus ? ` (+${a.enPlus} en plus)` : ''
+    if (a.faites >= a.prevues) r.push(`Assiduité parfaite : ${a.faites} séances sur ${a.prevues} prévues${enPlus}.`)
+    else if (!enCours && a.faites < a.prevues * 0.75) r.push(`${a.faites} séances sur ${a.prevues} prévues${enPlus} : la régularité compte plus que tout le reste, mieux vaut chaque semaine que des semaines chargées.`)
   }
 
   // Muscles à zéro, puis en retard (les plus en retard d'abord) — seulement une fois la semaine finie
@@ -275,9 +292,9 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
     else if (pctSemaine !== null && pctSemaine >= -0.1)
       r.push(
         tenues
-          ? `En sèche, ton poids ne baisse pas (${kgSem(parSemaine!)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est sans doute trop haut, baisse-le de 150 kcal.`
+          ? `En sèche, ton poids ne baisse pas (${kgSem(parSemaine!)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est peut-être trop haut, essaie 150 kcal de moins.`
           : notes >= 4 && c.trop >= 2
-            ? `En sèche, ton poids ne baisse pas (${kgSem(parSemaine!)}) : ${c.trop} jours au-dessus de l’objectif l’expliquent sans doute.`
+            ? `En sèche, ton poids ne baisse pas (${kgSem(parSemaine!)}) : ${c.trop} jours notés au-dessus de l’objectif peuvent l’expliquer.`
             : `En sèche, mais ton poids ne baisse pas (${kgSem(parSemaine!)}) : réduis un peu ce que tu manges.`
       )
     else if (pctSemaine !== null && force !== null && force > -2) r.push(`Sèche qui marche : ${kgSem(parSemaine!)} et des charges tenues (${forceTxt}).`)
@@ -288,9 +305,9 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
     if (parSemaine < 0.1)
       r.push(
         tenues
-          ? `En prise, ton poids ${constat} (${kgSem(parSemaine)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est sans doute trop bas, monte-le de 100 kcal.`
+          ? `En prise, ton poids ${constat} (${kgSem(parSemaine)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est peut-être trop bas, essaie 100 kcal de plus.`
           : notes >= 4 && c.pasAssez >= 2
-            ? `En prise, ton poids ${constat} (${kgSem(parSemaine)}) : ${c.pasAssez} jours sous l’objectif l’expliquent sans doute.`
+            ? `En prise, ton poids ${constat} (${kgSem(parSemaine)}) : ${c.pasAssez} jours notés sous l’objectif peuvent l’expliquer.`
             : `En prise, mais ton poids ${constat} (${kgSem(parSemaine)}) : mange un peu plus (vise +0,15 à +0,25 kg par semaine).`
       )
     else if (parSemaine > 0.4) r.push(`Tu prends vite (${kgSem(parSemaine)}) : une partie risque d’être du gras, baisse de 100 kcal.`)

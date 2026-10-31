@@ -2688,3 +2688,14 @@ button.semaine-bilan.cliquable {
   align-items: stretch;
   gap: 6px;
 }
+
+/* Accueil : actions secondaires en vrais boutons (cibles tactiles), sous la séance du jour. */
+.actions-accueil {
+  gap: 8px;
+}
+.actions-accueil .btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 6px;
+  white-space: nowrap;
+}

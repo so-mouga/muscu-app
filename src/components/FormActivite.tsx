@@ -1,6 +1,5 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { INTENSITES, kcalActivite, TYPES_ACTIVITE } from '../data/activites'
+import { INTENSITES, TYPES_ACTIVITE } from '../data/activites'
 import { db, uid } from '../db'
 import { dateCourte, dateISO } from '../lib/calc'
 import { useRetour } from '../lib/nav'
@@ -19,7 +18,6 @@ export default function FormActivite({ initial, date: dateInitiale, onFermer }: 
   const [intensite, setIntensite] = useState(initial?.intensite ?? 6)
   const [date, setDate] = useState(initial?.date ?? dateInitiale ?? dateISO())
   const [note, setNote] = useState(initial?.note ?? '')
-  const poids = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
 
   const enregistrer = async () => {
     await db.activites.put({ id: initial?.id ?? uid(), date, type, duree, intensite, note: note.trim() || undefined })
@@ -90,9 +88,6 @@ export default function FormActivite({ initial, date: dateInitiale, onFermer }: 
           <input type="date" value={date} max={dateISO()} onChange={(e) => e.target.value && setDate(e.target.value)} />
         </label>
         <input placeholder="Note (optionnel)" value={note} onChange={(e) => setNote(e.target.value)} />
-        <div className="faible">
-          🔥 ≈ {kcalActivite({ type, duree, intensite }, poids?.poids)} kcal, estimées d’après le sport, l’intensité et {poids ? 'ton poids' : 'un poids moyen'}.
-        </div>
 
         <button className="btn primaire grand" disabled={!(duree > 0)} onClick={enregistrer}>
           ENREGISTRER

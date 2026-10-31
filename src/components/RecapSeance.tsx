@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
-import { calories, chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, POIDS_DEFAUT, kgSouleves, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
+import { chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, kgSouleves, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
 
 /** Durée d'une séance : jusqu'à sa fin, ou jusqu'à maintenant si elle est en cours. */
 export const dureeSeance = (s: Seance) => (s.fin ?? Date.now()) - s.debut
 
-/** Pastilles de bilan d'une séance : durée, calories, séries dures, kg soulevés… */
-export function ResumeSeance({ seance, explication = false, exo }: { seance: Seance; explication?: boolean; exo?: (id: string) => Exercice }) {
+/** Pastilles de bilan d'une séance : durée, séries dures, kg soulevés… */
+export function ResumeSeance({ seance, exo }: { seance: Seance; exo?: (id: string) => Exercice }) {
   const ms = dureeSeance(seance)
   const dures = seance.series.filter(estDure).length
   const tonnage = seance.series.reduce((a, s) => a + kgSouleves(s, exo?.(s.exoId)), 0)
@@ -18,7 +18,6 @@ export function ResumeSeance({ seance, explication = false, exo }: { seance: Sea
     <>
       <div className="ligne wrap" style={{ marginTop: 8 }}>
         <span className="pastille">⏱ {duree(ms)}</span>
-        <span className="pastille">🔥 ≈ {calories(ms, seance.poidsCorps)} kcal</span>
         <span className="pastille">
           {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
         </span>
@@ -26,13 +25,6 @@ export function ResumeSeance({ seance, explication = false, exo }: { seance: Sea
         {finisseurs > 0 && <span className="pastille fin">★ {finisseurs} finisseur(s)</span>}
         {chauffes > 0 && <span className="pastille">{chauffes} échauffement(s)</span>}
       </div>
-      {explication && (
-        <div className="faible" style={{ marginTop: 8 }}>
-          Calories estimées d’après la durée et{' '}
-          {seance.poidsCorps ? `ton poids (${kg(seance.poidsCorps)} kg)` : `un poids de ${POIDS_DEFAUT} kg : note ton poids dans Progression → Corps pour affiner`}. C’est un ordre de
-          grandeur, pas une mesure.
-        </div>
-      )}
     </>
   )
 }

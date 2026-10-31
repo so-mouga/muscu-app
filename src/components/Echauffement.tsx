@@ -49,8 +49,14 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
   return (
     <div className="carte pile echauffement">
       <div className="ligne entre">
-        <h2>Échauffement</h2>
-        <span className="faible">≈ {minutesDe(ids, liste)}</span>
+        <h2>
+          Échauffement <span className="faible">≈ {minutesDe(ids, liste)}</span>
+        </h2>
+        {!tousFaits && (
+          <button className="btn petit" onClick={finir}>
+            Passer ›
+          </button>
+        )}
       </div>
       <div>
         {ids.map((id) => {
