@@ -5,6 +5,7 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
+import ChoixProgramme from '../components/ChoixProgramme'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
 import { copieSeances, etatCycle, nomCycle } from '../lib/cycle'
@@ -70,6 +71,7 @@ async function sauverProgramme(p: Programme, catalogue: Catalogue) {
 export default function Seances({ catalogue }: { catalogue: Catalogue }) {
   const [pile, setPile] = useState<Vue[]>([])
   const masquees = useLiveQuery(() => db.modeles.filter((m) => !!m.supprime).toArray(), [], [])
+  const [voirTypes, setVoirTypes] = useState(false)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
   const [lancer, setLancer] = useState(false)
@@ -208,6 +210,13 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
           <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
             + Nouveau programme
           </button>
+          <button type="button" className="groupe-repli" onClick={() => setVoirTypes(!voirTypes)} aria-expanded={voirTypes}>
+            <span>
+              Programmes tout prêts <span className="faible">· full body, haut / bas…</span>
+            </span>
+            <span className="muted">{voirTypes ? '▾' : '▸'}</span>
+          </button>
+          {voirTypes && <ChoixProgramme catalogue={catalogue} titre="Programmes tout prêts" intro="Choisir un programme le copie dans tes programmes (modifiable) et en fait ton programme actif." onChoisi={() => setVoirTypes(false)} />}
         </>
       )}
 

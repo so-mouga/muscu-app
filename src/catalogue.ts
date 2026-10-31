@@ -2,7 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { EXERCICES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
-import { db, setReglage } from './db'
+import type { ProgrammeType } from './data/programmesTypes'
+import { db, setReglage, uid } from './db'
 import { dateISO } from './lib/calc'
 import { avecPriorites, cibles } from './lib/cycle'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
@@ -52,14 +53,18 @@ export function construireCatalogue(
 ): Catalogue {
   const parId = new Map<string, SeanceModele>(PROGRAMME.map((m) => [m.id, m]))
   for (const m of modelesDb) parId.set(m.id, m)
-  const modeles = [...parId.values()].filter((m) => !m.supprime)
+  const tous = [...parId.values()].filter((m) => !m.supprime)
   const exercices: Record<string, Exercice> = { ...EXERCICES }
   for (const e of exercicesDb) exercices[e.id] = e
 
   // Sans programme enregistré : le planning d'origine (jours portés par les séances) devient le premier programme.
   const programmes: Programme[] = programmesDb.length
     ? programmesDb
-    : [{ id: ID_PROGRAMME_DEFAUT, nom: 'Recompo 4 jours', description: 'Programme de départ', seances: modeles.map((m) => ({ modeleId: m.id, jour: m.jour })) }]
+    : [{ id: ID_PROGRAMME_DEFAUT, nom: 'Recompo 4 jours', description: 'Programme de départ', seances: tous.map((m) => ({ modeleId: m.id, jour: m.jour })) }]
+  // Séances de base (programme Recompo) : dans la bibliothèque seulement si un programme s'en sert ou si l'utilisateur les a touchées.
+  const servent = new Set([...programmes.flatMap((p) => p.seances.map((e) => e.modeleId)), ...(cycle?.modeles ?? []).map((m) => m.id)])
+  const enDb = new Set(modelesDb.map((m) => m.id))
+  const modeles = tous.filter((m) => enDb.has(m.id) || servent.has(m.id) || !PROGRAMME.some((b) => b.id === m.id))
   const modele = (id: string | undefined) => {
     const m = id ? parId.get(id) : undefined
     return m && !m.supprime ? m : undefined
@@ -106,6 +111,25 @@ export function useCatalogue(): Catalogue | null {
         : null,
     [modeles, exercices, programmes, actif, cycles, objectifs]
   )
+}
+
+/**
+ * Choisit un programme tout prêt : ses séances sont copiées chez l'utilisateur (modifiables), le
+ * programme est ajouté et devient le programme actif (sauf pendant un cycle). Recompo pointe vers les
+ * séances de base.
+ */
+export async function installerProgramme(t: ProgrammeType, c: Catalogue): Promise<Programme> {
+  const suffixe = uid().slice(-5)
+  const seances = t.deBase ? t.seances : t.seances.map((m) => ({ ...structuredClone(m), id: `${m.id}_${suffixe}` }))
+  const p: Programme = t.deBase
+    ? (c.programmes.find((x) => x.id === ID_PROGRAMME_DEFAUT) ?? { id: ID_PROGRAMME_DEFAUT, nom: t.nom, description: t.pour, seances: seances.map((m) => ({ modeleId: m.id, jour: m.jour })) })
+    : { id: 'p_' + uid(), nom: t.nom, description: t.pour, seances: seances.map((m) => ({ modeleId: m.id, jour: m.jour })) }
+  await db.transaction('rw', db.modeles, db.programmes, async () => {
+    if (!t.deBase) await db.modeles.bulkPut(seances)
+    await db.programmes.put(p)
+  })
+  if (!c.cycle) await setReglage('programmeActif', p.id)
+  return p
 }
 
 /** Change les objectifs à partir d'une date (aujourd'hui par défaut) : une étape de plus dans la frise. */

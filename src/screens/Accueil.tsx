@@ -17,6 +17,7 @@ import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
+import ChoixProgramme from '../components/ChoixProgramme'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 
@@ -114,6 +115,9 @@ export default function Accueil({
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
+  // Toute première ouverture : pas encore de programme à soi ni de séance, on propose d'en choisir un.
+  const nbProgrammes = useLiveQuery(() => db.programmes.count(), [], null)
+  const premiereFois = nbProgrammes === 0 && terminees?.length === 0
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
 
   const { planning, actif } = catalogue
@@ -209,15 +213,26 @@ export default function Accueil({
                 : `${nomPhase(phase.phase)} · semaine ${phase.semaine}${phase.total ? ` sur ${phase.total}` : ''}`}
             </div>
           )}
-          <button type="button" className="btn discret petit lien-action" style={{ color: 'var(--texte-3)', marginTop: 2 }} onClick={onProgrammes}>
-            {sousTitreProg} ›
-          </button>
+          {!premiereFois && (
+            <button type="button" className="btn discret petit lien-action" style={{ color: 'var(--texte-3)', marginTop: 2 }} onClick={onProgrammes}>
+              {sousTitreProg} ›
+            </button>
+          )}
         </div>
       </div>
 
       {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
 
+      {premiereFois && (
+        <ChoixProgramme
+          catalogue={catalogue}
+          titre="Pour commencer, choisis ton programme"
+          intro="Tu pourras tout modifier ensuite (exercices, séries, jours) dans l’onglet Programmes. Les charges se règlent pendant ta 1re séance."
+        />
+      )}
+
       {/* La séance d'abord : c'est l'action principale de l'écran. */}
+      {!premiereFois && (
       <div className="carte pile">
         {bandeauCycleVisible && cycle && etat && <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />}
         {duJour && faite(duJour) && <div className="pastille ok">✓ {duJour.modele.nom} faite aujourd’hui</div>}
@@ -285,6 +300,7 @@ export default function Accueil({
           )}
         </div>
       </div>
+      )}
 
       {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
       <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />
@@ -324,6 +340,7 @@ export default function Accueil({
         </div>
       )}
 
+      {!premiereFois && (
       <div className="carte">
         <div className="ligne entre" style={{ marginBottom: 10 }}>
           <h3>Cette semaine</h3>
@@ -376,6 +393,7 @@ export default function Accueil({
           </button>
         )}
       </div>
+      )}
 
 
       {activite && <FormActivite onFermer={() => setActivite(false)} />}

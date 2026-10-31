@@ -34,7 +34,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - `src/catalogue.ts` : bibliothèque de base (`data/`) fusionnée avec ce que l'utilisateur a créé ou modifié.
 - `src/screens/` : onglets Accueil, Progression (Bilan, Journal, Corps = poids + mensurations + photos, Objectifs = phase + calories), Programmes (`Seances.tsx`), Exercices, Réglages ; `SeanceEnCours.tsx` pour la séance (vue normale et plein écran).
 - `src/lib/` : calculs purs, testés (`calc`, `progression`, `cycle`, `analyse`, `bilan`, `historique`…). `nav.ts` : retour Android (`useRetour`). `appareil.ts` : vibrations, sons, écran allumé.
-- `src/data/` : exercices et consignes, programme de départ, échauffements, mesures, lexique.
+- `src/data/` : exercices et consignes, programme de base (Recompo, celui de l'utilisateur), programmes tout prêts (`programmesTypes.ts` : Full body 3 jours, Haut / Bas 4 jours, Recompo ; volume vérifié par un test), échauffements, mesures, lexique.
 
 ## Conventions d'interface (validées avec l'utilisateur)
 
@@ -48,6 +48,11 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Exercices de base : « Masquer » (réversible), jamais supprimés. Exercices créés : « Supprimer » (effacés pour de bon s'ils n'ont jamais servi).
 - Couleurs uniquement via les variables CSS de `:root` (`--bg`, `--surface`, `--accent`, `--texte-2`…). Thème sombre.
 - Pas d'illustrations copiées d'autres applis : icônes et pictogrammes maison en SVG.
+
+## Nouvel utilisateur
+
+- Pas de compte. **Première ouverture** (aucun programme enregistré, aucune séance) : l'accueil montre seulement « Pour commencer, choisis ton programme » (`ChoixProgramme`). Choisir copie les séances (ids suffixés) et rend le programme actif (`installerProgramme`). Aussi dans Programmes → « Programmes tout prêts ».
+- Les séances de base (Recompo) n'apparaissent dans la bibliothèque que si un programme s'en sert ou si l'utilisateur les a modifiées.
 
 ## Décisions métier à respecter
 

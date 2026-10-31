@@ -2768,3 +2768,22 @@ button.semaine-bilan.cliquable {
 .minuteur.fini .indice-plein-ecran {
   color: inherit;
 }
+
+/* Programmes tout prêts : une ligne par programme, le bouton à droite. */
+.programme-type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--bord);
+}
+.programme-type > div {
+  flex: 1;
+  min-width: 0;
+}
+.programme-type .pour {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 2px 0;
+}
