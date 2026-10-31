@@ -33,7 +33,10 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
   const liste = useMouvements()
   const e = seance.echauffement!
   const ids = e.ids.filter((id) => mouvement(id, liste))
-  const tousFaits = ids.every((id) => e.faits.includes(id))
+  const nbFaits = ids.filter((id) => e.faits.includes(id)).length
+  const tousFaits = nbFaits === ids.length
+  // Revenu par la pastille 🔥 une fois la séance commencée : on consulte, on ne recommence pas.
+  const revoir = !echauffementActif(seance)
   const cocher = (id: string) =>
     void majSeance(seance.id, (s) => {
       const f = s.echauffement!.faits
@@ -52,11 +55,6 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
         <h2>
           Échauffement <span className="faible">≈ {minutesDe(ids, liste)}</span>
         </h2>
-        {!tousFaits && (
-          <button className="btn petit" onClick={finir}>
-            Passer ›
-          </button>
-        )}
       </div>
       <div>
         {ids.map((id) => {
@@ -92,8 +90,9 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
           )
         })}
       </div>
-      <button className={'btn grand' + (tousFaits ? ' primaire' : '')} onClick={finir}>
-        {tousFaits ? '✓ Échauffé, on attaque' : 'Passer à la séance'}
+      {/* Un seul bouton : son texte suit ce qui est coché (les cases restent visibles dans la séance enregistrée). */}
+      <button className={'btn grand' + (tousFaits || revoir ? ' primaire' : '')} onClick={revoir ? onPasser : finir}>
+        {revoir ? 'Retour à la séance' : tousFaits ? '✓ Échauffé, on attaque' : nbFaits ? `Terminer l’échauffement (${nbFaits}/${ids.length})` : 'Passer l’échauffement'}
       </button>
     </div>
   )

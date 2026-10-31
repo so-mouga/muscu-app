@@ -625,7 +625,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             )}
           </>
         ) : surEchauffement ? (
-          <Echauffement seance={seance} onPasser={() => setIdx(0)} />
+          <Echauffement seance={seance} onPasser={() => setIdx(Math.max(0, enCours))} />
         ) : enCours >= 0 ? (
           // Saisie en plein écran : l'essentiel seulement (exercice, cible, dernière fois, saisie, Valider).
           (() => {
@@ -737,7 +737,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       </div>
 
       {surEchauffement ? (
-        <Echauffement seance={seance} onPasser={() => setIdx(0)} />
+        <Echauffement seance={seance} onPasser={() => setIdx(Math.max(0, enCours))} />
       ) : plan ? (
         <CarteExo
           key={plan.exoId + idx}
