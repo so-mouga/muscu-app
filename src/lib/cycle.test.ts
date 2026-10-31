@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { cibles, deloadMaintenant, prevuLe, etatCycle, lundiDe, mettreEnPause, nouveauCycle, planDeload, suggestionDeload } from './cycle'
+import { cibles, deloadMaintenant, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -16,6 +16,11 @@ const cycle = (x: Partial<Cycle> = {}): Cycle => ({
 })
 
 describe('semaine du cycle', () => {
+  it('nom : le sien, sinon celui du programme', () => {
+    expect(nomCycle(cycle({ nom: 'Bloc bras' }))).toBe('Bloc bras')
+    expect(nomCycle(cycle({ nom: '  ' }))).toBe('P')
+    expect(nomCycle(cycle())).toBe('P')
+  })
   it('compte les semaines depuis le lundi de départ', () => {
     expect(etatCycle(cycle(), '2026-11-02').n).toBe(1)
     expect(etatCycle(cycle(), '2026-11-08').n).toBe(1)

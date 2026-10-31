@@ -191,6 +191,8 @@ export interface Mesure {
  */
 export interface Cycle {
   id: string
+  /** Nom choisi (« Bloc bras hiver ») ; sinon celui du programme. */
+  nom?: string
   programmeId: string
   programme: Programme
   modeles: SeanceModele[]

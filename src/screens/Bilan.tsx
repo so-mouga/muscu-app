@@ -6,6 +6,7 @@ import SilhouetteVolume from '../components/SilhouetteVolume'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
+import { etatCycle, nomCycle } from '../lib/cycle'
 import { analyser, aRetenir, libelleMesure, type Analyse } from '../lib/analyse'
 import { debutPeriode, genererBilan, type DonneesBilan } from '../lib/bilan'
 import { dateCourte, dateISO, duree, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
@@ -48,7 +49,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
 
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
   const cibles = catalogue.ciblesA(fin)
-  const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal }
+  const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycle && `Cycle « ${nomCycle(cycle)} » (${cycle.programme.nom}), semaine ${Math.max(1, etatCycle(cycle).n)}/${cycle.semaines}` }
   const prevues = catalogue.planning.length
   const phaseFin = phaseA(catalogue.objectifs, fin)?.phase
   const a = analyser(donnees, debut, fin, prevues, phaseFin)

@@ -54,6 +54,9 @@ export function lundiDe(c: Cycle, n: number): string {
   }
 }
 
+/** Nom affiché d'un cycle : le sien, sinon celui du programme. */
+export const nomCycle = (c: Cycle) => c.nom?.trim() || c.programme.nom
+
 /** Nouveau cycle, avec une copie du programme et de ses séances. */
 export function nouveauCycle(
   id: string,

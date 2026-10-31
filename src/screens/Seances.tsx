@@ -7,7 +7,7 @@ import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
-import { copieSeances, etatCycle } from '../lib/cycle'
+import { copieSeances, etatCycle, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
@@ -130,7 +130,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
             <button className="liste-btn bandeau-cycle" style={{ borderColor: 'var(--accent)' }} onClick={() => ouvrir({ type: 'cycle' })}>
               <span>
                 <span className="faible">Cycle en cours</span>
-                <strong>🔁 {catalogue.cycle.programme.nom}</strong>
+                <strong>🔁 {nomCycle(catalogue.cycle)}</strong>
                 <span className="faible">
                   {e.fini ? 'terminé : voir le bilan' : e.n <= 0 ? 'commence la semaine prochaine' : e.pause ? 'semaine en pause' : `semaine ${e.n}/${e.total}${e.deload ? ' · 🧘 déload' : ''}`}
                 </span>

@@ -12,7 +12,7 @@ import FormActivite from '../components/FormActivite'
 import JournalMatin from '../components/JournalMatin'
 import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
-import { etatCycle, planDeload } from '../lib/cycle'
+import { etatCycle, nomCycle, planDeload } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
@@ -168,7 +168,7 @@ export default function Accueil({
   const bandeauCycleVisible = !!(cycle && etat && (etat.fini || etat.deload || etat.pause || etat.n <= 0))
   const sousTitreProg =
     cycle && etat && etat.n >= 1 && !etat.fini
-      ? `${cycle.programme.nom} · ${etat.pause ? 'en pause' : `Semaine ${etat.n}/${etat.total}${etat.deload ? ' (déload)' : ''}`}`
+      ? `${nomCycle(cycle)} · ${etat.pause ? 'en pause' : `Semaine ${etat.n}/${etat.total}${etat.deload ? ' (déload)' : ''}`}`
       : actif.nom
   const duresSemaine = semaine.reduce((a, s) => a + s.series.filter(estDure).length, 0)
   const recordsSemaine = terminees

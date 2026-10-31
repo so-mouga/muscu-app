@@ -4,7 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { nomCle } from '../data/mesures'
 import { db, setReglage, uid } from '../db'
 import { dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle } from '../lib/calc'
-import { deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, mettreEnPause, nouveauCycle, type EtatCycle } from '../lib/cycle'
+import { deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, type EtatCycle } from '../lib/cycle'
 import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import type { Cycle, Programme } from '../types'
@@ -41,7 +41,7 @@ export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cy
     return (
       <div className="pile cycle-fini">
         <div>
-          <strong>🎉 Cycle « {cycle.programme.nom} » terminé</strong>
+          <strong>🎉 Cycle « {nomCycle(cycle)} » terminé</strong>
           <div className="faible">{cycle.semaines} semaines. Regarde ce que ça a donné, puis lance le suivant.</div>
         </div>
         <div className="ligne">
@@ -58,7 +58,7 @@ export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cy
     <button className={'liste-btn bandeau-cycle' + (etat.deload ? ' deload' : '')} onClick={onProgrammes}>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span className="ligne entre">
-          <strong>🔁 {cycle.programme.nom}</strong>
+          <strong>🔁 {nomCycle(cycle)}</strong>
           <span className="faible">
             {etat.n <= 0 ? `début le ${debutSemaine(cycle.debut)}` : etat.pause ? 'semaine en pause' : `semaine ${etat.n}/${etat.total}`}
           </span>
@@ -86,6 +86,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
   const [debut, setDebut] = useState(cetteSemaine)
   const [semaines, setSemaines] = useState(cycle?.semaines ?? DUREE_DEFAUT)
   const [deloads, setDeloads] = useState<number[]>(cycle?.deloads ?? [DUREE_DEFAUT])
+  const [nom, setNom] = useState(cycle?.nom ?? '')
   const etat = cycle && etatCycle(cycle)
 
   const changerDuree = (n: number) => {
@@ -96,17 +97,17 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
 
   const enregistrer = async () => {
     if (cycle) {
-      await db.cycles.update(cycle.id, { semaines, deloads: [...deloads].sort((a, b) => a - b) })
+      await db.cycles.update(cycle.id, { nom: nom.trim() || undefined, semaines, deloads: [...deloads].sort((a, b) => a - b) })
       return onFermer()
     }
     const p = catalogue.programmes.find((x) => x.id === progId)!
     const enCours = catalogue.cycle
     if (
       enCours &&
-      !(await confirmer(`Le cycle « ${enCours.programme.nom} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer un nouveau cycle ?', oui: 'Lancer le nouveau cycle' }))
+      !(await confirmer(`Le cycle « ${nomCycle(enCours)} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer un nouveau cycle ?', oui: 'Lancer le nouveau cycle' }))
     )
       return
-    const c = nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b))
+    const c = { ...nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b)), ...(nom.trim() && { nom: nom.trim() }) }
     await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
       if (enCours) await db.cycles.update(enCours.id, { fin: dateISO() })
       await db.cycles.put(c)
@@ -158,6 +159,11 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
             </div>
           </>
         )}
+
+        <label className="champ">
+          <span>Nom du cycle (facultatif)</span>
+          <input type="text" value={nom} maxLength={40} placeholder={cycle?.programme.nom ?? catalogue.programmes.find((x) => x.id === progId)?.nom} onChange={(e) => setNom(e.target.value)} />
+        </label>
 
         <div className="champ">
           <span>Durée</span>
@@ -248,7 +254,7 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
         <div style={{ flex: 1 }}>
           <h2>Cycle en cours</h2>
           <div className="faible">
-            {cycle.programme.nom} · {cycle.semaines} semaines depuis le {debutSemaine(cycle.debut)}
+            {nomCycle(cycle)} · {cycle.semaines} semaines depuis le {debutSemaine(cycle.debut)}
           </div>
         </div>
         <Aide texte={AIDE_CYCLE} />
@@ -393,7 +399,7 @@ export function BilanCycle({ cycle, catalogue, onFermer }: { cycle: Cycle; catal
         <div>
           <h2>Bilan du cycle</h2>
           <div className="faible">
-            {cycle.programme.nom} · depuis le {debutSemaine(cycle.debut)}
+            {nomCycle(cycle)} · depuis le {debutSemaine(cycle.debut)}
             {etat.fini ? '' : ` · ${ecoulees} semaine${ecoulees > 1 ? 's' : ''} écoulée${ecoulees > 1 ? 's' : ''}`}
           </div>
         </div>
