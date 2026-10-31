@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import Anneau from '../components/Anneau'
-import CarteExo, { cibleSerie, Ecart, Editeur, majSeance } from '../components/CarteExo'
+import CarteExo, { cibleSerie, Editeur, majSeance } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif, { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
@@ -519,31 +519,15 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   )
 
   if (focus) {
-    const derniereInfo = (() => {
+    // La série qu'on vient de faire : battue (on le fête), et de quel exercice (pour la corriger s'il est fini).
+    const derniere = (() => {
       if (!derniereSerie) return null
       const i = plans.findIndex((p) => p.exoId === derniereSerie.exoId)
       if (i < 0) return null
       const k = seance.series.filter((x) => x.exoId === derniereSerie.exoId).indexOf(derniereSerie)
       const avant = seance.deload ? undefined : historiqueDe(terminees, derniereSerie.exoId)[0]?.[k]
       const e = avant && ecartSerie(derniereSerie, avant, exos[i])
-      const mieux = e?.sens === 'mieux'
-      return (
-        <div className={'focus-bloc' + (mieux ? ' mieux' : '')}>
-          {mieux && <div className="mieux-titre">↑ {e!.texte} vs la dernière fois 💪</div>}
-          <div className="ligne entre">
-            <span className="faible">Tu viens de faire · {exos[i].nom}</span>
-            <button className="btn discret petit" onClick={() => setCorrige(derniereSerie.id)}>
-              ✎ Corriger
-            </button>
-          </div>
-          <div>
-            <strong>
-              S{k + 1} {serieTexte(exos[i], derniereSerie)}
-            </strong>
-            {avant && !mieux && <Ecart s={derniereSerie} avant={avant} exo={exos[i]} />}
-          </div>
-        </div>
-      )
+      return { i, k, mieux: e?.sens === 'mieux' ? e.texte : null }
     })()
     // L'exercice qu'on vient de finir, quand la suite change de machine : on le signale clairement.
     const exoFini = (() => {
@@ -561,18 +545,23 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const plus = hausse(exo, suggestions[enCours], historiqueDe(terminees, p.exoId)[0], n)
       return (
         <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
-          {exoFini ? <div className="nouvel-exo-titre">✓ {exoFini} terminé · exercice suivant</div> : <div className="faible">Prochaine série</div>}
+          {derniere?.mieux && <div className="mieux-titre">↑ {derniere.mieux} vs la dernière fois 💪</div>}
+          {exoFini ? (
+            <div className="ligne entre">
+              <div className="nouvel-exo-titre">✓ {exoFini} terminé · exercice suivant</div>
+              <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)}>
+                ✎ S{derniere!.k + 1}
+              </button>
+            </div>
+          ) : (
+            <div className="faible">Prochaine série</div>
+          )}
           <div className="ligne entre">
             <h2>{exo.nom}</h2>
             <BoutonInfos onClick={() => setInfos(exo.id)} />
           </div>
-          <div className="ligne wrap" style={{ gap: 6 }}>
-            <span className="pastille accent">
-              Série {n + 1}/{t}
-            </span>
-            {p.finisseur && n === t - 1 && <span className="pastille fin">★ {FINISSEURS[typeFinisseur(p)].nom}</span>}
-          </div>
-          <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} />
+          {p.finisseur && n === t - 1 && <span className="pastille fin">★ {FINISSEURS[typeFinisseur(p)].nom}</span>}
+          <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand">🔥 ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
@@ -616,7 +605,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           correction
         ) : vueRepos ? (
           <>
-            {derniereInfo}
             {prochaine}
             {plans.some((pl, j) => j !== enCours && !estPasse(j) && nbFaites(pl.exoId) < totalDe(j)) && (
               <button className="btn discret plein" onClick={() => setSuite(true)}>
@@ -639,22 +627,20 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               <div className="focus-bloc pile saisie-focus">
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>
-                    <div className="faible">
-                      Série {n + 1}/{t}
-                      {p.finisseur && n === t - 1 ? ` · ★ ${FINISSEURS[typeFinisseur(p)].nom}` : ''}
-                    </div>
+                    {p.finisseur && n === t - 1 && <div className="faible">★ {FINISSEURS[typeFinisseur(p)].nom}</div>}
                     <h2>{exo.nom}</h2>
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
-                <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} />
+                <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
                 {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
-                <div>
-                  <strong className="cible-focus">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</strong>
-                  {plus && <span className="badge-hausse">↑ {plus}</span>}
-                  {derniereFois?.[n] && <div className="faible">Dernière fois : {serieTexte(exo, derniereFois[n])}</div>}
-                  {noteAvant(p.exoId) && !seance.notes[p.exoId] && <div className="faible">📝 La dernière fois : {noteAvant(p.exoId)}</div>}
-                </div>
+                {(derniereFois?.[n] || plus) && (
+                  <div className="faible">
+                    {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n])}</>}
+                    {plus && <span className="badge-hausse"> ↑ {plus}</span>}
+                  </div>
+                )}
+                {noteAvant(p.exoId) && !seance.notes[p.exoId] && <div className="faible">📝 La dernière fois : {noteAvant(p.exoId)}</div>}
                 <Editeur
                   key={`${p.exoId}-${n}-${suggestions[enCours].charges.join()}`}
                   seance={seance}
@@ -1112,14 +1098,25 @@ function FinSeance({
 }
 
 /** Toutes les séries de l'exercice sur une ligne : faites (✓), en cours (→), à venir. */
-function LigneSeries({ exo, faites, total, cible }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string }) {
+function LigneSeries({ exo, faites, total, cible, onCorriger }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void }) {
+  // Toutes les séries de l'exercice, chacune une seule fois : faites (✎ pour corriger), en cours (▶, sa cible est affichée en grand à côté), à venir.
   return (
     <div className="ligne-series">
       {Array.from({ length: total }, (_, k) => {
         const f = faites[k]
+        if (f)
+          return onCorriger ? (
+            <button key={k} className="faite" onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
+              S{k + 1} {serieTexte(exo, f)} ✓ ✎
+            </button>
+          ) : (
+            <span key={k} className="faite">
+              S{k + 1} {chargeQte(exo, f.charge, f.reps)} ✓
+            </span>
+          )
         return (
-          <span key={k} className={f ? 'faite' : k === faites.length ? 'courante' : ''}>
-            S{k + 1} {f ? `${chargeQte(exo, f.charge, f.reps)} ✓` : k === faites.length ? `→ ${cible(k).split(' · ')[0]}` : cible(k).split(' · ')[0]}
+          <span key={k} className={k === faites.length ? 'courante' : ''}>
+            S{k + 1} {k === faites.length ? '▶' : cible(k).split(' · ')[0]}
           </span>
         )
       })}
@@ -1131,7 +1128,8 @@ function LigneSeries({ exo, faites, total, cible }: { exo: Exercice; faites: Ser
 function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPlan; exo: Exercice }) {
   if (!plan.chauffes.length) return null
   return (
-    <div>
+    <div className="chauffes-ligne">
+      <span className="titre">Échauffement</span>
       {plan.chauffes.map((c, i) => {
         const cle = `${exo.id}:${i}`
         const fait = !!seance.chauffes[cle]
@@ -1139,17 +1137,15 @@ function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPla
         return (
           <button
             key={cle}
-            className={'serie-chauffe' + (fait ? ' fait' : '')}
+            className={fait ? 'fait' : ''}
+            aria-pressed={fait}
             onClick={() =>
               void majSeance(seance.id, (x) => {
                 x.chauffes[cle] = !fait
               })
             }
           >
-            <span className="case">{fait ? '✓' : ''}</span>
-            <span>
-              <span className="faible">Échauffement {i + 1}</span> {l ? `${chargeQte(exo, l.charge, l.reps)}` : c}
-            </span>
+            {fait ? '✓' : '☐'} {l ? chargeQte(exo, l.charge, l.reps) : c}
           </button>
         )
       })}

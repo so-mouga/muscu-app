@@ -2373,17 +2373,17 @@ button.semaine-bilan.cliquable {
   gap: 4px 6px;
   font-size: 13px;
 }
-.ligne-series > span {
+.ligne-series > * {
   padding: 2px 7px;
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--texte-3);
   white-space: nowrap;
 }
-.ligne-series > span.faite {
+.ligne-series > .faite {
   color: var(--ok);
 }
-.ligne-series > span.courante {
+.ligne-series > .courante {
   color: var(--accent-texte);
   background: var(--accent);
   font-weight: 700;
@@ -2795,4 +2795,55 @@ a.btn {
   justify-content: center;
   color: var(--texte);
   text-decoration: none;
+}
+
+/* Plein écran, saisie : charge et reps côte à côte, pour que tout tienne sans défiler. */
+.steppers-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.steppers-duo .stepper {
+  grid-template-columns: 40px 1fr 40px;
+  gap: 4px;
+}
+.steppers-duo .stepper button {
+  height: 52px;
+  font-size: 22px;
+}
+.steppers-duo .stepper .valeur input {
+  font-size: 26px;
+}
+/* Échauffements de l'exercice : une seule ligne de petites cases. */
+.chauffes-ligne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.chauffes-ligne .titre {
+  font-size: 13px;
+  color: var(--texte-3);
+}
+.chauffes-ligne button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: 1px dashed var(--bord);
+  background: none;
+  color: var(--texte-2);
+  font-size: 13px;
+}
+.chauffes-ligne button.fait {
+  border-style: solid;
+  border-color: var(--ok);
+  color: var(--ok);
+}
+/* Pastilles des séries : une série faite se touche pour la corriger. */
+.ligne-series button.faite {
+  font: inherit;
+  border: none;
+  cursor: pointer;
 }

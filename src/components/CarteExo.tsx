@@ -560,6 +560,38 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     )
   }
 
+  // Charge et reps : l'un sous l'autre, ou côte à côte en plein écran (compact) pour tout voir sans défiler.
+  const stepperCharge = (
+    <div className="stepper">
+      <button onClick={() => (setCharge(arr(charge - pas)), setChargeTxt(null))}>−</button>
+      <div className="valeur">
+        <input
+          inputMode="decimal"
+          value={chargeTxt ?? kg(charge)}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => {
+            setChargeTxt(e.target.value)
+            const v = parseFloat(e.target.value.replace(',', '.'))
+            if (!isNaN(v)) setCharge(v)
+          }}
+          onBlur={() => setChargeTxt(null)}
+        />
+        <span className="unite">{unite}</span>
+      </div>
+      <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
+    </div>
+  )
+  const stepperReps = (
+    <div className="stepper">
+      <button onClick={() => setReps(Math.max(0, reps - pasQte))}>−</button>
+      <div className="valeur">
+        <input inputMode="numeric" value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
+        <span className="unite">{temps ? 'secondes tenues' : 'reps'}</span>
+      </div>
+      <button onClick={() => setReps(reps + pasQte)}>+</button>
+    </div>
+  )
+
   return (
     <div className="pile">
       {(!compact || edition) && (
@@ -578,24 +610,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </div>
       )}
 
-      <div className="stepper">
-        <button onClick={() => (setCharge(arr(charge - pas)), setChargeTxt(null))}>−</button>
-        <div className="valeur">
-          <input
-            inputMode="decimal"
-            value={chargeTxt ?? kg(charge)}
-            onFocus={(e) => e.target.select()}
-            onChange={(e) => {
-              setChargeTxt(e.target.value)
-              const v = parseFloat(e.target.value.replace(',', '.'))
-              if (!isNaN(v)) setCharge(v)
-            }}
-            onBlur={() => setChargeTxt(null)}
-          />
-          <span className="unite">{unite}</span>
+      {compact ? (
+        <div className="steppers-duo">
+          {stepperCharge}
+          {stepperReps}
         </div>
-        <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
-      </div>
+      ) : (
+        stepperCharge
+      )}
       <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 4px' }}>
         <PuceDisques exoId={exo.id} exoNom={exo.nom} charge={charge} unite={unite} />
       </div>
@@ -628,14 +650,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           ▶ CHRONO · {sugg.reps[i] ?? p.repsMax} s
         </button>
       )}
-      <div className="stepper">
-        <button onClick={() => setReps(Math.max(0, reps - pasQte))}>−</button>
-        <div className="valeur">
-          <input inputMode="numeric" value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
-          <span className="unite">{temps ? 'secondes tenues' : 'reps'}</span>
-        </div>
-        <button onClick={() => setReps(reps + pasQte)}>+</button>
-      </div>
+      {!compact && stepperReps}
       {chronoOuvert && (
         <ChronoTenue
           objectif={sugg.reps[i] ?? p.repsMax}
@@ -665,6 +680,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           <div className="ligne entre faible" style={{ marginTop: 4 }}>
             <span>
               RPE {kg(rpe)} · {RIR[Math.floor(rpe)] ?? ''}
+              {compact && rpe !== p.rpe && <span> · visé {kg(p.rpe)}</span>}
               {rpe > p.rpe + 0.5 && <span style={{ color: 'var(--alerte)' }}> · plus dur que prévu</span>}
             </span>
             <button className="btn discret petit lien-action" onClick={() => setAideRpe(!aideRpe)}>
