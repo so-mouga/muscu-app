@@ -5,7 +5,7 @@ import VolumeMuscles from '../components/VolumeMuscles'
 import { setReglage } from '../db'
 import { dateCourte, dateISO, semaineType, volumePrevu } from '../lib/calc'
 import { volumeDefaut } from '../lib/cycle'
-import { CLE_OBJECTIFS, deplacer, nomPhase, PHASES, periodes, phaseA } from '../lib/objectifs'
+import { CLE_OBJECTIFS, deplacer, nomPhase, PHASES, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
 
 const JOUR = 86400000
 const plusJours = (iso: string, n: number) => dateISO(new Date(Date.parse(iso + 'T12:00:00') + n * JOUR))
@@ -17,37 +17,46 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
   const [voirAvant, setVoirAvant] = useState(false)
   const frise = catalogue.objectifs
   const aujourdhui = dateISO()
-  const actuelle = phaseA(frise, aujourdhui)
+  // Phase montrée : celle programmée à l'avance s'il y en a une, sinon celle en cours.
+  const phase = phaseAffichee(frise, aujourdhui)
   const avant = periodes(frise)
-    .filter((p) => p.fin)
+    .filter((p) => p.fin && p.debut !== phase?.debut)
     .reverse()
-  const changer = (c: Parameters<typeof changerObjectifs>[1]) => void changerObjectifs(catalogue, c)
-  // Bornes pour corriger le début de la phase : après l'étape d'avant, avant l'étape suivante.
+  // Une phase à venir se modifie à sa date ; sinon, le changement part d'aujourd'hui.
+  const changer = (c: Parameters<typeof changerObjectifs>[1]) => void changerObjectifs(catalogue, c, phase?.aVenir ? phase.debut : aujourdhui)
+  const choisir = (id: Phase | undefined) => {
+    if (id === phase?.phase) return
+    // « Aucune » sur une phase à venir : on l'annule, la phase en cours continue.
+    if (!id && phase?.aVenir) void setReglage(CLE_OBJECTIFS, frise.filter((e) => e.depuis !== phase.debut))
+    else if (id || phase) changer({ phase: id })
+  }
+  // Bornes pour déplacer le début : après l'étape d'avant, avant l'étape suivante (l'avenir est permis).
   const etapes = frise.map((e) => e.depuis)
-  const k = actuelle ? etapes.indexOf(actuelle.debut) : -1
+  const k = phase ? etapes.indexOf(phase.debut) : -1
   const minDebut = k > 0 ? plusJours(etapes[k - 1], 1) : undefined
-  const maxDebut = k >= 0 && k < etapes.length - 1 ? plusJours(etapes[k + 1], -1) : aujourdhui
-  const finie = actuelle?.finPrevue && actuelle.finPrevue < aujourdhui
+  const maxDebut = k >= 0 && k < etapes.length - 1 ? plusJours(etapes[k + 1], -1) : undefined
+  const finie = phase && !phase.aVenir && phase.finPrevue && phase.finPrevue < aujourdhui
 
   const volume = volumePrevu(semaineType(catalogue.actif).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
   const reinitialiser = async () => {
-    if (await confirmer('Chaque muscle reprend l’objectif conseillé par l’appli.', { titre: 'Revenir aux objectifs conseillés ?', oui: 'Revenir aux objectifs conseillés' })) changer({ volume: volumeDefaut() })
+    if (await confirmer('Chaque muscle reprend l’objectif conseillé par l’appli.', { titre: 'Revenir aux objectifs conseillés ?', oui: 'Revenir aux objectifs conseillés' }))
+      void changerObjectifs(catalogue, { volume: volumeDefaut() })
   }
 
   return (
     <div>
-      {actuelle && finie && (
+      {phase && finie && (
         <div className="carte pile rappel-phase">
           <strong>
-            Ta {nomPhase(actuelle.phase).toLowerCase()} prévue jusqu’au {jour(actuelle.finPrevue!)} est finie.
+            Ta {nomPhase(phase.phase).toLowerCase()} prévue jusqu’au {jour(phase.finPrevue!)} est finie.
           </strong>
           <div className="ligne wrap" style={{ gap: 8 }}>
-            {actuelle.phase !== 'maintien' && (
+            {phase.phase !== 'maintien' && (
               <button className="btn petit" onClick={() => changer({ phase: 'maintien' })}>
                 Passer en maintien
               </button>
             )}
-            <button className="btn petit" onClick={() => changer({ finPrevue: plusJours(actuelle.finPrevue!, 28) })}>
+            <button className="btn petit" onClick={() => changer({ finPrevue: plusJours(phase.finPrevue!, 28) })}>
               Prolonger de 4 semaines
             </button>
           </div>
@@ -57,61 +66,67 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
       <div className="carte pile">
         <h3>Phase</h3>
         <div className="segments" role="radiogroup" aria-label="Phase">
-          {PHASES.map((p) => (
-            <button key={p.id} role="radio" aria-checked={actuelle?.phase === p.id} className={actuelle?.phase === p.id ? 'actif' : ''} onClick={() => actuelle?.phase !== p.id && changer({ phase: p.id })}>
+          {[{ id: undefined, court: 'Aucune' }, ...PHASES].map((p) => (
+            <button key={p.court} role="radio" aria-checked={phase?.phase === p.id} className={phase?.phase === p.id ? 'actif' : ''} onClick={() => choisir(p.id)}>
               {p.court}
             </button>
           ))}
         </div>
-        {actuelle ? (
+        {phase ? (
           <>
-            <div className="faible">{PHASES.find((p) => p.id === actuelle.phase)!.explication}</div>
+            <div className="faible">{PHASES.find((p) => p.id === phase.phase)!.explication}</div>
             <div>
               <div className="ligne entre">
                 <strong>
-                  Semaine {actuelle.semaine}
-                  {actuelle.total ? ` sur ${actuelle.total}` : ''}
+                  {phase.aVenir ? `Commence le ${dateCourte(phase.debut)}` : `Semaine ${phase.semaine}${phase.total ? ` sur ${phase.total}` : ''}`}
                 </strong>
-                {actuelle.finPrevue && <span className="faible">jusqu’au {jour(actuelle.finPrevue)}</span>}
+                {phase.finPrevue && <span className="faible">jusqu’au {jour(phase.finPrevue)}</span>}
               </div>
-              {actuelle.total && (
+              {!phase.aVenir && phase.total && (
                 <div className="barre-phase">
-                  <span style={{ width: `${Math.min(100, (actuelle.semaine / actuelle.total) * 100)}%` }} />
+                  <span style={{ width: `${Math.min(100, (phase.semaine / phase.total) * 100)}%` }} />
+                </div>
+              )}
+              {phase.enCours && (
+                <div className="faible" style={{ marginTop: 4 }}>
+                  Jusque-là : {nomPhase(phase.enCours.phase).toLowerCase()} (semaine {phase.enCours.semaine}
+                  {phase.enCours.total ? ` sur ${phase.enCours.total}` : ''}).
                 </div>
               )}
             </div>
             <div className="ligne" style={{ gap: 12 }}>
-              <label className="champ" style={{ flex: 1 }}>
+              <label className="champ" style={{ flex: 1, minWidth: 0 }}>
                 <span>Début</span>
                 <input
                   type="date"
-                  value={actuelle.debut}
+                  value={phase.debut}
                   min={minDebut}
                   max={maxDebut}
-                  onChange={(e) => e.target.value && void setReglage(CLE_OBJECTIFS, deplacer(frise, actuelle.debut, e.target.value))}
+                  onChange={(e) => e.target.value && void setReglage(CLE_OBJECTIFS, deplacer(frise, phase.debut, e.target.value))}
                 />
               </label>
-              <label className="champ" style={{ flex: 1 }}>
+              <label className="champ" style={{ flex: 1, minWidth: 0 }}>
                 <span>Fin prévue</span>
-                <input type="date" value={actuelle.finPrevue ?? ''} min={actuelle.debut} onChange={(e) => changer({ finPrevue: e.target.value || undefined })} />
+                <input type="date" value={phase.finPrevue ?? ''} min={phase.debut} onChange={(e) => changer({ finPrevue: e.target.value || undefined })} />
               </label>
             </div>
             <div className="chips">
               {DUREES.map((n) => {
-                const fin = plusJours(actuelle.debut, n * 7)
+                const fin = plusJours(phase.debut, n * 7)
                 return (
-                  <button key={n} className={actuelle.finPrevue === fin ? 'actif' : ''} onClick={() => changer({ finPrevue: fin })}>
+                  <button key={n} className={phase.finPrevue === fin ? 'actif' : ''} onClick={() => changer({ finPrevue: fin })}>
                     {n} semaines
                   </button>
                 )
               })}
-              <button className={!actuelle.finPrevue ? 'actif' : ''} onClick={() => changer({ finPrevue: undefined })}>
+              <button className={!phase.finPrevue ? 'actif' : ''} onClick={() => changer({ finPrevue: undefined })}>
                 Sans fin prévue
               </button>
             </div>
+            <div className="faible">Le début peut être dans le futur (ex. lundi prochain) : la phase est alors prévue, et visible dans le calendrier du Journal.</div>
           </>
         ) : (
-          <div className="faible">Choisis ta phase actuelle : le Bilan s’en servira pour lire tes perfs et ton poids (une baisse de force n’a pas le même sens en sèche qu’en prise).</div>
+          <div className="faible">Choisis ta phase : le Bilan s’en servira pour lire tes perfs et ton poids (une baisse de force n’a pas le même sens en sèche qu’en prise). Tu pourras la faire commencer plus tard.</div>
         )}
         {avant.length > 0 && (
           <>
@@ -139,7 +154,7 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
         <div className="faible" style={{ margin: '4px 0 10px' }}>
           Séries dures par muscle et par semaine : tes objectifs, les mêmes pour tous tes programmes. En face : ce que prévoit « {catalogue.actif.nom} ». Touche un muscle pour changer son objectif ; chaque changement est daté, pour relire plus tard ce que tu visais.
         </div>
-        <VolumeMuscles volume={volume} cibles={catalogue.cibles} onCible={(m, v) => changer({ volume: { ...catalogue.cibles, [m]: v } })} />
+        <VolumeMuscles volume={volume} cibles={catalogue.cibles} onCible={(m, v) => void changerObjectifs(catalogue, { volume: { ...catalogue.cibles, [m]: v } })} />
         <button className="btn discret petit lien-action" style={{ marginTop: 8 }} onClick={reinitialiser}>
           Revenir aux objectifs conseillés
         </button>

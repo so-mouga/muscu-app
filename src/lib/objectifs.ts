@@ -58,8 +58,9 @@ export function objectifsA(frise: EtapeObjectifs[], date: string): EtapeObjectif
 
 /**
  * Nouvelle étape à `date` : reprend les objectifs en vigueur (ou `base` pour le volume s'il n'y en a
- * pas) et applique le changement. Changer de phase efface la fin prévue de l'ancienne. Deux
- * changements le même jour : une seule étape, la dernière.
+ * pas) et applique le changement. Changer de phase efface la fin prévue de l'ancienne ; `phase:
+ * undefined` arrête la phase. Deux changements le même jour : une seule étape, la dernière. Un
+ * nouveau volume vaut aussi pour les étapes déjà prévues après (phase programmée à l'avance).
  */
 export function modifier(frise: EtapeObjectifs[], date: string, changement: Partial<Omit<EtapeObjectifs, 'depuis'>>, base: Partial<Record<Muscle, number>> = {}): EtapeObjectifs[] {
   const avant = objectifsA(frise, date)
@@ -72,7 +73,9 @@ export function modifier(frise: EtapeObjectifs[], date: string, changement: Part
     depuis: date,
   }
   if (!etape.finPrevue) delete etape.finPrevue
-  return tri([...frise.filter((e) => e.depuis !== date), etape])
+  if (!etape.phase) delete etape.phase
+  const apres = (e: EtapeObjectifs) => ('volume' in changement && e.depuis > date ? { ...e, volume: { ...etape.volume } } : e)
+  return tri([...frise.filter((e) => e.depuis !== date).map(apres), etape])
 }
 
 /** Phases d'un seul tenant, de la plus ancienne à la plus récente. */
@@ -96,6 +99,20 @@ export function phaseA(frise: EtapeObjectifs[], date: string): (PeriodePhase & {
   if (!p) return null
   const semaines = (a: string, b: string) => Math.floor((Date.parse(b) - Date.parse(a)) / (7 * JOUR)) + 1
   return { ...p, semaine: semaines(p.debut, date), ...(p.finPrevue && { total: Math.max(1, Math.round((Date.parse(p.finPrevue) - Date.parse(p.debut)) / (7 * JOUR))) }) }
+}
+
+/** Dernier jour d'une phase pour l'affichage : sa vraie fin, sinon sa fin prévue (ou aujourd'hui si elle est dépassée), sinon sans fin. */
+export const finAffichee = (p: PeriodePhase, aujourdhui: string) => p.fin ?? (p.finPrevue ? (p.finPrevue > aujourdhui ? p.finPrevue : aujourdhui) : '9999-12-31')
+
+/**
+ * Phase à montrer dans Objectifs : celle programmée à l'avance s'il y en a une (à venir), sinon celle
+ * en cours. `enCours` : la phase d'aujourd'hui quand une autre est à venir.
+ */
+export function phaseAffichee(frise: EtapeObjectifs[], aujourdhui: string) {
+  const derniere = periodes(frise).at(-1)
+  const enCours = phaseA(frise, aujourdhui)
+  if (derniere && derniere.debut > aujourdhui) return { ...derniere, aVenir: true as const, semaine: 0, total: derniere.finPrevue ? Math.max(1, Math.round((Date.parse(derniere.finPrevue) - Date.parse(derniere.debut)) / (7 * JOUR))) : undefined, enCours }
+  return enCours && { ...enCours, aVenir: false as const, enCours: null }
 }
 
 /** Texte pour un bilan : « Sèche depuis le 3 nov. (semaine 3 sur 12, fin prévue le 26 janv.) ». */

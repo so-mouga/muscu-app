@@ -1,4 +1,4 @@
-import { lireFrise, modifier, objectifsA, periodes, phaseA, textePhase } from './objectifs'
+import { lireFrise, modifier, objectifsA, periodes, phaseA, phaseAffichee, textePhase } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -24,6 +24,18 @@ describe('objectifs dans le temps', () => {
 
   it('deux changements le même jour : une seule étape', () => {
     expect(modifier(f, '2026-11-10', { phase: 'maintien' }).filter((e) => e.depuis === '2026-11-10')).toHaveLength(1)
+  })
+
+  it('« Aucune » arrête la phase ; une phase peut être prévue à l’avance', () => {
+    const g = modifier(f, '2026-12-01', { phase: undefined })
+    expect(periodes(g).at(-1)).toEqual({ phase: 'seche', debut: '2026-11-10', fin: '2026-11-30' })
+    expect(phaseA(g, '2026-12-05')).toBeNull()
+    // Prise prévue le 7 déc., vue le 1er : à venir, la sèche reste en cours jusque-là.
+    const h = modifier(f, '2026-12-07', { phase: 'prise' })
+    expect(phaseAffichee(h, '2026-12-01')).toMatchObject({ phase: 'prise', aVenir: true, enCours: { phase: 'seche' } })
+    expect(phaseA(h, '2026-12-01')?.phase).toBe('seche')
+    // Volume changé aujourd'hui : il vaut aussi pour la phase déjà prévue.
+    expect(objectifsA(modifier(h, '2026-12-01', { volume: { pecs: 12 } }), '2026-12-08')?.volume).toEqual({ pecs: 12 })
   })
 
   it('reprend les anciens réglages', () => {

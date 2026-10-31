@@ -2561,3 +2561,44 @@ button.semaine-bilan.cliquable {
 .rappel-phase {
   border: 1px solid var(--alerte);
 }
+
+/* Calendrier : séances prévues (cercle pointillé), déload dans la couleur des finisseurs */
+.grille-mois .jour.prevu {
+  color: var(--texte);
+  outline: 1.5px dashed var(--accent);
+  outline-offset: -3px;
+  box-shadow: none;
+}
+.grille-mois .jour.prevu.deload {
+  outline-color: var(--finisseur);
+}
+.grille-mois .jour.prevu.choisi {
+  box-shadow: 0 0 0 2px var(--texte);
+}
+.legende-phases {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.legende-phases .legende-prevu::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 50%;
+  border: 1.5px dashed var(--accent);
+}
+.legende-phases .legende-prevu.deload::before {
+  border-color: var(--finisseur);
+}
+.pastille.deload {
+  color: var(--finisseur);
+}
+.ligne-jour.prevue {
+  opacity: 0.9;
+}
+.champ input[type='date'] {
+  min-width: 0;
+  width: 100%;
+}

@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { cibles, deloadMaintenant, etatCycle, lundiDe, mettreEnPause, nouveauCycle, planDeload, suggestionDeload } from './cycle'
+import { cibles, deloadMaintenant, prevuLe, etatCycle, lundiDe, mettreEnPause, nouveauCycle, planDeload, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -60,5 +60,23 @@ describe('objectifs de volume', () => {
     expect(cibles(undefined, undefined, p).biceps).toBe(0)
     // Rien de réglé nulle part : valeurs par défaut de l'appli
     expect(cibles(undefined, undefined, { id: 'q', nom: 'Q', seances: [] }).pecs).toBe(16)
+  })
+})
+
+describe('prévu un jour donné', () => {
+  const m = { id: 'a', nom: 'Haut A', sousTitre: '', exercices: [] }
+  const planning = [{ modele: m, jour: 1 }]
+  const c = nouveauCycle('c', { id: 'p', nom: 'P', seances: [] }, () => undefined, '2026-11-02', 6, [6])
+
+  it('séance du lundi, semaine du cycle et déload', () => {
+    expect(prevuLe(planning, c, '2026-11-02')).toMatchObject({ seances: [m], semaine: 1, total: 6, deload: false })
+    expect(prevuLe(planning, c, '2026-12-07')).toMatchObject({ seances: [m], semaine: 6, deload: true })
+    expect(prevuLe(planning, c, '2026-11-03').seances).toEqual([])
+  })
+
+  it('rien avant ni après le cycle ; sans cycle, le planning du programme', () => {
+    expect(prevuLe(planning, c, '2026-10-26').seances).toEqual([])
+    expect(prevuLe(planning, c, '2026-12-14').seances).toEqual([])
+    expect(prevuLe(planning, undefined, '2027-03-01').seances).toEqual([m])
   })
 })

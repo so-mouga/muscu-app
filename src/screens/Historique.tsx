@@ -14,7 +14,10 @@ import { kcalActivite, typeActivite } from '../data/activites'
 import Bilan from './Bilan'
 import Corps from './Corps'
 import Objectifs from './Objectifs'
-import { periodes, PHASES, textePhase, type EtapeObjectifs } from '../lib/objectifs'
+import { finAffichee, periodes, PHASES, textePhase, type EtapeObjectifs } from '../lib/objectifs'
+import { prevuLe } from '../lib/cycle'
+
+type Prevu = ReturnType<typeof prevuLe>
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 
@@ -63,6 +66,8 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   const mieux = useMemo(() => (terminees ? mieuxParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
   if (!terminees) return null
+  // Prévu à venir (et aujourd'hui tant que rien n'est fait) : planning du cycle en cours ou du programme actif.
+  const prevu = (iso: string) => (iso > dateISO() || (iso === dateISO() && !terminees.some((s) => s.date === iso)) ? prevuLe(catalogue.planning, catalogue.cycle, iso) : null)
   const ouverte = detail ? terminees.find((s) => s.id === detail) : undefined
   if (ouverte)
     return (
@@ -112,19 +117,16 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
         />
       )}
 
-      {terminees.length === 0 && activites.length === 0 ? (
-        <div className="carte pile">
-          <h3>Pas encore de séance</h3>
-          <div className="faible">Tes séances terminées apparaîtront ici, jour par jour, avec leur récap complet et tes records.</div>
-          <button className="btn plein" onClick={() => setActivite('nouvelle')}>
-            + Noter une autre activité (padel, course…)
-          </button>
+      {terminees.length === 0 && activites.length === 0 && (
+        <div className="faible" style={{ marginBottom: 10 }}>
+          Tes séances terminées apparaîtront ici jour par jour, avec leur récap et tes records. Avance dans les mois pour voir ce qui est prévu.
         </div>
-      ) : (
-        <>
-          <Calendrier seances={terminees} activites={activites} frise={catalogue.objectifs} choisi={jourChoisi} onChoix={setJourChoisi} />
+      )}
+      <>
+          <Calendrier seances={terminees} activites={activites} frise={catalogue.objectifs} prevu={prevu} choisi={jourChoisi} onChoix={setJourChoisi} />
           <JourChoisi
             date={jourChoisi}
+            prevu={prevu(jourChoisi)}
             phase={textePhase(catalogue.objectifs, jourChoisi, (iso) => jourCourt(iso).replace(/^\S+ /, ''))}
             seances={terminees.filter((x) => x.date === jourChoisi).reverse()}
             activites={activites.filter((x) => x.date === jourChoisi)}
@@ -137,17 +139,16 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             onActivite={setActivite}
             onAjouter={() => (setDateActivite(jourChoisi), setActivite('nouvelle'))}
           />
-        </>
-      )}
+      </>
     </div>
   )
 }
 
 /** Mois en calendrier : chaque jour entraîné est marqué, la phase soulignée ; un appui choisit le jour (sa carte s'affiche dessous). */
-function Calendrier({ seances, activites, frise, choisi, onChoix }: { seances: Seance[]; activites: Activite[]; frise: EtapeObjectifs[]; choisi: string; onChoix: (iso: string) => void }) {
+function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { seances: Seance[]; activites: Activite[]; frise: EtapeObjectifs[]; prevu: (iso: string) => Prevu | null; choisi: string; onChoix: (iso: string) => void }) {
   // Phase de chaque jour : jusqu'à sa vraie fin, sinon jusqu'à sa fin prévue (jours à venir en pointillé), sinon aujourd'hui.
   const phases = periodes(frise)
-  const phaseDuJour = (iso: string) => phases.find((p) => p.debut <= iso && iso <= (p.fin ?? (p.finPrevue && p.finPrevue > dateISO() ? p.finPrevue : dateISO())))?.phase
+  const phaseDuJour = (iso: string) => phases.find((p) => p.debut <= iso && iso <= finAffichee(p, dateISO()))?.phase
   const auj = new Date()
   const [mois, setMois] = useState(() => new Date(auj.getFullYear(), auj.getMonth(), 1))
   const parJour = new Map<string, Seance[]>()
@@ -160,9 +161,11 @@ function Calendrier({ seances, activites, frise, choisi, onChoix }: { seances: S
   const cases = [...Array(decalage).fill(null), ...Array.from({ length: nbJours }, (_, i) => new Date(mois.getFullYear(), mois.getMonth(), i + 1))]
   const duMois = seances.filter((s) => s.date.startsWith(dateISO(mois).slice(0, 7))).length
   const activitesMois = activites.filter((a) => a.date.startsWith(dateISO(mois).slice(0, 7))).length
-  const estMoisCourant = mois.getFullYear() === auj.getFullYear() && mois.getMonth() === auj.getMonth()
+  // Vers l'avenir : un an, pour voir le cycle, ses déloads et les phases prévues.
+  const dernierMois = mois.getFullYear() * 12 + mois.getMonth() >= auj.getFullYear() * 12 + auj.getMonth() + 12
   const aller = (d: number) => setMois(new Date(mois.getFullYear(), mois.getMonth() + d, 1))
   const aujourdhui = dateISO()
+  const prevuesMois = cases.reduce((n, d) => n + (d ? (prevu(dateISO(d))?.seances.length ?? 0) : 0), 0)
 
   return (
     <div className="carte calendrier">
@@ -173,11 +176,12 @@ function Calendrier({ seances, activites, frise, choisi, onChoix }: { seances: S
         <div style={{ textAlign: 'center' }}>
           <strong style={{ textTransform: 'capitalize' }}>{mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</strong>
           <div className="faible">
-            {duMois ? pluriel(duMois, 'séance') : 'aucune séance'}
+            {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
+            {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
             {activitesMois ? ` · ${pluriel(activitesMois, 'activité')}` : ''}
           </div>
         </div>
-        <button className="icone" onClick={() => aller(1)} disabled={estMoisCourant} aria-label="Mois suivant">
+        <button className="icone" onClick={() => aller(1)} disabled={dernierMois} aria-label="Mois suivant">
           ›
         </button>
       </div>
@@ -193,30 +197,42 @@ function Calendrier({ seances, activites, frise, choisi, onChoix }: { seances: S
           const s = parJour.get(iso)
           const a = activitesDuJour.get(iso)
           const ph = phaseDuJour(iso)
+          const pr = prevu(iso)
+          const prevue = !!pr?.seances.length
           // Séance de muscu : case pleine ; autre activité : point en dessous ; jour choisi : contour ; phase : trait sous la case.
           return (
             <button
               key={i}
-              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '') + (iso === choisi ? ' choisi' : '') + (ph ? ` phase-${ph}` : '')}
-              disabled={iso > aujourdhui}
+              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '') + (iso === choisi ? ' choisi' : '') + (ph ? ` phase-${ph}` : '') + (prevue ? (pr?.deload ? ' prevu deload' : ' prevu') : '')}
               onClick={() => onChoix(iso)}
               aria-pressed={iso === choisi}
-              aria-label={`${d.getDate()}${s || a ? ` : ${[...(s ?? []).map((x) => x.nom), ...(a ?? []).map((x) => typeActivite(x.type).nom)].join(', ')}` : ''}`}
+              aria-label={`${d.getDate()}${s || a || prevue ? ` : ${[...(s ?? []).map((x) => x.nom), ...(a ?? []).map((x) => typeActivite(x.type).nom), ...(prevue ? pr!.seances.map((x) => `${x.nom} prévue`) : [])].join(', ')}` : ''}`}
             >
               {d.getDate()}
             </button>
           )
         })}
       </div>
-      {phases.some((p) => p.debut <= dateISO(new Date(mois.getFullYear(), mois.getMonth() + 1, 0)) && (p.fin ?? p.finPrevue ?? dateISO()) >= dateISO(mois)) && (
-        <div className="legende-phases faible">
-          {PHASES.filter((x) => phases.some((p) => p.phase === x.id)).map((x) => (
-            <span key={x.id} className={`phase-${x.id}`}>
-              {x.nom}
-            </span>
-          ))}
-        </div>
-      )}
+      {(() => {
+        // Légende de ce qui est visible ce mois-ci : phases, séances prévues, déload.
+        const debutMois = dateISO(mois)
+        const finMois = dateISO(new Date(mois.getFullYear(), mois.getMonth() + 1, 0))
+        const isos = cases.filter((d): d is Date => !!d).map((d) => dateISO(d))
+        const prevus = isos.map(prevu).filter((p) => p?.seances.length)
+        const phasesMois = PHASES.filter((x) => phases.some((p) => p.phase === x.id && p.debut <= finMois && finAffichee(p, dateISO()) >= debutMois))
+        if (!phasesMois.length && !prevus.length) return null
+        return (
+          <div className="legende-phases faible">
+            {phasesMois.map((x) => (
+              <span key={x.id} className={`phase-${x.id}`}>
+                {x.nom}
+              </span>
+            ))}
+            {prevus.some((p) => !p!.deload) && <span className="legende-prevu">prévue</span>}
+            {prevus.some((p) => p!.deload) && <span className="legende-prevu deload">déload</span>}
+          </div>
+        )
+      })()}
     </div>
   )
 }
@@ -224,6 +240,7 @@ function Calendrier({ seances, activites, frise, choisi, onChoix }: { seances: S
 /** Le jour choisi en court : ses séances (records, exos en progrès), activités, poids et mesures. Le détail s'ouvre en touchant. */
 function JourChoisi({
   date,
+  prevu,
   phase,
   seances,
   activites,
@@ -237,6 +254,8 @@ function JourChoisi({
   onAjouter,
 }: {
   date: string
+  /** Séances prévues (jour à venir, ou aujourd'hui sans séance faite). */
+  prevu: Prevu | null
   /** « Sèche depuis le 3 nov. (semaine 3 sur 12…) » */
   phase: string | null
   seances: Seance[]
@@ -264,7 +283,23 @@ function JourChoisi({
       {activites.map((a) => (
         <LigneActivite key={a.id} activite={a} poids={poids} onOuvrir={() => onActivite(a)} />
       ))}
-      {vide && <div className="faible ligne-jour">Pas d’entraînement ce jour-là.</div>}
+      {prevu?.pause && <div className="faible ligne-jour">Semaine en pause dans le cycle.</div>}
+      {prevu?.seances.map((m) => (
+        <div key={m.id} className="ligne-jour prevue">
+          <span style={{ minWidth: 0 }}>
+            <span className="faible">Prévu · </span>
+            <strong>{m.nom}</strong>
+            {prevu.semaine && (
+              <span className="faible">
+                {' '}
+                · semaine {prevu.semaine} sur {prevu.total} du cycle
+              </span>
+            )}
+          </span>
+          {prevu.deload && <span className="pastille deload">Déload</span>}
+        </div>
+      ))}
+      {vide && !prevu?.seances.length && !prevu?.pause && <div className="faible ligne-jour">{date > dateISO() ? 'Rien de prévu ce jour-là.' : 'Pas d’entraînement ce jour-là.'}</div>}
       {pesee !== undefined && (
         <div className="ligne-jour">
           <span>⚖️ Poids</span>
@@ -277,9 +312,11 @@ function JourChoisi({
           <span className="faible">{pluriel(nbMesures, 'mesure')}</span>
         </div>
       )}
-      <button className="btn discret petit lien-action" onClick={onAjouter}>
-        + Ajouter une activité ce jour-là
-      </button>
+      {date <= dateISO() && (
+        <button className="btn discret petit lien-action" onClick={onAjouter}>
+          + Ajouter une activité ce jour-là
+        </button>
+      )}
     </div>
   )
 }

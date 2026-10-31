@@ -112,3 +112,14 @@ export function suggestionDeload(exo: Exercice, s: Suggestion): Suggestion {
   }
   return { ...s, charges: s.charges.map(alleger), message: '🧘 Déload : environ −10 % de charge, RPE 6-7, sans aller à l’échec.' }
 }
+
+/** Ce qui est prévu un jour donné : séances du planning (1 = lundi), et pendant un cycle sa semaine, déload ou pause. */
+export function prevuLe(planning: { modele: SeanceModele; jour: number }[], cycle: Cycle | undefined, iso: string): { seances: SeanceModele[]; semaine?: number; total?: number; deload?: boolean; pause?: boolean } {
+  const jour = ((new Date(iso + 'T12:00:00').getDay() + 6) % 7) + 1
+  const seances = planning.filter((e) => e.jour === jour).map((e) => e.modele)
+  if (!cycle) return { seances }
+  const e = etatCycle(cycle, iso)
+  if (e.n < 1 || e.n > e.total) return { seances: [] }
+  if (e.pause) return { seances: [], pause: true }
+  return { seances, semaine: e.n, total: e.total, deload: e.deload }
+}
