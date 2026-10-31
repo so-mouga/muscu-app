@@ -20,7 +20,8 @@ const TYPES: [TypeSerie, string, string][] = [
   ['drop', 'Drop set', 'Échec, charge baissée, puis à nouveau jusqu’à l’échec.'],
   ['rest_pause', 'Rest-pause', 'Échec, courte pause, puis quelques reps de plus.'],
 ]
-const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+// Entiers seulement : un demi-point de RPE ne se ressent pas de façon fiable, et 5 gros boutons se touchent mieux.
+const RPES = [6, 7, 8, 9, 10]
 
 interface Props {
   seance: Seance
@@ -416,7 +417,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const [charge, setCharge] = useState(edition?.charge ?? chargeInitiale())
   const [chargeTxt, setChargeTxt] = useState<string | null>(null)
   const [reps, setReps] = useState(edition?.reps ?? sugg.reps[i] ?? p.repsMin)
-  const [rpe, setRpe] = useState(edition?.rpe ?? (finisseur ? 10 : p.rpe))
+  const [rpe, setRpe] = useState(edition?.rpe ?? (finisseur ? 10 : Math.round(p.rpe)))
   const [type, setType] = useState<TypeSerie>(edition?.type ?? (finisseur ? 'echec' : 'normale'))
   const [douleur, setDouleur] = useState(edition?.douleur ?? false)
   const [options, setOptions] = useState(false)
@@ -665,15 +666,15 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
       {!finisseur && (
         <div>
-          <div className="rpe">
+          <div className="rpe" style={{ gridTemplateColumns: `repeat(${RPES.length}, 1fr)` }}>
             {RPES.map((r) => (
               <button
                 key={r}
-                className={(rpe === r ? 'actif ' : '') + (p.rpe === r ? 'cible ' : '') + (r % 1 ? 'demi' : '')}
+                className={(rpe === r ? 'actif ' : '') + (Math.round(p.rpe) === r ? 'cible' : '')}
                 onClick={() => setRpe(r)}
                 onContextMenu={(e) => (e.preventDefault(), setAideRpe(true))}
               >
-                {r % 1 ? '½' : r}
+                {r}
               </button>
             ))}
           </div>

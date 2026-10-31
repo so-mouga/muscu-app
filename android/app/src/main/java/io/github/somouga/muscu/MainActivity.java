@@ -1,6 +1,7 @@
 package io.github.somouga.muscu;
 
 import android.os.Bundle;
+import androidx.activity.OnBackPressedCallback;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
@@ -20,6 +21,24 @@ public class MainActivity extends BridgeActivity {
                 public void onReceivedError(WebView vue, WebResourceRequest demande, WebResourceError erreur) {
                     super.onReceivedError(vue, demande, erreur);
                     if (demande.isForMainFrame()) vue.loadDataWithBaseURL(null, pageHorsLigne(bridge.getAppUrl()), "text/html", "utf-8", null);
+                }
+            }
+        );
+        // Bouton retour : c'est l'appli qui décide (fermer la fenêtre, revenir à l'écran d'avant…, voir
+        // src/lib/nav.ts). On ne quitte que quand elle n'a plus rien à fermer.
+        getOnBackPressedDispatcher().addCallback(
+            this,
+            new OnBackPressedCallback(true) {
+                @Override
+                public void handleOnBackPressed() {
+                    WebView vue = bridge.getWebView();
+                    if (vue.canGoBack() && !vue.copyBackForwardList().getItemAtIndex(vue.copyBackForwardList().getCurrentIndex() - 1).getUrl().startsWith("data:")) {
+                        vue.goBack();
+                        return;
+                    }
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                    setEnabled(true);
                 }
             }
         );

@@ -225,6 +225,31 @@ export default function Accueil({
 
       {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
 
+      {/* En haut, sur une ligne : nouvelle version de l'appli Android, sauvegarde à faire (rares, et ce qu'on perdrait). */}
+      {majAndroid && !masque('android') && (
+        <div className="rappel-ligne">
+          {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
+          <a className="texte" href={majAndroid.url}>
+            📲 Nouvelle version de l’appli ({majAndroid.version}) : installer
+            <span className="faible"> · tes données sont gardées</span> ›
+          </a>
+          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('android')}>
+            ✕
+          </button>
+        </div>
+      )}
+      {exportVieux && !masque('export') && (
+        <div className="rappel-ligne">
+          <button className="texte" onClick={sauvegarderTout}>
+            💾 Sauvegarder (Drive, mail…)
+            <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span> ›
+          </button>
+          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
+            ✕
+          </button>
+        </div>
+      )}
+
       {premiereFois && (
         <ChoixProgramme
           catalogue={catalogue}
@@ -305,18 +330,6 @@ export default function Accueil({
       <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
-      {majAndroid && !masque('android') && (
-        <div className="rappel-ligne">
-          {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
-          <a className="texte" href={majAndroid.url}>
-            📲 Nouvelle version de l’appli ({majAndroid.version}) : installer
-            <span className="faible"> · tes données sont gardées</span> ›
-          </a>
-          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('android')}>
-            ✕
-          </button>
-        </div>
-      )}
       {deloadPlusTot && !masque('deload') && (
         <div className="rappel-ligne">
           <button className="texte" onClick={onProgrammes}>
@@ -335,17 +348,6 @@ export default function Accueil({
             {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>} ›
           </button>
           <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('mesures')}>
-            ✕
-          </button>
-        </div>
-      )}
-      {exportVieux && !masque('export') && (
-        <div className="rappel-ligne">
-          <button className="texte" onClick={sauvegarderTout}>
-            💾 Sauvegarder (Drive, mail…)
-            <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span> ›
-          </button>
-          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
             ✕
           </button>
         </div>

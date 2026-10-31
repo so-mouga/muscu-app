@@ -948,10 +948,18 @@ function FinSeance({
   return (
     <div>
       <div className="entete">
-        <h1>Fin de séance</h1>
-        <button className="btn" onClick={onRetour}>
-          ← Reprendre
-        </button>
+        <h1 style={{ whiteSpace: 'nowrap', fontSize: 'clamp(20px, 6vw, 28px)' }}>Fin de séance</h1>
+        <span className="ligne" style={{ gap: 6 }}>
+          {/* En haut, loin d'Enregistrer (en bas) : pratique pour jeter une séance d'essai, sans risque d'appui de travers. */}
+          {seance.series.length > 0 && (
+            <button className="btn petit" onClick={abandonner} aria-label="Supprimer la séance">
+              🗑
+            </button>
+          )}
+          <button className="btn petit" style={{ whiteSpace: 'nowrap' }} onClick={onRetour}>
+            ← Reprendre
+          </button>
+        </span>
       </div>
       <div className="carte">
         <h2>{seance.nom}</h2>
