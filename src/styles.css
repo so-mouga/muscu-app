@@ -2876,3 +2876,7 @@ a.btn {
   width: 100%;
   min-width: 0;
 }
+/* Rappel en lien (téléchargement de la nouvelle version Android). */
+a.texte {
+  text-decoration: none;
+}

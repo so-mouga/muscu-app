@@ -108,6 +108,18 @@ public class MinuteurReposPlugin extends Plugin {
         call.resolve();
     }
 
+    /** Version de l'appli installée : l'appli web propose d'installer un APK plus récent. */
+    @PluginMethod
+    public void version(PluginCall call) {
+        JSObject r = new JSObject();
+        try {
+            r.put("versionName", getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0).versionName);
+            call.resolve(r);
+        } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+            call.reject("version inconnue");
+        }
+    }
+
     /** Où en est la séance côté Android : mode (seance, repos, pause), fin du repos, temps restant en pause. */
     @PluginMethod
     public void etat(PluginCall call) {

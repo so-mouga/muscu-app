@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
@@ -17,6 +17,7 @@ import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
+import { nouvelleVersionAndroid } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 
@@ -113,6 +114,9 @@ export default function Accueil({
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
+  // Appli Android : un APK plus récent publié ? (le site, lui, se met à jour tout seul)
+  const [majAndroid, setMajAndroid] = useState<{ version: string; url: string } | null>(null)
+  useEffect(() => void nouvelleVersionAndroid().then(setMajAndroid), [])
   // Toute première ouverture : pas encore de programme à soi ni de séance, on propose d'en choisir un.
   const nbProgrammes = useLiveQuery(() => db.programmes.count(), [], null)
   const premiereFois = nbProgrammes === 0 && terminees?.length === 0
@@ -301,6 +305,18 @@ export default function Accueil({
       <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
+      {majAndroid && !masque('android') && (
+        <div className="rappel-ligne">
+          {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
+          <a className="texte" href={majAndroid.url}>
+            📲 Nouvelle version de l’appli ({majAndroid.version}) : installer
+            <span className="faible"> · tes données sont gardées</span> ›
+          </a>
+          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('android')}>
+            ✕
+          </button>
+        </div>
+      )}
       {deloadPlusTot && !masque('deload') && (
         <div className="rappel-ligne">
           <button className="texte" onClick={onProgrammes}>

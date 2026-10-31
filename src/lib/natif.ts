@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core'
+import { plusRecente, versionDeTag } from './versions'
 
 /**
  * Appli Android (Capacitor) : la séance est aussi tenue par Android, avec une notification affichée
@@ -26,6 +27,7 @@ interface PluginMinuteur {
   pause(o: Commun & { reste: number }): Promise<void>
   arreter(): Promise<void>
   etat(): Promise<EtatNatif>
+  version(): Promise<{ versionName: string }>
   addListener(evenement: 'action', f: (e: EtatNatif) => void): Promise<PluginListenerHandle>
 }
 
@@ -56,5 +58,34 @@ export function suivreNatif(sur: (e: EtatNatif) => void): () => void {
   return () => {
     void ecoute.then((h) => h.remove())
     document.removeEventListener('visibilitychange', auRetour)
+  }
+}
+
+/** Version de l'appli Android installée ; la 1.1 ne savait pas encore la donner. */
+async function versionInstallee(): Promise<string | null> {
+  if (!natif) return null
+  try {
+    return (await MinuteurRepos.version()).versionName
+  } catch {
+    return '1.1'
+  }
+}
+
+/**
+ * Un APK plus récent est publié sur GitHub (publication « android-vX.Y » avec muscu.apk) : sa
+ * version et le lien de téléchargement. Rien dans le navigateur, hors ligne, ou si c'est à jour.
+ */
+export async function nouvelleVersionAndroid(): Promise<{ version: string; url: string } | null> {
+  const installee = await versionInstallee()
+  if (!installee) return null
+  try {
+    const r = await fetch('https://api.github.com/repos/so-mouga/muscu-app/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    if (!r.ok) return null
+    const d = (await r.json()) as { tag_name: string; assets?: { name: string; browser_download_url: string }[] }
+    const v = versionDeTag(d.tag_name)
+    const apk = d.assets?.find((a) => a.name.endsWith('.apk'))
+    return v && apk && plusRecente(v, installee) ? { version: v, url: apk.browser_download_url } : null
+  } catch {
+    return null
   }
 }
