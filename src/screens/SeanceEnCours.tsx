@@ -1051,24 +1051,38 @@ function FinSeance({
         })()}
 
       {seance.series.length > 0 ? (
-        <button className="btn primaire grand" onClick={enregistrer}>
-          ENREGISTRER
-        </button>
-      ) : (
-        <div className="carte pile" style={{ textAlign: 'center', background: 'var(--surface-2)' }}>
-          <div className="faible">Aucune série validée. Valide au moins une série ou annule la séance.</div>
-          <button className="btn plein" onClick={onRetour}>
-            ← Reprendre et valider une série
+        <>
+          <button className="btn primaire grand" onClick={enregistrer}>
+            ENREGISTRER
           </button>
-        </div>
+          <button
+            className="btn discret danger plein"
+            style={{ marginTop: 12, marginBottom: 24 }}
+            onClick={abandonner}
+          >
+            Supprimer la séance
+          </button>
+        </>
+      ) : (
+        <>
+          <button
+            className="btn primaire grand"
+            onClick={async () => {
+              await db.seances.delete(seance.id)
+              oublierEtatLocal(seance.id)
+            }}
+          >
+            Quitter sans enregistrer
+          </button>
+          <button
+            className="btn discret plein"
+            style={{ marginTop: 10, marginBottom: 24 }}
+            onClick={onRetour}
+          >
+            ← Reprendre la séance
+          </button>
+        </>
       )}
-      <button
-        className={'btn ' + (seance.series.length ? 'discret danger plein' : 'danger-plein grand')}
-        style={{ marginTop: 12, marginBottom: 24 }}
-        onClick={abandonner}
-      >
-        {seance.series.length ? 'Supprimer la séance' : 'Quitter la séance (sans enregistrer)'}
-      </button>
     </div>
   )
 }
