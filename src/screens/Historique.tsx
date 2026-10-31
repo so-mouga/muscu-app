@@ -265,16 +265,16 @@ function NotesDuJour({ date, journal }: { date: string; journal?: JourJournal })
       <div className="ligne-jour">
         <span>😴 Sommeil</span>
         {sommeil === undefined ? (
-          <button className="btn petit" onClick={() => noter({ sommeil: 7.5 })}>
+          <button className="btn petit" onClick={() => noter({ sommeil: 7 })}>
             + Noter
           </button>
         ) : (
           <span className="ligne" style={{ gap: 6 }}>
-            <button className="btn petit" aria-label="Moins" onClick={() => noter({ sommeil: Math.max(0, sommeil - 0.5) })}>
+            <button className="btn petit" aria-label="Moins" onClick={() => noter({ sommeil: Math.max(0, Math.round(sommeil - 1)) })}>
               −
             </button>
             <strong style={{ minWidth: 56, textAlign: 'center' }}>{heures(sommeil)}</strong>
-            <button className="btn petit" aria-label="Plus" onClick={() => noter({ sommeil: Math.min(14, sommeil + 0.5) })}>
+            <button className="btn petit" aria-label="Plus" onClick={() => noter({ sommeil: Math.min(14, Math.round(sommeil + 1)) })}>
               +
             </button>
             <button className="btn petit discret" aria-label="Effacer le sommeil" onClick={() => noter({ sommeil: undefined })}>

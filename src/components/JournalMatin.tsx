@@ -10,12 +10,18 @@ import type { JourJournal, Seance } from '../types'
 
 const JOUR = 86400000
 export const heures = (h: number) => `${Math.floor(h)} h${h % 1 ? ` ${String(Math.round((h % 1) * 60)).padStart(2, '0')}` : ''}`
-/** Choix du sommeil en un appui : de 5 h (ou moins) à 9 h (ou plus), par demi-heure jusqu'à 8 h. */
-const HEURES: [number, string][] = [[5, '≤5'], [5.5, '5½'], [6, '6'], [6.5, '6½'], [7, '7'], [7.5, '7½'], [8, '8'], [9, '9+']]
+/** Choix du sommeil en un appui : de 5 h (ou moins) à 9 h (ou plus) en heures pleines. */
+const HEURES: [number, string][] = [
+  [5, '≤5h'],
+  [6, '6h'],
+  [7, '7h'],
+  [8, '8h'],
+  [9, '9h+'],
+]
 export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
-  ['ok', '✓ Dans l’objectif'],
-  ['trop', 'Trop'],
-  ['pasAssez', 'Pas assez'],
+  ['ok', '✓ Tenu'],
+  ['trop', '+ Trop'],
+  ['pasAssez', '− Pas assez'],
 ]
 
 /** Relu en base : sommeil et calories notés coup sur coup ne s'écrasent pas. */
