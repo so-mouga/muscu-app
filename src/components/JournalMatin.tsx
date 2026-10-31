@@ -5,7 +5,7 @@ import { db } from '../db'
 import { dateISO, kg } from '../lib/calc'
 import { conseilRepas, meilleureProgression } from '../lib/journal'
 import { CLE_PROFIL, objectifDuJour, type Profil } from '../lib/nutrition'
-import { avancePoids, nomPhase, phaseA, poidsDepart } from '../lib/objectifs'
+import { nomPhase, phaseA } from '../lib/objectifs'
 import type { JourJournal, Seance } from '../types'
 
 const JOUR = 86400000
@@ -24,6 +24,16 @@ export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
   ['pasAssez', '− Pas assez'],
 ]
 
+/** Pèse-personne de salle de bain avec écran digital. */
+export function PictoPesePersonne({ taille = 18 }: { taille?: number }) {
+  return (
+    <svg width={taille} height={taille} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: -3, marginRight: 6 }}>
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <rect x="8" y="6" width="8" height="4" rx="1" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
 /** Relu en base : sommeil et calories notés coup sur coup ne s'écrasent pas. */
 export const noterJournal = (date: string, c: Partial<JourJournal>) => db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
 
@@ -38,8 +48,6 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const journal = useLiveQuery(() => db.journal.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 30 * JOUR))).sortBy('date'), [], null)
   const profil = useLiveQuery(() => db.reglages.get(CLE_PROFIL), [], null)
   const phase = phaseA(catalogue.objectifs, aujourdhui)
-  // Poids au départ de la phase : pour situer l'objectif (± kg) en poids réel.
-  const depart = useLiveQuery(async () => (phase?.ecartVise ? poidsDepart(await db.pesees.toArray(), phase.debut) : null), [phase?.debut, phase?.ecartVise], null)
   const [nuit, setNuit] = useState<number | null>(null)
   const [saisiePoids, setSaisiePoids] = useState(false)
   const [valPoids, setValPoids] = useState<string>('')
@@ -50,10 +58,6 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const noter = noterJournal
 
   const pesee = pesees.find((p) => p.date === aujourdhui)
-  const semaine = pesees.filter((p) => p.date > dateISO(new Date(Date.now() - 7 * JOUR)))
-  const moyenne = semaine.length ? semaine.reduce((a, p) => a + p.poids, 0) / semaine.length : null
-  const cible = depart !== null && phase?.ecartVise ? Math.round((depart + phase.ecartVise) * 10) / 10 : null
-  const vise = cible !== null && moyenne !== null ? avancePoids(phase!.phase, moyenne, cible, aujourdhui, phase!.finPrevue) : null
   const poids = pesees[pesees.length - 1]?.poids
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
   const objectifHier = objectifDuJour(catalogue.objectifs, hier, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
@@ -96,8 +100,8 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
       {peser && (
         saisiePoids || !pesee ? (
           <div className="ligne-jour" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '4px 0' }}>
-            <span>
-              ⚖️ <strong>Poids :</strong>
+            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <PictoPesePersonne /> <strong>Poids :</strong>
             </span>
             <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
               <span className="mini-stepper compact">
@@ -147,13 +151,11 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
             <button
               type="button"
               className="ligne-jour"
-              style={{ flex: 1, padding: 0, background: 'none', border: 'none', textAlign: 'left' }}
+              style={{ flex: 1, padding: 0, background: 'none', border: 'none', textAlign: 'left', display: 'inline-flex', alignItems: 'center' }}
               onClick={ouvrirSaisiePoids}
             >
               <span>
-                ⚖️ <strong>{kg(pesee.poids)} kg ce matin</strong>
-                {moyenne !== null && <span className="faible"> · moyenne 7 j {kg(Math.round(moyenne * 10) / 10)} kg</span>}
-                {vise && <span className="faible"> · visé {kg(cible!)} kg{vise.atteint ? ' ✓' : ` (encore ${vise.reste > 0 ? '+' : '−'}${kg(Math.abs(vise.reste))})`}</span>}
+                <PictoPesePersonne /> <strong>{kg(pesee.poids)} kg ce matin</strong>
               </span>
             </button>
             <div className="ligne" style={{ gap: 2 }}>
@@ -204,7 +206,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
 
       {(objectifHier || dHier?.calories) && (
         <div className="ligne-jour calories-hier">
-          <span>🍽 Hier</span>
+          <span>🍽 Calories hier</span>
           <div className="chips">
             {CALORIES.map(([id, nom]) => (
               <button key={id} className={dHier?.calories === id ? 'actif' : ''} onClick={() => void noter(hier, { calories: dHier?.calories === id ? undefined : id })}>
@@ -221,7 +223,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
             {repas && <>🥗 {repas}</>}
             {objectif && (
               <span className={repas ? 'faible' : ''} style={{ display: 'block', marginTop: repas ? 2 : 0 }}>
-                {repas ? '' : '🥗 '}Aujourd’hui : {objectif.kcal.toLocaleString('fr-FR')} kcal{objectif.proteines ? ` · ${objectif.proteines} g de protéines` : ''}
+                {repas ? '' : '🥗 '}Cible aujourd’hui : {objectif.kcal.toLocaleString('fr-FR')} kcal{objectif.proteines ? ` · ${objectif.proteines} g de protéines` : ''}
               </span>
             )}
           </span>

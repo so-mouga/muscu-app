@@ -11,7 +11,7 @@ import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
 import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
-import { etatCycle, nomCycle, planDeload } from '../lib/cycle'
+import { etatCycle, planDeload } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
@@ -189,10 +189,6 @@ export default function Accueil({
     return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
   }
   const bandeauCycleVisible = !!(cycle && etat && (etat.fini || etat.deload || etat.pause || etat.n <= 0))
-  const sousTitreProg =
-    cycle && etat && etat.n >= 1 && !etat.fini
-      ? `${nomCycle(cycle)} · ${etat.pause ? 'en pause' : `Semaine ${etat.n}/${etat.total}${etat.deload ? ' (déload)' : ''}`}`
-      : actif.nom
   const duresSemaine = semaine.reduce((a, s) => a + s.series.filter(estDure).length, 0)
   const recordsSemaine = terminees
     ? (() => {
@@ -231,11 +227,6 @@ export default function Accueil({
                 ? `${phase.enCours ? `${nomPhase(phase.enCours.phase)} · ` : ''}${nomPhase(phase.phase).toLowerCase()} à partir du ${new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
                 : `${nomPhase(phase.phase)} · semaine ${phase.semaine}${phase.total ? ` sur ${phase.total}` : ''}`}
             </div>
-          )}
-          {!premiereFois && (
-            <button type="button" className="btn discret petit lien-action" style={{ color: 'var(--texte-3)', marginTop: 2 }} onClick={onProgrammes}>
-              {sousTitreProg} ›
-            </button>
           )}
         </div>
       </div>
@@ -285,10 +276,12 @@ export default function Accueil({
           <>
             <div>
               <div className="faible">{proposee === duJour ? 'Séance du jour' : `Prochaine · prévue ${JOURS[proposee.jour!]}`}</div>
-              <h2>
-                {proposee.modele.nom} {proposee.modele.sousTitre && <span className="muted">— {proposee.modele.sousTitre}</span>}
-              </h2>
-              <div className="faible">{dureeTexte(proposee.modele, terminees)}</div>
+              <h2 style={{ margin: '2px 0 0' }}>{proposee.modele.nom}</h2>
+              {proposee.modele.sousTitre && (
+                <div className="faible" style={{ fontSize: '0.95rem', margin: '2px 0 6px' }}>
+                  {proposee.modele.sousTitre}
+                </div>
+              )}
               {!etat?.deload &&
                 (() => {
                   const l = aBattreDe(proposee.modele)
