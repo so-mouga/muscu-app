@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { MESURES, nomCle } from '../data/mesures'
 import { db, uid } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
@@ -172,6 +173,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
   const [b, setB] = useState(liste[0])
   const [pose, setPose] = useState<Pose>('face')
   const [curseur, setCurseur] = useState<number | null>(null)
+  const [pleinEcran, setPleinEcran] = useState(false)
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const photo = (d: string) => dates.find((x) => x[0] === d)?.[1][pose]
@@ -227,7 +229,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
             [b, pb],
           ].map(([d, p], i) => (
             <figure key={i}>
-              {p ? <img src={(p as PhotoCorps).image} alt="" /> : <div className="vide faible">Pas de photo</div>}
+              {p ? <img src={(p as PhotoCorps).image} alt="" onClick={() => setPleinEcran(true)} /> : <div className="vide faible">Pas de photo</div>}
               <figcaption className="faible">{dateCourte(d as string)}</figcaption>
             </figure>
           ))}
@@ -244,6 +246,39 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
       ) : (
         <div className="faible">Il manque la photo « {POSES.find((p) => p.id === pose)?.nom} » à l’une des deux dates.</div>
       )}
+      {curseur === null && (
+        <button className="btn discret petit" onClick={() => setPleinEcran(true)}>
+          ⤢ Plein écran et zoom
+        </button>
+      )}
+      {pleinEcran &&
+        createPortal(
+          <div className="comparaison-plein">
+            <div className="ligne entre">
+              <div className="chips">
+                {POSES.map((p) => (
+                  <button key={p.id} className={pose === p.id ? 'actif' : ''} onClick={() => setPose(p.id)}>
+                    {p.nom}
+                  </button>
+                ))}
+              </div>
+              <button className="btn discret petit" onClick={() => setPleinEcran(false)}>
+                ✕ Fermer
+              </button>
+            </div>
+            <div className="comparaison-plein-photos">
+              {[
+                [a, pa],
+                [b, pb],
+              ].map(([d, p], i) => (
+                <PhotoZoomable key={`${i}-${pose}-${d}`} image={(p as PhotoCorps | undefined)?.image} date={d as string} />
+              ))}
+            </div>
+            <div className="faible" style={{ textAlign: 'center', fontSize: 13 }}>Écarte deux doigts sur une photo pour zoomer, glisse pour te déplacer, touche deux fois pour revenir.</div>
+            <RetourPleinEcran onFermer={() => setPleinEcran(false)} />
+          </div>,
+          document.body,
+        )}
 
       {(poidsA && poidsB && poidsA.date !== poidsB.date) || ecarts.length ? (
         <div>
@@ -265,6 +300,114 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
         </div>
       ) : null}
     </div>
+  )
+}
+
+/** Ferme le plein écran de comparaison au bouton retour Android. */
+function RetourPleinEcran({ onFermer }: { onFermer: () => void }) {
+  useRetour(true, onFermer)
+  return null
+}
+
+/** Photo qu'on zoome à deux doigts (ou à la molette) et qu'on déplace au doigt, chacune de son côté. Deux appuis rapides : on revient. */
+function PhotoZoomable({ image, date }: { image?: string; date: string }) {
+  const cadre = useRef<HTMLDivElement>(null)
+  const [vue, setVue] = useState({ echelle: 1, x: 0, y: 0 })
+  const doigts = useRef(new Map<number, { x: number; y: number }>())
+  const depart = useRef<{ vue: typeof vue; ecart: number; milieu: { x: number; y: number } } | null>(null)
+  const dernierAppui = useRef(0)
+
+  // Garde la photo dans son cadre : centrée tant qu'elle est plus petite que lui, sinon sans bande noire au bord.
+  const borner = (echelle: number, x: number, y: number) => {
+    const r = cadre.current!.getBoundingClientRect()
+    const i = cadre.current!.querySelector('img')!
+    const e = Math.min(6, Math.max(1, echelle))
+    const k = Math.min(r.width / (i.naturalWidth || r.width), r.height / (i.naturalHeight || r.height))
+    const axe = (t: number, cote: number, taille: number) => {
+      const marge = (cote - taille) / 2
+      if (taille * e <= cote) return (cote - taille * e) / 2 - marge * e
+      return Math.min(-marge * e, Math.max(cote - (marge + taille) * e, t))
+    }
+    return { echelle: e, x: axe(x, r.width, (i.naturalWidth || r.width) * k), y: axe(y, r.height, (i.naturalHeight || r.height) * k) }
+  }
+  const point = (ev: { clientX: number; clientY: number }) => {
+    const r = cadre.current!.getBoundingClientRect()
+    return { x: ev.clientX - r.left, y: ev.clientY - r.top }
+  }
+  // Zoome en gardant fixe le point sous les doigts.
+  const zoomer = (v: typeof vue, echelle: number, avant: { x: number; y: number }, apres: { x: number; y: number }) => {
+    const e = Math.min(6, Math.max(1, echelle))
+    return borner(e, apres.x - ((avant.x - v.x) / v.echelle) * e, apres.y - ((avant.y - v.y) / v.echelle) * e)
+  }
+  const recommencer = (v: typeof vue) => {
+    const p = [...doigts.current.values()]
+    if (p.length >= 2) {
+      depart.current = { vue: v, ecart: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), milieu: { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 } }
+    } else if (p.length === 1) depart.current = { vue: v, ecart: 0, milieu: p[0] }
+    else depart.current = null
+  }
+
+  if (!image)
+    return (
+      <figure className="photo-zoom">
+        <div className="vide faible">Pas de photo</div>
+        <figcaption className="etiquette">{dateCourte(date)}</figcaption>
+      </figure>
+    )
+
+  return (
+    <figure
+      className="photo-zoom"
+      ref={cadre}
+      onPointerDown={(ev) => {
+        ;(ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId)
+        doigts.current.set(ev.pointerId, point(ev))
+        if (doigts.current.size === 1) {
+          const t = Date.now()
+          if (t - dernierAppui.current < 300) {
+            // Deux appuis : on revient à la photo entière, ou on zoome ×2,5 là où on a touché.
+            const p = point(ev)
+            const v = vue.echelle > 1 ? { echelle: 1, x: 0, y: 0 } : zoomer(vue, 2.5, p, p)
+            setVue(v)
+            dernierAppui.current = 0
+            recommencer(v)
+            return
+          }
+          dernierAppui.current = t
+        }
+        recommencer(vue)
+      }}
+      onPointerMove={(ev) => {
+        if (!doigts.current.has(ev.pointerId) || !depart.current) return
+        doigts.current.set(ev.pointerId, point(ev))
+        const p = [...doigts.current.values()]
+        const d = depart.current
+        if (p.length >= 2 && d.ecart) {
+          const milieu = { x: (p[0].x + p[1].x) / 2, y: (p[0].y + p[1].y) / 2 }
+          setVue(zoomer(d.vue, (d.vue.echelle * Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y)) / d.ecart, d.milieu, milieu))
+        } else if (p.length === 1 && d.vue.echelle > 1) {
+          setVue(borner(d.vue.echelle, d.vue.x + p[0].x - d.milieu.x, d.vue.y + p[0].y - d.milieu.y))
+        }
+      }}
+      onPointerUp={(ev) => {
+        doigts.current.delete(ev.pointerId)
+        recommencer(vue)
+      }}
+      onPointerCancel={(ev) => {
+        doigts.current.delete(ev.pointerId)
+        recommencer(vue)
+      }}
+      onWheel={(ev) => {
+        const p = point(ev)
+        setVue(zoomer(vue, vue.echelle * (ev.deltaY < 0 ? 1.2 : 1 / 1.2), p, p))
+      }}
+    >
+      <img src={image} alt="" draggable={false} style={{ transform: `translate(${vue.x}px, ${vue.y}px) scale(${vue.echelle})` }} />
+      <figcaption className="etiquette">
+        {dateCourte(date)}
+        {vue.echelle > 1.05 ? ` · ×${Math.round(vue.echelle * 10) / 10}` : ''}
+      </figcaption>
+    </figure>
   )
 }
 

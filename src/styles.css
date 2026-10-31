@@ -1750,6 +1750,63 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .superposition .etiquette.d {
   right: 8px;
 }
+.comparaison img {
+  cursor: zoom-in;
+}
+.comparaison-plein {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top)) 8px calc(12px + env(safe-area-inset-bottom));
+  background: #000;
+  color: #fff;
+}
+.comparaison-plein-photos {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.photo-zoom {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #111;
+  touch-action: none;
+  user-select: none;
+}
+.photo-zoom img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 0 0;
+}
+.photo-zoom .vide {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.photo-zoom .etiquette {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
 .prise-photo {
   position: fixed;
   inset: 0;
