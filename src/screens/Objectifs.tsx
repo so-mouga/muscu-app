@@ -7,8 +7,9 @@ import { db, setReglage } from '../db'
 import ChampNombre from '../components/ChampNombre'
 import { AJUSTEMENT, CLE_PROFIL, objectifDuJour, profilComplet, type Profil } from '../lib/nutrition'
 import { dateCourte, dateISO, kg, semaineType, volumePrevu } from '../lib/calc'
-import { volumeDefaut } from '../lib/cycle'
-import { CLE_OBJECTIFS, deplacer, nomPhase, objectifsA, PHASES, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
+import { BONUS_PRIORITE, nomCycle, volumeDefaut } from '../lib/cycle'
+import { MUSCLES } from '../data/exercices'
+import { avancePoids, CLE_OBJECTIFS, deplacer, nomPhase, objectifsA, PHASES, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
 
 const JOUR = 86400000
 const plusJours = (iso: string, n: number) => dateISO(new Date(Date.parse(iso + 'T12:00:00') + n * JOUR))
@@ -127,6 +128,7 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
               </button>
             </div>
             <div className="faible">Le début peut être dans le futur (ex. lundi prochain) : la phase est alors prévue, et visible dans le calendrier du Journal.</div>
+            <PoidsVise phase={phase.phase} vise={phase.poidsVise} finPrevue={phase.finPrevue} onChange={(v) => changer({ poidsVise: v })} />
           </>
         ) : (
           <div className="faible">Choisis ta phase : le Bilan s’en servira pour lire tes perfs et ton poids (une baisse de force n’a pas le même sens en sèche qu’en prise). Tu pourras la faire commencer plus tard.</div>
@@ -157,7 +159,12 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
         <div className="faible" style={{ margin: '4px 0 10px' }}>
           Séries dures par muscle et par semaine : tes objectifs, les mêmes pour tous tes programmes. En face : ce que prévoit « {catalogue.actif.nom} ». Touche un muscle pour changer son objectif ; chaque changement est daté, pour relire plus tard ce que tu visais.
         </div>
-        <VolumeMuscles volume={volume} cibles={catalogue.cibles} onCible={(m, v) => void changerObjectifs(catalogue, { volume: { ...catalogue.cibles, [m]: v } })} />
+        <VolumeMuscles volume={volume} cibles={catalogue.ciblesPerso} onCible={(m, v) => void changerObjectifs(catalogue, { volume: { ...catalogue.ciblesPerso, [m]: v } })} />
+        {catalogue.cycle?.priorites?.length ? (
+          <div className="faible" style={{ marginTop: 8 }}>
+            🎯 Priorité du cycle « {nomCycle(catalogue.cycle)} » : +{BONUS_PRIORITE} séries par semaine pour {catalogue.cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom).join(' et ')}, le temps du cycle (le Bilan en tient compte).
+          </div>
+        ) : null}
         <button className="btn discret petit lien-action" style={{ marginTop: 8 }} onClick={reinitialiser}>
           Revenir aux objectifs conseillés
         </button>
@@ -165,6 +172,33 @@ export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
 
       <CaloriesVisees catalogue={catalogue} />
     </div>
+  )
+}
+
+/** Poids visé à la fin de la phase, face à la moyenne des 7 derniers jours. */
+function PoidsVise({ phase, vise, finPrevue, onChange }: { phase: Phase; vise?: number; finPrevue?: string; onChange: (v: number | undefined) => void }) {
+  const aujourdhui = dateISO()
+  const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(plusJours(aujourdhui, -6)).toArray(), [aujourdhui], [])
+  const moyenne = pesees.length ? Math.round((pesees.reduce((a, p) => a + p.poids, 0) / pesees.length) * 10) / 10 : null
+  const a = vise && moyenne !== null ? avancePoids(phase, moyenne, vise, aujourdhui, finPrevue) : null
+  return (
+    <>
+      <div className="ligne entre">
+        <span>Poids visé à la fin</span>
+        <span className="ligne" style={{ gap: 6 }}>
+          <ChampNombre valeur={vise} placeholder="—" onChange={(v) => onChange(v ? Math.round(v * 10) / 10 : undefined)} />
+          <span className="faible">kg</span>
+        </span>
+      </div>
+      {a && (
+        <div className="faible">
+          {a.atteint
+            ? `Atteint : ${kg(moyenne!)} kg en moyenne sur 7 jours 🎉`
+            : `${kg(moyenne!)} kg en moyenne sur 7 jours : encore ${a.reste > 0 ? '+' : '−'}${kg(Math.abs(a.reste))} kg${a.parSemaine !== null ? `, soit ${a.parSemaine > 0 ? '+' : '−'}${kg(Math.abs(a.parSemaine))} kg par semaine d’ici le ${jour(finPrevue!)}` : ''}.`}
+        </div>
+      )}
+      {vise && moyenne === null && <div className="faible">Pèse-toi cette semaine pour voir où tu en es.</div>}
+    </>
   )
 }
 

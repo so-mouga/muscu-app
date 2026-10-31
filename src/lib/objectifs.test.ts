@@ -1,4 +1,4 @@
-import { lireFrise, modifier, objectifsA, periodes, phaseA, phaseAffichee, textePhase } from './objectifs'
+import { avancePoids, lireFrise, modifier, objectifsA, periodes, phaseA, phaseAffichee, textePhase } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -36,6 +36,20 @@ describe('objectifs dans le temps', () => {
     expect(phaseA(h, '2026-12-01')?.phase).toBe('seche')
     // Volume changé aujourd'hui : il vaut aussi pour la phase déjà prévue.
     expect(objectifsA(modifier(h, '2026-12-01', { volume: { pecs: 12 } }), '2026-12-08')?.volume).toEqual({ pecs: 12 })
+  })
+
+  it('poids visé : gardé pendant la phase, oublié à la suivante', () => {
+    const g = modifier(modifier(f, '2026-11-12', { poidsVise: 74 }), '2026-11-20', { volume: { pecs: 14 } })
+    expect(phaseA(g, '2026-11-25')).toMatchObject({ phase: 'seche', poidsVise: 74 })
+    expect(textePhase(g, '2026-11-25', (d) => d)).toContain('poids visé 74 kg')
+    expect(objectifsA(modifier(g, '2026-12-01', { phase: 'maintien' }), '2026-12-02')?.poidsVise).toBeUndefined()
+  })
+
+  it('avance vers le poids visé : reste, rythme, atteint selon le sens de la phase', () => {
+    expect(avancePoids('prise', 75, 77, '2026-11-01', '2026-12-27')).toEqual({ reste: 2, atteint: false, parSemaine: 0.25 })
+    expect(avancePoids('prise', 77.05, 77, '2026-11-01')).toMatchObject({ atteint: true, parSemaine: null })
+    expect(avancePoids('seche', 80, 76, '2026-11-01')).toMatchObject({ reste: -4, atteint: false, parSemaine: null })
+    expect(avancePoids('seche', 75.5, 76, '2026-11-01').atteint).toBe(true)
   })
 
   it('reprend les anciens réglages', () => {

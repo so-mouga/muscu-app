@@ -18,6 +18,8 @@ export interface EtapeObjectifs {
   phase?: Phase
   /** Fin prévue de la phase (AAAA-MM-JJ), facultative. */
   finPrevue?: string
+  /** Poids visé à la fin de la phase (kg), facultatif. */
+  poidsVise?: number
   /** Séries dures par semaine, par muscle. */
   volume: Partial<Record<Muscle, number>>
   /** Objectif calories fixé à la main (sinon calculé d'après le profil et la phase). */
@@ -31,6 +33,7 @@ export interface PeriodePhase {
   /** Dernier jour réel (veille de la phase suivante) ; absent si elle est en cours. */
   fin?: string
   finPrevue?: string
+  poidsVise?: number
 }
 
 export const PHASES: { id: Phase; nom: string; court: string; explication: string }[] = [
@@ -60,7 +63,7 @@ export function objectifsA(frise: EtapeObjectifs[], date: string): EtapeObjectif
 
 /**
  * Nouvelle étape à `date` : reprend les objectifs en vigueur (ou `base` pour le volume s'il n'y en a
- * pas) et applique le changement. Changer de phase efface la fin prévue de l'ancienne ; `phase:
+ * pas) et applique le changement. Changer de phase efface la fin prévue et le poids visé de l'ancienne ; `phase:
  * undefined` arrête la phase. Deux changements le même jour : une seule étape, la dernière. Un
  * nouveau volume vaut aussi pour les étapes déjà prévues après (phase programmée à l'avance).
  */
@@ -71,10 +74,12 @@ export function modifier(frise: EtapeObjectifs[], date: string, changement: Part
     volume: { ...(avant?.volume ?? base) },
     ...(avant?.phase && { phase: avant.phase }),
     ...(!nouvellePhase && avant?.finPrevue && { finPrevue: avant.finPrevue }),
+    ...(!nouvellePhase && avant?.poidsVise && { poidsVise: avant.poidsVise }),
     ...changement,
     depuis: date,
   }
   if (!etape.finPrevue) delete etape.finPrevue
+  if (!etape.poidsVise) delete etape.poidsVise
   if (!etape.phase) delete etape.phase
   if (!etape.calories) delete etape.calories
   const apres = (e: EtapeObjectifs) => ('volume' in changement && e.depuis > date ? { ...e, volume: { ...etape.volume } } : e)
@@ -88,10 +93,11 @@ export function periodes(frise: EtapeObjectifs[]): PeriodePhase[] {
     const der = res[res.length - 1]
     if (der && !der.fin && der.phase === e.phase) {
       der.finPrevue = e.finPrevue
+      der.poidsVise = e.poidsVise
       continue
     }
     if (der && !der.fin) der.fin = veille(e.depuis)
-    if (e.phase) res.push({ phase: e.phase, debut: e.depuis, ...(e.finPrevue && { finPrevue: e.finPrevue }) })
+    if (e.phase) res.push({ phase: e.phase, debut: e.depuis, ...(e.finPrevue && { finPrevue: e.finPrevue }), ...(e.poidsVise && { poidsVise: e.poidsVise }) })
   }
   return res
 }
@@ -122,7 +128,18 @@ export function phaseAffichee(frise: EtapeObjectifs[], aujourdhui: string) {
 export function textePhase(frise: EtapeObjectifs[], date: string, jour: (iso: string) => string): string | null {
   const p = phaseA(frise, date)
   if (!p) return null
-  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.total ? ` sur ${p.total}, fin prévue le ${jour(p.finPrevue!)}` : ''})`
+  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.total ? ` sur ${p.total}, fin prévue le ${jour(p.finPrevue!)}` : ''}${p.poidsVise ? `, poids visé ${String(p.poidsVise).replace('.', ',')} kg` : ''})`
+}
+
+/**
+ * Poids face au poids visé : ce qu'il reste (kg, signé), le rythme qu'il faut tenir d'ici la fin prévue
+ * (kg par semaine, si elle est à plus d'une semaine), et si c'est atteint (selon le sens de la phase).
+ */
+export function avancePoids(phase: Phase, actuel: number, vise: number, aujourdhui: string, finPrevue?: string) {
+  const reste = Math.round((vise - actuel) * 10) / 10
+  const semaines = finPrevue ? (Date.parse(finPrevue) - Date.parse(aujourdhui)) / (7 * JOUR) : 0
+  const atteint = phase === 'prise' ? reste <= 0.1 : phase === 'seche' ? reste >= -0.1 : Math.abs(reste) < 0.5
+  return { reste, atteint, parSemaine: !atteint && semaines >= 1 ? Math.round((reste / semaines) * 100) / 100 : null }
 }
 
 /** Corrige la date d'une étape (ex. sèche commencée en fait lundi dernier). */

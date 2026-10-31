@@ -3,11 +3,12 @@ import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { nomCle } from '../data/mesures'
 import { db, setReglage, uid } from '../db'
-import { dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle } from '../lib/calc'
-import { deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, type EtatCycle } from '../lib/cycle'
+import { dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle, volumePrevu } from '../lib/calc'
+import { BONUS_PRIORITE, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle, nouveauCycle, type EtatCycle } from '../lib/cycle'
+import { MUSCLES } from '../data/exercices'
 import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
-import type { Cycle, Programme } from '../types'
+import type { Cycle, Muscle, Programme } from '../types'
 import VolumeMuscles from './VolumeMuscles'
 import { confirmer } from './Dialogues'
 
@@ -87,6 +88,12 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
   const [semaines, setSemaines] = useState(cycle?.semaines ?? DUREE_DEFAUT)
   const [deloads, setDeloads] = useState<number[]>(cycle?.deloads ?? [DUREE_DEFAUT])
   const [nom, setNom] = useState(cycle?.nom ?? '')
+  const [priorites, setPriorites] = useState<Muscle[]>(cycle?.priorites ?? [])
+  const basculerPriorite = (m: Muscle) => setPriorites((l) => (l.includes(m) ? l.filter((x) => x !== m) : [...l, m].slice(-MAX_PRIORITES)))
+  // Ce que le programme prévoit pour chaque muscle, face à l'objectif relevé par la priorité.
+  const progChoisi = cycle?.programme ?? catalogue.programmes.find((x) => x.id === progId)
+  const seancesProg = progChoisi ? semaineType(progChoisi).map((e) => cycle?.modeles.find((m) => m.id === e.modeleId) ?? catalogue.modele(e.modeleId)).filter((m) => !!m) : []
+  const prevu = volumePrevu(seancesProg, catalogue.exercices)
   const etat = cycle && etatCycle(cycle)
 
   const changerDuree = (n: number) => {
@@ -97,7 +104,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
 
   const enregistrer = async () => {
     if (cycle) {
-      await db.cycles.update(cycle.id, { nom: nom.trim() || undefined, semaines, deloads: [...deloads].sort((a, b) => a - b) })
+      await db.cycles.update(cycle.id, { nom: nom.trim() || undefined, priorites: priorites.length ? priorites : undefined, semaines, deloads: [...deloads].sort((a, b) => a - b) })
       return onFermer()
     }
     const p = catalogue.programmes.find((x) => x.id === progId)!
@@ -107,7 +114,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
       !(await confirmer(`Le cycle « ${nomCycle(enCours)} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer un nouveau cycle ?', oui: 'Lancer le nouveau cycle' }))
     )
       return
-    const c = { ...nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b)), ...(nom.trim() && { nom: nom.trim() }) }
+    const c = { ...nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b)), ...(nom.trim() && { nom: nom.trim() }), ...(priorites.length && { priorites }) }
     await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
       if (enCours) await db.cycles.update(enCours.id, { fin: dateISO() })
       await db.cycles.put(c)
@@ -202,6 +209,31 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
           </span>
         </div>
 
+        <div className="champ">
+          <span>Priorité de ce cycle (facultatif, {MAX_PRIORITES} au plus)</span>
+          <div className="chips">
+            {MUSCLES.filter((m) => m.cible > 0).map((m) => (
+              <button key={m.id} className={priorites.includes(m.id) ? 'actif' : ''} onClick={() => basculerPriorite(m.id)}>
+                {m.nom}
+              </button>
+            ))}
+          </div>
+          {priorites.length ? (
+            priorites.map((m) => {
+              const objectif = catalogue.ciblesPerso[m] + BONUS_PRIORITE
+              const manque = Math.ceil(objectif - (prevu[m] ?? 0))
+              return (
+                <span key={m} className="faible">
+                  {MUSCLES.find((x) => x.id === m)!.nom} : objectif {kg(catalogue.ciblesPerso[m])} → {kg(objectif)} séries dures par semaine pendant le cycle. Ton programme en prévoit {kg(prevu[m] ?? 0)}
+                  {manque > 0 ? ` : ajoute ${manque} série${manque > 1 ? 's' : ''} (un exercice de plus, ou une série de plus sur plusieurs exercices).` : ' : c’est déjà bon.'}
+                </span>
+              )
+            })
+          ) : (
+            <span className="faible">Un muscle à pousser pendant ce bloc (ex. les bras) : son objectif de volume monte de {BONUS_PRIORITE} séries par semaine, le temps du cycle. Tes objectifs habituels ne changent pas.</span>
+          )}
+        </div>
+
         <div className="faible">
           Objectifs de volume par muscle : les tiens, les mêmes pour tous les programmes. Ils se règlent dans Progression → Objectifs.
         </div>
@@ -255,6 +287,7 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
           <h2>Cycle en cours</h2>
           <div className="faible">
             {nomCycle(cycle)} · {cycle.semaines} semaines depuis le {debutSemaine(cycle.debut)}
+            {cycle.priorites?.length ? ` · priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}` : ''}
           </div>
         </div>
         <Aide texte={AIDE_CYCLE} />

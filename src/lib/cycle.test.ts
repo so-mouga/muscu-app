@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { cibles, deloadMaintenant, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
+import { avecPriorites, cibles, deloadMaintenant, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -57,6 +57,15 @@ describe('déload', () => {
 })
 
 describe('objectifs de volume', () => {
+  it('priorité du cycle : +4 séries le temps du cycle, objectifs perso intacts', () => {
+    const v = cibles({ biceps: 6, pecs: 16 })
+    const c = cycle({ priorites: ['biceps'] })
+    expect(avecPriorites(v, [c], '2026-11-10')).toMatchObject({ biceps: 10, pecs: 16 })
+    expect(avecPriorites(v, [c], '2026-12-13').biceps).toBe(10)
+    expect(avecPriorites(v, [c], '2026-12-14').biceps).toBe(6)
+    expect(avecPriorites(v, [cycle({ priorites: ['biceps'], fin: '2026-11-20' })], '2026-11-21').biceps).toBe(6)
+    expect(v.biceps).toBe(6)
+  })
   it('personnels ; avant tout réglage, ceux du cycle ou du programme actif', () => {
     const p = { id: 'p', nom: 'P', seances: [], volume: { pecs: 12, dos: 14 } }
     const c = nouveauCycle('c', p, () => undefined, '2026-11-02')

@@ -4,7 +4,7 @@ import { EXERCICES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
 import { db, setReglage } from './db'
 import { dateISO } from './lib/calc'
-import { cibles } from './lib/cycle'
+import { avecPriorites, cibles } from './lib/cycle'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
 
@@ -31,8 +31,10 @@ export interface Catalogue {
   cycle?: Cycle
   /** Objectifs dans le temps (phase, fin prévue, volume), les mêmes pour tous les programmes. */
   objectifs: EtapeObjectifs[]
-  /** Objectifs de séries dures par semaine, par muscle, en vigueur aujourd'hui. */
+  /** Objectifs de séries dures par semaine, par muscle, en vigueur aujourd'hui (priorités du cycle comprises). */
   cibles: Record<Muscle, number>
+  /** Les mêmes, sans les priorités du cycle : ce que l'utilisateur a réglé dans Objectifs. */
+  ciblesPerso: Record<Muscle, number>
   /** Objectifs de volume en vigueur à une date (bilan d'une période passée). */
   ciblesA: (date: string) => Record<Muscle, number>
   /** Version d'une séance à lancer : celle du cycle si elle en fait partie, sinon la séance de la bibliothèque. */
@@ -45,7 +47,8 @@ export function construireCatalogue(
   programmesDb: Programme[],
   actifId: string | undefined,
   cycle?: Cycle,
-  objectifs: EtapeObjectifs[] = []
+  objectifs: EtapeObjectifs[] = [],
+  cycles: Cycle[] = cycle ? [cycle] : []
 ): Catalogue {
   const parId = new Map<string, SeanceModele>(PROGRAMME.map((m) => [m.id, m]))
   for (const m of modelesDb) parId.set(m.id, m)
@@ -65,6 +68,7 @@ export function construireCatalogue(
   const duCycle = new Map((cycle?.modeles ?? []).map((m) => [m.id, m]))
   const actif = cycle ? { ...cycle.programme, id: cycle.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0])
   const pourPlanning = (id: string) => duCycle.get(id) ?? (cycle ? undefined : modele(id))
+  const perso = (date: string) => cibles(objectifsA(objectifs, date)?.volume, cycle, actif)
 
   return {
     modeles,
@@ -80,8 +84,9 @@ export function construireCatalogue(
       .sort((a, b) => a.jour - b.jour),
     cycle,
     objectifs,
-    cibles: cibles(objectifsA(objectifs, dateISO())?.volume, cycle, actif),
-    ciblesA: (date) => cibles(objectifsA(objectifs, date)?.volume, cycle, actif),
+    cibles: avecPriorites(perso(dateISO()), cycles, dateISO()),
+    ciblesPerso: perso(dateISO()),
+    ciblesA: (date) => avecPriorites(perso(date), cycles, date),
     pourDemarrer: (m) => duCycle.get(m.id) ?? m,
   }
 }
@@ -97,7 +102,7 @@ export function useCatalogue(): Catalogue | null {
   return useMemo(
     () =>
       modeles && exercices && programmes && cycles && actif !== null && objectifs !== null
-        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])))
+        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])), cycles)
         : null,
     [modeles, exercices, programmes, actif, cycles, objectifs]
   )
@@ -105,4 +110,4 @@ export function useCatalogue(): Catalogue | null {
 
 /** Change les objectifs à partir d'une date (aujourd'hui par défaut) : une étape de plus dans la frise. */
 export const changerObjectifs = (c: Catalogue, changement: Parameters<typeof modifier>[2], date = dateISO()) =>
-  setReglage(CLE_OBJECTIFS, modifier(c.objectifs, date, changement, c.cibles))
+  setReglage(CLE_OBJECTIFS, modifier(c.objectifs, date, changement, c.ciblesPerso))

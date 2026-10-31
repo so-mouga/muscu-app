@@ -205,6 +205,8 @@ export interface Cycle {
   pauses: string[]
   /** Objectif de séries dures par semaine, par muscle. */
   volume: Partial<Record<Muscle, number>>
+  /** Muscles mis en avant pendant ce cycle : leur objectif de volume monte (voir `avecPriorites`). */
+  priorites?: Muscle[]
   /** Date de fin si le cycle a été terminé. */
   fin?: string
 }

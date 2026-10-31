@@ -5,7 +5,7 @@ import { db } from '../db'
 import { dateISO, kg } from '../lib/calc'
 import { conseilRepas, meilleureProgression } from '../lib/journal'
 import { CLE_PROFIL, objectifDuJour, type Profil } from '../lib/nutrition'
-import { nomPhase, phaseA } from '../lib/objectifs'
+import { avancePoids, nomPhase, phaseA } from '../lib/objectifs'
 import type { JourJournal, Seance } from '../types'
 
 const JOUR = 86400000
@@ -40,6 +40,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const pesee = pesees.find((p) => p.date === aujourdhui)
   const semaine = pesees.filter((p) => p.date > dateISO(new Date(Date.now() - 7 * JOUR)))
   const moyenne = semaine.length ? semaine.reduce((a, p) => a + p.poids, 0) / semaine.length : null
+  const vise = phase?.poidsVise && moyenne !== null ? avancePoids(phase.phase, moyenne, phase.poidsVise, aujourdhui, phase.finPrevue) : null
   const poids = pesees[pesees.length - 1]?.poids
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
   const objectifHier = objectifDuJour(catalogue.objectifs, hier, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
@@ -59,6 +60,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
           <span>
             ⚖️ {pesee ? <strong>{kg(pesee.poids)} kg ce matin</strong> : 'Pèse-toi ce matin, à jeun'}
             {moyenne !== null && <span className="faible"> · moyenne 7 j {kg(Math.round(moyenne * 10) / 10)} kg</span>}
+            {vise && <span className="faible"> · visé {kg(phase!.poidsVise!)} kg{vise.atteint ? ' ✓' : ` (encore ${vise.reste > 0 ? '+' : '−'}${kg(Math.abs(vise.reste))})`}</span>}
           </span>
           <span className="muted">›</span>
         </button>

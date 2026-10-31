@@ -57,6 +57,19 @@ export function lundiDe(c: Cycle, n: number): string {
 /** Nom affiché d'un cycle : le sien, sinon celui du programme. */
 export const nomCycle = (c: Cycle) => c.nom?.trim() || c.programme.nom
 
+/** Séries dures de plus par semaine pour un muscle prioritaire du cycle. */
+export const BONUS_PRIORITE = 4
+export const MAX_PRIORITES = 2
+
+/** Le cycle couvre cette date : de son lundi de départ à sa fin réelle, sinon prévue. */
+export const couvre = (c: Cycle, date: string) => date >= c.debut && date <= (c.fin ?? dateISO(new Date(jours(lundiDe(c, c.semaines)) + 6 * 86400000)))
+
+/** Objectifs de volume avec les priorités du cycle qui couvre la date (les objectifs perso ne changent pas). */
+export function avecPriorites(v: Record<Muscle, number>, cycles: Cycle[], date: string): Record<Muscle, number> {
+  const c = cycles.find((x) => x.priorites?.length && couvre(x, date))
+  return c ? { ...v, ...Object.fromEntries(c.priorites!.map((m) => [m, (v[m] ?? 0) + BONUS_PRIORITE])) } : v
+}
+
 /** Nouveau cycle, avec une copie du programme et de ses séances. */
 export function nouveauCycle(
   id: string,
