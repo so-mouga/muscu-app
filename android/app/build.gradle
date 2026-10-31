@@ -16,8 +16,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Clé de signature hors du dépôt (public) : chemin et mot de passe dans ~/.gradle/gradle.properties.
+    // Toujours la même clé, sinon les utilisateurs doivent désinstaller (et perdent leurs données).
+    signingConfigs {
+        release {
+            if (project.hasProperty('MUSCU_KEYSTORE')) {
+                storeFile file(MUSCU_KEYSTORE)
+                storePassword MUSCU_KEYSTORE_PASSWORD
+                keyAlias MUSCU_KEY_ALIAS
+                keyPassword MUSCU_KEYSTORE_PASSWORD
+            }
+        }
+    }
     buildTypes {
         release {
+            if (project.hasProperty('MUSCU_KEYSTORE')) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

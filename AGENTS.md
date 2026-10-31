@@ -19,7 +19,10 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 ## Appli Android (Capacitor)
 
 - Dossier `android/` (Capacitor 8). L'appli charge **le site en ligne** (`server.url` dans `capacitor.config.ts`) : un push sur `main` la met à jour sans réinstaller. Un nouvel APK n'est nécessaire que si on touche à `android/`.
-- `npm run android` : synchronise et construit `muscu.apk` (non versionné) à la racine. Il faut JDK 21 (`~/.gradle/gradle.properties` → `org.gradle.java.home`) et le SDK Android (`android/local.properties`). APK signé avec la clé de debug de ce Mac (`~/.android/debug.keystore`) : construire ailleurs empêche la mise à jour par-dessus.
+- `npm run android` : synchronise et construit `muscu.apk` (release, non versionné) à la racine. Il faut JDK 21 (`~/.gradle/gradle.properties` → `org.gradle.java.home`) et le SDK Android (`android/local.properties`).
+- **Signature** : clé `~/.muscu/muscu-release.jks` (hors dépôt, mot de passe dans `~/.gradle/gradle.properties`, sauvegardée par l'utilisateur). Ne jamais changer de clé : les utilisateurs devraient désinstaller et perdraient leurs données.
+- **Publier une nouvelle version** (seulement si `android/` a changé) : augmenter `versionCode` et `versionName` dans `android/app/build.gradle`, `npm run android`, puis `gh release create android-vX.Y muscu.apk --title … --notes …`. Lien fixe à partager : https://github.com/so-mouga/muscu-app/releases/latest/download/muscu.apk
+- Première ouverture sans réseau : page « Pas de connexion » avec Réessayer (`MainActivity`).
 - Essayer une version locale : `MUSCU_URL=http://10.0.2.2:4173/ npx cap sync android` (émulateur) puis rebuild ; la WebView se débogue en CDP (`adb forward tcp:9333 localabstract:webview_devtools_remote_<pid>`).
 - **Minuteur de repos natif** (`android/…/MinuteurRepos*.java`, `src/lib/natif.ts`) : notification avec décompte (écran verrouillé, volet, suivi en direct Android 16), boutons +30 s / Passer, alarme exacte qui sonne et vibre écran éteint sans couper la musique. Appli à l'écran : c'est elle qui bipe, pas la notification. `natif` est faux dans le navigateur : tout le reste marche pareil.
 - Les données de l'appli Android sont séparées de celles de Chrome : passer de l'un à l'autre = Exporter puis Importer.
