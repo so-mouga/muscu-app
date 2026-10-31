@@ -14,6 +14,20 @@ export const POSES: { id: Pose; nom: string; consigne: string }[] = [
   { id: 'dos', nom: 'Dos', consigne: 'De dos, bras légèrement écartés, relâché.' },
 ]
 
+/** Enregistre des photos d'une date : une par pose et par jour, la nouvelle remplace l'ancienne. */
+async function enregistrerPhotos(date: string, f: Partial<Record<Pose, string>>) {
+  const poses = Object.entries(f) as [Pose, string][]
+  if (!poses.length) return
+  await db.transaction('rw', db.photos, async () => {
+    await db.photos
+      .where('date')
+      .equals(date)
+      .filter((p) => poses.some(([pose]) => pose === p.pose))
+      .delete()
+    await db.photos.bulkPut(poses.map(([pose, image]) => ({ id: uid(), date, pose, image })))
+  })
+}
+
 /** Photos regroupées par date, la plus récente en premier. */
 function parDate(photos: PhotoCorps[]) {
   const m = new Map<string, Partial<Record<Pose, PhotoCorps>>>()
@@ -25,6 +39,7 @@ function parDate(photos: PhotoCorps[]) {
 export default function Photos() {
   const photos = useLiveQuery(() => db.photos.toArray(), [], [])
   const [prise, setPrise] = useState(false)
+  const [importer, setImporter] = useState(false)
   const [vue, setVue] = useState<PhotoCorps | null>(null)
   const dates = parDate(photos)
 
@@ -35,9 +50,13 @@ export default function Photos() {
       <button className="btn primaire grand" style={{ marginBottom: 12 }} onClick={() => setPrise(true)}>
         {dates[0]?.[0] === dateISO() ? '📸 Refaire / compléter les photos du jour' : '📸 Nouvelle séance photo'}
       </button>
+      <button className="btn plein" style={{ marginBottom: 12 }} onClick={() => setImporter(true)}>
+        🖼 Importer des photos déjà prises
+      </button>
       <div className="faible" style={{ marginBottom: 12 }}>
         3 poses : face, profil, dos. Même endroit, même lumière, même heure : c’est ce qui rend la comparaison fiable. Les photos restent sur ce téléphone.
       </div>
+      {importer && <ImportPhotos photos={photos} onFermer={() => setImporter(false)} />}
 
       {dates.length >= 2 && <Comparaison dates={dates} />}
 
@@ -70,6 +89,59 @@ export default function Photos() {
       ))}
       {vue && <PhotoPleine photo={vue} onFermer={() => setVue(null)} />}
     </>
+  )
+}
+
+/**
+ * Import de photos déjà prises (galerie) : une date (celle du fichier par défaut, modifiable) et une
+ * photo par pose. Pratique pour reprendre ses anciennes photos de progression.
+ */
+function ImportPhotos({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () => void }) {
+  useRetour(true, onFermer)
+  const [date, setDate] = useState(dateISO())
+  const [dateTouchee, setDateTouchee] = useState(false)
+  const [choisies, setChoisies] = useState<Partial<Record<Pose, string>>>({})
+  const [enCours, setEnCours] = useState(false)
+  const choisir = async (pose: Pose, f: File | undefined) => {
+    if (!f) return
+    // Date du fichier proposée tant que l'utilisateur n'a pas choisi la sienne.
+    if (!dateTouchee && f.lastModified) setDate(dateISO(new Date(f.lastModified)))
+    const image = await photoReduite(f, 1280)
+    setChoisies((c) => ({ ...c, [pose]: image }))
+  }
+  const deja = POSES.filter((p) => choisies[p.id] && photos.some((x) => x.date === date && x.pose === p.id))
+  const valider = async () => {
+    if (deja.length && !(await confirmer(`Tu as déjà ${deja.map((p) => p.nom.toLowerCase()).join(', ')} le ${dateCourte(date)}.`, { titre: 'Remplacer ?', oui: 'Remplacer' }))) return
+    setEnCours(true)
+    await enregistrerPhotos(date, choisies)
+    onFermer()
+  }
+  return (
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <h2>Importer des photos</h2>
+        <label className="champ">
+          <span>Date des photos</span>
+          <input type="date" value={date} max={dateISO()} onChange={(e) => e.target.value && (setDate(e.target.value), setDateTouchee(true))} />
+        </label>
+        <div className="faible">La date du fichier est reprise par défaut : vérifie-la, une photo envoyée par message peut avoir la date d’envoi.</div>
+        <div className="vignettes-poses">
+          {POSES.map((p) => (
+            <label key={p.id} className={choisies[p.id] ? '' : 'vide'} style={{ cursor: 'pointer' }}>
+              {choisies[p.id] ? <img src={choisies[p.id]} alt={p.nom} /> : <span className="faible">+ {p.nom}</span>}
+              {choisies[p.id] && <span className="faible">{p.nom}</span>}
+              <input type="file" accept="image/*" hidden onChange={(e) => void choisir(p.id, e.target.files?.[0])} />
+            </label>
+          ))}
+        </div>
+        <button className="btn primaire grand" disabled={!Object.keys(choisies).length || enCours} onClick={() => void valider()}>
+          {Object.keys(choisies).length ? `Enregistrer ${Object.keys(choisies).length} photo${Object.keys(choisies).length > 1 ? 's' : ''}` : 'Choisis au moins une photo'}
+        </button>
+        <button className="btn discret plein" onClick={onFermer}>
+          Annuler
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -304,17 +376,7 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
   }
 
   const terminer = async (f: Partial<Record<Pose, string>>) => {
-    const poses = Object.entries(f) as [Pose, string][]
-    if (poses.length)
-      await db.transaction('rw', db.photos, async () => {
-        // Une photo par pose et par jour : la nouvelle remplace celle du jour.
-        await db.photos
-          .where('date')
-          .equals(date)
-          .filter((p) => poses.some(([pose]) => pose === p.pose))
-          .delete()
-        await db.photos.bulkPut(poses.map(([pose, image]) => ({ id: uid(), date, pose, image })))
-      })
+    await enregistrerPhotos(date, f)
     onFermer()
   }
 
@@ -380,16 +442,23 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
               </span>
             </div>
           )}
-          {erreur ? (
-            <label className="btn primaire grand">
-              📸 PRENDRE LA PHOTO
-              <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
+          <div className="ligne" style={{ gap: 8 }}>
+            {erreur ? (
+              <label className="btn primaire grand" style={{ flex: 1 }}>
+                📸 PRENDRE LA PHOTO
+                <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
+              </label>
+            ) : (
+              <button className="btn primaire grand" style={{ flex: 1 }} onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}>
+                {decompte !== null ? `Photo dans ${decompte} s · annuler` : '📸 PRENDRE LA PHOTO'}
+              </button>
+            )}
+            {/* Une photo déjà prise (avec l'appareil du téléphone, un miroir…) : on la choisit dans la galerie. */}
+            <label className="btn grand" aria-label="Choisir dans la galerie">
+              🖼 Galerie
+              <input type="file" accept="image/*" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
             </label>
-          ) : (
-            <button className="btn primaire grand" onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}>
-              {decompte !== null ? `Photo dans ${decompte} s · appuie pour annuler` : '📸 PRENDRE LA PHOTO'}
-            </button>
-          )}
+          </div>
           {precedente && fantome && (
             <div className="faible">
               En transparence, ta photo {precedente.date === date ? 'prise plus tôt aujourd’hui' : `du ${dateCourte(precedente.date)}`} : cale-toi dessus.

@@ -1657,6 +1657,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   gap: 8px;
 }
 .vignettes-poses button,
+.vignettes-poses label,
 .vignettes-poses .vide {
   display: flex;
   flex-direction: column;
@@ -1666,6 +1667,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   padding: 0;
 }
 .vignettes-poses img {
+  align-self: stretch;
   width: 100%;
   aspect-ratio: 3 / 4;
   object-fit: cover;
@@ -2868,4 +2870,9 @@ a.btn {
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
   background: linear-gradient(to top, var(--bg) 75%, transparent);
   z-index: 5;
+}
+/* Vignettes de photos : même largeur que les cases vides (un bouton ne s'étire pas seul dans la grille). */
+.vignettes-poses > * {
+  width: 100%;
+  min-width: 0;
 }
