@@ -16,7 +16,7 @@ import { ecartSerie, lireChauffe, volumeParMuscle, chargeQte, chargeTexte, cible
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
-import { arreterReposNatif, natif, reposNatif, suivreReposNatif } from '../lib/natif'
+import { arreterSeanceNatif, natif, pauseNatif, reposNatif, seanceNatif, suivreNatif } from '../lib/natif'
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
@@ -47,7 +47,7 @@ function range(cle: string, v: unknown) {
 /** Minuteur et exercice affiché d'une séance terminée ou abandonnée. */
 function oublierEtatLocal(seanceId: string) {
   range('minuteur', null)
-  void arreterReposNatif()
+  void arreterSeanceNatif()
   range(`idx:${seanceId}`, null)
 }
 
@@ -149,22 +149,28 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     range('minuteur', avecSeance)
   }
 
-  // Appli Android : le repos est aussi tenu par Android (décompte sur l'écran verrouillé, alarme écran éteint).
+  // Appli Android : la séance est aussi tenue par Android, notification du début à la fin (chrono de
+  // séance, décompte du repos ou pause), boutons sur l'écran verrouillé, alarme écran éteint.
   const ensuiteRef = useRef('')
   const minuteurRef = useRef({ minuteur, setMinuteur })
   minuteurRef.current = { minuteur, setMinuteur }
   useEffect(() => {
     if (!natif) return
-    if (minuteur && minuteur.pause === undefined && minuteur.fin > Date.now()) void reposNatif(minuteur.fin, ensuiteRef.current)
-    else void arreterReposNatif()
-  }, [minuteur?.fin, minuteur?.pause])
+    const c = { nom: seance.nom, debut: seance.debut, texte: ensuiteRef.current ? `Ensuite : ${ensuiteRef.current}` : '' }
+    if (minuteur && minuteur.pause !== undefined) void pauseNatif(c, minuteur.pause)
+    else if (minuteur && minuteur.fin > Date.now()) void reposNatif(c, minuteur.fin)
+    else void seanceNatif(c)
+  }, [minuteur?.fin, minuteur?.pause, seance.series.length, seance.nom])
+  // Ce qui a été choisi depuis la notification (Pause, Reprendre, +30 s, Passer) : l'appli suit.
   useEffect(
     () =>
-      suivreReposNatif(({ type, fin: finNatif }) => {
+      suivreNatif((e) => {
         const { minuteur: m, setMinuteur: maj } = minuteurRef.current
-        if (!m || m.pause !== undefined) return
-        if (type === 'passer') maj(null)
-        else if (finNatif > Date.now() && finNatif !== m.fin) maj({ ...m, fin: finNatif })
+        if (!m) return
+        if (e.mode === 'pause') m.pause !== e.reste && maj({ ...m, pause: e.reste })
+        else if (e.mode === 'repos') (e.fin !== m.fin || m.pause !== undefined) && maj({ ...m, fin: e.fin, pause: undefined })
+        // Repos passé depuis la notification (pas seulement fini tout seul : l'appli affiche alors « Repos terminé »).
+        else if (e.mode === 'seance' && (m.pause !== undefined || m.fin > Date.now())) maj(null)
       }),
     []
   )

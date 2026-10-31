@@ -1,6 +1,8 @@
 package io.github.somouga.muscu;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.SharedPreferences;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -10,7 +12,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
-/** Pont entre l'appli (src/lib/natif.ts) et le repos tenu par Android. */
+/** Pont entre l'appli (src/lib/natif.ts) et la notification de séance tenue par Android. */
 @CapacitorPlugin(name = "MinuteurRepos", permissions = @Permission(alias = "notifications", strings = { Manifest.permission.POST_NOTIFICATIONS }))
 public class MinuteurReposPlugin extends Plugin {
 
@@ -32,44 +34,72 @@ public class MinuteurReposPlugin extends Plugin {
         MinuteurRepos.auPremierPlan = false;
     }
 
-    /** Un bouton de la notification a été touché : l'appli suit (si elle tourne encore). */
-    static void signaler(String type, long fin) {
-        if (instance == null) return;
+    private static JSObject etatDe(Context c) {
+        SharedPreferences p = MinuteurRepos.prefs(c);
         JSObject d = new JSObject();
-        d.put("type", type);
-        d.put("fin", fin);
-        instance.notifyListeners("action", d);
+        d.put("mode", p.getString("mode", ""));
+        d.put("fin", p.getLong("fin", 0));
+        d.put("reste", p.getLong("reste", 0));
+        return d;
     }
 
-    @PluginMethod
-    public void demarrer(PluginCall call) {
-        if (fin(call) == null) {
-            call.reject("fin manquante");
-            return;
-        }
+    /** Un bouton de la notification a été touché : l'appli suit (si elle tourne encore). */
+    static void signaler(Context c) {
+        if (instance != null) instance.notifyListeners("action", etatDe(c));
+    }
+
+    /** Toutes les méthodes : la 1re fois, on demande l'autorisation d'afficher des notifications. */
+    private boolean autorise(PluginCall call) {
         if (android.os.Build.VERSION.SDK_INT >= 33 && getPermissionState("notifications") != PermissionState.GRANTED) {
             requestPermissionForAlias("notifications", call, "apresPermission");
-            return;
+            return false;
         }
-        lancer(call);
+        return true;
     }
 
     @PermissionCallback
     private void apresPermission(PluginCall call) {
-        lancer(call);
+        executer(call);
     }
 
-    private void lancer(PluginCall call) {
-        MinuteurRepos.demarrer(getContext(), fin(call), call.getString("titre", "Repos"), call.getString("texte", ""));
+    /** Horodatage ou durée : arrive en entier (Date.now()), parfois en décimal. */
+    private static long nombre(PluginCall call, String cle) {
+        Long l = call.getLong(cle);
+        if (l != null) return l;
+        Double d = call.getDouble(cle);
+        return d == null ? 0 : d.longValue();
+    }
+
+    private void executer(PluginCall call) {
+        Context c = getContext();
+        String texte = call.getString("texte", "");
+        // Nom et début de la séance : gardés pour le titre et pour revenir au chrono de séance après un repos.
+        SharedPreferences.Editor e = MinuteurRepos.prefs(c).edit();
+        if (call.getString("nom") != null) e.putString("nom", call.getString("nom"));
+        if (nombre(call, "debut") > 0) e.putLong("debut", nombre(call, "debut"));
+        e.apply();
+        switch (call.getMethodName()) {
+            case "seance" -> MinuteurRepos.seance(c, nombre(call, "debut"), call.getString("nom", "Séance"), texte);
+            case "demarrer" -> MinuteurRepos.repos(c, nombre(call, "fin"), texte);
+            case "pause" -> MinuteurRepos.pause(c, nombre(call, "reste"), texte);
+            default -> {}
+        }
         call.resolve();
     }
 
-    /** Horodatage de fin : arrive en entier (Date.now()), parfois en décimal. */
-    private static Long fin(PluginCall call) {
-        Long l = call.getLong("fin");
-        if (l != null) return l;
-        Double d = call.getDouble("fin");
-        return d == null ? null : d.longValue();
+    @PluginMethod
+    public void seance(PluginCall call) {
+        if (autorise(call)) executer(call);
+    }
+
+    @PluginMethod
+    public void demarrer(PluginCall call) {
+        if (autorise(call)) executer(call);
+    }
+
+    @PluginMethod
+    public void pause(PluginCall call) {
+        if (autorise(call)) executer(call);
     }
 
     @PluginMethod
@@ -78,13 +108,9 @@ public class MinuteurReposPlugin extends Plugin {
         call.resolve();
     }
 
-    /** Où en est le repos côté Android : fin (0 = aucun) et s'il a été passé depuis la notification. */
+    /** Où en est la séance côté Android : mode (seance, repos, pause), fin du repos, temps restant en pause. */
     @PluginMethod
     public void etat(PluginCall call) {
-        JSObject r = new JSObject();
-        r.put("fin", MinuteurRepos.prefs(getContext()).getLong("fin", 0));
-        r.put("passe", MinuteurRepos.prefs(getContext()).getBoolean("passe", false));
-        MinuteurRepos.prefs(getContext()).edit().putBoolean("passe", false).apply();
-        call.resolve(r);
+        call.resolve(etatDe(getContext()));
     }
 }
