@@ -20,6 +20,8 @@ export interface EtapeObjectifs {
   finPrevue?: string
   /** Séries dures par semaine, par muscle. */
   volume: Partial<Record<Muscle, number>>
+  /** Objectif calories fixé à la main (sinon calculé d'après le profil et la phase). */
+  calories?: number
 }
 
 /** Une phase d'un seul tenant : du changement de phase jusqu'au suivant. */
@@ -74,6 +76,7 @@ export function modifier(frise: EtapeObjectifs[], date: string, changement: Part
   }
   if (!etape.finPrevue) delete etape.finPrevue
   if (!etape.phase) delete etape.phase
+  if (!etape.calories) delete etape.calories
   const apres = (e: EtapeObjectifs) => ('volume' in changement && e.depuis > date ? { ...e, volume: { ...etape.volume } } : e)
   return tri([...frise.filter((e) => e.depuis !== date).map(apres), etape])
 }

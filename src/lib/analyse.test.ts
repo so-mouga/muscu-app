@@ -124,3 +124,17 @@ describe('lecture selon la phase', () => {
     expect(lecturePhase(base([4], [75, 76, 1]), 'prise')).toEqual([])
   })
 })
+
+describe('calories et sommeil dans la lecture', () => {
+  const base = (cal: { ok: number; trop: number; pasAssez: number }) =>
+    ({ seances: 8, progressions: [{ pct: 1 }, { pct: 2 }], poids: { debut: 80, fin: 80.2, semaines: 4 }, calories: cal }) as unknown as Analyse
+
+  it('sèche, poids immobile mais calories tenues : l’objectif est trop haut', () => {
+    expect(lecturePhase(base({ ok: 6, trop: 1, pasAssez: 0 }), 'seche')[0]).toMatch(/objectif est sans doute trop haut/)
+    expect(lecturePhase(base({ ok: 2, trop: 3, pasAssez: 0 }), 'seche')[0]).toMatch(/3 jours au-dessus/)
+  })
+  it('sommeil court signalé dans « À retenir »', () => {
+    const a = { ...base({ ok: 0, trop: 0, pasAssez: 0 }), douleurs: [], prevues: null, volume: {}, stagnations: [], mesures: [], records: [], rpe: null, energie: null, sommeil: { moyenne: 6, nuits: 5 } } as unknown as Analyse
+    expect(aRetenir(a, null, cibles(), true).join('\n')).toMatch(/Sommeil moyen 6 h 00 sur 5 nuits/)
+  })
+})

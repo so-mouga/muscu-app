@@ -30,6 +30,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const activites = useLiveQuery(() => db.activites.toArray(), [], [])
+  const journal = useLiveQuery(() => db.journal.toArray(), [], [])
   const records = useMemo(() => (seances ? recordsParSeance(seances, catalogue.exo) : {}), [seances, catalogue])
   const prevuMuscles = useMemo(() => volumePrevu(semaineType(catalogue.actif).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices), [catalogue])
   if (!seances) return null
@@ -47,7 +48,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
 
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
   const cibles = catalogue.ciblesA(fin)
-  const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs }
+  const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal }
   const prevues = catalogue.planning.length
   const a = analyser(donnees, debut, fin, prevues)
   const longueur = Math.round((Date.parse(fin) - Date.parse(a.debut)) / JOUR)
@@ -156,10 +157,10 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
 
       <Progression a={a} onExo={onExo} />
 
-      {(a.rpe !== null || a.ressenti !== null || a.energie !== null || a.douleurs.length > 0) && (
+      {(a.rpe !== null || a.ressenti !== null || a.energie !== null || a.douleurs.length > 0 || a.sommeil || a.calories.ok + a.calories.trop + a.calories.pasAssez > 0) && (
         <div className="carte pile">
           <h3>Intensité et forme</h3>
-          {(a.rpe !== null || a.ressenti !== null || a.energie !== null) && (
+          {(a.rpe !== null || a.ressenti !== null || a.energie !== null || a.sommeil || a.calories.ok + a.calories.trop + a.calories.pasAssez > 0) && (
             <div className="tuiles">
               {a.rpe !== null && <Tuile valeur={kg(arrondi(a.rpe))} label="RPE moyen" n={a.rpe} m={avant.rpe ?? undefined} comparable={avant.rpe !== null} neutre texteAvant={avant.rpe !== null ? kg(arrondi(avant.rpe)) : ''} />}
               {a.ressenti !== null && (
@@ -167,6 +168,19 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
               )}
               {a.energie !== null && (
                 <Tuile valeur={`${kg(arrondi(a.energie))}/5`} label="énergie" n={a.energie} m={avant.energie ?? undefined} comparable={avant.energie !== null} texteAvant={avant.energie !== null ? kg(arrondi(avant.energie)) : ''} />
+              )}
+              {a.sommeil && (
+                <Tuile
+                  valeur={`${Math.floor(a.sommeil.moyenne)} h ${String(Math.round((a.sommeil.moyenne % 1) * 60)).padStart(2, '0')}`}
+                  label={`sommeil moyen (${a.sommeil.nuits} nuit${a.sommeil.nuits > 1 ? 's' : ''})`}
+                  n={a.sommeil.moyenne}
+                  m={avant.sommeil?.moyenne}
+                  comparable={!!avant.sommeil}
+                  texteAvant={avant.sommeil ? `${kg(arrondi(avant.sommeil.moyenne))} h` : ''}
+                />
+              )}
+              {a.calories.ok + a.calories.trop + a.calories.pasAssez > 0 && (
+                <Tuile valeur={`${a.calories.ok}/${a.calories.ok + a.calories.trop + a.calories.pasAssez}`} label="jours dans l’objectif calories" />
               )}
             </div>
           )}

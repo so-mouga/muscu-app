@@ -44,6 +44,10 @@ export interface Analyse {
   energie: number | null
   /** Poids moyen de la première et de la dernière semaine pesées, et les semaines qui les séparent. */
   poids: { debut: number; fin: number; semaines: number } | null
+  /** Sommeil moyen (heures) sur les nuits notées. */
+  sommeil: { moyenne: number; nuits: number } | null
+  /** Jours notés face à l'objectif calories. */
+  calories: { ok: number; trop: number; pasAssez: number }
   mesures: { cle: string; debut: number; fin: number }[]
 }
 
@@ -163,6 +167,12 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     stagnations,
     douleurs,
     rpe: moyenne(travail.flatMap((s) => s.series.filter(estDure).map((x) => x.rpe))),
+    ...(() => {
+      const jours = (d.journal ?? []).filter((j) => j.date >= debutEffectif && j.date <= fin)
+      const nuits = jours.filter((j) => j.sommeil !== undefined).map((j) => j.sommeil!)
+      const n = (c: string) => jours.filter((j) => j.calories === c).length
+      return { sommeil: nuits.length ? { moyenne: moyenne(nuits)!, nuits: nuits.length } : null, calories: { ok: n('ok'), trop: n('trop'), pasAssez: n('pasAssez') } }
+    })(),
     ressenti: notes((s) => s.ressenti),
     energie: notes((s) => s.energie),
     poids: avecPoids.length >= 2 ? { debut: avecPoids[0], fin: avecPoids[avecPoids.length - 1], semaines: ecartSemaines } : null,
@@ -191,6 +201,10 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
 
   // Lecture selon la phase : perfs et poids n'ont pas le même sens en sèche et en prise.
   if (phase) r.push(...lecturePhase(a, phase))
+
+  // Sommeil court : il explique souvent une baisse de forme avant le programme.
+  if (a.sommeil && a.sommeil.nuits >= 3 && a.sommeil.moyenne < 6.5)
+    r.push(`Sommeil moyen ${heuresTexte(a.sommeil.moyenne)} sur ${a.sommeil.nuits} nuits : sous 7 h, la récupération et les perfs en pâtissent.`)
 
   // Assiduité
   if (a.prevues) {
@@ -249,20 +263,40 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
   const kgSem = (x: number) => `${x > 0 ? '+' : '−'}${kg(Math.abs(arrondi(x, 2)))} kg par semaine`
   const forceTxt = force !== null ? `${force > 0 ? '+' : '−'}${kg(Math.abs(arrondi(force)))} %` : ''
 
+  // Calories notées : tenues souvent (≥ 70 % de 4 jours ou plus) → c'est l'objectif qu'il faut revoir, sinon c'est l'écart.
+  const c = a.calories ?? { ok: 0, trop: 0, pasAssez: 0 }
+  const notes = c.ok + c.trop + c.pasAssez
+  const tenues = notes >= 4 && c.ok / notes >= 0.7
   if (phase === 'seche') {
     if (force !== null && force <= -5) r.push(`En sèche, tes charges baissent (${forceTxt} en moyenne) : ton déficit est peut-être trop fort, ou tu dors trop peu. Mange un peu plus autour des séances.`)
     if (pctSemaine !== null && pctSemaine < -1) r.push(`Tu perds vite (${kgSem(parSemaine!)}, plus de 1 % de ton poids) : risque de perdre du muscle, ralentis un peu.`)
-    else if (pctSemaine !== null && pctSemaine >= -0.1) r.push(`En sèche, mais ton poids ne baisse pas (${kgSem(parSemaine!)}) : réduis un peu ce que tu manges.`)
+    else if (pctSemaine !== null && pctSemaine >= -0.1)
+      r.push(
+        tenues
+          ? `En sèche, ton poids ne baisse pas (${kgSem(parSemaine!)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est sans doute trop haut, baisse-le de 150 kcal.`
+          : notes >= 4 && c.trop >= 2
+            ? `En sèche, ton poids ne baisse pas (${kgSem(parSemaine!)}) : ${c.trop} jours au-dessus de l’objectif l’expliquent sans doute.`
+            : `En sèche, mais ton poids ne baisse pas (${kgSem(parSemaine!)}) : réduis un peu ce que tu manges.`
+      )
     else if (pctSemaine !== null && force !== null && force > -2) r.push(`Sèche qui marche : ${kgSem(parSemaine!)} et des charges tenues (${forceTxt}).`)
   }
   if (phase === 'prise') {
-    if (pctSemaine !== null && pctSemaine <= 0) r.push(`En prise, mais ton poids ne monte pas (${kgSem(parSemaine!)}) : mange un peu plus.`)
+    if (pctSemaine !== null && pctSemaine <= 0)
+      r.push(
+        tenues
+          ? `En prise, ton poids ne monte pas (${kgSem(parSemaine!)}) alors que tu tiens tes calories ${c.ok} jours sur ${notes} : ton objectif est sans doute trop bas, monte-le de 150 kcal.`
+          : notes >= 4 && c.pasAssez >= 2
+            ? `En prise, ton poids ne monte pas (${kgSem(parSemaine!)}) : ${c.pasAssez} jours sous l’objectif l’expliquent sans doute.`
+            : `En prise, mais ton poids ne monte pas (${kgSem(parSemaine!)}) : mange un peu plus.`
+      )
     else if (pctSemaine !== null && pctSemaine > 0.5) r.push(`Tu prends vite (${kgSem(parSemaine!)}) : une partie risque d’être du gras, ralentis un peu.`)
     if (force !== null && force <= 0 && a.seances >= 4) r.push(`En prise, tes charges ne montent pas (${forceTxt}) : vise +1 rep ou un cran à chaque séance (les conseils 💡 en fin de séance t’aident).`)
     else if (force !== null && force > 0 && pctSemaine !== null && pctSemaine > 0 && pctSemaine <= 0.5) r.push(`Prise qui marche : ${kgSem(parSemaine!)} et des charges en hausse (${forceTxt}).`)
   }
   return r
 }
+
+const heuresTexte = (h: number) => `${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, '0')}`
 
 /** « Taille », « Bras droit »… */
 export const libelleMesure = (cle: string) => nomCle(cle)

@@ -10,6 +10,8 @@ import { debloquerSon, signalSerie, tic } from '../lib/appareil'
 import { confirmer } from '../components/Dialogues'
 import { ListeLexique } from '../components/Lexique'
 import Interrupteur from '../components/Interrupteur'
+import ChampNombre from '../components/ChampNombre'
+import { ACTIVITES, CLE_PROFIL, type Profil } from '../lib/nutrition'
 
 function telecharger(nom: string, contenu: string, type: string) {
   const url = URL.createObjectURL(new Blob([contenu], { type }))
@@ -96,6 +98,8 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
       <div className="entete">
         <h1>Réglages</h1>
       </div>
+
+      <MonProfil />
 
       <div className="carte pile">
         <h3>Saisie de la charge</h3>
@@ -321,6 +325,58 @@ function Lexique() {
         <span className="muted">{ouvert ? '▾' : '▸'}</span>
       </button>
       {ouvert && <ListeLexique />}
+    </div>
+  )
+}
+
+/** Profil saisi une fois : sert à calculer l'objectif calories (le poids vient des pesées). */
+function MonProfil() {
+  const reglage = useLiveQuery(() => db.reglages.get(CLE_PROFIL), [], null)
+  if (reglage === null) return null
+  const p = (reglage?.valeur as Profil | undefined) ?? {}
+  // Relu en base à chaque fois : deux saisies rapprochées ne s'écrasent pas.
+  const maj = (c: Partial<Profil>) => void db.transaction('rw', db.reglages, async () => db.reglages.put({ cle: CLE_PROFIL, valeur: { ...((await db.reglages.get(CLE_PROFIL))?.valeur as Profil | undefined), ...c } }))
+  return (
+    <div className="carte pile">
+      <h3>Mon profil</h3>
+      <div className="faible">Pour calculer ton objectif calories selon ta phase (Progression → Objectifs). Ton poids vient de tes pesées. Tout reste sur ce téléphone.</div>
+      <div className="ligne entre">
+        <span>Taille</span>
+        <span className="ligne" style={{ gap: 6 }}>
+          <ChampNombre valeur={p.taille} placeholder="—" onChange={(v) => maj({ taille: v && Math.round(v) })} />
+          <span className="faible">cm</span>
+        </span>
+      </div>
+      <div className="ligne entre">
+        <span>Année de naissance</span>
+        <ChampNombre valeur={p.naissance} placeholder="—" onChange={(v) => maj({ naissance: v && v > 1900 && v < 2020 ? Math.round(v) : undefined })} />
+      </div>
+      <div className="ligne entre">
+        <span>Sexe</span>
+        <div className="chips">
+          {(
+            [
+              ['h', 'Homme'],
+              ['f', 'Femme'],
+            ] as const
+          ).map(([id, nom]) => (
+            <button key={id} className={p.sexe === id ? 'actif' : ''} onClick={() => maj({ sexe: id })}>
+              {nom}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={{ marginBottom: 6 }}>Activité hors salle</div>
+        <div className="chips">
+          {ACTIVITES.map((a) => (
+            <button key={a.id} className={p.activite === a.id ? 'actif' : ''} onClick={() => maj({ activite: a.id })}>
+              {a.nom}
+            </button>
+          ))}
+        </div>
+        {p.activite && <div className="faible" style={{ marginTop: 4 }}>{ACTIVITES.find((a) => a.id === p.activite)!.detail}</div>}
+      </div>
     </div>
   )
 }

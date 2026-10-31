@@ -2,14 +2,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { chargeQte, dateISO, duree, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
+import { chargeQte, dateISO, duree, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
 import { creneauxFaits, dureeReelle, recordsParSeance } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
-import { conseilRepas, meilleureProgression } from '../lib/journal'
 import { nomPhase, phaseAffichee } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import FormActivite from '../components/FormActivite'
+import JournalMatin from '../components/JournalMatin'
 import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
 import { etatCycle, planDeload } from '../lib/cycle'
@@ -155,11 +155,7 @@ export default function Accueil({
         })
       : []
 
-  // Journal du matin : phase, pesée, assiette, progrès réel.
-  const aujourdhui = dateISO()
-  const phase = phaseAffichee(catalogue.objectifs, aujourdhui)
-  const phaseEnCours = phase?.aVenir ? phase.enCours : phase
-  const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * 86400000))).sortBy('date'), [], [])
+  const phase = phaseAffichee(catalogue.objectifs, dateISO())
 
   // Cycle en cours : semaine, déload, pause ; chaque séance lancée y est rattachée.
   const cycle = catalogue.cycle
@@ -272,41 +268,8 @@ export default function Accueil({
         </div>
       </div>
 
-      {/* Journal du matin : de quoi se mettre en route (pesée, assiette, un vrai progrès). */}
-      {(() => {
-        const entrainement = !!duJour
-        const pesee = pesees.find((p) => p.date === aujourdhui)
-        const semaineP = pesees.filter((p) => p.date > dateISO(new Date(Date.now() - 7 * 86400000)))
-        const moyenne = semaineP.length ? semaineP.reduce((a, p) => a + p.poids, 0) / semaineP.length : null
-        const repas = conseilRepas(phaseEnCours?.phase, entrainement)
-        const depuis = phaseEnCours ? phaseEnCours.debut : dateISO(new Date(Date.now() - 28 * 86400000))
-        const progres = terminees ? meilleureProgression(terminees, catalogue.exo, depuis) : null
-        const peser = phaseEnCours?.phase === 'seche' || phaseEnCours?.phase === 'prise' || pesees.length > 0
-        if (!peser && !repas && !progres) return null
-        return (
-          <div className="carte pile journal-matin">
-            <h3>Aujourd’hui</h3>
-            {peser && (
-              <button className="ligne-jour" onClick={onMesures}>
-                <span>
-                  ⚖️ {pesee ? <strong>{kg(pesee.poids)} kg ce matin</strong> : 'Pèse-toi ce matin, à jeun'}
-                  {moyenne !== null && <span className="faible"> · moyenne 7 j {kg(Math.round(moyenne * 10) / 10)} kg</span>}
-                </span>
-                <span className="muted">›</span>
-              </button>
-            )}
-            {repas && <div className="ligne-jour">🍽 {repas}</div>}
-            {progres && (
-              <div className="ligne-jour">
-                <span>
-                  📈 {phaseEnCours ? `Depuis le début de ta ${nomPhase(phaseEnCours.phase).toLowerCase()}` : 'En 4 semaines'} : <strong>{progres.exo.nom}</strong>{' '}
-                  <span className="plus">+{kg(Math.round(progres.pct * 10) / 10)} %</span>
-                </span>
-              </div>
-            )}
-          </div>
-        )
-      })()}
+      {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
+      <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} onCorps={onMesures} />
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
       {mesuresEnRetard && !masque('mesures') && (

@@ -161,6 +161,18 @@ export interface Objectif {
   reps: number[]
 }
 
+/** Journal d'un jour : ce qu'on note en 10 secondes le matin (tout facultatif). */
+export interface JourJournal {
+  /** AAAA-MM-JJ */
+  date: string
+  /** Heures de sommeil de la nuit qui précède ce jour. */
+  sommeil?: number
+  /** Ce jour-là, par rapport à l'objectif calories. */
+  calories?: 'ok' | 'trop' | 'pasAssez'
+  /** Calories réelles si connues (plus tard : Health Connect). */
+  kcal?: number
+}
+
 export interface Pesee {
   date: string
   poids: number

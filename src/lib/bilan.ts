@@ -1,7 +1,7 @@
 import { MUSCLES } from '../data/exercices'
 import { typeActivite } from '../data/activites'
 import { nomCle } from '../data/mesures'
-import type { Activite, Exercice, Mesure, Muscle, Pesee, Seance, Serie } from '../types'
+import type { Activite, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance, Serie } from '../types'
 import { dateCourte, dateISO, duree, e1rm, estDure, kg, lundi, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, recordsParSeance, semaineDe } from './historique'
 import { periodes, textePhase, type EtapeObjectifs } from './objectifs'
@@ -18,6 +18,8 @@ export interface DonneesBilan {
   /** Objectif de séries dures par semaine, par muscle. */
   cibles: Record<Muscle, number>
   programme?: string
+  /** Sommeil et calories, jour par jour. */
+  journal?: JourJournal[]
   /** Objectifs dans le temps (phase, fin prévue, volume). */
   objectifs?: EtapeObjectifs[]
   /** « Cycle Recompo 4 jours, semaine 3/6 » */
@@ -167,6 +169,22 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
       const cles = Object.keys(b.valeurs).filter((c) => a.valeurs[c] !== undefined)
       if (cles.length)
         lignes.push(`Mensurations du ${jour(a.date)} au ${jour(b.date)} : ${cles.map((c) => `${nomCle(c).toLowerCase()} ${kg(a.valeurs[c])} → ${kg(b.valeurs[c])} cm`).join(' ; ')}`)
+    }
+  }
+
+  // Sommeil et calories (notés le matin)
+  const jours = (d.journal ?? []).filter((j) => j.date >= debut && j.date <= fin)
+  const nuits = jours.filter((j) => j.sommeil !== undefined).map((j) => j.sommeil!)
+  const cal = jours.filter((j) => j.calories)
+  if (nuits.length || cal.length) {
+    titre('Sommeil et calories')
+    if (nuits.length) {
+      const m = moyenne(nuits)!
+      lignes.push(`Sommeil moyen : ${Math.floor(m)} h ${String(Math.round((m % 1) * 60)).padStart(2, '0')} (${nuits.length} nuit${nuits.length > 1 ? 's' : ''} notée${nuits.length > 1 ? 's' : ''}, min ${kg(Math.min(...nuits))} h)`)
+    }
+    if (cal.length) {
+      const n = (c: string) => cal.filter((j) => j.calories === c).length
+      lignes.push(`Calories face à l’objectif (${cal.length} jours notés) : ${n('ok')} dans l’objectif, ${n('trop')} trop, ${n('pasAssez')} pas assez`)
     }
   }
 

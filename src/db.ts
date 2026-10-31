@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { MODELES } from './data/programme'
-import type { Activite, Cycle, Exercice, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele, Serie } from './types'
+import type { Activite, Cycle, Exercice, JourJournal, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele, Serie } from './types'
 
 export const db = new Dexie('muscu') as Dexie & {
   seances: EntityTable<Seance, 'id'>
@@ -15,6 +15,8 @@ export const db = new Dexie('muscu') as Dexie & {
   photos: EntityTable<PhotoCorps, 'id'>
   activites: EntityTable<Activite, 'id'>
   cycles: EntityTable<Cycle, 'id'>
+  /** Sommeil et calories, jour par jour. */
+  journal: EntityTable<JourJournal, 'date'>
 }
 
 db.version(1).stores({
@@ -39,6 +41,7 @@ db.version(3).stores({ programmes: 'id' })
 db.version(4).stores({ mesures: 'date', photos: 'id, date' })
 db.version(5).stores({ activites: 'id, date' })
 db.version(6).stores({ cycles: 'id' })
+db.version(7).stores({ journal: 'date' })
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 

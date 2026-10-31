@@ -9,18 +9,18 @@ export const CATEGORIES: { id: Categorie; nom: string; detail: string }[] = [
   { id: 'programmes', nom: 'Programmes et séances', detail: 'tes programmes, tes cycles et les séances que tu as créées ou modifiées' },
   { id: 'historique', nom: 'Historique', detail: 'les séances faites, série par série, les objectifs et les autres activités' },
   { id: 'exercices', nom: 'Exercices perso', detail: 'les exercices que tu as créés, avec leurs photos' },
-  { id: 'corps', nom: 'Poids et mensurations', detail: 'pesées et prises de mensurations' },
+  { id: 'corps', nom: 'Corps et journal', detail: 'pesées, mensurations, sommeil et calories du jour' },
   { id: 'photos', nom: 'Photos de progression', detail: 'lourd : à sauvegarder à part, de temps en temps' },
   { id: 'reglages', nom: 'Réglages et objectifs', detail: 'phases (sèche, prise…) et volume par muscle datés, pas de charge, bips, équivalents, programme actif…' },
 ]
 
-type NomTable = 'seances' | 'activites' | 'cycles' | 'pesees' | 'mesures' | 'reglages' | 'modeles' | 'exercices' | 'programmes' | 'photos'
+type NomTable = 'seances' | 'activites' | 'cycles' | 'pesees' | 'mesures' | 'journal' | 'reglages' | 'modeles' | 'exercices' | 'programmes' | 'photos'
 
 const TABLES: Record<Categorie, NomTable[]> = {
   programmes: ['modeles', 'programmes', 'cycles'],
   historique: ['seances', 'activites'],
   exercices: ['exercices'],
-  corps: ['pesees', 'mesures'],
+  corps: ['pesees', 'mesures', 'journal'],
   photos: ['photos'],
   reglages: ['reglages'],
 }
