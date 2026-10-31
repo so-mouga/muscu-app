@@ -16,14 +16,14 @@ import { ecartSerie, lireChauffe, volumeParMuscle, chargeQte, chargeTexte, cible
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
-import { arreterSeanceNatif, natif, pauseNatif, reposNatif, seanceNatif, suivreNatif } from '../lib/natif'
+import { arreterSeanceNatif, natif, pauseNatif, quitterAppli, reposNatif, seanceNatif, suivreNatif } from '../lib/natif'
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
-import { confirmer } from '../components/Dialogues'
+import { confirmer, informer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import Echauffement, { echauffementActif } from '../components/Echauffement'
 
@@ -177,11 +177,19 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const ouvrirFin = (v: boolean) => (transition(() => setFin(v), v ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
 
   // Retour Android : fin → séance, puis exercice précédent. Ne quitte jamais une séance en cours.
+  // Retour Android : les fenêtres se ferment d'abord (chacune a son propre retour), puis Fin de séance
+  // revient à la séance ; sinon on demande, toujours de la même façon : continuer, ou quitter l'appli
+  // (la séance continue, la notification y ramène). Jamais d'exercice précédent ni de changement de vue.
   useRetour(true, () => {
     if (fin) ouvrirFin(false)
-    else if (focus) setFocus(false)
-    else if (idx === -1) setIdx(0)
-    else if (idx > 0) setIdx(idx - 1)
+    else
+      void (natif
+        ? confirmer('Elle continue pendant que tu fais autre chose : la notification te ramène ici. Pour la finir, touche « Fin de séance ».', {
+            titre: 'Séance en cours',
+            oui: 'Quitter l’appli',
+            non: 'Continuer la séance',
+          }).then((q) => void (q && quitterAppli()))
+        : informer('Pour la finir, touche « Fin de séance » en haut. Tu peux aussi changer d’appli : ta séance t’attendra ici.', 'Séance en cours'))
     return 'rester'
   })
 

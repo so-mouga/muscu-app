@@ -108,6 +108,13 @@ public class MinuteurReposPlugin extends Plugin {
         call.resolve();
     }
 
+    /** Retour pendant une séance, « Quitter l'appli » : en arrière-plan, la séance et la notification continuent. */
+    @PluginMethod
+    public void quitter(PluginCall call) {
+        getActivity().moveTaskToBack(true);
+        call.resolve();
+    }
+
     /** Version de l'appli installée : l'appli web propose d'installer un APK plus récent. */
     @PluginMethod
     public void version(PluginCall call) {
