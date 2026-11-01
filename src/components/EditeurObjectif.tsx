@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ecartSerie, enTemps, kg, serieTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { usePasBoutons } from '../lib/pasBoutons'
 import type { Suggestion } from '../lib/progression'
 import { db, historiqueDe } from '../db'
 import { pareil } from '../lib/progression'
@@ -35,7 +34,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
   const [reps, setReps] = useState<number[]>(actuel?.reps ?? base.reps)
   const [textes, setTextes] = useState<(string | null)[]>(() => charges.map(() => null))
 
-  const pas = usePasBoutons()(exo)
+  const pas = exo.pas
   const unite = exo.mode === 'elastique' ? 'niv.' : exo.mode === 'poids_corps' ? 'lest' : 'kg'
   // Exercice en temps : les « reps » sont des secondes, par pas de 5 s.
   const pasQte = enTemps(exo) ? 5 : 1

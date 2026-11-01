@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
+import { EXERCICES } from './data/exercices'
 import { MODELES } from './data/programme'
 import type { Activite, Cycle, Exercice, JourJournal, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele } from './types'
 
@@ -48,6 +49,17 @@ export const uid = () => Date.now().toString(36) + Math.random().toString(36).sl
 export { historiqueDe } from './lib/historique'
 
 export const setReglage = (cle: string, valeur: unknown) => db.reglages.put({ cle, valeur })
+
+/**
+ * Modifie un exercice (de base ou créé) : la version de l'utilisateur remplace celle de la bibliothèque
+ * (« ↺ Revenir à l'original » l'efface). Changer le palier remplace l'ancien réglage `pas:` de l'exercice.
+ */
+export async function modifierExercice(id: string, changement: Partial<Exercice>) {
+  const base = (await db.exercices.get(id)) ?? EXERCICES[id]
+  if (!base) return
+  await db.exercices.put({ ...base, ...changement })
+  if (changement.pas !== undefined) await db.reglages.delete(`pas:${id}`)
+}
 
 /** Exercice avec le pas de charge personnalisé éventuel. */
 export function exoAvecReglages(exo: Exercice, reglages: Reglage[]): Exercice {

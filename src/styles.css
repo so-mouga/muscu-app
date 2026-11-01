@@ -3040,3 +3040,23 @@ a.texte {
   border: 1px solid var(--bord);
   color: var(--texte-2);
 }
+
+/* Palier de la machine sous la charge : un appui le corrige (plus précis que les règles des boutons −/+). */
+.stepper .valeur button.unite-palier {
+  display: block;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  white-space: nowrap;
+  border-radius: 0;
+  margin: -4px auto 0;
+  padding: 2px 4px;
+  background: none;
+  border: 0;
+  min-height: 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--texte-3);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}

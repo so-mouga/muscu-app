@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { db, uid } from '../db'
+import { db, modifierExercice, uid } from '../db'
 import { chargeQte, chargeTexte, chrono, cibleTexte, ecartSerie, enTemps, fourchette, kg, lireChauffe, reposApres, reposTexte, RIR, schemaPlan, serieTexte } from '../lib/calc'
 import { reposApresSuperset } from '../lib/superset'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
-import { usePasBoutons } from '../lib/pasBoutons'
 import ChronoTenue from './ChronoTenue'
 import InfosExo, { BoutonInfos } from './InfosExo'
 import Vignette from './Vignette'
@@ -417,6 +416,9 @@ interface EditeurProps {
   fermeture?: { current: (() => void) | null }
 }
 
+/** Paliers courants : haltères 1 / 2 kg, disques 1,25 / 2,5, piles de machines 4,5 / 5 / 7 / 10 kg. */
+const PALIERS = [1, 1.25, 2, 2.5, 4.5, 5, 7, 10]
+
 export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
@@ -444,11 +446,12 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const pasQte = temps ? 5 : 1
   const [chronoOuvert, setChronoOuvert] = useState(false)
   const [saisieManuelle, setSaisieManuelle] = useState(false)
-  const pasBoutons = usePasBoutons()
+  const [reglerPalier, setReglerPalier] = useState(false)
 
   // Pendant le repos, la validation reste possible mais passe au second plan.
   const enRepos = !edition && reposRestant > 0
-  const pas = pasBoutons(exo)
+  // Les −/+ suivent le palier de la machine (fiche de l'exercice) : pas de charge qui n'existe pas.
+  const pas = exo.pas
   const unite = exo.mode === 'elastique' ? 'niveau' : exo.mode === 'poids_corps' ? 'kg de lest (− = assistance)' : exo.mode === 'par_main' ? 'kg par main' : 'kg'
   const arr = (x: number) => Math.round(x * 100) / 100
 
@@ -596,7 +599,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           }}
           onBlur={() => setChargeTxt(null)}
         />
-        <span className="unite">{unite}</span>
+        {exo.mode === 'elastique' ? (
+          <span className="unite">{unite}</span>
+        ) : (
+          // Le palier se corrige devant la machine : c'est là qu'on le connaît.
+          <button type="button" className="unite unite-palier" onClick={() => setReglerPalier(!reglerPalier)} aria-label={`Palier de la machine : ${kg(pas)} kg, modifier`}>
+            {unite} · ±{kg(pas)} ✎
+          </button>
+        )}
       </div>
       <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
     </div>
@@ -687,6 +697,23 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             </div>
           )}
         </>
+      )}
+      {reglerPalier && (
+        <div className="pile" style={{ gap: 6 }}>
+          <span className="faible petit">Palier de cette machine (boutons −/+ et montée de charge) :</span>
+          <div className="chips">
+            {PALIERS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={pas === v ? 'actif' : ''}
+                onClick={() => (void modifierExercice(exo.id, { pas: v }), setReglerPalier(false))}
+              >
+                {kg(v)} kg
+              </button>
+            ))}
+          </div>
+        </div>
       )}
       <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 4px' }}>
         <PuceDisques exo={exo} charge={charge} unite={unite} />

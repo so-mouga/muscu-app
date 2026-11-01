@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MUSCLES } from '../data/exercices'
 import { db, uid } from '../db'
 import { POIDS_BARRES, type PoidsBarre } from '../lib/disques'
 import { photoReduite } from '../lib/image'
+import { secondairesProposes } from '../lib/secondaires'
 import type { Exercice, ModeCharge, Muscle } from '../types'
 import Interrupteur from './Interrupteur'
 import { informer } from './Dialogues'
@@ -42,6 +43,14 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [image, setImage] = useState(initial?.image)
   const [chargement, setChargement] = useState(false)
+
+  // Muscles secondaires : à la création, proposés d'après le muscle et le type (comme les exercices de
+  // base), tant qu'on n'y a pas touché ; la liste complète seulement sur « + Ajouter ».
+  const [secondairesTouches, setSecondairesTouches] = useState(!!initial)
+  const [toutesSecondaires, setToutesSecondaires] = useState(false)
+  useEffect(() => {
+    if (!secondairesTouches && muscle) setSecondaires(secondairesProposes(muscle, compose ? 'compose' : 'isolation'))
+  }, [muscle, compose, secondairesTouches])
 
   const basculerSecondaire = (m: Muscle) =>
     setSecondaires((x) => (x.some((s) => s.muscle === m) ? x.filter((s) => s.muscle !== m) : [...x, { muscle: m, coef: 0.5 }]))
@@ -133,14 +142,28 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         </select>
       </label>
       <div className="champ">
-        <span>Muscles secondaires (comptés pour 0,5 série dans le volume)</span>
+        <span>Compte aussi pour (une demi-série dans le volume)</span>
         <div className="chips">
-          {MUSCLES.filter((m) => m.id !== muscle).map((m) => (
-            <button key={m.id} type="button" className={secondaires.some((s) => s.muscle === m.id) ? 'actif' : ''} onClick={() => basculerSecondaire(m.id)}>
-              {m.nom}
-            </button>
-          ))}
+          {secondaires
+            .filter((s) => s.muscle !== muscle)
+            .map((s) => (
+              <button key={s.muscle} type="button" className="actif" onClick={() => (setSecondairesTouches(true), basculerSecondaire(s.muscle))} aria-label={`Retirer ${MUSCLES.find((m) => m.id === s.muscle)!.nom}`}>
+                {MUSCLES.find((m) => m.id === s.muscle)!.nom} ✕
+              </button>
+            ))}
+          <button type="button" className="btn discret petit" onClick={() => setToutesSecondaires(!toutesSecondaires)}>
+            {toutesSecondaires ? 'Fermer' : secondaires.length ? '+ Ajouter' : 'Aucun · + Ajouter'}
+          </button>
         </div>
+        {toutesSecondaires && (
+          <div className="chips">
+            {MUSCLES.filter((m) => m.id !== muscle && !secondaires.some((s) => s.muscle === m.id)).map((m) => (
+              <button key={m.id} type="button" onClick={() => (setSecondairesTouches(true), basculerSecondaire(m.id))}>
+                + {m.nom}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <label className="champ">
         <span>Mode de charge</span>

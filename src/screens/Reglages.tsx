@@ -5,7 +5,6 @@ import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { useRetour } from '../lib/nav'
 import { CATEGORIES, CATEGORIES_COURANTES, compter, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type Categorie, type Fichier } from '../lib/sauvegarde'
-import { PAS_BOUTONS, PAS_BOUTONS_DEFAUT } from '../lib/pasBoutons'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
 import { confirmer } from '../components/Dialogues'
@@ -17,8 +16,6 @@ import { ACTIVITES, CLE_PROFIL, type Profil } from '../lib/nutrition'
 
 export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue; onFermer?: () => void }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
-  const pasBoutons = useLiveQuery(() => db.reglages.get('pasBoutons'), [])
-  const pasActuel = typeof pasBoutons?.valeur === 'number' ? pasBoutons.valeur : PAS_BOUTONS_DEFAUT
   const bipsReglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
   const sonValidation = useLiveQuery(() => db.reglages.get('sonValidation'), [])
   const bips = typeof bipsReglage?.valeur === 'number' ? bipsReglage.valeur : BIPS_DEFAUT
@@ -87,22 +84,6 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
       <MonProfil />
 
       <RappelSeance />
-
-      <div className="carte pile">
-        <h3>Saisie de la charge</h3>
-        <div className="faible">Pas des boutons −/+ en séance et dans l’objectif de la prochaine fois.</div>
-        <div className="chips">
-          {PAS_BOUTONS.map((p) => (
-            <button key={p} className={pasActuel === p ? 'actif' : ''} onClick={() => setReglage('pasBoutons', p)}>
-              {p === 0 ? 'Pas de l’exercice' : `${String(p).replace('.', ',')} kg`}
-            </button>
-          ))}
-        </div>
-        <div className="faible">
-          « Pas de l’exercice » : celui réglé dans sa fiche (Exercices → l’exercice → Modifier), pour ne proposer que des charges qui existent sur la
-          machine. Élastiques : toujours 1 niveau.
-        </div>
-      </div>
 
       <div className="carte pile">
         <h3>Fin du repos</h3>

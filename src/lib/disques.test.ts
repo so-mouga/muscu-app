@@ -64,3 +64,15 @@ describe('calculateur de disques des exercices de base', () => {
     for (const e of Object.values(EXERCICES)) if (e.barre !== undefined) expect(e.mode).toBe('machine')
   })
 })
+
+describe('palier des exercices de base', () => {
+  it('machines à pile de 5 en 5, barres 2,5, haltères 2, poulies 2,5', () => {
+    for (const id of ['butterfly', 'tirage_large', 'extension_jambes', 'curl_jambe_assis', 'dev_couche_machine', 'abduction_machine']) expect(EXERCICES[id].pas).toBe(5)
+    expect(EXERCICES.dev_couche_barre.pas).toBe(2.5)
+    expect(EXERCICES.smith_incline.pas).toBe(2.5)
+    expect(EXERCICES.curl_halteres.pas).toBe(2)
+    expect(EXERCICES.elevation_poulie.pas).toBe(2.5)
+    // Dépend de la salle : on ne devine pas.
+    expect(EXERCICES.presse.pas).toBe(2.5)
+  })
+})

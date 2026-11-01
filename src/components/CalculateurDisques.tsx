@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { EXERCICES } from '../data/exercices'
-import { db } from '../db'
+import { modifierExercice } from '../db'
 import { useRetour } from '../lib/nav'
 import { kg } from '../lib/calc'
 import { DISQUES_STANDARDS, type PoidsBarre, repartirDisques } from '../lib/disques'
@@ -14,10 +13,7 @@ interface Props {
 }
 
 /** Poids de la barre gardé dans l'exercice (fiche), donc dans les exports et la sauvegarde. */
-async function enregistrerBarre(exoId: string, barre: number) {
-  const base = (await db.exercices.get(exoId)) ?? EXERCICES[exoId]
-  if (base) await db.exercices.put({ ...base, barre })
-}
+const enregistrerBarre = (exoId: string, barre: number) => modifierExercice(exoId, { barre })
 
 export default function CalculateurDisques({ exo, charge, onFermer }: Props) {
   const exoNom = exo.nom
