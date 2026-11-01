@@ -526,9 +526,9 @@ export default function Accueil({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderRadius: 12,
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  borderRadius: 14,
+                  background: 'var(--subcard-gradient)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
                   cursor: 'pointer',
                   marginTop: 4,
                 }}
@@ -655,15 +655,20 @@ export default function Accueil({
                     justifyContent: 'center',
                     fontSize: '0.85rem',
                     fontWeight: 600,
-                    background: estFait ? 'rgba(52, 199, 89, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                    background: estFait
+                      ? 'rgba(34, 197, 94, 0.08)'
+                      : ent
+                      ? 'rgba(255, 255, 255, 0.03)'
+                      : 'rgba(255, 255, 255, 0.02)',
                     border: estFait
-                      ? '2px solid #34c759'
+                      ? '1.5px solid #22c55e'
                       : ent
                       ? estAujourdhui
                         ? '2px solid var(--accent)'
                         : '1.5px solid rgba(255, 255, 255, 0.2)'
-                      : '1px solid rgba(255, 255, 255, 0.06)',
-                    color: estFait ? '#34c759' : ent ? 'var(--texte)' : 'var(--texte-faible)',
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: estFait ? '0 0 10px rgba(34, 197, 94, 0.25)' : 'none',
+                    color: estFait ? '#22c55e' : ent ? 'var(--texte)' : 'var(--texte-faible)',
                   }}
                 >
                   {d.lettre}
@@ -671,7 +676,7 @@ export default function Accueil({
 
                 <div style={{ height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {estFait ? (
-                    <Check size={14} strokeWidth={2.5} style={{ color: '#34c759' }} />
+                    <Check size={14} strokeWidth={2.5} style={{ color: '#22c55e' }} />
                   ) : ent ? (
                     <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.2)' }} />
                   ) : (
