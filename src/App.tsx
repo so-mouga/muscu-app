@@ -19,7 +19,7 @@ const ONGLETS = [
   ['accueil', 'Accueil'],
   ['historique', 'Progression'],
   ['corps', 'Corps'],
-  ['seances', 'Programmes'],
+  ['seances', 'Programme'],
   ['exercices', 'Exercices'],
 ] as const
 type Onglet = (typeof ONGLETS)[number][0]

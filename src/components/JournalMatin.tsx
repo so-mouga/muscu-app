@@ -1,19 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import { Scale, Moon, Flame, Check } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
 import { informer } from './Dialogues'
-import { chargeQte, dateISO, kg } from '../lib/calc'
-import { conseilRepas } from '../lib/journal'
-import { depuisDebut } from '../lib/motivation'
-import { etatCycle } from '../lib/cycle'
+import { dateISO, kg } from '../lib/calc'
 import { objectifDuJour } from '../lib/nutrition'
-import { nomPhase, phaseA } from '../lib/objectifs'
 import type { JourJournal, Seance } from '../types'
 
 const JOUR = 86400000
 export const heures = (h: number) => `${Math.floor(h)} h${h % 1 ? ` ${String(Math.round((h % 1) * 60)).padStart(2, '0')}` : ''}`
-/** Choix du sommeil en un appui : de 5 h (ou moins) à 9 h (ou plus) en heures pleines. */
 export const HEURES: [number, string][] = [
   [5, '≤5h'],
   [6, '6h'],
@@ -27,30 +23,27 @@ export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
   ['pasAssez', '− Pas assez'],
 ]
 
-/** Pèse-personne de salle de bain avec écran digital. */
-export function PictoPesePersonne({ taille = 18 }: { taille?: number }) {
-  return (
-    <svg width={taille} height={taille} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: -3, marginRight: 6 }}>
-      <rect x="3" y="3" width="18" height="18" rx="4" />
-      <rect x="8" y="6" width="8" height="4" rx="1" strokeWidth="1.5" />
-    </svg>
-  )
-}
-
 /** Relu en base : sommeil et calories notés coup sur coup ne s'écrasent pas. */
-export const noterJournal = (date: string, c: Partial<JourJournal>) => db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
+export const noterJournal = (date: string, c: Partial<JourJournal>) =>
+  db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
 
-/** de l'accueil : pesée, sommeil de la nuit, calories de la veille (un appui
- * chacun, tout facultatif), l'assiette du jour selon la phase et un vrai progrès. Ce qui est noté va
- * dans la table `journal`, pour le Bilan.
+/**
+ * Carte Aujourd'hui de l'accueil :
+ * Grille compacte Poids / Sommeil (style Linear), suivi des calories.
  */
-export default function JournalMatin({ catalogue, terminees, entrainement, deload = false }: { catalogue: Catalogue; terminees?: Seance[]; entrainement: boolean; deload?: boolean }) {
+export default function JournalMatin({
+  catalogue,
+}: {
+  catalogue: Catalogue
+  terminees?: Seance[]
+  entrainement: boolean
+  deload?: boolean
+}) {
   const aujourdhui = dateISO()
   const hier = dateISO(new Date(Date.now() - JOUR))
   const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * JOUR))).sortBy('date'), [], [])
   const journal = useLiveQuery(() => db.journal.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 30 * JOUR))).sortBy('date'), [], null)
-  const phase = phaseA(catalogue.objectifs, aujourdhui)
-  const [nuit, setNuit] = useState<number | null>(null)
+  const [saisieSommeil, setSaisieSommeil] = useState(false)
   const [saisiePoids, setSaisiePoids] = useState(false)
   const [valPoids, setValPoids] = useState<string>('')
   if (journal === null) return null
@@ -62,13 +55,6 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const pesee = pesees.find((p) => p.date === aujourdhui)
   const poids = pesees[pesees.length - 1]?.poids
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui)
-  const objectifHier = objectifDuJour(catalogue.objectifs, hier)
-  const repas = conseilRepas(phase?.phase, entrainement, deload)
-  // Progrès du bloc en charge × reps : depuis le début du cycle en cours, sinon de la phase, sinon 4 semaines.
-  const etatC = catalogue.cycle && etatCycle(catalogue.cycle)
-  const blocCycle = catalogue.cycle && etatC && etatC.n >= 1 && !etatC.fini ? catalogue.cycle.debut : undefined
-  const depuis = blocCycle ?? phase?.debut ?? dateISO(new Date(Date.now() - 28 * JOUR))
-  const progres = terminees ? depuisDebut(terminees, catalogue.exo, depuis) : []
 
   const ouvrirSaisiePoids = () => {
     const init = pesee ? pesee.poids : poids ?? 70
@@ -97,141 +83,193 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
     setValPoids(kg(nouv))
   }
 
-  // Sommeil : rien de pré-rempli (un appui distrait noterait une fausse nuit) ; on choisit, ça enregistre.
-  const enSaisie = nuit !== null || duJour?.sommeil === undefined
-
   return (
-    <div className="carte pile journal-matin">
-      <h3>Aujourd’hui</h3>
-      {saisiePoids || !pesee ? (
-          <div className="ligne-jour" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '4px 0', width: '100%' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              <PictoPesePersonne /> <strong>Poids</strong>
-            </span>
-            <div className="ligne" style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
-              <span className="mini-stepper compact">
-                <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
-                  −
-                </button>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  enterKeyHint="done"
-                  className="duree"
-                  value={valPoids || (poids ? kg(poids) : '70')}
-                  onFocus={(e) => {
-                    if (!valPoids) setValPoids(poids ? kg(poids) : '70')
-                    e.target.select()
-                  }}
-                  onChange={(e) => setValPoids(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
-                />
-                <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
-                  +
-                </button>
-              </span>
-              <button
-                type="button"
-                className="btn primaire petit"
-                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700 }}
-                onClick={() => void enregistrerPoids()}
-                aria-label="Valider"
-              >
-                ✓
-              </button>
-              {pesee && (
-                <button
-                  type="button"
-                  className="btn discret petit"
-                  style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}
-                  onClick={() => setSaisiePoids(false)}
-                  aria-label="Annuler"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+    <div className="carte pile journal-matin" style={{ padding: '16px', borderRadius: 16, gap: 10 }}>
+      <h3 style={{ margin: '0 0 2px', fontSize: '1.15rem', fontWeight: 700 }}>Aujourd’hui</h3>
+
+      {/* Grille Poids & Sommeil (2 colonnes) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {/* Tuile Poids */}
+        <button
+          type="button"
+          onClick={ouvrirSaisiePoids}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            padding: '14px',
+            borderRadius: 12,
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            cursor: 'pointer',
+            textAlign: 'left',
+            width: '100%',
+            minHeight: 88,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: 'var(--texte-faible)' }}>
+            <Scale size={18} strokeWidth={1.75} />
+            <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>✎</span>
           </div>
-        ) : (
-          <div className="ligne entre" style={{ width: '100%' }}>
+          <div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
+              {pesee ? `${kg(pesee.poids)} kg` : <span className="faible" style={{ fontSize: '0.95rem' }}>—</span>}
+            </div>
+            <div className="faible" style={{ fontSize: '0.82rem', marginTop: 1 }}>Poids</div>
+          </div>
+        </button>
+
+        {/* Tuile Sommeil */}
+        <button
+          type="button"
+          onClick={() => setSaisieSommeil(!saisieSommeil)}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            padding: '14px',
+            borderRadius: 12,
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.07)',
+            cursor: 'pointer',
+            textAlign: 'left',
+            width: '100%',
+            minHeight: 88,
+          }}
+        >
+          <div style={{ color: '#8e8eff' }}>
+            <Moon size={18} strokeWidth={1.75} />
+          </div>
+          <div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
+              {duJour?.sommeil !== undefined ? heures(duJour.sommeil) : <span className="faible" style={{ fontSize: '0.95rem' }}>—</span>}
+            </div>
+            <div className="faible" style={{ fontSize: '0.82rem', marginTop: 1 }}>Sommeil</div>
+          </div>
+        </button>
+      </div>
+
+      {/* Saisie Poids dépliée */}
+      {saisiePoids && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Poids du jour</span>
+          <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
+            <span className="mini-stepper compact">
+              <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
+                −
+              </button>
+              <input
+                type="text"
+                inputMode="decimal"
+                enterKeyHint="done"
+                className="duree"
+                value={valPoids || (poids ? kg(poids) : '70')}
+                onFocus={(e) => {
+                  if (!valPoids) setValPoids(poids ? kg(poids) : '70')
+                  e.target.select()
+                }}
+                onChange={(e) => setValPoids(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
+              />
+              <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
+                +
+              </button>
+            </span>
             <button
               type="button"
-              className="ligne-jour"
-              style={{ flex: 1, padding: 0, background: 'none', border: 'none', textAlign: 'left', display: 'inline-flex', alignItems: 'center' }}
-              onClick={ouvrirSaisiePoids}
+              className="btn primaire petit"
+              style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={() => void enregistrerPoids()}
+              aria-label="Valider"
             >
-              <span>
-                <PictoPesePersonne /> <strong>{kg(pesee.poids)} kg ce matin</strong>
-              </span>
+              <Check size={18} strokeWidth={2.5} />
             </button>
             <button
               type="button"
               className="btn discret petit"
-              aria-label="Modifier la pesée"
-              onClick={ouvrirSaisiePoids}
-              style={{ padding: '4px 8px' }}
+              style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={() => setSaisiePoids(false)}
+              aria-label="Fermer"
             >
-              ✎
+              ✕
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-      {enSaisie ? (
-        <div className="pile" style={{ gap: 6 }}>
-          <span>😴 Cette nuit, tu as dormi (heures) :</span>
+      {/* Saisie Sommeil dépliée */}
+      {saisieSommeil && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Sommeil cette nuit</span>
           <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
             {HEURES.map(([h, txt]) => (
-              <button key={h} className={duJour?.sommeil === h ? 'actif' : ''} onClick={() => void noter(aujourdhui, { sommeil: h }).then(() => setNuit(null))}>
+              <button
+                key={h}
+                className={duJour?.sommeil === h ? 'actif' : ''}
+                onClick={() => void noter(aujourdhui, { sommeil: h }).then(() => setSaisieSommeil(false))}
+              >
                 {txt}
               </button>
             ))}
           </div>
         </div>
-      ) : (
-        <button className="ligne-jour" onClick={() => setNuit(duJour!.sommeil!)}>
-          <span>
-            😴 Cette nuit : <strong>{heures(duJour!.sommeil!)}</strong>
-          </span>
-          <span className="faible">✎</span>
-        </button>
       )}
 
-      {(objectifHier || dHier?.calories) && (
-        <div className="ligne-jour calories-hier">
-          <span>🍽 Calories hier</span>
-          <div className="chips">
-            {CALORIES.map(([id, nom]) => (
-              <button key={id} className={dHier?.calories === id ? 'actif' : ''} onClick={() => void noter(hier, { calories: dHier?.calories === id ? undefined : id })}>
-                {nom}
-              </button>
-            ))}
+      {/* Inset Box Calories (comme dans la maquette) */}
+      <div
+        style={{
+          marginTop: 2,
+          padding: '12px 14px',
+          borderRadius: 12,
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.07)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.88rem', color: 'var(--texte-faible)' }}>
+            Hier : <strong style={{ color: 'var(--texte)' }}>Calories</strong>
+          </span>
+          <div style={{ display: 'inline-flex', gap: 6 }}>
+            {CALORIES.map(([id, nom]) => {
+              const actif = dHier?.calories === id
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.78rem',
+                    fontWeight: actif ? 600 : 400,
+                    color: actif ? 'var(--texte)' : 'var(--texte-faible)',
+                    background: actif ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid ' + (actif ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.06)'),
+                    borderRadius: 20,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => void noter(hier, { calories: actif ? undefined : id })}
+                >
+                  {nom}
+                </button>
+              )
+            })}
           </div>
         </div>
-      )}
 
-      {(repas || objectif) && (
-        <div className="ligne-jour">
-          <span>
-            {repas && <>🥗 {repas}</>}
-            {objectif && (
-              <span className={repas ? 'faible' : ''} style={{ display: 'block', marginTop: repas ? 2 : 0 }}>
-                {repas ? '' : '🥗 '}Cible aujourd’hui : {objectif.kcal.toLocaleString('fr-FR')} kcal
-              </span>
-            )}
-          </span>
-        </div>
-      )}
-
-      {progres.length > 0 && (
-        <div className="ligne-jour" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-          <span className="faible">📈 {blocCycle ? 'Depuis le début de ton cycle' : phase ? `Depuis le début de ta ${nomPhase(phase.phase).toLowerCase()}` : 'En 4 semaines'}</span>
-          {progres.map((p) => (
-            <span key={p.exo.id}>
-              <strong>{p.exo.nom}</strong> : {chargeQte(p.exo, p.avant.charge, p.avant.reps)} → <span className="plus">{chargeQte(p.exo, p.apres.charge, p.apres.reps)}</span>
+        {objectif && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 8, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>
+              Cible : <strong style={{ color: 'var(--texte)' }}>{objectif.kcal.toLocaleString('fr-FR')} kcal</strong>
             </span>
-          ))}
-        </div>
-      )}
+            <Flame size={16} strokeWidth={1.75} style={{ color: '#ff6b00' }} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

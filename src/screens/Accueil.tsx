@@ -1,9 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
+import { Check, ChevronRight, Dumbbell, Moon, RefreshCw, SlidersHorizontal } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { chargeQte, dateISO, duree, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
-import { creneauxFaits, dureeReelle, recordsParSeance } from '../lib/historique'
+import { chargeQte, dateISO, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
+import { creneauxFaits } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
@@ -16,8 +17,7 @@ import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
-import IconeOnglet from '../components/IconeOnglet'
-import { joursSansSeance, semainesTenues, seuilSemaine } from '../lib/motivation'
+import { joursSansSeance } from '../lib/motivation'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
@@ -130,7 +130,6 @@ export default function Accueil({
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
-  const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   // Appli Android : un APK plus récent publié ? (le site, lui, se met à jour tout seul)
   const [majAndroid, setMajAndroid] = useState<{ version: string; url: string } | null>(null)
   useEffect(() => void nouvelleVersionAndroid().then(setMajAndroid), [])
@@ -165,8 +164,6 @@ export default function Accueil({
   const horsProgramme = catalogue.modeles.filter((m) => !dansUnProgramme.has(m.id))
   const groupeOuvert = ouvert ?? actif.id
 
-  const derniere = terminees?.reduce<(typeof terminees)[number] | undefined>((a, s) => (!a || s.debut > a.debut ? s : a), undefined)
-
   // Exercices où l'objectif dépasse la dernière fois : « à battre », avec la série visée et ce qu'elle demande de plus.
   const recentes = terminees && [...terminees].filter((s) => !s.deload).sort((a, b) => b.debut - a.debut)
   const aBattreDe = (m: SeanceModele) =>
@@ -197,12 +194,6 @@ export default function Accueil({
     return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
   }
   const duresSemaine = semaine.reduce((a, s) => a + s.series.filter(estDure).length, 0)
-  const recordsSemaine = terminees
-    ? (() => {
-        const recs = recordsParSeance(terminees, catalogue.exo)
-        return semaine.reduce((a, s) => a + (recs[s.id] ?? 0), 0)
-      })()
-    : 0
 
   // Échauffement activé depuis « Voir » : enregistré sur la séance (comme dans Programmes) et pris en compte tout de suite.
   const changerEchauffement = (v: SeanceModele['echauffement']) => {
@@ -252,48 +243,92 @@ export default function Accueil({
 
   const textePhase = phase
     ? phase.aVenir
-      ? `${nomCourtPhase(phase.phase)} · dès ${
+      ? `${nomCourtPhase(phase.phase)} (dès ${
           phase.debut === dateISO(new Date(Date.now() + 86400000))
             ? 'demain'
             : new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-        }`
+        })`
       : `${nomCourtPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`
     : ''
 
   const texteCycle =
     cycle && etat
       ? etat.fini
-        ? '🎉 Bilan cycle'
+        ? 'Bilan cycle'
         : etat.n <= 0
-        ? `🔁 Cycle · dès ${
+        ? `Cycle · ${
             cycle.debut === dateISO(new Date(Date.now() + 86400000))
-              ? 'demain'
+              ? 'Dès demain'
               : new Date(cycle.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
           }`
         : etat.pause
-        ? '⏸ Cycle en pause'
+        ? 'Cycle en pause'
         : etat.deload
-        ? `🧘 Déload · sem. ${etat.n}/${etat.total}`
-        : `🔁 Cycle · sem. ${etat.n}/${etat.total}`
+        ? `Déload · Semaine ${etat.n}/${etat.total}`
+        : `Cycle · Semaine ${etat.n}/${etat.total}`
       : ''
 
   return (
     <div>
-      <div className="entete" style={{ alignItems: 'flex-start' }}>
+      <div className="entete" style={{ alignItems: 'flex-start', marginBottom: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ textTransform: 'capitalize', fontSize: '1.2rem', fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>
-            {dateAffichee}
-          </h1>
-          <div className="pills-accueil">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <h1 style={{ textTransform: 'capitalize', fontSize: '1.45rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+              {dateAffichee}
+            </h1>
+            <button
+              type="button"
+              className="btn-reglages"
+              onClick={onReglages}
+              aria-label="Réglages"
+              style={{ background: 'none', border: 'none', padding: 4, color: 'var(--texte-faible)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            >
+              <SlidersHorizontal size={20} strokeWidth={1.75} />
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'nowrap', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
             {phase ? (
-              <button type="button" className="pill-accueil" onClick={onObjectifs} aria-label={`Objectif de phase : ${textePhase}`}>
-                <span className={`point-phase phase-${phase.phase}`} />
+              <button
+                type="button"
+                onClick={onObjectifs}
+                aria-label={`Objectif de phase : ${textePhase}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  borderRadius: 20,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'var(--texte)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34c759', flexShrink: 0 }} />
                 <span>{textePhase}</span>
               </button>
             ) : (
               !premiereFois &&
               !periodes(catalogue.objectifs).length && (
-                <button type="button" className="pill-accueil faible" onClick={onObjectifs}>
+                <button
+                  type="button"
+                  className="faible"
+                  onClick={onObjectifs}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '5px 12px',
+                    fontSize: '0.8rem',
+                    borderRadius: 20,
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    color: 'var(--texte-faible)',
+                    cursor: 'pointer',
+                  }}
+                >
                   + Phase
                 </button>
               )
@@ -301,18 +336,29 @@ export default function Accueil({
             {cycle && etat && (
               <button
                 type="button"
-                className={'pill-accueil' + (etat.deload ? ' deload' : '')}
                 onClick={etat.fini ? () => setBilan(true) : onProgrammes}
                 aria-label={`Cycle d'entraînement : ${texteCycle}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 500,
+                  borderRadius: 20,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'var(--texte)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
               >
+                <RefreshCw size={13} strokeWidth={1.75} style={{ flexShrink: 0 }} />
                 <span>{texteCycle}</span>
               </button>
             )}
           </div>
         </div>
-        <button type="button" className="btn-reglages" onClick={onReglages} aria-label="Réglages" style={{ marginTop: 2 }}>
-          <IconeOnglet nom="reglages" />
-        </button>
       </div>
 
       {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
@@ -359,14 +405,15 @@ export default function Accueil({
 
       {/* La séance d'abord : c'est l'action principale de l'écran. */}
       {!premiereFois && (
-      <div className="carte pile">
-        {duJour && faite(duJour) && <div className="pastille ok">✓ {duJour.modele.nom} faite aujourd’hui</div>}
-        {!duJour && <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>💤 Repos prévu aujourd’hui.</div>}
-        {proposee ? (
+      <div className="carte pile" style={{ padding: '16px', borderRadius: 16 }}>
+        {proposee && duJour && proposee === duJour && !faite(duJour) ? (
           <>
             <div>
-              <div className="faible">{proposee === duJour ? 'Séance du jour' : `Prochaine · prévue ${JOURS[proposee.jour!]}`}</div>
-              <h2 style={{ margin: '2px 0 0' }}>{proposee.modele.nom}</h2>
+              <div className="faible" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Dumbbell size={16} strokeWidth={1.75} />
+                <span>Séance du jour</span>
+              </div>
+              <h2 style={{ margin: '4px 0 0' }}>{proposee.modele.nom}</h2>
               {proposee.modele.sousTitre && (
                 <div className="faible" style={{ fontSize: '0.95rem', margin: '2px 0 6px' }}>
                   {proposee.modele.sousTitre}
@@ -387,7 +434,7 @@ export default function Accueil({
                   if (!l.length) return null
                   return (
                     <div className="a-battre">
-                      <div className="badge-hausse grand">🔥 À battre {proposee === duJour ? 'aujourd’hui' : 'à la prochaine'}</div>
+                      <div className="badge-hausse grand">À battre aujourd’hui</div>
                       {l.slice(0, 3).map((x) => (
                         <div key={x.exo.id} className="ligne-battre">
                           <span>{x.exo.nom}</span>
@@ -402,51 +449,119 @@ export default function Accueil({
                 })()}
             </div>
             <div className="ligne">
-              {proposee === duJour ? (
-                <>
-                  <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => lancer(proposee.modele)}>
-                    Démarrer
-                  </button>
-                  <button className="btn grand" style={{ flex: 1 }} onClick={() => voir(proposee.modele)}>
-                    Voir
-                  </button>
-                </>
-              ) : (
-                <button className="btn grand" style={{ width: '100%' }} onClick={() => voir(proposee.modele)}>
-                  Voir la séance
-                </button>
-              )}
+              <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => lancer(proposee.modele)}>
+                Démarrer
+              </button>
+              <button className="btn grand" style={{ flex: 1 }} onClick={() => voir(proposee.modele)}>
+                Voir
+              </button>
             </div>
           </>
-        ) : planning.length > 0 ? (
+        ) : duJour && faite(duJour) ? (
           <>
-            <div>Semaine complète 💪 Tout ce que tu fais en plus est du bonus.</div>
-            <button className="btn primaire grand" onClick={() => setChoix(true)}>
-              Démarrer une séance
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(52, 199, 89, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Check size={14} strokeWidth={2.5} style={{ color: '#34c759' }} />
+              </div>
+              <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+                {duJour.modele.nom} faite aujourd’hui
+              </span>
+            </div>
+            {prochaine && prochaine !== duJour && (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Voir la séance"
+                onClick={() => voir(prochaine.modele)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  cursor: 'pointer',
+                  marginTop: 8,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>
+                    Prochaine ({JOURS[prochaine.jour!]}) : {prochaine.modele.nom}
+                  </div>
+                  {prochaine.modele.sousTitre && (
+                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                      {prochaine.modele.sousTitre}
+                    </div>
+                  )}
+                </div>
+                <ChevronRight size={18} strokeWidth={1.75} className="muted" />
+              </div>
+            )}
           </>
         ) : (
+          /* Jour de repos (comme dans la maquette) */
           <>
-            <div className="muted">Aucune séance planifiée dans ce programme.</div>
-            <div className="ligne">
-              <button className="btn primaire grand" onClick={() => setChoix(true)}>
-                Choisir une séance
-              </button>
-              <button className="btn grand" onClick={onProgrammes}>
-                Planifier
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#56b4e9', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
+              <Moon size={14} strokeWidth={2} />
+              <span>Jour de repos</span>
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 6px' }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Check size={14} strokeWidth={2.5} style={{ color: 'var(--texte-faible)' }} />
+              </div>
+              <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+                Repos aujourd’hui
+              </span>
+            </div>
+            {proposee && (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Voir la séance"
+                onClick={() => voir(proposee.modele)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  cursor: 'pointer',
+                  marginTop: 4,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>
+                    {proposee.jour === (jour % 7) + 1 ? 'Demain' : `Prochaine (${JOURS[proposee.jour!]})`} : {proposee.modele.nom}
+                  </div>
+                  {proposee.modele.sousTitre && (
+                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                      {proposee.modele.sousTitre}
+                    </div>
+                  )}
+                </div>
+                <ChevronRight size={18} strokeWidth={1.75} className="muted" />
+              </div>
+            )}
           </>
         )}
-        <div className="ligne actions-accueil">
+
+        <div style={{ textAlign: 'center', marginTop: 10 }}>
           {proposee && (
-            <button type="button" className="btn texte lien-discret" onClick={() => setChoix(true)}>
-              {proposee === duJour ? 'Choisir une autre séance ›' : 'Choisir une séance à faire aujourd’hui ›'}
+            <button
+              type="button"
+              className="btn texte"
+              onClick={() => setChoix(true)}
+              style={{ color: 'var(--accent)', fontSize: '0.88rem', fontWeight: 500, padding: 0 }}
+            >
+              Choisir une séance à faire aujourd’hui ›
             </button>
           )}
           {variante && proposee === duJour && (
-            <button type="button" className="btn texte lien-discret" onClick={() => voir(variante)}>
-              🏠 Pas de salle ›
+            <button type="button" className="btn texte lien-discret" style={{ marginTop: 6 }} onClick={() => voir(variante)}>
+              Pas de salle ›
             </button>
           )}
         </div>
@@ -460,7 +575,7 @@ export default function Accueil({
       {deloadPlusTot && !masque('deload') && (
         <div className="rappel-ligne">
           <button className="texte" onClick={onProgrammes}>
-            🧘 Force en baisse sur {deloadPlusTot.baisses.length} exercices{deloadPlusTot.energieBasse ? ' et énergie basse' : ''} : un déload cette semaine ?
+            Force en baisse sur {deloadPlusTot.baisses.length} exercices{deloadPlusTot.energieBasse ? ' et énergie basse' : ''} : un déload cette semaine ?
             <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span> ›
           </button>
           <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('deload')}>
@@ -471,7 +586,7 @@ export default function Accueil({
       {mesuresEnRetard && !masque('mesures') && (
         <div className="rappel-ligne">
           <button className="texte" onClick={onMesures}>
-            📏 {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
+            {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
             {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>} ›
           </button>
           <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('mesures')}>
@@ -481,65 +596,112 @@ export default function Accueil({
       )}
 
       {!premiereFois && (
-      <div className="carte">
-        <div className="ligne entre" style={{ marginBottom: 10 }}>
-          <h3>Cette semaine</h3>
-          <span className="faible">
-            {/* Séances prévues faites ; les autres (doublon, séance libre) à part. Sans planning : juste le nombre fait. */}
-            {planning.length ? (
-              <>
-                Prévues {planning.filter(faite).length}/{planning.length}
-                {semaine.length > planning.filter(faite).length && ` · +${semaine.length - planning.filter(faite).length} autre${semaine.length - planning.filter(faite).length > 1 ? 's' : ''}`}
-              </>
-            ) : (
-              semaine.length > 0 && `${semaine.length} séance${semaine.length > 1 ? 's' : ''} faite${semaine.length > 1 ? 's' : ''}`
-            )}
+      <div className="carte pile" style={{ padding: '16px', borderRadius: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>Cette semaine</h3>
+          <span className="faible" style={{ fontSize: '0.9rem' }}>
+            {planning.length ? `${planning.filter(faite).length}/${planning.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`}
           </span>
         </div>
-        <div className="ligne wrap">
-          {planning.map((e) => (
-            <button key={e.modele.id + e.jour} className={'pastille cliquable' + (faite(e) ? ' ok' : e.jour === jour ? ' accent' : '')} onClick={() => voir(e.modele)}>
-              {JOURS[e.jour]} · {e.modele.nom} {faite(e) ? '✓' : ''}
-            </button>
-          ))}
-          {(() => {
-            // Semaines tenues (les trois quarts des séances prévues, `seuilSemaine`) d'affilée ; déloads et pauses ne cassent rien.
-            const n = terminees ? semainesTenues(terminees, planning.length, cycles, dateISO()) : 0
-            return n >= 2 ? (
-              <div className="faible" style={{ width: '100%', marginTop: 6 }}>
-                {n}ᵉ semaine tenue de suite ({seuilSemaine(planning.length)} séances sur {planning.length} ou plus)
+
+        {/* Frise 7 jours alignés */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, textAlign: 'center' }}>
+          {[
+            { id: 1, nomCourt: 'lun', lettre: 'L' },
+            { id: 2, nomCourt: 'mar', lettre: 'M' },
+            { id: 3, nomCourt: 'mer', lettre: 'M' },
+            { id: 4, nomCourt: 'jeu', lettre: 'J' },
+            { id: 5, nomCourt: 'ven', lettre: 'V' },
+            { id: 6, nomCourt: 'sam', lettre: 'S' },
+            { id: 7, nomCourt: 'dim', lettre: 'D' },
+          ].map((d) => {
+            const ent = planning.find((e) => e.jour === d.id)
+            const faiteSemaine = semaine.find((s) => jourSemaine(new Date(s.debut)) === d.id)
+            const estFait = ent ? faite(ent) : !!faiteSemaine
+            const estAujourdhui = d.id === jour
+            return (
+              <div
+                key={d.id}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: faiteSemaine || ent ? 'pointer' : 'default',
+                }}
+                onClick={() => {
+                  if (faiteSemaine) onVoirSeance(faiteSemaine.id)
+                  else if (ent) voir(ent.modele)
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    color: estAujourdhui ? 'var(--texte)' : 'var(--texte-faible)',
+                    fontWeight: estAujourdhui ? 700 : 400,
+                  }}
+                >
+                  {d.nomCourt}
+                </span>
+
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    background: estFait ? 'rgba(52, 199, 89, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                    border: estFait
+                      ? '2px solid #34c759'
+                      : ent
+                      ? estAujourdhui
+                        ? '2px solid var(--accent)'
+                        : '1.5px solid rgba(255, 255, 255, 0.2)'
+                      : '1px solid rgba(255, 255, 255, 0.06)',
+                    color: estFait ? '#34c759' : ent ? 'var(--texte)' : 'var(--texte-faible)',
+                  }}
+                >
+                  {d.lettre}
+                </div>
+
+                <div style={{ height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {estFait ? (
+                    <Check size={14} strokeWidth={2.5} style={{ color: '#34c759' }} />
+                  ) : ent ? (
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.2)' }} />
+                  ) : (
+                    <span style={{ color: 'rgba(255, 255, 255, 0.2)', fontSize: '0.8rem' }}>—</span>
+                  )}
+                </div>
               </div>
-            ) : null
-          })()}
+            )
+          })}
         </div>
+
+        {/* Ligne bilan en bas */}
         {semaine.length > 0 && (
-          <button
-            className="ligne-jour"
-            style={{ marginTop: 12, paddingTop: 10, paddingBottom: derniere ? 10 : 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }}
+          <div
             onClick={onBilan}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: 8,
+              paddingTop: 12,
+              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+              cursor: 'pointer',
+            }}
           >
-            <span className="faible" style={{ minWidth: 0 }}>
-              Bilan ·{' '}
-              <strong style={{ color: 'var(--texte)' }}>
-                {semaine.length} séance{semaine.length > 1 ? 's' : ''}
-              </strong>
-              {duresSemaine > 0 && ` · ${duresSemaine} série${duresSemaine > 1 ? 's' : ''} dure${duresSemaine > 1 ? 's' : ''}`}
-              {recordsSemaine > 0 && ` · 🏆 ${recordsSemaine}`}
+            <span className="faible" style={{ fontSize: '0.88rem' }}>
+              Bilan <strong style={{ color: 'var(--texte)' }}>{semaine.length} séance{semaine.length > 1 ? 's' : ''}</strong>
+              {duresSemaine > 0 ? ` · ${duresSemaine} séries` : ''}
             </span>
-            <span className="muted">›</span>
-          </button>
-        )}
-        {derniere && (
-          <button className="ligne-jour" style={{ marginTop: semaine.length > 0 ? 0 : 12, paddingTop: 10, paddingBottom: 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }} onClick={() => onVoirSeance(derniere.id)}>
-            <span style={{ minWidth: 0 }}>
-              <span className="faible">Dernière · </span>
-              <strong>{derniere.nom}</strong>{' '}
-              <span className="faible">
-                · {new Date(derniere.debut).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} · {duree(dureeReelle(derniere))}
-              </span>
-            </span>
-            <span className="muted">›</span>
-          </button>
+            <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+          </div>
         )}
       </div>
       )}
