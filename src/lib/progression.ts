@@ -9,6 +9,8 @@ export interface Suggestion {
   charges: (number | null)[]
   reps: number[]
   message: string
+  /** Titre court du conseil (« 💡 Tu peux viser plus », « 💡 Tu peux monter »…). */
+  titre?: string
 }
 
 /** Au-delà de ce saut relatif, la montée doit être confirmée sur deux séances. */
@@ -18,6 +20,7 @@ const EPS = 1e-9
 const estFinisseur = (s: Serie) => s.type !== 'normale'
 const arrondi = (x: number) => Math.round(x * 100) / 100
 const nombre = (x: number) => x.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+const kgTexte = nombre
 
 interface Bilan {
   top: boolean
@@ -25,6 +28,9 @@ interface Bilan {
   garde: boolean
   sous: boolean
   ecartMoyen: number
+  /** Séries de travail faites face à celles prévues : moins = séance écourtée, pas de progression. */
+  faites: number
+  prevues: number
 }
 
 /** Fourchette prévue pour la série `i` (chaque série peut avoir la sienne : 12 / 10 / 8). */
@@ -52,6 +58,8 @@ function bilan(series: Serie[], plan: ExoPlan): Bilan | null {
     garde: fin.every((f) => f.reps >= bas(plan, i(f)) - 3),
     sous: ref.some((s) => s.reps < bas(plan, i(s)) && s.rpe >= cible(s)),
     ecartMoyen,
+    faites: ref.length,
+    prevues: normalesPrevues(plan),
   }
 }
 
@@ -169,14 +177,19 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
     }
   }
 
-  // Même charge, +1 rep sur une ou deux séries de référence (les plus loin du haut de leur fourchette).
+  // Séance écourtée : on refait d'abord la séance en entier, pas de rep en plus.
+  if (b.faites < b.prevues) return { decision: 'consolider', charges: memesCharges(), reps: memesReps(), message: 'Refais la même séance, en entier.' }
+
+  // Même charge, +1 rep : sur deux séries si toutes étaient faciles (effort 7 ou moins, 3 reps en réserve),
+  // sinon sur une seule ; celles qui sont le plus loin du haut de leur fourchette.
   const reps = memesReps()
+  const facile = derniere.filter((s) => s.type === 'normale').every((s) => s.rpe <= 7)
   const reste = (i: number) => haut(plan, i) - reps[i]
   const candidates = plan.series
     .map((_, i) => i)
     .filter((i) => derniere[i] && derniere[i].type === 'normale' && reps[i] < haut(plan, i))
     .sort((a, c) => reste(c) - reste(a) || a - c)
-    .slice(0, 2)
+    .slice(0, facile ? 2 : 1)
   // Rien à ajouter (séance écourtée, séries faites déjà au sommet) : on refait pareil.
   if (!candidates.length) return { decision: 'consolider', charges: memesCharges(), reps, message: 'Refais la même séance, en entier.' }
   candidates.forEach((i) => (reps[i] = Math.min(haut(plan, i), reps[i] + 1)))
@@ -247,23 +260,46 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
   const s = suggere(exo, plan, historique)
   const bas = borneTexte(plan, 'repsMin')
   const haut = borneTexte(plan, 'repsMax')
-  const b = bilan(historique.find((h) => h.length)!, plan)
+  const derniere = historique.find((h) => h.length)!
+  const b = bilan(derniere, plan)
+  const ord = (i: number) => (i === 0 ? '1re' : `${i + 1}e`)
+  const series = (n: number) => `${n} série${n > 1 ? 's' : ''}`
+  const unite = exo.mode === 'elastique' ? ' niveau' : ' kg'
   // Série ratée (sous le bas, à l'effort visé) : viser le bas plutôt que refaire le score raté. Sans
   // fourchette, pas de baisse automatique : on vise le bas, même après deux ratés.
   if (b?.sous && (s.decision !== 'baisser' || !aFourchette(plan))) {
     const p = pareil(exo, plan, historique)
     const reps = p.reps.map((r, i) => Math.max(r, plage(plan, i).repsMin))
+    const k = derniere.findIndex((x, i) => x.type === 'normale' && x.reps < plage(plan, i).repsMin)
     if (reps.some((r, i) => r !== p.reps[i]))
-      return { decision: 'consolider', charges: p.charges, reps, message: `Sous ${bas} reps aujourd’hui : même charge, vise ${bas}. Si ça se répète, baisse un peu.` }
+      return {
+        decision: 'consolider',
+        charges: p.charges,
+        reps,
+        titre: `💡 Même charge, vise ${bas}`,
+        message: `Pourquoi : ${derniere[k].reps} reps sur la ${ord(k)} série, sous le bas de ta fourchette (${bas}).\nSi ça se répète, baisse un peu.`,
+      }
   }
   if (!aFourchette(plan)) return null
-  if (s.decision === 'augmenter') return { ...s, message: `Toutes tes séries ont atteint ${haut} reps : monte la charge, les reps repartent à ${bas}.` }
-  if (s.decision === 'plus_une_rep') return { ...s, message: `Même charge, une rep de plus. Tu monteras la charge quand toutes les séries atteindront ${haut}.` }
-  if (s.decision === 'baisser') return { ...s, message: `Deux séances de suite sous ${bas} reps : baisse un peu pour repartir propre.` }
+  if (s.decision === 'augmenter') {
+    const d = arrondi((s.charges[0] ?? 0) - derniere[0].charge)
+    return { ...s, titre: '💡 Tu peux monter', message: `Pourquoi : tes ${series(b!.faites)} ont atteint ${haut} reps à l’effort visé.\n+${nombre(d)}${unite} (le palier de la machine), les reps repartent à ${bas}.` }
+  }
+  if (s.decision === 'plus_une_rep') {
+    const plus = s.reps.map((_, i) => i).filter((i) => derniere[i] && s.reps[i] > derniere[i].reps)
+    const pourquoi =
+      plus.length === 1
+        ? `${derniere[plus[0]].reps} reps avec ${Math.max(0, 10 - derniere[plus[0]].rpe)} en réserve sur la ${ord(plus[0])} série (effort ${kgTexte(derniere[plus[0]].rpe)}/10)`
+        : `tes séries étaient faciles (effort 7/10 ou moins, 3 reps en réserve ou plus) : une rep de plus sur deux séries`
+    return { ...s, titre: '💡 Tu peux viser plus', message: `Pourquoi : ${pourquoi}.\nLa charge montera quand tes ${series(b!.prevues)} atteindront ${haut}.` }
+  }
+  if (s.decision === 'baisser') return { ...s, titre: '💡 Baisse un peu', message: `Pourquoi : deux séances de suite sous ${bas} reps.\nOn repart un peu plus léger pour refaire des séries propres.` }
   // Haut atteint mais montée trop forte d'un coup (ou matériel au max) : le dire plutôt que se taire.
   if (s.decision === 'consolider' && b && b.top && b.rpeOk && b.garde) {
     const saut = s.message.match(/mais (.+) : confirme/)
-    return { ...s, message: saut ? `Haut de la fourchette atteint, mais ${saut[1]} d’un coup : refais ${memeFourchette(plan) ? `${haut} reps` : 'le haut'} sur toutes les séries pour confirmer, puis monte.` : s.message }
+    return saut
+      ? { ...s, titre: '💡 Confirme d’abord', message: `Pourquoi : haut de la fourchette atteint, mais ${saut[1]} d’un coup.\nRefais ${memeFourchette(plan) ? `${haut} reps` : 'le haut'} sur toutes les séries pour confirmer, puis monte.` }
+      : { ...s, titre: '💡 Charge max atteinte', message: s.message }
   }
   return null
 }
@@ -277,6 +313,10 @@ export function raisonPareil(exo: Exercice, plan: ExoPlan, historique: Serie[][]
   const derniere = historique.find((h) => h.length)
   const b = derniere && bilan(derniere, plan)
   if (!b) return null
+  if (b.faites < b.prevues) {
+    const r = derniere.filter((x) => x.type === 'normale').map((x) => x.reps)
+    return `Tu as fait ${b.faites} série${b.faites > 1 ? 's' : ''} sur ${b.prevues} : refais d’abord les ${b.prevues}${r.every((x) => x === r[0]) ? ` à ${r[0]} reps` : ''}, le conseil viendra ensuite.`
+  }
   if (!b.garde) return `Série d’échec trop courte (moins de ${bas(plan, plan.series.length - 1) - 3} reps) : refais pareil avant de monter.`
   if (!b.rpeOk) return `Plus dur que prévu (${b.ecartMoyen > 0.5 + EPS ? `RPE +${nombre(Math.round(b.ecartMoyen * 2) / 2)} en moyenne` : 'une série bien au-dessus du RPE visé'}) : refais pareil pour consolider avant de monter.`
   return null

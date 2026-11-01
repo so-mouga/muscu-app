@@ -1249,22 +1249,23 @@ function FinSeance({
                       {cibleTexte(exo, charges, reps)}
                     </strong>
                     <span className="faible" style={{ display: 'block' }}>
-                      {!o ? ((!c && raison) || 'Comme aujourd’hui.') : monte ? '↑ Tu as prévu de monter.' : '✎ Fixé par toi.'}
+                      {!o ? ((!c && raison) || (c ? 'Comme aujourd’hui, sauf si tu vises plus ci-dessous.' : 'Comme aujourd’hui.')) : monte ? '↑ Tu vises plus.' : '✎ Fixé par toi.'}
                     </span>
                   </span>
                   <span className="modifier">✎ Modifier</span>
                 </button>
                 {c && !applique && (
-                  <div className="conseil-surcharge">
+                  <div className="conseil-surcharge empile">
                     <span>
-                      <span className="label">💡 Conseil</span>
+                      <span className="label">{c.titre ?? '💡 Conseil'}</span>
                       <strong>{cibleTexte(exo, c.charges, c.reps)}</strong>
-                      <span className="faible" style={{ display: 'block' }}>
+                      {/* « Pourquoi : … » avec les vrais chiffres de la séance, puis ce qui vient ensuite. */}
+                      <span className="faible" style={{ display: 'block', whiteSpace: 'pre-line' }}>
                         {c.message}
                       </span>
                     </span>
                     <button className="btn petit" onClick={() => setObjectifs((x) => ({ ...x, [exo.id]: { charges: c.charges, reps: c.reps } }))}>
-                      Appliquer
+                      Viser ça la prochaine fois
                     </button>
                   </div>
                 )}

@@ -40,7 +40,8 @@ describe('cas de test du cahier des charges (5.6)', () => {
     const r = butterfly(seance(30, '14@8', '13@8', '12@9', '!10@10'))
     expect(r.decision).toBe('plus_une_rep')
     expect(r.charges).toEqual([30, 30, 30, 30])
-    expect(r.reps).toEqual([14, 14, 13, 10])
+    // Efforts 8, 8, 9 : pas assez de réserve pour deux séries, +1 rep sur la plus loin du haut.
+    expect(r.reps).toEqual([14, 13, 13, 10])
   })
 
   it('butterfly RPE trop haut → consolider', () => {
@@ -214,7 +215,8 @@ describe('conseil de surcharge (proposition, jamais automatique)', () => {
   it('fourchette atteinte partout → monter la charge', () => {
     const r = conseil(BUTTERFLY, plan, [seance(30, '15@8', '15@8', '15@9', '!11@10')])
     expect(r?.decision).toBe('augmenter')
-    expect(r?.message).toMatch(/monte la charge/)
+    expect(r?.titre).toMatch(/Tu peux monter/)
+    expect(r?.message).toMatch(/Pourquoi : tes 3 séries ont atteint 15 reps/)
   })
 
   it('reps fixes, rien de fait ou on consolide → pas de conseil', () => {
@@ -236,7 +238,7 @@ describe('conseil de surcharge (proposition, jamais automatique)', () => {
     const r = conseil(BUTTERFLY, plan, [seance(30, `${bas}@8`, `${bas - 3}@10`, `${bas - 4}@10`, '!8@10')])
     expect(r?.charges.slice(0, 3)).toEqual([30, 30, 30])
     expect(r?.reps.slice(0, 3)).toEqual([bas, bas, bas])
-    expect(r?.message).toMatch(new RegExp(`vise ${bas}`))
+    expect(r?.titre).toMatch(new RegExp(`vise ${bas}`))
     expect(conseil(BUTTERFLY, fixe, [seance(30, `${bas - 2}@10`, `${bas - 2}@10`, `${bas - 2}@10`, '!8@10')])?.reps[0]).toBe(bas)
   })
 
@@ -274,7 +276,7 @@ describe('audit des conseils', () => {
     expect(conseil(smithExo, p, [seance(50, '12@8', '10@8', '8@8')])?.decision).toBe('augmenter')
     const enCours = suggere(smithExo, p, [seance(50, '11@8', '9@8', '7@8')])
     expect(enCours.decision).toBe('plus_une_rep')
-    expect(enCours.reps).toEqual([12, 10, 7])
+    expect(enCours.reps).toEqual([12, 9, 7])
   })
 
   it('séance écourtée au sommet : pas de « toutes tes séries ont atteint le haut »', () => {
@@ -314,5 +316,37 @@ describe('palier de 5 kg (machine à pile)', () => {
   it('au sommet deux séances de suite, ou à 60 kg (+8 %) : on monte de 5 kg', () => {
     expect(suggere(EXERCICES.butterfly, plan, [seance(30, '15@8', '15@8', '15@8'), seance(30, '15@8', '15@8', '15@8')]).charges).toEqual([35, 35, 35])
     expect(suggere(EXERCICES.butterfly, plan, [seance(60, '15@8', '15@8', '15@8')]).charges).toEqual([65, 65, 65])
+  })
+})
+
+describe('conseil expliqué, +1 rep selon l’effort', () => {
+  const plan = { exoId: 'smith_incline', repos: 180, chauffes: [], finisseur: false, charge: 52.5, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 10, rpe: 8 })) }
+  const smithExo = EXERCICES.smith_incline
+  it('séries faciles (effort 7 ou moins partout) : +1 rep sur deux séries', () => {
+    const c = conseil(smithExo, { ...plan, series: plan.series.map((s) => ({ ...s, rpe: 7 })) }, [seance(52.5, '8@7', '8@7', '8@7')])
+    expect(c?.reps).toEqual([9, 9, 8])
+    expect(c?.message).toMatch(/Pourquoi/)
+  })
+  it('effort 8 ou plus : +1 rep sur une seule série, et le pourquoi avec les vrais chiffres', () => {
+    const c = conseil(smithExo, plan, [seance(52.5, '8@7', '8@8', '8@8')])
+    expect(c?.decision).toBe('plus_une_rep')
+    expect(c?.reps.filter((r) => r > 8).length).toBe(1)
+    expect(c?.titre).toMatch(/viser plus/)
+    expect(c?.message).toMatch(/Pourquoi : 8 reps avec \d en réserve sur la \d(re|e) série \(effort \d\/10\)/)
+    expect(c?.message).toMatch(/La charge montera quand tes 3 séries atteindront 10/)
+  })
+  it('séance incomplète (2 séries sur 3) : pas de conseil, et on dit pourquoi', () => {
+    expect(conseil(smithExo, plan, [seance(52.5, '8@7', '8@8')])).toBeNull()
+    expect(raisonPareil(smithExo, plan, [seance(52.5, '8@7', '8@8')])).toMatch(/2 séries sur 3/)
+  })
+  it('montée de charge : le pourquoi et le palier', () => {
+    const c = conseil(smithExo, plan, [seance(52.5, '10@8', '10@8', '10@8')])
+    expect(c?.titre).toMatch(/monter/)
+    expect(c?.message).toMatch(/Pourquoi : tes 3 séries ont atteint 10 reps/)
+    expect(c?.message).toMatch(/\+2,5 kg/)
+  })
+  it('série ratée : le pourquoi dit laquelle', () => {
+    const c = conseil(smithExo, plan, [seance(52.5, '8@8', '8@9', '6@9')])
+    expect(c?.message).toMatch(/Pourquoi : 6 reps sur la 3e série, sous le bas de ta fourchette \(8\)/)
   })
 })

@@ -2784,6 +2784,11 @@ button.semaine-bilan.cliquable {
 .conseil-surcharge .btn {
   flex-shrink: 0;
 }
+/* Fin de séance : le pourquoi prend toute la largeur, le bouton dessous. */
+.conseil-surcharge.empile {
+  flex-direction: column;
+  align-items: stretch;
+}
 .conseil-surcharge.discret {
   margin-top: 0;
   padding: 6px 10px;

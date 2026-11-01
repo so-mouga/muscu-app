@@ -38,7 +38,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Fiche ⓘ d'un exercice : consignes, « Modifier l'exercice ».
 - Les changements faits en séance **ne modifient pas** la séance enregistrée dans le programme (sauf « Modifier l'exercice »).
 - **Retour** pendant la séance : ferme d'abord les fenêtres, puis défait ta dernière navigation (exercice 3 → retour → exercice 1, plein écran ↔ liste). Au départ sans série faite : la séance est annulée, retour à l'écran d'où tu l'as lancée. Avec des séries : fenêtre Continuer / Terminer et enregistrer / Supprimer.
-- Fin de séance : « ✓ Enregistrer la séance » toujours visible en bas, ressenti et énergie, conseil 💡 avec [Appliquer] seulement pour un exercice avec une fourchette de reps, « Supprimer la séance » discret. Après l'enregistrement : retour à l'accueil.
+- Fin de séance : « ✓ Enregistrer la séance » toujours visible en bas, ressenti et énergie, conseil 💡 (« Tu peux viser plus », « Tu peux monter »…) avec une ligne « Pourquoi » et le bouton « Viser ça la prochaine fois », seulement pour un exercice avec une fourchette de reps et une séance complète (séance écourtée : pas de conseil, « refais d'abord les 3 séries »), « Supprimer la séance » discret. Après l'enregistrement : retour à l'accueil.
 - Refais la même séance : l'objectif par défaut est **refaire pareil** que la dernière fois (pas de progression automatique).
 
 ### 4. Programmes
