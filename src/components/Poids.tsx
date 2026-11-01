@@ -26,14 +26,15 @@ export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[];
 
   const ajuster = (delta: number) => {
     setTouched(true)
-    const base = parseFloat(valeur.trim().replace(',', '.')) || dernierPoids || 70
+    const base = parseFloat((valeur || (dernierPoids ? String(dernierPoids) : '70')).trim().replace(',', '.')) || 70
     const nouveau = Math.round((base + delta) * 10) / 10
     setValeur(nouveau.toFixed(1).replace('.', ','))
   }
 
   const enregistrer = async () => {
     // Nombre complet seulement (« 72,3 ») : un champ mal tapé (« 71,572,3 ») est refusé, pas tronqué.
-    const t = valeur.trim().replace(',', '.')
+    const raw = valeur || (dernierPoids && !duJour ? String(dernierPoids) : '')
+    const t = raw.trim().replace(',', '.')
     const poids = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
     if (!(poids > 30 && poids < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
     await db.pesees.put({ date: aujourdhui, poids })
@@ -52,8 +53,10 @@ export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[];
         {moyenne !== null && <span className="faible">moyenne 7 j : {kg(Math.round(moyenne * 10) / 10)} kg</span>}
       </div>
       {duJour ? (
-        <div className="muted">
-          {kg(duJour.poids)} kg noté {estAujourdhui ? 'aujourd’hui' : 'ce jour-là'}{' '}
+        <div className="ligne entre">
+          <span className="muted">
+            <strong>{kg(duJour.poids)} kg</strong> noté {estAujourdhui ? 'aujourd’hui' : 'ce jour-là'}
+          </span>
           {!valeur && (
             <button
               className="btn discret petit"
@@ -62,24 +65,30 @@ export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[];
                 setTouched(true)
               }}
             >
-              modifier
+              ✎ modifier
             </button>
           )}
         </div>
       ) : null}
       {(!duJour || valeur) && (
-        <div className="pile" style={{ gap: 10 }}>
-          <div className="stepper">
-            <button type="button" onClick={() => ajuster(-0.1)} aria-label="Diminuer de 0,1 kg">
-              −
-            </button>
-            <div className="valeur">
+        <div className="ligne entre" style={{ gap: 8, alignItems: 'center' }}>
+          <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
+            <span className="mini-stepper compact">
+              <button type="button" onClick={() => ajuster(-0.1)} aria-label="Diminuer de 0,1 kg">
+                −
+              </button>
               <input
+                type="text"
                 inputMode="decimal"
                 enterKeyHint="done"
+                className="duree"
+                style={{ width: 68, textAlign: 'center', fontWeight: 700 }}
                 placeholder={dernierPoids ? kg(dernierPoids) : 'ex. 70,4'}
                 autoFocus={!!duJour}
-                onFocus={(e) => e.target.select()}
+                onFocus={(e) => {
+                  if (!valeur && dernierPoids) setValeur(kg(dernierPoids))
+                  e.target.select()
+                }}
                 value={valeur}
                 onChange={(e) => {
                   setTouched(true)
@@ -87,26 +96,33 @@ export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[];
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && void enregistrer()}
               />
-              <span className="unite">kg · ±0,1</span>
-            </div>
-            <button type="button" onClick={() => ajuster(0.1)} aria-label="Augmenter de 0,1 kg">
-              +
-            </button>
+              <button type="button" onClick={() => ajuster(0.1)} aria-label="Augmenter de 0,1 kg">
+                +
+              </button>
+            </span>
+            <span className="faible" style={{ fontSize: 13 }}>kg</span>
           </div>
-          <div className="ligne" style={{ gap: 8 }}>
-            <button className="btn primaire plein" style={{ flex: 1 }} onClick={enregistrer}>
-              {duJour ? 'Mettre à jour' : 'Enregistrer le poids'}
+          <div className="ligne" style={{ gap: 6 }}>
+            <button
+              type="button"
+              className="btn primaire petit"
+              style={{ minHeight: 38, padding: '0 16px', fontWeight: 700 }}
+              onClick={enregistrer}
+            >
+              OK
             </button>
             {duJour && (
               <button
                 type="button"
-                className="btn discret"
+                className="btn discret petit"
+                style={{ minHeight: 38, padding: '0 10px' }}
                 onClick={() => {
                   setValeur('')
                   setTouched(false)
                 }}
+                aria-label="Annuler"
               >
-                Annuler
+                ✕
               </button>
             )}
           </div>
