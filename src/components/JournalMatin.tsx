@@ -99,11 +99,11 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
     <div className="carte pile journal-matin">
       <h3>Aujourd’hui</h3>
       {saisiePoids || !pesee ? (
-          <div className="ligne-jour" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '4px 0' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-              <PictoPesePersonne /> <strong>Poids :</strong>
+          <div className="ligne-jour" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, padding: '4px 0', width: '100%' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <PictoPesePersonne /> <strong>Poids</strong>
             </span>
-            <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
+            <div className="ligne" style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
               <span className="mini-stepper compact">
                 <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
                   −
@@ -125,21 +125,22 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
                   +
                 </button>
               </span>
-              <span className="faible" style={{ fontSize: '0.85rem' }}>kg</span>
               <button
                 type="button"
                 className="btn primaire petit"
-                style={{ padding: '6px 12px', minHeight: 34 }}
+                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700 }}
                 onClick={() => void enregistrerPoids()}
+                aria-label="Valider"
               >
-                ✓ OK
+                ✓
               </button>
               {pesee && (
                 <button
                   type="button"
                   className="btn discret petit"
-                  style={{ minHeight: 34, padding: '6px 8px' }}
+                  style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem' }}
                   onClick={() => setSaisiePoids(false)}
+                  aria-label="Annuler"
                 >
                   ✕
                 </button>
