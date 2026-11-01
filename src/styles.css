@@ -2042,7 +2042,9 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
+  min-width: 38px;
+  width: auto;
+  padding: 0 6px;
   height: 24px;
   border-radius: 6px;
   background: var(--surface);
@@ -2050,6 +2052,11 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   font-weight: 700;
   font-size: 12px;
   border: 1px solid var(--bord);
+}
+.badge-jour.aujourdhui {
+  background: var(--accent);
+  color: var(--accent-texte);
+  border-color: var(--accent);
 }
 .badge-jour.libre {
   color: var(--texte-3);

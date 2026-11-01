@@ -486,38 +486,178 @@ export default function Accueil({
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginBottom: 12 }}>Choisir une séance</h2>
-            {[...programmes.map((p) => ({ id: p.id, nom: p.nom, actif: p.id === actif.id, prog: p, seances: seancesDe(p) })), ...(horsProgramme.length ? [{ id: 'hors', nom: 'Hors programme', actif: false, prog: null, seances: horsProgramme }] : [])].map((g) => (
-              <div key={g.id}>
-                <button className="groupe-repli" onClick={() => setOuvert(groupeOuvert === g.id ? '' : g.id)} aria-expanded={groupeOuvert === g.id}>
-                  <span>
-                    {g.nom} {g.actif && <span className="pastille ok" style={{ marginLeft: 4 }}>actif</span>} <span className="nb">({g.seances.length})</span>
-                  </span>
-                  <span className="muted">{groupeOuvert === g.id ? '▾' : '▸'}</span>
-                </button>
-                {groupeOuvert === g.id &&
-                  g.seances.map((m) => {
-                    const jours = g.prog ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => JOURS[e.jour!]) : []
-                    return (
-                      <button key={m.id} className="liste-btn" onClick={() => voir(m)}>
-                        <span>
-                          <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
-                          <div className="faible">{dureeTexte(m, terminees)}</div>
-                        </span>
-                        <span className="faible">{realisees(m) ? '✓' : jours.join(', ')}</span>
-                      </button>
-                    )
-                  })}
-              </div>
-            ))}
-            <div style={{ height: 8 }} />
-            <button className="liste-btn" onClick={() => lancer()}>
-              <span>
-                <strong>Séance libre</strong> <span className="muted">— exercices ajoutés au fur et à mesure</span>
-              </span>
-              <span className="faible">+</span>
-            </button>
-            <button className="btn discret plein" onClick={() => setChoix(false)}>
+            <div className="ligne entre" style={{ marginBottom: 16 }}>
+              <h2 style={{ margin: 0 }}>Choisir une séance</h2>
+              <button
+                type="button"
+                className="icone"
+                onClick={() => setChoix(false)}
+                aria-label="Fermer"
+                style={{ fontSize: 18 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {[
+              ...programmes.map((p) => ({
+                id: p.id,
+                nom: p.nom,
+                actif: p.id === actif.id,
+                prog: p,
+                seances: seancesDe(p),
+              })),
+              ...(horsProgramme.length
+                ? [{ id: 'hors', nom: 'Hors programme', actif: false, prog: null, seances: horsProgramme }]
+                : []),
+            ].map((g) => {
+              const ouvert = groupeOuvert === g.id
+              return (
+                <div
+                  key={g.id}
+                  className={'carte pile' + (g.actif ? ' carte-programme-actif' : '')}
+                  style={{
+                    marginBottom: 12,
+                    padding: 12,
+                    background: 'var(--surface)',
+                    border: g.actif ? '1.5px solid var(--accent)' : '1px solid var(--bord)',
+                    borderRadius: 16,
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="ligne entre"
+                    style={{
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      padding: '4px 2px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      alignItems: 'center',
+                    }}
+                    onClick={() => setOuvert(ouvert ? '' : g.id)}
+                    aria-expanded={ouvert}
+                  >
+                    <div className="ligne wrap" style={{ gap: 8, alignItems: 'center' }}>
+                      <strong style={{ fontSize: '1.05rem', color: 'var(--texte)' }}>{g.nom}</strong>
+                      {g.actif && <span className="pastille ok">actif</span>}
+                      <span className="faible" style={{ fontSize: '0.85rem' }}>
+                        ({g.seances.length} séance{g.seances.length > 1 ? 's' : ''})
+                      </span>
+                    </div>
+                    <span className="muted" style={{ fontSize: 16 }}>{ouvert ? '▾' : '▸'}</span>
+                  </button>
+
+                  {ouvert && (
+                    <div
+                      className="pile"
+                      style={{
+                        gap: 8,
+                        marginTop: 10,
+                        paddingTop: 10,
+                        borderTop: '1px solid var(--bord)',
+                      }}
+                    >
+                      {g.seances.length === 0 ? (
+                        <div className="faible" style={{ fontStyle: 'italic', padding: '6px 2px' }}>
+                          Aucune séance dans ce programme.
+                        </div>
+                      ) : (
+                        g.seances.map((m) => {
+                          const creneauxJours = g.prog
+                            ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => e.jour!)
+                            : []
+                          const estAujourdhui = creneauxJours.includes(jour)
+                          const faiteSemaine = realisees(m) > 0
+
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              className="sous-seance-item"
+                              style={{
+                                padding: '12px 14px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12,
+                              }}
+                              onClick={() => voir(m)}
+                            >
+                              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
+                                  <strong style={{ fontSize: '1rem', color: 'var(--texte)' }}>{m.nom}</strong>
+                                  {creneauxJours.map((j) => (
+                                    <span key={j} className={'badge-jour' + (j === jour ? ' aujourdhui' : '')}>
+                                      {['', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][j]}
+                                    </span>
+                                  ))}
+                                </div>
+                                {m.sousTitre && (
+                                  <div
+                                    className="muted petit"
+                                    style={{
+                                      marginTop: 2,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {m.sousTitre}
+                                  </div>
+                                )}
+                                <div className="faible" style={{ marginTop: 4, fontSize: '0.8rem' }}>
+                                  {dureeTexte(m, terminees)}
+                                </div>
+                              </div>
+
+                              <div className="ligne" style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                                {faiteSemaine ? (
+                                  <span className="pastille ok" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                    ✓ Faite
+                                  </span>
+                                ) : estAujourdhui ? (
+                                  <span className="pastille accent" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                    Aujourd'hui
+                                  </span>
+                                ) : null}
+                                <span className="muted" style={{ fontSize: '1.1rem', marginLeft: 2 }}>›</span>
+                              </div>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--bord)' }}>
+              <button
+                type="button"
+                className="sous-seance-item"
+                style={{
+                  padding: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                }}
+                onClick={() => lancer()}
+              >
+                <div style={{ textAlign: 'left' }}>
+                  <strong style={{ fontSize: '0.98rem' }}>⚡ Séance libre</strong>
+                  <div className="faible" style={{ marginTop: 2, fontSize: '0.8rem' }}>
+                    Exercices ajoutés au fur et à mesure sans modèle
+                  </div>
+                </div>
+                <span className="pastille accent" style={{ fontSize: '1rem', padding: '2px 8px' }}>+</span>
+              </button>
+            </div>
+
+            <button className="btn discret plein" style={{ marginTop: 10 }} onClick={() => setChoix(false)}>
               Annuler
             </button>
           </div>
