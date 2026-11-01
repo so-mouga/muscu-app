@@ -84,7 +84,7 @@ export default function JournalMatin({
   }
 
   return (
-    <div className="carte pile journal-matin" style={{ padding: '16px', borderRadius: 16, gap: 10 }}>
+    <div className="carte pile journal-matin" style={{ padding: '16px', borderRadius: 16, gap: 12 }}>
       <h3 style={{ margin: '0 0 2px', fontSize: '1.15rem', fontWeight: 700 }}>Aujourd’hui</h3>
 
       {/* Grille Poids & Sommeil (2 colonnes) */}
@@ -139,8 +139,9 @@ export default function JournalMatin({
             minHeight: 88,
           }}
         >
-          <div style={{ color: '#8e8eff' }}>
-            <Moon size={18} strokeWidth={1.75} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <span style={{ color: '#8e8eff', display: 'flex', alignItems: 'center' }}><Moon size={18} strokeWidth={1.75} /></span>
+            <span style={{ fontSize: '0.8rem', opacity: 0.6, color: 'var(--texte-faible)' }}>✎</span>
           </div>
           <div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
@@ -220,14 +221,14 @@ export default function JournalMatin({
       {/* Inset Box Calories (comme dans la maquette) */}
       <div
         style={{
-          marginTop: 2,
-          padding: '12px 14px',
+          marginTop: 6,
+          padding: '14px 16px',
           borderRadius: 12,
           background: 'rgba(255, 255, 255, 0.03)',
           border: '1px solid rgba(255, 255, 255, 0.07)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 10,
+          gap: 12,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>

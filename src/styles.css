@@ -240,30 +240,48 @@ select {
   bottom: 0;
   display: flex;
   justify-content: center;
-  background: var(--surface);
-  border-top: 1px solid var(--bord);
+  background: rgba(13, 15, 18, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: env(safe-area-inset-bottom);
   z-index: 10;
   view-transition-name: onglets;
 }
 .onglets button {
+  position: relative;
   flex: 1;
   min-width: 0;
   max-width: 187px;
   background: none;
   padding: 12px 1px 14px;
-  color: var(--texte-3);
+  color: rgba(255, 255, 255, 0.4);
   font-size: 11px;
   letter-spacing: -0.1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
+  transition: color 0.15s ease;
 }
 .onglets button.actif {
   color: var(--accent);
 }
+.onglets button.actif::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 36px;
+  background: radial-gradient(circle, rgba(245, 124, 0, 0.3) 0%, rgba(245, 124, 0, 0.06) 55%, transparent 72%);
+  border-radius: 50%;
+  pointer-events: none;
+}
 .onglets .ico {
+  position: relative;
+  z-index: 1;
   display: block;
   margin: 0 auto 3px;
 }

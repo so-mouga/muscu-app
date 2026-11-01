@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Dumbbell, Moon, RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, ChevronUp, Dumbbell, Moon, RefreshCw, SlidersHorizontal } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { chargeQte, dateISO, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
+import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
 import { creneauxFaits } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
@@ -84,6 +84,7 @@ export default function Accueil({
 }) {
   const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
+  const [semaineDepliee, setSemaineDepliee] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(() => {
@@ -154,7 +155,7 @@ export default function Accueil({
   const faite = (e: EntreePlanning) => coches.has(planning.indexOf(e))
   const jour = jourSemaine()
   const duJour = planning.find((e) => e.jour === jour)
-  const prochaine = planning.find((e) => !faite(e) && e.jour >= jour) ?? planning.find((e) => !faite(e))
+  const prochaine = planning.find((e) => !faite(e) && e.jour >= jour) ?? planning.find((e) => !faite(e)) ?? planning[0]
   const variante = duJour && catalogue.modeles.find((m) => m.varianteDe === duJour.modele.id)
   const proposee = duJour && !faite(duJour) ? duJour : prochaine
   const seancesDe = (p: Programme) => [...new Set(p.seances.map((e) => e.modeleId))].map((id) => catalogue.modele(id)).filter((m) => !!m)
@@ -682,25 +683,90 @@ export default function Accueil({
           })}
         </div>
 
-        {/* Ligne bilan en bas */}
+        {/* Ligne bilan en bas avec accordéon des séances de la semaine */}
         {semaine.length > 0 && (
-          <div
-            onClick={onBilan}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: 8,
-              paddingTop: 12,
-              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-              cursor: 'pointer',
-            }}
-          >
-            <span className="faible" style={{ fontSize: '0.88rem' }}>
-              Bilan <strong style={{ color: 'var(--texte)' }}>{semaine.length} séance{semaine.length > 1 ? 's' : ''}</strong>
-              {duresSemaine > 0 ? ` · ${duresSemaine} séries` : ''}
-            </span>
-            <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+          <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <button
+              type="button"
+              onClick={() => setSemaineDepliee(!semaineDepliee)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'none',
+                border: 'none',
+                padding: '4px 0',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <span className="faible" style={{ fontSize: '0.88rem' }}>
+                Bilan <strong style={{ color: 'var(--texte)' }}>{semaine.length} séance{semaine.length > 1 ? 's' : ''}</strong>
+                {duresSemaine > 0 ? ` · ${duresSemaine} séries` : ''}
+              </span>
+              <span style={{ color: 'var(--texte-faible)', display: 'flex', alignItems: 'center' }}>
+                {semaineDepliee ? <ChevronUp size={18} strokeWidth={1.75} /> : <ChevronDown size={18} strokeWidth={1.75} />}
+              </span>
+            </button>
+
+            {semaineDepliee && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, paddingTop: 4 }}>
+                {[...semaine]
+                  .sort((a, b) => b.debut - a.debut)
+                  .map((s) => {
+                    const dures = s.series.filter(estDure).length
+                    const t = duree(dureeSeanceEffective(s))
+                    const d = new Date(s.debut)
+                    const jourNom = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+                    return (
+                      <div
+                        key={s.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onVoirSeance(s.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderRadius: 10,
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>
+                            {s.nom}
+                          </div>
+                          <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+                            <span style={{ textTransform: 'capitalize' }}>{jourNom}</span> · {t}{dures > 0 ? ` · ${dures} séries dures` : ''}
+                          </div>
+                        </div>
+                        <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+                      </div>
+                    )
+                  })}
+
+                <button
+                  type="button"
+                  className="btn texte"
+                  onClick={onBilan}
+                  style={{
+                    color: 'var(--accent)',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    marginTop: 4,
+                    padding: '6px 0',
+                    textAlign: 'center',
+                    width: '100%',
+                  }}
+                >
+                  Voir les statistiques complètes ›
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
