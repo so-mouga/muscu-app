@@ -39,7 +39,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - `src/types.ts` : modèle de données (Exercice, ExoPlan, SeanceModele, Programme, Seance, Serie, Cycle…).
 - `src/db.ts` : tables Dexie et migrations (version 7 : table `journal` = sommeil et calories par jour). Toute nouvelle table ou index = nouvelle version.
 - `src/catalogue.ts` : bibliothèque de base (`data/`) fusionnée avec ce que l'utilisateur a créé ou modifié.
-- `src/screens/` : onglets Accueil, Progression (Bilan, Journal, Corps = poids + mensurations + photos, Objectifs = phase + calories), Programmes (`Seances.tsx`), Exercices, Réglages ; `SeanceEnCours.tsx` pour la séance (vue normale et plein écran).
+- `src/screens/` : barre du bas Accueil, Progression (Bilan, Journal), Corps (`Corps.tsx` : Poids avec, dessous, les Objectifs = phase + poids visé + calories ; Mensurations ; Photos), Programmes (`Seances.tsx`), Exercices. **Réglages n'est plus un onglet** : bouton (icône curseurs, `.btn-reglages`) en haut à droite de l'accueil, page avec ← et retour Android ; `SeanceEnCours.tsx` pour la séance (vue normale et plein écran).
 - `src/lib/` : calculs purs, testés (`calc`, `progression`, `cycle`, `analyse`, `bilan`, `historique`…). `nav.ts` : retour Android (`useRetour`). `appareil.ts` : vibrations, sons, écran allumé.
 - `src/data/` : exercices et consignes, programme de base (Recompo, celui de l'utilisateur), programmes tout prêts (`programmesTypes.ts` : Full body 3 jours, Haut / Bas 4 jours, Recompo ; volume vérifié par un test), échauffements, mesures, lexique.
 
@@ -63,7 +63,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 ## Nouvel utilisateur
 
 - Pas de compte. **Première ouverture** (aucun programme enregistré, aucune séance) : l'accueil montre seulement « Pour commencer, choisis ton programme » (`ChoixProgramme`). Choisir copie les séances (ids suffixés) et rend le programme actif (`installerProgramme`). Aussi dans Programmes → « Programmes tout prêts ».
-- **Retours** : Réglages → « 💬 Donner mon avis » (en haut) ouvre un mail pré-rempli vers l'auteur (`CONTACT_AVIS`, adresse publique choisie par lui), avec la version et l'appareil.
+- **Retours** : Réglages (bouton en haut de l'accueil) → « 💬 Donner mon avis » (en haut) ouvre un mail pré-rempli vers l'auteur (`CONTACT_AVIS`, adresse publique choisie par lui), avec la version et l'appareil.
 - Les séances de base (Recompo) n'apparaissent dans la bibliothèque que si un programme s'en sert ou si l'utilisateur les a modifiées.
 
 ## Décisions métier à respecter

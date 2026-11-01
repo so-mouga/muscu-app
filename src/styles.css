@@ -2975,3 +2975,17 @@ a.btn {
 a.texte {
   text-decoration: none;
 }
+
+/* ⚙ Réglages, en haut à droite de l'accueil. */
+.btn-reglages {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--bord);
+  color: var(--texte-2);
+}

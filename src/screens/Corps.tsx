@@ -11,6 +11,8 @@ import { useRetour } from '../lib/nav'
 import type { Mesure } from '../types'
 import { confirmer } from '../components/Dialogues'
 import Photos from './Photos'
+import Objectifs from './Objectifs'
+import type { Catalogue } from '../catalogue'
 
 const cm = (v: number) => `${kg(v)} cm`
 const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(Math.round(d * 10) / 10))
@@ -20,8 +22,11 @@ const serie = (mesures: Mesure[], cle: string) => mesures.filter((m) => m.valeur
 
 type SousOngletCorps = 'poids' | 'mensurations' | 'photos'
 
-/** Onglet Corps de Progression : 3 sous-onglets Poids, Mensurations, Photos. */
-export default function Corps() {
+/**
+ * Onglet Corps (barre du bas) : Poids (avec la phase, l'objectif de poids et les calories visées),
+ * Mensurations, Photos.
+ */
+export default function Corps({ catalogue }: { catalogue: Catalogue }) {
   const [onglet, setOnglet] = useState<SousOngletCorps>(() => {
     try {
       return (localStorage.getItem('sous_onglet_corps') as SousOngletCorps) || 'poids'
@@ -39,6 +44,9 @@ export default function Corps() {
 
   return (
     <div>
+      <div className="entete">
+        <h1>Corps</h1>
+      </div>
       <div className="segments" role="tablist" style={{ marginTop: 2, marginBottom: 14 }}>
         <button
           type="button"
@@ -69,7 +77,14 @@ export default function Corps() {
         </button>
       </div>
 
-      {onglet === 'poids' && <OngletPoids />}
+      {onglet === 'poids' && (
+        <>
+          <OngletPoids />
+          {/* La phase et le poids visé vont avec le poids. */}
+          <h2 style={{ margin: '24px 0 8px' }}>Objectifs</h2>
+          <Objectifs catalogue={catalogue} />
+        </>
+      )}
       {onglet === 'mensurations' && <Mesures />}
       {onglet === 'photos' && <Photos />}
     </div>

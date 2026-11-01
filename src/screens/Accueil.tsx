@@ -17,6 +17,7 @@ import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
+import IconeOnglet from '../components/IconeOnglet'
 import { nouvelleVersionAndroid } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
@@ -63,12 +64,15 @@ export default function Accueil({
   catalogue,
   onVoirSeance,
   onMesures,
+  onReglages,
   onBilan,
   onProgrammes,
 }: {
   catalogue: Catalogue
   onVoirSeance: (id: string) => void
   onMesures: () => void
+  /** Ouvre les Réglages (⚙). */
+  onReglages: () => void
   /** Ouvre Progression → Bilan. */
   onBilan: () => void
   /** Ouvre l'onglet Programmes (gestion du cycle). */
@@ -245,6 +249,9 @@ export default function Accueil({
             </div>
           )}
         </div>
+        <button type="button" className="btn-reglages" onClick={onReglages} aria-label="Réglages">
+          <IconeOnglet nom="reglages" />
+        </button>
       </div>
 
       {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}

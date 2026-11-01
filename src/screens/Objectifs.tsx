@@ -7,7 +7,7 @@ import { AJUSTEMENT, CLE_PROFIL, objectifDuJour, profilComplet, type Profil } fr
 import { dateISO, kg } from '../lib/calc'
 import { nomPhase, objectifsA } from '../lib/objectifs'
 
-/** Partie Objectifs de Progression : phases (sèche, maintien, prise) en blocs et calories. Le volume par muscle se lit dans le programme. */
+/** Objectifs (onglet Corps, sous le poids) : phases (sèche, maintien, prise) en blocs et calories. Le volume par muscle se lit dans le programme. */
 export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
 
   return (
@@ -27,7 +27,7 @@ function CaloriesVisees({ catalogue }: { catalogue: Catalogue }) {
   const p = profil?.valeur as Profil | undefined
   const aujourdhui = dateISO()
   const o = objectifDuJour(catalogue.objectifs, aujourdhui, p, pesee?.poids, catalogue.planning.length)
-  const manquant = [!profilComplet(p) && 'ton profil (Réglages → Mon profil)', !pesee && 'une pesée (Progression → Corps)'].filter(Boolean)
+  const manquant = [!profilComplet(p) && 'ton profil (Réglages, en haut de l’accueil → Mon profil)', !pesee && 'une pesée (ci-dessus, ou sur l’accueil)'].filter(Boolean)
   const ajust = o?.phase ? AJUSTEMENT[o.phase] : 0
   return (
     <div className="carte pile" style={{ marginBottom: 24 }}>

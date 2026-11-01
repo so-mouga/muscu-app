@@ -14,7 +14,7 @@ import Interrupteur from '../components/Interrupteur'
 import ChampNombre from '../components/ChampNombre'
 import { ACTIVITES, CLE_PROFIL, type Profil } from '../lib/nutrition'
 
-export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
+export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue; onFermer?: () => void }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const pasBoutons = useLiveQuery(() => db.reglages.get('pasBoutons'), [])
   const pasActuel = typeof pasBoutons?.valeur === 'number' ? pasBoutons.valeur : PAS_BOUTONS_DEFAUT
@@ -73,7 +73,12 @@ export default function Reglages({ catalogue }: { catalogue: Catalogue }) {
   return (
     <div>
       <div className="entete">
-        <h1>Réglages</h1>
+        {onFermer && (
+          <button className="btn" onClick={onFermer} aria-label="Retour">
+            ←
+          </button>
+        )}
+        <h1 style={{ flex: 1 }}>Réglages</h1>
       </div>
 
       <DonnerAvis />
@@ -317,7 +322,7 @@ function MonProfil() {
   return (
     <div className="carte pile">
       <h3>Mon profil</h3>
-      <div className="faible">Pour calculer ton objectif calories selon ta phase (Progression → Objectifs). Ton poids vient de tes pesées. Tout reste sur ce téléphone.</div>
+      <div className="faible">Pour calculer ton objectif calories selon ta phase (Corps → Poids, plus bas : Objectifs). Ton poids vient de tes pesées. Tout reste sur ce téléphone.</div>
       <div className="ligne entre">
         <span>Taille</span>
         <span className="ligne" style={{ gap: 6 }}>

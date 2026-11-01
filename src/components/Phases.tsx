@@ -40,7 +40,7 @@ const ECARTS: Record<Phase, number[]> = { prise: [1, 2, 3], seche: [-2, -4, -6],
 type Pesees = { date: string; poids: number }[]
 
 /**
- * Phases en blocs (Progression → Objectifs) : passées figées avec leur résultat, en cours (modifiée par une
+ * Phases en blocs (Corps → Poids → Objectifs) : passées figées avec leur résultat, en cours (modifiée par une
  * étape datée d'aujourd'hui), à venir (modifiables, supprimables). Chaque phase ajoutée suit la précédente.
  */
 export default function Phases({ catalogue }: { catalogue: Catalogue }) {

@@ -65,6 +65,13 @@ export function seance(id: string, date: string, series: { charge: number; reps:
   }
 }
 
+/** Ouvre les Réglages : ⚙ en haut à droite de l'accueil. */
+export async function ouvrirReglages(p: Page) {
+  await onglet(p, 'Accueil')
+  await p.getByRole('button', { name: 'Réglages' }).click()
+  await expect(p.getByRole('heading', { name: 'Réglages' })).toBeVisible()
+}
+
 /** Ouvre un onglet de la barre du bas. */
 export const onglet = (p: Page, nom: string) => p.locator('nav button, .onglets button', { hasText: nom }).first().click()
 

@@ -5,18 +5,20 @@ import { db } from './db'
 import { transition, useRetour } from './lib/nav'
 import IconeOnglet from './components/IconeOnglet'
 import Accueil from './screens/Accueil'
+import Corps from './screens/Corps'
 import Exercices from './screens/Exercices'
 import Historique, { type VueProgression } from './screens/Historique'
 import Reglages from './screens/Reglages'
 import SeanceEnCours from './screens/SeanceEnCours'
 import Seances from './screens/Seances'
 
+// Réglages n'est plus un onglet : ⚙ en haut à droite de l'accueil.
 const ONGLETS = [
   ['accueil', 'Accueil'],
   ['historique', 'Progression'],
+  ['corps', 'Corps'],
   ['seances', 'Programmes'],
   ['exercices', 'Exercices'],
-  ['reglages', 'Réglages'],
 ] as const
 type Onglet = (typeof ONGLETS)[number][0]
 
@@ -24,14 +26,16 @@ export default function App() {
   const [onglet, setOngletEtat] = useState<Onglet>('accueil')
   /** Séance ouverte dans l'historique. */
   const [detail, setDetailEtat] = useState<string | null>(null)
+  /** Réglages ouverts par ⚙ (page au-dessus de l'onglet). */
+  const [reglages, setReglages] = useState(false)
   /** Exercice ouvert depuis le Bilan dans l'onglet Exercices. */
   const [exoInitial, setExoInitial] = useState<string | null>(null)
   /** Partie de Progression affichée (mémorisée d'une ouverture à l'autre). */
   const [vue, setVueEtat] = useState<VueProgression>(() => {
     try {
-      // Anciens noms : « seances » = Journal ; Mesures, Photos et Poids sont regroupés dans Corps.
+      // Anciens noms : « seances » = Journal ; Corps et Objectifs sont sortis de Progression.
       const v = localStorage.getItem('vueProgression')
-      return !v ? 'bilan' : v === 'seances' ? 'journal' : v === 'mesures' || v === 'photos' || v === 'poids' ? 'corps' : (v as VueProgression)
+      return v === 'journal' || v === 'seances' ? 'journal' : 'bilan'
     } catch {
       return 'bilan'
     }
@@ -62,23 +66,27 @@ export default function App() {
   }
   // Retour Android : depuis un autre onglet, on revient à l'accueil ; depuis l'accueil, on quitte.
   useRetour(!enCours && onglet !== 'accueil', () => transition(() => setOngletEtat('accueil'), 'arriere'))
+  const fermerReglages = () => (transition(() => setReglages(false), 'arriere'), window.scrollTo({ top: 0 }))
+  useRetour(!enCours && reglages, fermerReglages)
 
   if (enCours === null || !catalogue) return null // chargement
   if (enCours) return <SeanceEnCours key={enCours.id} seance={enCours} catalogue={catalogue} />
 
   return (
     <>
-      <div key={onglet}>
-        {onglet === 'accueil' && (
+      <div key={reglages ? 'reglages' : onglet}>
+        {reglages && <Reglages catalogue={catalogue} onFermer={fermerReglages} />}
+        {!reglages && onglet === 'accueil' && (
           <Accueil
             catalogue={catalogue}
             onVoirSeance={setDetail}
-            onMesures={() => (setVue('corps'), setOnglet('historique'))}
+            onMesures={() => setOnglet('corps')}
+            onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onBilan={() => (setVue('bilan'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
           />
         )}
-        {onglet === 'historique' && (
+        {!reglages && onglet === 'historique' && (
           <Historique
             catalogue={catalogue}
             detail={detail}
@@ -86,21 +94,22 @@ export default function App() {
             vue={vue}
             onVue={setVue}
             onExo={(id) => (setExoInitial(id), setOnglet('exercices'))}
+            onCorps={() => setOnglet('corps')}
           />
         )}
-        {onglet === 'seances' && <Seances catalogue={catalogue} />}
-        {onglet === 'exercices' && (
+        {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} />}
+        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} />}
+        {!reglages && onglet === 'exercices' && (
           <Exercices
             catalogue={catalogue}
             initial={exoInitial}
             onRetourInitial={() => (setExoInitial(null), setOnglet('historique'))}
           />
         )}
-        {onglet === 'reglages' && <Reglages catalogue={catalogue} />}
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
-          <button key={id} className={onglet === id ? 'actif' : ''} onClick={() => (setDetailEtat(null), setExoInitial(null), setOnglet(id))}>
+          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setDetailEtat(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
             <IconeOnglet nom={id} />
             {nom}
           </button>
