@@ -128,7 +128,8 @@ public final class MinuteurRepos {
             .setSmallIcon(R.drawable.ic_minuteur)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setSilent(true)
+            // Pas de setSilent : Samsung (et Android) cachent les notifications « silencieuses » sur
+            // l'écran verrouillé. Elle reste muette : le canal « seance » n'a ni son ni vibration.
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(ouvrirAppli(c))
             // Android 16 : suivi en direct (Now Bar sur Samsung) quand le système l'accepte.
