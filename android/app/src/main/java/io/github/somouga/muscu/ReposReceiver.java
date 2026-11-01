@@ -17,6 +17,16 @@ public class ReposReceiver extends BroadcastReceiver {
         else if (MinuteurRepos.FIN.equals(action)) {
             MinuteurRepos.sonner(c);
             return;
+        } else if (MinuteurRepos.DECOMPTE.equals(action)) {
+            final PendingResult pr = goAsync();
+            new Thread(() -> {
+                try {
+                    MinuteurRepos.lancerDecompte(c);
+                } finally {
+                    pr.finish();
+                }
+            }).start();
+            return;
         } else return;
         // L'appli suit l'état choisi depuis la notification (si elle tourne encore ; sinon au retour, par `etat`).
         MinuteurReposPlugin.signaler(c);

@@ -3,6 +3,7 @@ package io.github.somouga.muscu;
 import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
+import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -27,6 +28,11 @@ public class MinuteurReposPlugin extends Plugin {
     @Override
     protected void handleOnResume() {
         MinuteurRepos.auPremierPlan = true;
+        Context c = getContext();
+        if (c != null) {
+            NotificationManagerCompat.from(c).cancel(MinuteurRepos.ID_FIN);
+            MinuteurRepos.afficher(c);
+        }
     }
 
     @Override
@@ -80,7 +86,7 @@ public class MinuteurReposPlugin extends Plugin {
         e.apply();
         switch (call.getMethodName()) {
             case "seance" -> MinuteurRepos.seance(c, nombre(call, "debut"), call.getString("nom", "Séance"), texte);
-            case "demarrer" -> MinuteurRepos.repos(c, nombre(call, "fin"), texte);
+            case "demarrer" -> MinuteurRepos.repos(c, nombre(call, "fin"), texte, call.getInt("bips", 5));
             case "pause" -> MinuteurRepos.pause(c, nombre(call, "reste"), texte);
             default -> {}
         }

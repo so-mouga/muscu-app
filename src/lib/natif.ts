@@ -23,7 +23,7 @@ interface Commun {
 
 interface PluginMinuteur {
   seance(o: Commun): Promise<void>
-  demarrer(o: Commun & { fin: number }): Promise<void>
+  demarrer(o: Commun & { fin: number; bips?: number }): Promise<void>
   pause(o: Commun & { reste: number }): Promise<void>
   arreter(): Promise<void>
   etat(): Promise<EtatNatif>
@@ -40,7 +40,7 @@ const silencieux = <T,>(p: () => Promise<T>) => (natif ? p().catch(() => undefin
 
 /** Pas de repos en cours : « séance en cours » avec son chrono. Demande l'autorisation des notifications la 1re fois. */
 export const seanceNatif = (c: Commun) => silencieux(() => MinuteurRepos.seance(c))
-export const reposNatif = (c: Commun, fin: number) => silencieux(() => MinuteurRepos.demarrer({ ...c, fin }))
+export const reposNatif = (c: Commun, fin: number, bips = 5) => silencieux(() => MinuteurRepos.demarrer({ ...c, fin, bips }))
 export const pauseNatif = (c: Commun, reste: number) => silencieux(() => MinuteurRepos.pause({ ...c, reste }))
 /** Fin de la séance (enregistrée ou supprimée) : la notification disparaît. */
 export const arreterSeanceNatif = () => silencieux(() => MinuteurRepos.arreter())

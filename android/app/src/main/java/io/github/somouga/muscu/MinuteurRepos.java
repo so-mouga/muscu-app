@@ -8,8 +8,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.RingtoneManager;
+import android.media.ToneGenerator;
 import android.os.Build;
+import android.os.PowerManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -17,7 +22,7 @@ import androidx.core.app.NotificationManagerCompat;
  * La séance en cours, tenue par Android : une notification affichée du début à la fin de la séance
  * (écran verrouillé, volet), qui suit l'état du repos :
  * - « seance » : chrono de la séance, un appui ramène dans l'appli ;
- * - « repos » : décompte, boutons Pause / +30 s / Passer, alarme à la fin même écran éteint ;
+ * - « repos » : décompte, boutons Pause / +30 s / Passer, bips et alarme à la fin même écran éteint ;
  * - « pause » : temps restant figé, boutons Reprendre / Passer.
  * L'état est gardé dans les préférences pour survivre à la mise en veille de l'appli.
  */
@@ -34,7 +39,10 @@ public final class MinuteurRepos {
     static final String PAUSE = "io.github.somouga.muscu.PAUSE";
     static final String REPRENDRE = "io.github.somouga.muscu.REPRENDRE";
     static final String FIN = "io.github.somouga.muscu.FIN";
+    static final String DECOMPTE = "io.github.somouga.muscu.DECOMPTE";
     private static final long[] VIBRATION = { 0, 300, 150, 300, 150, 600 };
+    private static final Object VERROU_DECOMPTE = new Object();
+    private static volatile long finEnCours = 0;
 
     /** Vrai quand l'appli est à l'écran : c'est elle qui bipe, pas la notification. */
     static volatile boolean auPremierPlan = false;
@@ -92,10 +100,15 @@ public final class MinuteurRepos {
 
     /** Repos jusqu'à `fin` (ms depuis 1970). */
     static void repos(Context c, long fin, String ensuite) {
-        prefs(c).edit().putString("mode", "repos").putLong("fin", fin).putString("texte", ensuite).putLong("reste", 0).apply();
+        repos(c, fin, ensuite, prefs(c).getInt("bips", 5));
+    }
+
+    /** Repos jusqu'à `fin` (ms depuis 1970) avec décompte sonore des `bips` dernières secondes. */
+    static void repos(Context c, long fin, String ensuite, int bips) {
+        prefs(c).edit().putString("mode", "repos").putLong("fin", fin).putString("texte", ensuite).putLong("reste", 0).putInt("bips", bips).apply();
         NotificationManagerCompat.from(c).cancel(ID_FIN);
         afficher(c);
-        programmer(c, fin);
+        programmer(c, fin, bips);
     }
 
     /** Repos en pause : `reste` ms figées. */
@@ -152,16 +165,39 @@ public final class MinuteurRepos {
         }
     }
 
-    private static void programmer(Context c, long fin) {
+    private static void programmer(Context c, long fin, int bips) {
+        annulerAlarme(c);
         AlarmManager am = c.getSystemService(AlarmManager.class);
-        PendingIntent pi = diffusion(c, FIN, 3);
-        am.cancel(pi);
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fin, pi);
-        else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fin, pi);
+        if (am == null) return;
+        PendingIntent piFin = diffusion(c, FIN, 3);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()) {
+            am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fin, piFin);
+        } else {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fin, piFin);
+        }
+
+        if (bips > 0) {
+            long now = System.currentTimeMillis();
+            long debutDecompte = fin - (bips * 1000L);
+            if (debutDecompte > now) {
+                PendingIntent piDecompte = diffusion(c, DECOMPTE, 6);
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()) {
+                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, debutDecompte, piDecompte);
+                } else {
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, debutDecompte, piDecompte);
+                }
+            } else if (fin > now) {
+                new Thread(() -> lancerDecompte(c)).start();
+            }
+        }
     }
 
     private static void annulerAlarme(Context c) {
-        c.getSystemService(AlarmManager.class).cancel(diffusion(c, FIN, 3));
+        AlarmManager am = c.getSystemService(AlarmManager.class);
+        if (am != null) {
+            am.cancel(diffusion(c, FIN, 3));
+            am.cancel(diffusion(c, DECOMPTE, 6));
+        }
     }
 
     /** Fin de la séance : plus rien. */
@@ -186,7 +222,8 @@ public final class MinuteurRepos {
         }
         long fin = p.getLong("fin", 0);
         if (fin <= 0) return;
-        repos(c, Math.max(fin, System.currentTimeMillis()) + 30000, p.getString("texte", ""));
+        int bips = p.getInt("bips", 5);
+        repos(c, Math.max(fin, System.currentTimeMillis()) + 30000, p.getString("texte", ""), bips);
     }
 
     static void mettreEnPause(Context c) {
@@ -199,7 +236,8 @@ public final class MinuteurRepos {
     static void reprendre(Context c) {
         SharedPreferences p = prefs(c);
         if (!"pause".equals(p.getString("mode", ""))) return;
-        repos(c, System.currentTimeMillis() + p.getLong("reste", 0), p.getString("texte", ""));
+        int bips = p.getInt("bips", 5);
+        repos(c, System.currentTimeMillis() + p.getLong("reste", 0), p.getString("texte", ""), bips);
     }
 
     static void passer(Context c) {
@@ -207,14 +245,20 @@ public final class MinuteurRepos {
         versSeance(c);
     }
 
-    /** L'alarme : la notification revient au chrono de séance, et « C'est l'heure » sonne (appli en arrière-plan). */
+    /** L'alarme : quand le repos est fini, « C'est l'heure » sonne (appli en arrière-plan) et remplace la notification de séance. */
     static void sonner(Context c) {
-        versSeance(c);
-        if (auPremierPlan) return;
+        if (auPremierPlan) {
+            versSeance(c);
+            return;
+        }
+        SharedPreferences p = prefs(c);
+        p.edit().putString("mode", "seance").putLong("fin", 0).putLong("reste", 0).apply();
+        NotificationManagerCompat nm = NotificationManagerCompat.from(c);
+        nm.cancel(ID_SEANCE);
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CANAL_FIN)
             .setSmallIcon(R.drawable.ic_minuteur)
             .setContentTitle("C’est l’heure de ta série 💪")
-            .setContentText(prefs(c).getString("texte", ""))
+            .setContentText(p.getString("texte", ""))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVibrate(VIBRATION)
@@ -222,11 +266,103 @@ public final class MinuteurRepos {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setTimeoutAfter(120000)
+            .setDeleteIntent(diffusion(c, PASSER, 2))
             .setContentIntent(ouvrirAppli(c));
         try {
-            NotificationManagerCompat.from(c).notify(ID_FIN, b.build());
+            nm.notify(ID_FIN, b.build());
         } catch (SecurityException e) {
             // Notifications refusées.
+        }
+    }
+
+    /** Décompte sonore et vibration des dernières secondes du repos en arrière-plan. */
+    static void lancerDecompte(Context c) {
+        SharedPreferences p = prefs(c);
+        long targetFin = p.getLong("fin", 0);
+        int bips = p.getInt("bips", 5);
+        if (bips <= 0 || targetFin <= 0) return;
+
+        synchronized (VERROU_DECOMPTE) {
+            if (finEnCours == targetFin) return;
+            finEnCours = targetFin;
+        }
+
+        PowerManager pm = (PowerManager) c.getSystemService(Context.POWER_SERVICE);
+        PowerManager.WakeLock wl = null;
+        if (pm != null) {
+            try {
+                wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "muscu:decompte");
+                wl.acquire((bips + 2) * 1000L);
+            } catch (Exception ignored) {}
+        }
+
+        ToneGenerator tg = null;
+        try {
+            AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null && am.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
+                tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85);
+            }
+        } catch (Exception ignored) {}
+
+        Vibrator vib = (Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE);
+
+        try {
+            int derniereSecondeJouee = -1;
+            while (!auPremierPlan) {
+                if (!"repos".equals(p.getString("mode", "")) || p.getLong("fin", 0) != targetFin) {
+                    break;
+                }
+
+                long now = System.currentTimeMillis();
+                long resteMs = targetFin - now;
+                if (resteMs <= 200) {
+                    break;
+                }
+
+                int seconde = (int) Math.ceil(resteMs / 1000.0);
+                if (seconde <= bips && seconde != derniereSecondeJouee) {
+                    derniereSecondeJouee = seconde;
+                    boolean dernier = (seconde == 1);
+
+                    if (tg != null) {
+                        try {
+                            tg.startTone(dernier ? ToneGenerator.TONE_PROP_BEEP2 : ToneGenerator.TONE_PROP_BEEP, dernier ? 120 : 90);
+                        } catch (Exception ignored) {}
+                    }
+
+                    if (vib != null && vib.hasVibrator()) {
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                vib.vibrate(VibrationEffect.createOneShot(dernier ? 60 : 30, VibrationEffect.DEFAULT_AMPLITUDE));
+                            } else {
+                                vib.vibrate(dernier ? 60 : 30);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+
+                long prochainBip = targetFin - (seconde - 1) * 1000L;
+                long attente = Math.min(250L, Math.max(20L, prochainBip - System.currentTimeMillis()));
+                try {
+                    Thread.sleep(attente);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+        } finally {
+            if (tg != null) {
+                try {
+                    tg.release();
+                } catch (Exception ignored) {}
+            }
+            if (wl != null && wl.isHeld()) {
+                try {
+                    wl.release();
+                } catch (Exception ignored) {}
+            }
+            synchronized (VERROU_DECOMPTE) {
+                if (finEnCours == targetFin) finEnCours = 0;
+            }
         }
     }
 }

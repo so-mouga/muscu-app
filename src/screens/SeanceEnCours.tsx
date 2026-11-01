@@ -9,7 +9,7 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif, { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
-import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
+import Minuteur, { BIPS_DEFAUT, resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
@@ -201,11 +201,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   minuteurRef.current = { minuteur, setMinuteur }
   useEffect(() => {
     if (!natif) return
+    const bipsReglage = reglages?.find((r) => r.cle === 'bipsRepos')?.valeur
+    const bips = typeof bipsReglage === 'number' ? bipsReglage : BIPS_DEFAUT
     const c = { nom: seance.nom, debut: seance.debut, texte: ensuiteRef.current ? `Ensuite : ${ensuiteRef.current}` : '' }
     if (minuteur && minuteur.pause !== undefined) void pauseNatif(c, minuteur.pause)
-    else if (minuteur && minuteur.fin > Date.now()) void reposNatif(c, minuteur.fin)
+    else if (minuteur && minuteur.fin > Date.now()) void reposNatif(c, minuteur.fin, bips)
     else void seanceNatif(c)
-  }, [minuteur?.fin, minuteur?.pause, seance.series.length, seance.nom])
+  }, [minuteur?.fin, minuteur?.pause, seance.series.length, seance.nom, reglages])
   // Ce qui a été choisi depuis la notification (Pause, Reprendre, +30 s, Passer) : l'appli suit.
   useEffect(
     () =>
