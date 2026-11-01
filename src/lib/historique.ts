@@ -1,5 +1,5 @@
 import type { Exercice, Seance, Serie } from '../types'
-import { e1rm, enTemps, estDure, kgSouleves, lundi } from './calc'
+import { dureeSeanceEffective, e1rm, enTemps, estDure, kgSouleves, lundi } from './calc'
 
 export interface Bilan {
   seances: number
@@ -10,8 +10,8 @@ export interface Bilan {
   records: number
 }
 
-/** Durée d'une séance terminée (sans heure de fin : jusqu'à sa dernière série). */
-export const dureeReelle = (s: Seance) => (s.fin ?? s.series.reduce((a, x) => Math.max(a, x.heure), s.debut)) - s.debut
+/** Durée d'une séance terminée (de la 1re à la dernière série si possible, sinon jusqu'à sa fin). */
+export const dureeReelle = (s: Seance) => dureeSeanceEffective(s)
 
 /** Lundi (AAAA-MM-JJ) de la semaine d'une date AAAA-MM-JJ. */
 export const semaineDe = (date: string) => lundi(new Date(date + 'T12:00:00'))

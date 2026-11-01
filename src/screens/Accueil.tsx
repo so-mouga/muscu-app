@@ -311,12 +311,24 @@ export default function Accueil({
               </button>
             </div>
           </>
-        ) : (
+        ) : planning.length > 0 ? (
           <>
             <div>Semaine complète 💪 Tout ce que tu fais en plus est du bonus.</div>
             <button className="btn primaire grand" onClick={() => setChoix(true)}>
               Démarrer une séance
             </button>
+          </>
+        ) : (
+          <>
+            <div className="muted">Aucune séance planifiée dans ce programme.</div>
+            <div className="ligne">
+              <button className="btn primaire grand" onClick={() => setChoix(true)}>
+                Choisir une séance
+              </button>
+              <button className="btn grand" onClick={onProgrammes}>
+                Planifier
+              </button>
+            </div>
           </>
         )}
         <div className="ligne actions-accueil">

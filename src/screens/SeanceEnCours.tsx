@@ -356,7 +356,12 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       // Le substitut garde son propre historique ; sans historique, il est « à calibrer ».
       const ancien = plans[c.i]
       const faites = nbFaites(ancien.exoId)
-      const substitut = { ...ancien, exoId, charge: null, chauffes: [], finisseur: ancien.finisseur && exo.type === 'isolation', note: undefined }
+      const chargeAncien = ancien.charge ?? seance.series.filter((s) => s.exoId === ancien.exoId).pop()?.charge ?? suggestions[c.i]?.charges[0] ?? null
+      const histoNouveau = terminees ? historiqueDe(terminees, exoId) : []
+      const chargeSubstitut = histoNouveau.length > 0 && histoNouveau[0][0]?.charge ? histoNouveau[0][0].charge : chargeAncien
+      const nomAncien = catalogue.exo(ancien.exoId).nom
+      const noteSubstitut = chargeAncien ? `Tu étais à ${kg(chargeAncien)} kg sur ${nomAncien}` : undefined
+      const substitut = { ...ancien, exoId, charge: chargeSubstitut, chauffes: [], finisseur: ancien.finisseur && exo.type === 'isolation', note: noteSubstitut }
       if (faites === 0) {
         await majSeance(seance.id, (s) => {
           s.exercices[c.i] = substitut
@@ -374,7 +379,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         transition(() => setIdxEtat(c.i + 1), 'carte-avant')
         range(`idx:${seance.id}`, c.i + 1)
       }
-      setToast(`🔁 ${catalogue.exo(ancien.exoId).nom} → ${exo.nom}`)
+      setToast(`🔁 ${nomAncien} → ${exo.nom}${chargeAncien ? ` (${kg(chargeAncien)} kg)` : ''}`)
       if (!(equivalents[ancien.exoId] ?? []).includes(exoId)) setLien({ a: ancien.exoId, b: exoId })
     } else {
       await majSeance(seance.id, (s) => {
@@ -533,7 +538,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         <button className="btn petit" onClick={() => naviguer(() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false)))}>
           ☰ Vue liste
         </button>
-        {enCours >= 0 && !echauffementActif(seance) && (
+        {enCours >= 0 && !echauffementActif(seance) && restantes > 0 && (
           <button className="btn petit" onClick={() => (setIdx(enCours), setMachinePrise(true))}>
             Machine prise
           </button>
@@ -542,6 +547,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           Fin de séance
         </button>
       </div>
+      {maintenant - seance.debut > 4 * 3600000 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 10, marginTop: 8 }}>
+          <span className="faible" style={{ color: 'var(--texte-1)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
+          <button className="btn primaire petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
+            Terminer
+          </button>
+        </div>
+      )}
     </div>
   )
 
@@ -854,6 +867,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             exos={plans
               .map((pl, j) => ({ j, nom: exos[j].nom, faites: nbFaites(pl.exoId), total: totalDe(j), passe: estPasse(j) }))
               .filter((x) => x.j !== enCours && !x.passe && x.faites < x.total)}
+            onAller={(j) => void faireMaintenant(j)}
             onFermer={() => setSuite(false)}
           />
         )}
@@ -887,6 +901,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             Fin de séance
           </button>
         </div>
+        {maintenant - seance.debut > 4 * 3600000 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 10, margin: '8px 0' }}>
+            <span className="faible" style={{ color: 'var(--texte-1)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
+            <button className="btn primaire petit" onClick={() => ouvrirFin(true)}>
+              Terminer
+            </button>
+          </div>
+        )}
         {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
         {!echauffementActif(seance) && pastilles}
         {!surEchauffement && enCours >= 0 && enCours !== idx && (
@@ -1093,7 +1115,9 @@ function FinSeance({
       modeleId = 'm_' + uid()
       await db.modeles.put({ id: modeleId, nom: nomModele.trim() || 'Séance libre', sousTitre: '', exercices: structuredClone(seance.exercices) })
     }
-    await db.seances.update(seance.id, { enCours: false, fin: Date.now(), ressenti, energie, modeleId, objectifs })
+    const heures = seance.series.map((x) => x.heure).filter((h): h is number => typeof h === 'number' && h > 0)
+    const fin = Date.now() - seance.debut > 4 * 3600000 && heures.length ? Math.max(...heures) : Date.now()
+    await db.seances.update(seance.id, { enCours: false, fin, ressenti, energie, modeleId, objectifs })
     oublierEtatLocal(seance.id)
   }
 
@@ -1353,21 +1377,31 @@ function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPla
 }
 
 /** Les exercices qui restent, en plein écran, sans quitter le repos. */
-function SuiteSeance({ exos, onFermer }: { exos: { j: number; nom: string; faites: number; total: number }[]; onFermer: () => void }) {
+function SuiteSeance({ exos, onAller, onFermer }: { exos: { j: number; nom: string; faites: number; total: number }[]; onAller: (j: number) => void; onFermer: () => void }) {
   useRetour(true, onFermer)
   return (
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <h2>Suite de la séance</h2>
         {exos.map((x) => (
-          <div key={x.j} className="ligne-mesure">
+          <button
+            key={x.j}
+            type="button"
+            className="ligne-mesure"
+            style={{ width: '100%', cursor: 'pointer', textAlign: 'left', padding: '12px 4px', background: 'none', border: 'none', borderBottom: '1px solid var(--bord)', color: 'inherit' }}
+            onClick={() => {
+              onAller(x.j)
+              onFermer()
+            }}
+          >
             <span>
-              {x.j + 1}. {x.nom}
+              <strong>{x.j + 1}. {x.nom}</strong>
             </span>
-            <span className="faible">
+            <span className="faible" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {x.faites ? `${x.faites}/${x.total} séries` : `${x.total} série${x.total > 1 ? 's' : ''}`}
+              <span className="muted">›</span>
             </span>
-          </div>
+          </button>
         ))}
         <button className="btn discret plein" onClick={onFermer}>
           Fermer

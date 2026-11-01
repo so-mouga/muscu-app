@@ -39,7 +39,7 @@ export interface PeriodePhase {
 export const PHASES: { id: Phase; nom: string; court: string; explication: string }[] = [
   { id: 'seche', nom: 'Sèche', court: 'Sèche', explication: 'Tu manges un peu moins pour perdre du gras. Garder tes charges, c’est déjà réussir : une baisse de force est le signal à surveiller.' },
   { id: 'maintien', nom: 'Maintien', court: 'Maintien', explication: 'Poids stable : tu progresses tranquillement, sans viser de prise ni de perte.' },
-  { id: 'prise', nom: 'Prise de muscle', court: 'Prise', explication: 'Tu manges un peu plus pour construire : il faut monter régulièrement en reps ou en charge, et le poids doit monter doucement.' },
+  { id: 'prise', nom: 'Prise / recomposition', court: 'Prise / recomp.', explication: 'Construire du muscle tout en optimisant sa silhouette : monter régulièrement en force tout en maîtrisant son poids.' },
 ]
 export const nomPhase = (p: Phase) => PHASES.find((x) => x.id === p)!.nom
 

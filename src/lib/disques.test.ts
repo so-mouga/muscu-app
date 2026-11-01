@@ -48,11 +48,14 @@ describe('repartirDisques', () => {
 })
 
 describe('estBarreOuSmith', () => {
-  it('détecte les exercices barre et smith', () => {
+  it('détecte les exercices barre et smith et exclut les machines à pile', () => {
     expect(estBarreOuSmith('Développé incliné Smith')).toBe(true)
     expect(estBarreOuSmith('smith_incline')).toBe(true)
     expect(estBarreOuSmith('Squat barre')).toBe(true)
     expect(estBarreOuSmith('Soulevé de terre')).toBe(true)
+    expect(estBarreOuSmith('Tirage poitrine prise large')).toBe(false)
+    expect(estBarreOuSmith('Butterfly')).toBe(false)
+    expect(estBarreOuSmith('Développé incliné machine')).toBe(false)
     expect(estBarreOuSmith('Curl haltère')).toBe(false)
     expect(estBarreOuSmith('Poulie vis-à-vis')).toBe(false)
   })

@@ -78,6 +78,11 @@ export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: nu
   const p = plan.series[Math.min(n, plan.series.length - 1)]
   // Charge encore inconnue (machine jamais faite, rien de saisi avant) : « à calibrer », pas « 0 kg ».
   const charge = faites && !(sugg.charges[j] === null && !faites[n - 1]) ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
+  const total = plan.series.length
+  if (plan.finisseur && n === total - 1) {
+    const chargeTxt = charge !== null ? (charge > 0 ? `${kg(charge)} kg` : '') : 'à calibrer'
+    return chargeTxt ? `${chargeTxt} · jusqu’à l’échec` : 'jusqu’à l’échec'
+  }
   return `${chargeQte(exo, charge, sugg.reps[j] ?? p.repsMin)} · RPE ${kg(p.rpe)}`
 }
 
@@ -169,9 +174,11 @@ export default function CarteExo({
             )}
           </h2>
           <BoutonInfos onClick={() => setInfos(true)} />
-          <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
-            Machine prise
-          </button>
+          {!termine && !passe && (
+            <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
+              Machine prise
+            </button>
+          )}
         </div>
         <div className="faible">
           {plan.enchaine && <span className="badge-superset" style={{ marginRight: 6 }}>🔗 Superset</span>}
@@ -601,8 +608,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         <div className="ligne entre">
           {edition && <h3>Modifier la série {index + 1}</h3>}
           <span className="faible">
-            fourchette {fourchette(exo, p.repsMin, p.repsMax)}
-            {enTemps(exo) ? '' : ' reps'} · RPE {kg(p.rpe)}
+            {finisseur && !edition ? (
+              '★ finisseur · jusqu’à l’échec'
+            ) : (
+              <>
+                fourchette {fourchette(exo, p.repsMin, p.repsMax)}
+                {enTemps(exo) ? '' : ' reps'} · RPE {kg(p.rpe)}
+              </>
+            )}
           </span>
         </div>
       )}

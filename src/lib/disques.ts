@@ -58,20 +58,38 @@ export function repartirDisques(
 }
 
 /**
- * Détermine si un exercice est susceptible d'utiliser une barre ou une Smith machine.
+ * Détermine si un exercice utilise une barre, une Smith machine ou des disques libres.
+ * Exclut explicitement les machines à pile, poulies, haltères et poids de corps.
  */
 export function estBarreOuSmith(nomOuId: string): boolean {
   const t = nomOuId.toLowerCase()
+  if (
+    t.includes('poulie') ||
+    t.includes('halt') ||
+    t.includes('elast') ||
+    t.includes('élast') ||
+    t.includes('corps') ||
+    t.includes('butterfly') ||
+    t.includes('tirage') ||
+    t.includes('cable') ||
+    t.includes('câble')
+  ) {
+    return false
+  }
+  if (t.includes('machine') && !t.includes('plaques') && !t.includes('smith') && !t.includes('guid')) {
+    return false
+  }
   return (
     t.includes('barre') ||
     t.includes('smith') ||
     t.includes('guid') ||
+    t.includes('plaques') ||
+    t.includes('presse') ||
     t.includes('squat') ||
     t.includes('terre') ||
     t.includes('hip thrust') ||
-    t.includes('rdl') ||
-    t.includes('rowing') ||
-    t.includes('developpe') ||
-    t.includes('développé')
+    (t.includes('rdl') && !t.includes('haltere')) ||
+    (t.includes('rowing') && !t.includes('poulie') && !t.includes('machine')) ||
+    ((t.includes('developpe') || t.includes('développé')) && !t.includes('machine') && !t.includes('haltere'))
   )
 }

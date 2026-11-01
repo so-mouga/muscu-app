@@ -184,17 +184,33 @@ export function dureeEstimee(m: SeanceModele): number {
   return Math.round(s / 300) * 5
 }
 
+/** Durée effective d'une séance : de la 1re à la dernière série si possible, sinon fin - début, plafonnée à 4 h. */
+export function dureeSeanceEffective(s: Seance): number {
+  const heures = s.series.map((x) => x.heure).filter((h): h is number => typeof h === 'number' && h > 0)
+  if (heures.length >= 2) {
+    const diff = Math.max(...heures) - Math.min(...heures)
+    if (diff > 0) return diff
+  }
+  const fin = s.fin ?? (heures.length ? Math.max(...heures) : s.debut)
+  const total = fin - s.debut
+  return total > 0 ? (total > 4 * 3600000 && heures.length ? Math.max(...heures) - s.debut : Math.min(total, 4 * 3600000)) : 0
+}
+
 /** Durée réelle habituelle (min) d'une séance : médiane des 3 dernières fois, arrondie à 5 min. */
-/** Séances de référence pour la durée habituelle : les 3 dernières vraiment faites (au moins 15 min). */
+/** Séances de référence pour la durée habituelle : les 3 dernières vraiment faites (entre 15 min et 4 h). */
 export const seancesHabituelles = (modeleId: string, terminees: Seance[]) =>
   terminees
-    .filter((s) => s.modeleId === modeleId && s.fin && s.series.length > 0 && !s.deload && s.fin - s.debut >= 15 * 60000)
+    .filter((s) => s.modeleId === modeleId && s.series.length > 0 && !s.deload)
+    .filter((s) => {
+      const ms = dureeSeanceEffective(s)
+      return ms >= 15 * 60000 && ms <= 4 * 3600000
+    })
     .sort((a, b) => b.debut - a.debut)
     .slice(0, 3)
 
 export function dureeHabituelle(modeleId: string, terminees: Seance[]): number | null {
   const d = seancesHabituelles(modeleId, terminees)
-    .map((s) => s.fin! - s.debut)
+    .map((s) => dureeSeanceEffective(s))
     .sort((a, b) => a - b)
   if (!d.length) return null
   return Math.max(5, Math.round(d[Math.floor(d.length / 2)] / 300000) * 5)

@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
-import { chrono, duree, dureePrevueExo, e1rm, ecartSerie, estDure, kg, kgSouleves, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
+import { chrono, duree, dureePrevueExo, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
 
-/** Durée d'une séance : jusqu'à sa fin, ou jusqu'à maintenant si elle est en cours. */
-export const dureeSeance = (s: Seance) => (s.fin ?? Date.now()) - s.debut
+/** Durée d'une séance : effective (de la 1re à la dernière série), ou jusqu'à maintenant si elle est en cours. */
+export const dureeSeance = (s: Seance) => (s.enCours ? Date.now() - s.debut : dureeSeanceEffective(s))
 
 /** Pastilles de bilan d'une séance : durée, séries dures, kg soulevés… */
 export function ResumeSeance({ seance, exo }: { seance: Seance; exo?: (id: string) => Exercice }) {

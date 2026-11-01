@@ -17,7 +17,11 @@ export function parMuscle(exercices: Exercice[], recherche: string) {
   const visibles = exercices
     .filter((e) => !e.supprime)
     .filter((e) => !r || sansAccents(e.nom + ' ' + nomMuscle(e.muscle)).includes(r))
-    .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
+    .sort((a, b) => {
+      // Les exercices polyarticulaires (composés) d'abord, puis isolation
+      if (a.type !== b.type) return a.type === 'compose' ? -1 : 1
+      return a.nom.localeCompare(b.nom, 'fr')
+    })
   return MUSCLES.map((m) => ({ muscle: m.id, nom: m.nom, exos: visibles.filter((e) => e.muscle === m.id) })).filter((g) => g.exos.length)
 }
 
@@ -93,6 +97,13 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
     ? []
     : equivalents.filter((id) => !exclure.includes(id) && catalogue.exercices[id] && !catalogue.exercices[id].supprime)
 
+  const equivalentsProches =
+    recherche.trim() || equivalentsVisibles.length > 0 || !muscle
+      ? []
+      : Object.values(catalogue.exercices)
+          .filter((e) => !e.supprime && !exclure.includes(e.id) && e.muscle === muscle && e.type === 'compose')
+          .slice(0, 4)
+
   return (
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -128,14 +139,21 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
             <button className="btn plein" onClick={() => setCreation(true)}>
               + Créer un exercice{recherche ? ` « ${recherche} »` : ''}
             </button>
-            {equivalentsVisibles.length > 0 && (
+            {equivalentsVisibles.length > 0 ? (
               <div>
                 <div className="faible" style={{ marginBottom: 4 }}>
-                  ⇄ Équivalents
+                  ⇄ Équivalents reliés
                 </div>
                 {equivalentsVisibles.map((id) => ligne(catalogue.exercices[id], 'équivalent relié'))}
               </div>
-            )}
+            ) : equivalentsProches.length > 0 ? (
+              <div>
+                <div className="faible" style={{ marginBottom: 4 }}>
+                  ⇄ Équivalents proches recommandés
+                </div>
+                {equivalentsProches.map((e) => ligne(e, `${nomMuscle(e.muscle)} · ${MODE_COURT[e.mode]}`))}
+              </div>
+            ) : null}
             <div>
               {groupes.map((g) => (
                 <div key={g.muscle}>

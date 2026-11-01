@@ -203,8 +203,12 @@ export function PuceDisques({
   const [ouvert, setOuvert] = useState(false)
 
   if (unite !== 'kg') return null
-  // Visible uniquement si l'exercice s'y prête ou si la charge est significative
-  if (!estBarreOuSmith(exoNom) && !estBarreOuSmith(exoId) && charge < 20) {
+  // Visible uniquement sur les exercices à barre, Smith machine ou disques
+  if (!estBarreOuSmith(exoNom) && !estBarreOuSmith(exoId)) {
+    return null
+  }
+  // Ne pas afficher si la charge est nulle (ex : exercice non encore calibré à 0 kg)
+  if (charge <= 0) {
     return null
   }
 
