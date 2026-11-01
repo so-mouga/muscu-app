@@ -1227,10 +1227,24 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 
 /* Mode plein écran */
 .focus {
+  position: fixed;
+  inset: 0;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: calc(10px + env(safe-area-inset-top)) 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--bg);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: calc(12px + env(safe-area-inset-top));
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  z-index: 20;
+}
+body:has(.focus) {
+  overflow: hidden;
+}
+#root:has(.focus) {
+  padding-bottom: 0;
 }
 .focus-avancement {
   gap: 12px;
@@ -1575,14 +1589,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 /* Plein écran pendant le repos : tout tient dans l'écran, sans défilement. */
 .focus.fixe {
   --anneau: clamp(120px, calc(100dvh - 600px), 210px);
-  position: fixed;
-  inset: 0;
-  max-width: 560px;
-  margin: 0 auto;
-  padding: calc(10px + env(safe-area-inset-top)) 16px calc(10px + env(safe-area-inset-bottom));
-  gap: 10px;
   overflow: hidden;
-  background: var(--bg);
 }
 .focus.fixe .minuteur.grand {
   gap: 10px;
