@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, ChevronRight } from 'lucide-react'
 import { db } from '../db'
-import { dateCourte, dateISO, kg } from '../lib/calc'
+import { dateISO, kg } from '../lib/calc'
 import type { Pesee } from '../types'
 import { informer } from './Dialogues'
 
@@ -8,21 +9,36 @@ import { informer } from './Dialogues'
  * Pesée d'un jour (aujourd'hui par défaut), avec la moyenne sur 7 jours. `onDate` : la date se
  * change (pesée oubliée d'hier, correction d'une ancienne).
  */
-export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[]; aujourdhui: string; onDate?: (d: string) => void }) {
+export default function Poids({
+  pesees,
+  aujourdhui,
+  onDate,
+}: {
+  pesees: Pesee[]
+  aujourdhui: string
+  onDate?: (d: string) => void
+}) {
   const estAujourdhui = aujourdhui === dateISO()
   const duJour = pesees.find((p) => p.date === aujourdhui)
   const dernierPoids = [...pesees].sort((a, b) => a.date.localeCompare(b.date)).at(-1)?.poids
-  const [valeur, setValeur] = useState(() => (dernierPoids && !duJour ? String(dernierPoids).replace('.', ',') : ''))
+  const [valeur, setValeur] = useState(() => (duJour ? String(duJour.poids).replace('.', ',') : dernierPoids ? String(dernierPoids).replace('.', ',') : ''))
   const [touched, setTouched] = useState(false)
+  const [enregistreAnim, setEnregistreAnim] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
   const recentes = pesees.filter((p) => Date.parse(p.date) > Date.now() - 7 * 86400000)
   const moyenne = recentes.length ? recentes.reduce((a, p) => a + p.poids, 0) / recentes.length : null
 
   // Pré-remplir avec le dernier poids si l'utilisateur n'a pas encore touché le champ
   useEffect(() => {
-    if (!touched && !valeur && dernierPoids && !duJour) {
-      setValeur(String(dernierPoids).replace('.', ','))
+    if (!touched) {
+      if (duJour) {
+        setValeur(String(duJour.poids).replace('.', ','))
+      } else if (dernierPoids) {
+        setValeur(String(dernierPoids).replace('.', ','))
+      }
     }
-  }, [dernierPoids, duJour, touched, valeur])
+  }, [dernierPoids, duJour, touched])
 
   const ajuster = (delta: number) => {
     setTouched(true)
@@ -32,115 +48,233 @@ export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[];
   }
 
   const enregistrer = async () => {
-    // Nombre complet seulement (« 72,3 ») : un champ mal tapé (« 71,572,3 ») est refusé, pas tronqué.
-    const raw = valeur || (dernierPoids && !duJour ? String(dernierPoids) : '')
+    const raw = valeur || (dernierPoids ? String(dernierPoids) : '')
     const t = raw.trim().replace(',', '.')
     const poids = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
-    if (!(poids > 30 && poids < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
+    if (!(poids > 30 && poids < 250)) {
+      return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
+    }
     await db.pesees.put({ date: aujourdhui, poids })
-    // Séances faites sans poids noté : on leur donne celui-ci, pour le 1RM des exercices au poids du corps.
     await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
       s.poidsCorps = poids
     })
-    setValeur('')
     setTouched(false)
+    setEnregistreAnim(true)
+    setTimeout(() => setEnregistreAnim(false), 2000)
   }
 
+  const dateFormatee = estAujourdhui
+    ? `Aujourd’hui, ${new Date(aujourdhui + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`
+    : new Date(aujourdhui + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+
+  const valeurAffichee = valeur || (duJour ? kg(duJour.poids) : dernierPoids ? kg(dernierPoids) : '70')
+  const estEnregistre = duJour && !touched && duJour.poids === parseFloat(valeurAffichee.replace(',', '.'))
+
   return (
-    <div className="carte pile">
-      <div className="ligne entre">
-        <h3>{estAujourdhui ? 'Poids du jour' : `Pesée du ${dateCourte(aujourdhui)}`}</h3>
-        {moyenne !== null && <span className="faible">moyenne 7 j : {kg(Math.round(moyenne * 10) / 10)} kg</span>}
-      </div>
-      {duJour ? (
-        <div className="ligne entre">
-          <span className="muted">
-            <strong>{kg(duJour.poids)} kg</strong> noté {estAujourdhui ? 'aujourd’hui' : 'ce jour-là'}
-          </span>
-          {!valeur && (
-            <button
-              className="btn discret petit"
-              onClick={() => {
-                setValeur(String(duJour.poids).replace('.', ','))
-                setTouched(true)
-              }}
-            >
-              ✎ modifier
-            </button>
-          )}
-        </div>
-      ) : null}
-      {(!duJour || valeur) && (
-        <div className="ligne entre" style={{ gap: 8, alignItems: 'center' }}>
-          <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
-            <span className="mini-stepper compact">
-              <button type="button" onClick={() => ajuster(-0.1)} aria-label="Diminuer de 0,1 kg">
-                −
-              </button>
-              <input
-                type="text"
-                inputMode="decimal"
-                enterKeyHint="done"
-                className="duree"
-                style={{ width: 68, textAlign: 'center', fontWeight: 700 }}
-                placeholder={dernierPoids ? kg(dernierPoids) : 'ex. 70,4'}
-                autoFocus={!!duJour}
-                onFocus={(e) => {
-                  if (!valeur && dernierPoids) setValeur(kg(dernierPoids))
-                  e.target.select()
-                }}
-                value={valeur}
-                onChange={(e) => {
-                  setTouched(true)
-                  setValeur(e.target.value)
-                }}
-                onKeyDown={(e) => e.key === 'Enter' && void enregistrer()}
-              />
-              <button type="button" onClick={() => ajuster(0.1)} aria-label="Augmenter de 0,1 kg">
-                +
-              </button>
-            </span>
-            <span className="faible" style={{ fontSize: 13 }}>kg</span>
-          </div>
-          <div className="ligne" style={{ gap: 6 }}>
+    <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
+      {/* En-tête : Titre & Date cliquable à gauche, Moyenne 7j à droite */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--texte)' }}>
+            {estAujourdhui ? 'Poids du jour' : 'Pesée'}
+          </h3>
+          {onDate ? (
             <button
               type="button"
-              className="btn primaire petit"
-              style={{ minHeight: 38, padding: '0 16px', fontWeight: 700 }}
-              onClick={enregistrer}
+              onClick={() => {
+                if (dateInputRef.current) {
+                  if ('showPicker' in HTMLInputElement.prototype) {
+                    try {
+                      dateInputRef.current.showPicker()
+                    } catch {
+                      dateInputRef.current.focus()
+                    }
+                  } else {
+                    dateInputRef.current.focus()
+                  }
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                marginTop: 3,
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                color: 'var(--text-secondary)',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
             >
-              OK
-            </button>
-            {duJour && (
-              <button
-                type="button"
-                className="btn discret petit"
-                style={{ minHeight: 38, padding: '0 10px' }}
-                onClick={() => {
-                  setValeur('')
-                  setTouched(false)
+              <span>{dateFormatee}</span>
+              <ChevronRight size={13} strokeWidth={2} style={{ opacity: 0.7 }} />
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={aujourdhui}
+                max={dateISO()}
+                style={{
+                  position: 'absolute',
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  width: 0,
+                  height: 0,
                 }}
-                aria-label="Annuler"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+                onChange={(e) => {
+                  if (e.target.value) {
+                    onDate(e.target.value)
+                    setTouched(false)
+                  }
+                }}
+              />
+            </button>
+          ) : (
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 3 }}>
+              {dateFormatee}
+            </div>
+          )}
         </div>
-      )}
-      {onDate && (
-        <label className="ligne entre petit">
-          <span className="faible">Date de la pesée</span>
-          <input
-            type="date"
-            value={aujourdhui}
-            max={dateISO()}
-            style={{ width: 'auto' }}
-            onChange={(e) => e.target.value && (onDate(e.target.value), setValeur(''), setTouched(false))}
-          />
-        </label>
-      )}
-      <div className="faible">Sert aussi à estimer ta force (1RM estimé) aux tractions et aux dips. Seule la moyenne compte, pas la variation d’un jour.</div>
+
+        {moyenne !== null && (
+          <div
+            style={{
+              padding: '4px 10px',
+              borderRadius: 999,
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Moy. 7j : <strong style={{ color: 'var(--texte)', fontWeight: 600 }}>{kg(Math.round(moyenne * 10) / 10)} kg</strong>
+          </div>
+        )}
+      </div>
+
+      {/* Contrôle de saisie sur une seule ligne harmonieuse : Stepper unifié + Bouton d'action */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14 }}>
+        {/* Stepper unifié */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--subcard-gradient)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: 14,
+            padding: '4px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => ajuster(-0.1)}
+            aria-label="Diminuer de 0,1 kg"
+            style={{
+              width: 42,
+              height: 42,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              borderRadius: 10,
+              fontSize: '1.25rem',
+              color: 'var(--texte)',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            −
+          </button>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+            <input
+              type="text"
+              inputMode="decimal"
+              enterKeyHint="done"
+              className="duree"
+              style={{
+                width: 72,
+                textAlign: 'center',
+                fontSize: '1.35rem',
+                fontWeight: 800,
+                color: 'var(--texte)',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                padding: 0,
+              }}
+              placeholder={dernierPoids ? kg(dernierPoids) : '70'}
+              value={valeurAffichee}
+              onChange={(e) => {
+                setTouched(true)
+                setValeur(e.target.value)
+              }}
+              onFocus={(e) => {
+                if (!valeur) setValeur(valeurAffichee)
+                e.target.select()
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && void enregistrer()}
+            />
+            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>kg</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => ajuster(0.1)}
+            aria-label="Augmenter de 0,1 kg"
+            style={{
+              width: 42,
+              height: 42,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              borderRadius: 10,
+              fontSize: '1.25rem',
+              color: 'var(--texte)',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+          >
+            +
+          </button>
+        </div>
+
+        {/* Bouton d'action orange ou statut enregistré */}
+        <button
+          type="button"
+          onClick={enregistrer}
+          style={{
+            height: 50,
+            padding: '0 18px',
+            borderRadius: 14,
+            background: estEnregistre && !enregistreAnim
+              ? 'rgba(34, 197, 94, 0.12)'
+              : 'var(--accent-orange)',
+            border: estEnregistre && !enregistreAnim
+              ? '1px solid rgba(34, 197, 94, 0.25)'
+              : 'none',
+            color: estEnregistre && !enregistreAnim ? '#22c55e' : '#fff',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            boxShadow: estEnregistre && !enregistreAnim
+              ? 'none'
+              : '0 4px 14px rgba(249, 115, 22, 0.35)',
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Check size={18} strokeWidth={2.5} />
+          <span>{enregistreAnim ? 'Enregistré !' : estEnregistre ? 'Enregistré' : 'Enregistrer'}</span>
+        </button>
+      </div>
     </div>
   )
 }

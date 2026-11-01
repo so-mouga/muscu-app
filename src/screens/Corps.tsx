@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import Courbe from '../components/Courbe'
 import Poids from '../components/Poids'
 import SilhouetteMesures from '../components/SilhouetteMesures'
@@ -378,23 +379,43 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
   // Date de la pesée saisie : aujourd'hui, ou celle d'une ligne touchée dans la liste (correction).
   const [date, setDate] = useState(dateISO())
   const [jours, setJours] = useState(30)
-  const [voirPesees, setVoirPesees] = useState(false)
+  const [voirTout, setVoirTout] = useState(false)
   const depuis = jours ? dateISO(new Date(Date.now() - jours * 86400000)) : ''
   const points = [...pesees]
     .reverse()
     .filter((p) => p.date >= depuis)
     .map((p) => ({ date: p.date, valeur: p.poids }))
   const ecart = points.length >= 2 ? points[points.length - 1].valeur - points[0].valeur : null
+
+  const peseesAffichees = voirTout ? pesees : pesees.slice(0, 7)
+
   return (
     <>
       <Poids key={date} pesees={pesees} aujourdhui={date} onDate={setDate} />
       {pesees.length >= 2 && (
-        <div className="carte">
-          <div className="ligne entre">
-            <h3>Évolution</h3>
-            {ecart !== null && <strong>{signe(ecart).replace(/ $/, '')} kg</strong>}
+        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginTop: 12 }}>
+          <div className="ligne entre" style={{ marginBottom: 12 }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--texte)' }}>Évolution</h3>
+            {ecart !== null && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '3px 10px',
+                  borderRadius: 999,
+                  background: ecart > 0 ? 'rgba(34, 197, 94, 0.1)' : ecart < 0 ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid ' + (ecart > 0 ? 'rgba(34, 197, 94, 0.25)' : ecart < 0 ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.08)'),
+                  color: ecart > 0 ? '#22c55e' : ecart < 0 ? '#3b82f6' : 'var(--texte)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                }}
+              >
+                {signe(ecart).replace(/ $/, '')} kg
+              </span>
+            )}
           </div>
-          <div className="chips" style={{ margin: '8px 0' }}>
+          {/* Barre d'onglets de période fins et compacts */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
             {(
               [
                 ['1 mois', 30],
@@ -402,52 +423,135 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                 ['6 mois', 182],
                 ['Tout', 0],
               ] as [string, number][]
-            ).map(([nom, j]) => (
-              <button key={nom} className={jours === j ? 'actif' : ''} onClick={() => setJours(j)}>
-                {nom}
-              </button>
-            ))}
+            ).map(([nom, j]) => {
+              const actif = jours === j
+              return (
+                <button
+                  key={nom}
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: '6px 0',
+                    fontSize: '0.82rem',
+                    fontWeight: actif ? 600 : 400,
+                    color: actif ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                    background: actif ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
+                    border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => setJours(j)}
+                >
+                  {nom}
+                </button>
+              )
+            })}
           </div>
           {points.length >= 2 ? (
             <Courbe key={jours} points={points} format={(v) => `${kg(v)} kg`} label="Évolution du poids" />
           ) : (
-            <div className="faible">Pas assez de pesées sur cette période.</div>
+            <div className="faible" style={{ padding: '12px 0' }}>Pas assez de pesées sur cette période.</div>
           )}
         </div>
       )}
       {pesees.length > 0 && (
-        <div className="carte">
-          <button type="button" className="groupe-repli" onClick={() => setVoirPesees(!voirPesees)} aria-expanded={voirPesees}>
-            <span>
-              Pesées <span className="faible">({pesees.length})</span>
-            </span>
-            <span className={'muted chevron-accordeon' + (voirPesees ? ' ouvert' : '')}>▸</span>
-          </button>
-          <div className={'accordeon-tiroir' + (voirPesees ? ' ouvert' : '')}>
-            <div className="accordeon-contenu">
-              <div className="faible" style={{ margin: '8px 0 4px' }}>
-                Touche une pesée pour la corriger.
-              </div>
-              {pesees.slice(0, 30).map((p) => (
-                <div key={p.date} className={'ligne-mesure' + (p.date === date ? ' active' : '')}>
+        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginTop: 12 }}>
+          <div className="ligne entre" style={{ marginBottom: 12 }}>
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--texte)' }}>
+              Pesées <span className="faible" style={{ fontSize: '0.85rem' }}>({pesees.length})</span>
+            </h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {peseesAffichees.map((p) => {
+              const estActive = p.date === date
+              return (
+                <div
+                  key={p.date}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    background: estActive ? 'rgba(249, 115, 22, 0.12)' : 'var(--subcard-gradient)',
+                    border: '1px solid ' + (estActive ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.06)'),
+                    transition: 'all 0.15s ease',
+                  }}
+                >
                   <button
                     type="button"
-                    className="texte"
-                    style={{ flex: 1, textAlign: 'left', background: 'none', padding: '6px 0', color: 'inherit' }}
-                    onClick={() => (setDate(p.date), window.scrollTo({ top: 0, behavior: 'smooth' }))}
+                    style={{
+                      flex: 1,
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      color: 'var(--texte)',
+                      fontSize: '0.9rem',
+                      fontWeight: estActive ? 700 : 500,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      setDate(p.date)
+                      window.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
                   >
                     {dateCourte(p.date)}
                   </button>
-                  <span className="ligne" style={{ gap: 8 }}>
-                    <strong>{kg(p.poids)} kg</strong>
-                    <button className="btn discret petit" aria-label="Supprimer" onClick={async () => (await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })) && db.pesees.delete(p.date)}>
-                      ✕
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <strong style={{ fontSize: '0.95rem', color: 'var(--texte)' }}>{kg(p.poids)} kg</strong>
+                    <button
+                      type="button"
+                      aria-label={`Supprimer la pesée du ${dateCourte(p.date)}`}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        borderRadius: 6,
+                        transition: 'color 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                      onClick={async () => {
+                        const suppr = await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })
+                        if (suppr) await db.pesees.delete(p.date)
+                      }}
+                    >
+                      <Trash2 size={16} strokeWidth={1.75} />
                     </button>
-                  </span>
+                  </div>
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
+          {pesees.length > 7 && (
+            <button
+              type="button"
+              style={{
+                width: '100%',
+                marginTop: 10,
+                padding: '8px 0',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: 10,
+                color: 'var(--text-secondary)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.15s ease',
+              }}
+              onClick={() => setVoirTout(!voirTout)}
+            >
+              {voirTout ? 'Réduire' : `Voir les ${pesees.length} pesées`}
+            </button>
+          )}
         </div>
       )}
     </>
