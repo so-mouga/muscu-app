@@ -127,6 +127,41 @@ public class MinuteurReposPlugin extends Plugin {
         }
     }
 
+    /**
+     * Rappel de séance (Réglages) : actif, heure (« 18:30 ») et nom de la séance de chaque jour prévu
+     * ({ "1": "Haut A", "4": "Bas A" }). L'activer demande l'autorisation des notifications la 1re fois.
+     */
+    @PluginMethod
+    public void rappel(PluginCall call) {
+        boolean actif = Boolean.TRUE.equals(call.getBoolean("actif", false));
+        if (actif && android.os.Build.VERSION.SDK_INT >= 33 && getPermissionState("notifications") != PermissionState.GRANTED) {
+            requestPermissionForAlias("notifications", call, "apresPermissionRappel");
+            return;
+        }
+        reglerRappel(call);
+    }
+
+    @PermissionCallback
+    private void apresPermissionRappel(PluginCall call) {
+        reglerRappel(call);
+    }
+
+    private void reglerRappel(PluginCall call) {
+        String[] h = call.getString("heure", "18:00").split(":");
+        JSObject jours = call.getObject("jours", new JSObject());
+        RappelSeance.regler(getContext(), Boolean.TRUE.equals(call.getBoolean("actif", false)), Integer.parseInt(h[0]), Integer.parseInt(h[1]), jours);
+        JSObject r = new JSObject();
+        r.put("autorise", android.os.Build.VERSION.SDK_INT < 33 || getPermissionState("notifications") == PermissionState.GRANTED);
+        call.resolve(r);
+    }
+
+    /** Une séance démarrée aujourd'hui : pas de rappel ce jour-là. */
+    @PluginMethod
+    public void seanceDuJour(PluginCall call) {
+        RappelSeance.fait(getContext(), call.getString("date", ""));
+        call.resolve();
+    }
+
     /** Où en est la séance côté Android : mode (seance, repos, pause), fin du repos, temps restant en pause. */
     @PluginMethod
     public void etat(PluginCall call) {

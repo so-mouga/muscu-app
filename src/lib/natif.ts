@@ -28,6 +28,8 @@ interface PluginMinuteur {
   arreter(): Promise<void>
   etat(): Promise<EtatNatif>
   version(): Promise<{ versionName: string }>
+  rappel(o: { actif: boolean; heure: string; jours: Record<string, string> }): Promise<{ autorise: boolean }>
+  seanceDuJour(o: { date: string }): Promise<void>
   addListener(evenement: 'action', f: (e: EtatNatif) => void): Promise<PluginListenerHandle>
 }
 
@@ -60,6 +62,37 @@ export function suivreNatif(sur: (e: EtatNatif) => void): () => void {
     document.removeEventListener('visibilitychange', auRetour)
   }
 }
+
+/** Rappel de séance (Réglages), gardé dans le réglage `rappel`. */
+export interface Rappel {
+  actif: boolean
+  /** « 18:30 » */
+  heure: string
+}
+export const CLE_RAPPEL = 'rappel'
+export const RAPPEL_DEFAUT: Rappel = { actif: false, heure: '18:00' }
+
+/** L'APK installé sait faire le rappel de séance (1.6 et plus). */
+export const rappelDisponible = async () => {
+  const v = await versionInstallee()
+  return !!v && !plusRecente('1.6', v)
+}
+
+/**
+ * Envoie à Android le rappel et le planning (nom de la séance de chaque jour prévu, 1 = lundi). Android
+ * le garde et replanifie seul. `autorise` : faux si les notifications sont refusées.
+ */
+export const reglerRappel = (r: Rappel, jours: Record<string, string>) => silencieux(() => MinuteurRepos.rappel({ ...r, jours }))
+
+/** Nom de la séance de chaque jour prévu (« 1 » = lundi), deux séances le même jour réunies. */
+export function joursRappel(planning: { modele: { nom: string }; jour: number }[]): Record<string, string> {
+  const jours: Record<string, string> = {}
+  for (const e of planning) jours[e.jour] = jours[e.jour] ? `${jours[e.jour]} et ${e.modele.nom}` : e.modele.nom
+  return jours
+}
+
+/** Une séance démarrée ce jour-là : pas de rappel. */
+export const seanceDuJourNatif = (date: string) => silencieux(() => MinuteurRepos.seanceDuJour({ date }))
 
 /** Version de l'appli Android installée ; la 1.1 ne savait pas encore la donner. */
 async function versionInstallee(): Promise<string | null> {

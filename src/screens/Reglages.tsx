@@ -1,4 +1,4 @@
-import { natif } from '../lib/natif'
+import { CLE_RAPPEL, natif, RAPPEL_DEFAUT, rappelDisponible, type Rappel } from '../lib/natif'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -84,6 +84,8 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
       <DonnerAvis />
 
       <MonProfil />
+
+      <RappelSeance />
 
       <div className="carte pile">
         <h3>Saisie de la charge</h3>
@@ -313,6 +315,42 @@ function Lexique() {
 }
 
 /** Profil saisi une fois : sert à calculer l'objectif calories (le poids vient des pesées). */
+/**
+ * Rappel de séance (appli Android 1.6 et plus) : les jours prévus par le planning, à l'heure choisie,
+ * sauf si une séance a déjà été démarrée ce jour-là. Coupé par défaut. Android reçoit le réglage depuis App.
+ */
+function RappelSeance() {
+  const [dispo, setDispo] = useState<boolean | null>(null)
+  useEffect(() => void rappelDisponible().then(setDispo), [])
+  const r = useLiveQuery(() => db.reglages.get(CLE_RAPPEL), [], null)
+  if (!natif || dispo === null || r === null) return null
+  const rappel = (r?.valeur as Rappel | undefined) ?? RAPPEL_DEFAUT
+  const maj = (c: Partial<Rappel>) => setReglage(CLE_RAPPEL, { ...rappel, ...c })
+  return (
+    <div className="carte pile">
+      <h3>🔔 Rappel de séance</h3>
+      {dispo ? (
+        <>
+          <Interrupteur
+            on={rappel.actif}
+            onChange={(actif) => maj({ actif })}
+            label="Me le rappeler les jours prévus"
+            aide="Une notification les jours d’entraînement de ton programme, à l’heure choisie. Rien si tu as déjà commencé ta séance ce jour-là."
+          />
+          {rappel.actif && (
+            <label className="ligne entre">
+              <span>Heure</span>
+              <input type="time" value={rappel.heure} onChange={(e) => e.target.value && maj({ heure: e.target.value })} style={{ width: 'auto' }} />
+            </label>
+          )}
+        </>
+      ) : (
+        <div className="faible">Il faut la dernière version de l’appli Android : installe-la depuis le bandeau de l’accueil (tes données sont gardées).</div>
+      )}
+    </div>
+  )
+}
+
 function MonProfil() {
   const reglage = useLiveQuery(() => db.reglages.get(CLE_PROFIL), [], null)
   if (reglage === null) return null

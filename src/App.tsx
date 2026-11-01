@@ -1,8 +1,10 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCatalogue } from './catalogue'
 import { db } from './db'
 import { transition, useRetour } from './lib/nav'
+import { dateISO } from './lib/calc'
+import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJourNatif, type Rappel } from './lib/natif'
 import IconeOnglet from './components/IconeOnglet'
 import Accueil from './screens/Accueil'
 import Corps from './screens/Corps'
@@ -50,6 +52,17 @@ export default function App() {
   }
   const enCours = useLiveQuery(() => db.seances.filter((s) => s.enCours).first(), [], null)
   const catalogue = useCatalogue()
+
+  // Rappel de séance (appli Android) : Android garde le planning et l'heure ; on les lui renvoie quand ils changent.
+  const rappel = useLiveQuery(() => db.reglages.get(CLE_RAPPEL), [], null)
+  const jours = catalogue ? JSON.stringify(joursRappel(catalogue.planning)) : null
+  useEffect(() => {
+    if (!natif || rappel === null || jours === null) return
+    void reglerRappel((rappel?.valeur as Rappel | undefined) ?? RAPPEL_DEFAUT, JSON.parse(jours))
+  }, [rappel, jours])
+  // Une séance déjà faite (ou commencée) aujourd'hui : pas de rappel ce soir.
+  const faiteAujourdhui = useLiveQuery(() => db.seances.where('date').equals(dateISO()).count(), [], 0)
+  useEffect(() => void (natif && faiteAujourdhui > 0 && seanceDuJourNatif(dateISO())), [faiteAujourdhui])
 
   const setOnglet = (o: Onglet) => {
     if (o === onglet) return

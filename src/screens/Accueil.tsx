@@ -19,7 +19,7 @@ import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
 import IconeOnglet from '../components/IconeOnglet'
 import { joursSansSeance, semainesTenues, seuilSemaine } from '../lib/motivation'
-import { nouvelleVersionAndroid } from '../lib/natif'
+import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 
@@ -39,6 +39,7 @@ async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle, echauffeme
 
 async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycle | undefined, echauffement: string[]) {
   debloquerSon()
+  void seanceDuJourNatif(dateISO())
   const deload = !!(modele && cycle?.deload)
   await db.seances.add({
     ...(cycle && { cycleId: cycle.cycleId, semaine: cycle.semaine }),
