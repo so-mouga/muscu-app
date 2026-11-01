@@ -1288,11 +1288,26 @@ body:has(.focus) {
   font-weight: 800;
   line-height: 1;
 }
-.minuteur.grand .libelle {
-  margin-top: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  opacity: 0.7;
+.etat-chrono {
+  font-size: 20px;
+  line-height: 1;
+  margin-bottom: 6px;
+  opacity: 0.65;
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+.cercle-pause:hover .etat-chrono {
+  opacity: 1;
+}
+.etat-chrono.en-pause {
+  color: var(--alerte);
+  opacity: 1;
+  font-size: 22px;
+}
+.etat-chrono.fini {
+  color: var(--ok);
+  opacity: 1;
+  font-weight: 800;
+  font-size: 24px;
 }
 .boutons-grand {
   justify-content: center;

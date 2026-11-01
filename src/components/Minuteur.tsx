@@ -111,16 +111,19 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
           type="button"
           className={'cercle-pause' + (decompteActif ? ' pulsation' : '')}
           onClick={() => !fini && basculerPause()}
-          aria-label={enPause ? 'Reprendre le repos' : 'Mettre le repos en pause'}
+          aria-label={fini ? 'Repos terminé' : enPause ? 'Reprendre le repos' : 'Mettre le repos en pause'}
         >
-          <Anneau valeur={part} taille={210} epaisseur={10} fluide={!enPause && !fini}>
+          <Anneau
+            valeur={part}
+            taille={210}
+            epaisseur={10}
+            couleur={fini ? 'var(--ok)' : enPause ? 'var(--alerte)' : 'var(--accent)'}
+            fluide={!enPause && !fini}
+          >
+            <div className={'etat-chrono' + (enPause ? ' en-pause' : '') + (fini ? ' fini' : '')}>
+              {fini ? '✓' : enPause ? '▶' : '⏸'}
+            </div>
             <div className="temps-grand">{temps}</div>
-            <div className="libelle">{fini ? libelle : enPause ? '▶ Reprendre' : libelle}</div>
-            {!fini && (
-              <div className={'astuce-pause' + (enPause ? ' badge-pause' : '')}>
-                {enPause ? '⏸ EN PAUSE · TOUCHE POUR REPRENDRE' : 'Touche le cercle pour mettre en pause'}
-              </div>
-            )}
           </Anneau>
         </button>
         <div className="ligne boutons-grand">{boutons}</div>
