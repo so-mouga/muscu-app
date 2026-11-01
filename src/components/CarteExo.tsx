@@ -443,6 +443,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const temps = enTemps(exo)
   const pasQte = temps ? 5 : 1
   const [chronoOuvert, setChronoOuvert] = useState(false)
+  const [saisieManuelle, setSaisieManuelle] = useState(false)
   const pasBoutons = usePasBoutons()
 
   // Pendant le repos, la validation reste possible mais passe au second plan.
@@ -635,13 +636,57 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </div>
       )}
 
-      {compact ? (
-        <div className="steppers-duo">
-          {stepperCharge}
-          {stepperReps}
+      {temps && !edition && !saisieManuelle ? (
+        <div className="pile" style={{ alignItems: 'center', margin: '4px 0 8px' }}>
+          {(charge > 0 || exo.mode !== 'poids_corps') && (
+            <div style={{ width: '100%', marginBottom: 6 }}>
+              {stepperCharge}
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn primaire grand"
+            style={{ width: '100%', fontSize: '1.1rem', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            onClick={() => setChronoOuvert(true)}
+          >
+            <span>⏱</span>
+            <span>LANCER LE CHRONO ({sugg.reps[i] ?? p.repsMax} s)</span>
+          </button>
+          <button
+            type="button"
+            className="btn discret petit lien-action"
+            style={{ marginTop: 4, color: 'var(--texte-3)', fontSize: '0.85rem' }}
+            onClick={() => setSaisieManuelle(true)}
+          >
+            ✎ Saisie manuelle ({reps} s)
+          </button>
         </div>
       ) : (
-        stepperCharge
+        <>
+          {compact ? (
+            <div className="steppers-duo">
+              {stepperCharge}
+              {stepperReps}
+            </div>
+          ) : (
+            <>
+              {stepperCharge}
+              {stepperReps}
+            </>
+          )}
+          {temps && !edition && (
+            <div style={{ textAlign: 'center', marginTop: 2, marginBottom: 4 }}>
+              <button
+                type="button"
+                className="btn discret petit lien-action"
+                style={{ color: 'var(--accent)', fontSize: '0.85rem' }}
+                onClick={() => setSaisieManuelle(false)}
+              >
+                ⏱ Utiliser le chronomètre interactif
+              </button>
+            </div>
+          )}
+        </>
       )}
       <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 4px' }}>
         <PuceDisques exo={exo} charge={charge} unite={unite} />
@@ -670,20 +715,17 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </div>
       )}
 
-      {temps && !edition && (
-        <button className="btn grand chrono-btn" onClick={() => setChronoOuvert(true)}>
-          ▶ CHRONO · {sugg.reps[i] ?? p.repsMax} s
-        </button>
-      )}
-      {!compact && stepperReps}
       {chronoOuvert && (
         <ChronoTenue
           objectif={sugg.reps[i] ?? p.repsMax}
           nom={exo.nom}
           onAnnuler={() => setChronoOuvert(false)}
           onStop={(sec) => {
-            setReps(sec)
             setChronoOuvert(false)
+            if (sec > 0) {
+              setReps(sec)
+              void enregistrer(construire(type, { reps: sec }))
+            }
           }}
         />
       )}
@@ -737,7 +779,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
           {tf === 'echec' ? 'VALIDER (ÉCHEC)' : 'ÉCHEC ATTEINT'}
         </button>
-      ) : (
+      ) : temps && !edition && !saisieManuelle ? null : (
         <button
           className={'btn grand' + (enRepos ? '' : ' primaire')}
           disabled={reps <= 0}
