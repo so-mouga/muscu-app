@@ -1,54 +1,32 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { EXERCICES } from '../data/exercices'
+import { db } from '../db'
 import { useRetour } from '../lib/nav'
 import { kg } from '../lib/calc'
-import {
-  DISQUES_STANDARDS,
-  estBarreOuSmith,
-  POIDS_BARRES,
-  PoidsBarre,
-  repartirDisques,
-} from '../lib/disques'
+import { DISQUES_STANDARDS, type PoidsBarre, repartirDisques } from '../lib/disques'
+import type { Exercice } from '../types'
 
 interface Props {
-  exoId: string
-  exoNom: string
+  exo: Exercice
   charge: number
   onFermer: () => void
 }
 
-/**
- * Récupère le poids de barre configuré pour cet exercice (ou défaut selon le nom).
- */
-export function lirePoidsBarre(exoId: string, exoNom: string): PoidsBarre {
-  try {
-    const stocke = localStorage.getItem(`barre_${exoId}`)
-    if (stocke !== null) {
-      const n = Number(stocke) as PoidsBarre
-      if (POIDS_BARRES.includes(n)) return n
-    }
-  } catch {}
-
-  const nom = (exoNom + ' ' + exoId).toLowerCase()
-  // Développé Smith machine / guidée : souvent 10 kg
-  if (nom.includes('smith') || nom.includes('guid')) return 10
-  // Barre olympique standard par défaut
-  return 20
+/** Poids de la barre gardé dans l'exercice (fiche), donc dans les exports et la sauvegarde. */
+async function enregistrerBarre(exoId: string, barre: number) {
+  const base = (await db.exercices.get(exoId)) ?? EXERCICES[exoId]
+  if (base) await db.exercices.put({ ...base, barre })
 }
 
-export function sauverPoidsBarre(exoId: string, poids: PoidsBarre) {
-  try {
-    localStorage.setItem(`barre_${exoId}`, String(poids))
-  } catch {}
-}
-
-export default function CalculateurDisques({ exoId, exoNom, charge, onFermer }: Props) {
+export default function CalculateurDisques({ exo, charge, onFermer }: Props) {
+  const exoNom = exo.nom
   useRetour(true, onFermer)
-  const [poidsBarre, setPoidsBarre] = useState<PoidsBarre>(() => lirePoidsBarre(exoId, exoNom))
+  const [poidsBarre, setPoidsBarre] = useState<number>(exo.barre ?? 20)
 
   const changerBarre = (p: PoidsBarre) => {
     setPoidsBarre(p)
-    sauverPoidsBarre(exoId, p)
+    void enregistrerBarre(exo.id, p)
   }
 
   const rep = repartirDisques(charge, poidsBarre, DISQUES_STANDARDS)
@@ -76,7 +54,7 @@ export default function CalculateurDisques({ exoId, exoNom, charge, onFermer }: 
         {/* Choix du poids de la barre */}
         <div>
           <div className="faible" style={{ marginBottom: 6, fontSize: 13 }}>
-            Poids de la barre (mémorisé pour cet exercice) :
+            Poids de la barre (gardé pour cet exercice, aussi dans sa fiche) :
           </div>
           <div className="segments" style={{ marginBottom: 12 }}>
             <button
@@ -84,7 +62,7 @@ export default function CalculateurDisques({ exoId, exoNom, charge, onFermer }: 
               className={poidsBarre === 20 ? 'actif' : ''}
               onClick={() => changerBarre(20)}
             >
-              20 kg (std)
+              20 kg
             </button>
             <button
               type="button"
@@ -189,30 +167,13 @@ export default function CalculateurDisques({ exoId, exoNom, charge, onFermer }: 
 /**
  * Bouton / puce compacte affichée sous le stepper de charge.
  */
-export function PuceDisques({
-  exoId,
-  exoNom,
-  charge,
-  unite = 'kg',
-}: {
-  exoId: string
-  exoNom: string
-  charge: number
-  unite?: string
-}) {
+export function PuceDisques({ exo, charge, unite = 'kg' }: { exo: Exercice; charge: number; unite?: string }) {
   const [ouvert, setOuvert] = useState(false)
 
-  if (unite !== 'kg') return null
-  // Visible uniquement sur les exercices à barre, Smith machine ou disques
-  if (!estBarreOuSmith(exoNom) && !estBarreOuSmith(exoId)) {
-    return null
-  }
-  // Ne pas afficher si la charge est nulle (ex : exercice non encore calibré à 0 kg)
-  if (charge <= 0) {
-    return null
-  }
+  // Seulement si la fiche de l'exercice l'active (champ `barre`), en kg, et une fois la charge connue.
+  if (exo.barre === undefined || unite !== 'kg' || charge <= 0) return null
 
-  const poidsBarre = lirePoidsBarre(exoId, exoNom)
+  const poidsBarre = exo.barre
   const rep = repartirDisques(charge, poidsBarre, DISQUES_STANDARDS)
 
   const texteResume =
@@ -245,12 +206,7 @@ export function PuceDisques({
       </button>
 
       {ouvert && (
-        <CalculateurDisques
-          exoId={exoId}
-          exoNom={exoNom}
-          charge={charge}
-          onFermer={() => setOuvert(false)}
-        />
+        <CalculateurDisques exo={exo} charge={charge} onFermer={() => setOuvert(false)} />
       )}
     </>
   )

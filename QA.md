@@ -50,6 +50,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 ### 5. Exercices
 - Recherche, liste par muscle, « Récents ».
 - Créer un exercice, le modifier, le supprimer.
+- Fiche d'un exercice : interrupteur « Calculateur de disques » (coupé pour un exercice créé ; activé d'office sur les exercices à barre et Smith, pas sur les presses), poids de la barre ; en séance, la puce sous la charge donne les disques par côté.
 - Exercice de base : modifiable, « ↺ Revenir à l'original », « Masquer » (réversible, jamais supprimé).
 - Courbe de progression d'un exercice déjà fait.
 

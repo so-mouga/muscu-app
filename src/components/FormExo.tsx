@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MUSCLES } from '../data/exercices'
 import { db, uid } from '../db'
+import { POIDS_BARRES, type PoidsBarre } from '../lib/disques'
 import { photoReduite } from '../lib/image'
 import type { Exercice, ModeCharge, Muscle } from '../types'
 import Interrupteur from './Interrupteur'
@@ -33,6 +34,9 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
   const [pas, setPas] = useState(String(initial?.pas ?? 2.5).replace('.', ','))
   const [compose, setCompose] = useState(initial ? initial.type === 'compose' : false)
   const [temps, setTemps] = useState(initial?.mesure === 'temps')
+  // Calculateur de disques : réglé exercice par exercice ; un exercice créé n'en a pas tant qu'on ne l'active pas.
+  const [disques, setDisques] = useState(initial?.barre !== undefined)
+  const [barre, setBarre] = useState<PoidsBarre>((initial?.barre ?? 20) as PoidsBarre)
   const [notes, setNotes] = useState(initial?.notes ?? '')
   const [image, setImage] = useState(initial?.image)
   const [chargement, setChargement] = useState(false)
@@ -66,12 +70,14 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
       pas: p > 0 ? p : mode === 'elastique' ? 1 : 2.5,
       suivreE1rm: compose && !temps,
       mesure: temps ? 'temps' : undefined,
+      barre: mode === 'machine' && disques ? barre : undefined,
       notes: notes.trim() || undefined,
       image,
       perso: initial ? initial.perso : true,
     }
     if (!exo.secondaires?.length) delete exo.secondaires
     if (!exo.mesure) delete exo.mesure
+    if (exo.barre === undefined) delete exo.barre
     await db.exercices.put(exo)
     // L'ancien réglage de pas (écran Progression) est remplacé par celui de la fiche.
     await db.reglages.delete(`pas:${exo.id}`)
@@ -173,6 +179,28 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         label="Exercice composé"
         aide="Composé : plusieurs articulations bougent ensemble (développé, rowing, squat, soulevé de terre). Ta force y est suivie par une charge maximale estimée, et on lui donne plus de repos. Isolation (interrupteur coupé) : une seule articulation (curl, élévation latérale, extension de jambes), suivie par ta meilleure série."
       />
+      {mode === 'machine' && (
+        <>
+          <Interrupteur
+            on={disques}
+            onChange={setDisques}
+            label="Calculateur de disques"
+            aide="En séance, sous la charge : les disques à mettre de chaque côté (barre, Smith, machine à plaques)."
+          />
+          {disques && (
+            <div className="champ">
+              <span>Poids de la barre</span>
+              <div className="chips">
+                {POIDS_BARRES.map((b) => (
+                  <button key={b} type="button" className={barre === b ? 'actif' : ''} onClick={() => setBarre(b)}>
+                    {b === 0 ? 'Disques seuls' : `${b} kg${b === 20 ? ' (barre olympique)' : b === 10 ? ' (Smith)' : ''}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
       <label className="champ">
         <span>Réglages machine / consignes</span>
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ex. siège cran 4, dossier 2" />

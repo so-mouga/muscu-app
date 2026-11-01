@@ -29,6 +29,8 @@ export interface Exercice {
   pas: number
   /** Charge maximale disponible (haltères fixes à la maison). */
   chargeMax?: number
+  /** Calculateur de disques sous la charge : poids de la barre en kg (0 = disques seuls). Absent : pas de calculateur. */
+  barre?: number
   suivreE1rm: boolean
   /** `temps` : chaque série se mesure en secondes tenues (gainage…) ; les champs « reps » contiennent alors des secondes. */
   mesure?: 'reps' | 'temps'

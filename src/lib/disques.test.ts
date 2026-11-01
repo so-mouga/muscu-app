@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { estBarreOuSmith, repartirDisques } from './disques'
+import { EXERCICES } from '../data/exercices'
+import { repartirDisques } from './disques'
 
 describe('repartirDisques', () => {
   it('calcule correctement pour 72.5 kg avec barre de 20 kg', () => {
@@ -47,16 +48,19 @@ describe('repartirDisques', () => {
   })
 })
 
-describe('estBarreOuSmith', () => {
-  it('détecte les exercices barre et smith et exclut les machines à pile', () => {
-    expect(estBarreOuSmith('Développé incliné Smith')).toBe(true)
-    expect(estBarreOuSmith('smith_incline')).toBe(true)
-    expect(estBarreOuSmith('Squat barre')).toBe(true)
-    expect(estBarreOuSmith('Soulevé de terre')).toBe(true)
-    expect(estBarreOuSmith('Tirage poitrine prise large')).toBe(false)
-    expect(estBarreOuSmith('Butterfly')).toBe(false)
-    expect(estBarreOuSmith('Développé incliné machine')).toBe(false)
-    expect(estBarreOuSmith('Curl haltère')).toBe(false)
-    expect(estBarreOuSmith('Poulie vis-à-vis')).toBe(false)
+describe('calculateur de disques des exercices de base', () => {
+  it('réglé exercice par exercice : barre 20 kg, Smith 10 kg, rien ailleurs', () => {
+    expect(EXERCICES.dev_couche_barre.barre).toBe(20)
+    expect(EXERCICES.souleve_terre.barre).toBe(20)
+    expect(EXERCICES.squat_barre.barre).toBe(20)
+    expect(EXERCICES.smith_incline.barre).toBe(10)
+    expect(EXERCICES.squat_smith.barre).toBe(10)
+    // Dépend de la salle (à plaques ou à pile, barre fixe ou chargée) : pas par défaut.
+    for (const id of ['presse', 'hack_squat', 'curl_barre_ez', 'rowing_t']) expect(EXERCICES[id].barre).toBeUndefined()
+    // Haltères, poulies, machines à pile : jamais.
+    for (const id of ['dev_couche_halteres', 'butterfly', 'tirage_large', 'dev_couche_machine']) expect(EXERCICES[id].barre).toBeUndefined()
+  })
+  it('seulement sur des exercices chargés en kg (mode machine / barre)', () => {
+    for (const e of Object.values(EXERCICES)) if (e.barre !== undefined) expect(e.mode).toBe('machine')
   })
 })

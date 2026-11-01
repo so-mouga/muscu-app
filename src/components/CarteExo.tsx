@@ -644,7 +644,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         stepperCharge
       )}
       <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 4px' }}>
-        <PuceDisques exoId={exo.id} exoNom={exo.nom} charge={charge} unite={unite} />
+        <PuceDisques exo={exo} charge={charge} unite={unite} />
       </div>
       {/* Série d'avant bien au-dessus de la fourchette : proposer un cran de plus, sans rien imposer. */}
       {!edition &&

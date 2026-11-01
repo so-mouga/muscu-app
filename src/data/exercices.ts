@@ -9,18 +9,20 @@ const chainePost = sec(['fessiers', 0.5], ['lombaires', 0.5])
 
 type Def = Omit<Exercice, 'suivreE1rm' | 'pas'> & { pas?: number; suivreE1rm?: boolean }
 // Pas par défaut : 2 kg par haltère, 2,5 kg sinon ; e1RM suivi pour les composés.
+// `barre` : calculateur de disques réglé à la main, exercice par exercice (barre libre 20 kg, Smith 10 kg).
+// Pas pour ce qui dépend de la salle (presses, hack squat, barres EZ fixes ou chargées) : l'utilisateur l'active.
 const exo = (e: Def): Exercice => ({ pas: e.mode === 'par_main' ? 2 : e.mode === 'elastique' ? 1 : 2.5, suivreE1rm: e.type === 'compose' && e.mesure !== 'temps', ...e })
 
 const liste: Exercice[] = [
   // --- Séances de départ (identifiants conservés : ils sont dans l'historique) ---
-  { id: 'smith_incline', nom: 'Développé incliné Smith', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
+  { id: 'smith_incline', nom: 'Développé incliné Smith', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', barre: 10, pas: 2.5, suivreE1rm: true },
   { id: 'tirage_large', nom: 'Tirage poitrine prise large', muscle: 'dos', type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
   { id: 'butterfly', nom: 'Butterfly', muscle: 'pecs', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'tirage_horizontal', nom: 'Tirage horizontal prise neutre', muscle: 'dos', type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
   { id: 'elevation_poulie', nom: 'Élévation latérale poulie', muscle: 'epaule_laterale', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'triceps_un_bras', nom: 'Extension triceps un bras', muscle: 'triceps', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'presse', nom: 'Presse à cuisse', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
-  { id: 'rdl', nom: 'Soulevé de terre roumain', muscle: 'ischios', secondaires: chainePost, type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
+  { id: 'rdl', nom: 'Soulevé de terre roumain', muscle: 'ischios', secondaires: chainePost, type: 'compose', mode: 'machine', barre: 20, pas: 2.5, suivreE1rm: true },
   { id: 'curl_jambe_assis', nom: 'Curl jambe assis', muscle: 'ischios', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'extension_jambes', nom: 'Extension de jambes', muscle: 'quadriceps', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'mollets_machine', nom: 'Mollets machine', muscle: 'mollets', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
@@ -46,13 +48,13 @@ const liste: Exercice[] = [
   { id: 'releve_jambes_banc', nom: 'Relevés de jambes sur banc', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', pas: 2.5, suivreE1rm: false },
 
   // --- Pecs ---
-  exo({ id: 'dev_couche_barre', nom: 'Développé couché barre', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine' }),
+  exo({ id: 'dev_couche_barre', nom: 'Développé couché barre', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'dev_couche_halteres', nom: 'Développé couché haltères', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'par_main' }),
-  exo({ id: 'dev_couche_smith', nom: 'Développé couché Smith', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine' }),
+  exo({ id: 'dev_couche_smith', nom: 'Développé couché Smith', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', barre: 10 }),
   exo({ id: 'dev_couche_machine', nom: 'Développé couché machine', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine' }),
-  exo({ id: 'dev_incline_barre', nom: 'Développé incliné barre', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine' }),
+  exo({ id: 'dev_incline_barre', nom: 'Développé incliné barre', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'dev_incline_halteres', nom: 'Développé incliné haltères', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'par_main' }),
-  exo({ id: 'dev_decline_barre', nom: 'Développé décliné barre', muscle: 'pecs', secondaires: triceps05, type: 'compose', mode: 'machine' }),
+  exo({ id: 'dev_decline_barre', nom: 'Développé décliné barre', muscle: 'pecs', secondaires: triceps05, type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'ecarte_halteres', nom: 'Écarté couché haltères', muscle: 'pecs', type: 'isolation', mode: 'par_main' }),
   exo({ id: 'ecarte_incline_halteres', nom: 'Écarté incliné haltères', muscle: 'pecs', type: 'isolation', mode: 'par_main' }),
   exo({ id: 'ecarte_poulie', nom: 'Écarté poulie vis-à-vis', muscle: 'pecs', type: 'isolation', mode: 'machine' }),
@@ -61,7 +63,7 @@ const liste: Exercice[] = [
   exo({ id: 'pull_over_haltere', nom: 'Pull-over haltère', muscle: 'pecs', secondaires: sec(['dos', 0.5]), type: 'isolation', mode: 'par_main' }),
 
   // --- Dos ---
-  exo({ id: 'rowing_barre', nom: 'Rowing barre buste penché', muscle: 'dos', secondaires: sec(['lombaires', 0.5]), type: 'compose', mode: 'machine' }),
+  exo({ id: 'rowing_barre', nom: 'Rowing barre buste penché', muscle: 'dos', secondaires: sec(['lombaires', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'rowing_haltere', nom: 'Rowing haltère un bras', muscle: 'dos', type: 'compose', mode: 'par_main' }),
   exo({ id: 'rowing_t', nom: 'Rowing T-bar', muscle: 'dos', type: 'compose', mode: 'machine' }),
   exo({ id: 'rowing_machine', nom: 'Rowing machine appui poitrine', muscle: 'dos', type: 'compose', mode: 'machine' }),
@@ -70,24 +72,24 @@ const liste: Exercice[] = [
   exo({ id: 'tirage_horizontal_large', nom: 'Tirage horizontal prise large', muscle: 'dos', secondaires: sec(['epaule_arriere', 0.5]), type: 'compose', mode: 'machine' }),
   exo({ id: 'tractions_supination', nom: 'Tractions supination', muscle: 'dos', type: 'compose', mode: 'poids_corps' }),
   exo({ id: 'tractions_assistees', nom: 'Tractions assistées machine', muscle: 'dos', type: 'compose', mode: 'machine', suivreE1rm: false, notes: 'Charge = assistance : plus elle baisse, plus c’est dur.' }),
-  exo({ id: 'souleve_terre', nom: 'Soulevé de terre', muscle: 'dos', secondaires: sec(['fessiers', 0.5], ['ischios', 0.5], ['lombaires', 0.5]), type: 'compose', mode: 'machine' }),
+  exo({ id: 'souleve_terre', nom: 'Soulevé de terre', muscle: 'dos', secondaires: sec(['fessiers', 0.5], ['ischios', 0.5], ['lombaires', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'pull_over_poulie', nom: 'Pull-over poulie à la corde', muscle: 'dos', type: 'isolation', mode: 'machine' }),
 
   // --- Trapèzes ---
   exo({ id: 'shrug_halteres', nom: 'Shrug haltères', muscle: 'trapezes', type: 'isolation', mode: 'par_main' }),
-  exo({ id: 'shrug_barre', nom: 'Shrug barre', muscle: 'trapezes', type: 'isolation', mode: 'machine' }),
+  exo({ id: 'shrug_barre', nom: 'Shrug barre', muscle: 'trapezes', type: 'isolation', mode: 'machine', barre: 20 }),
   exo({ id: 'shrug_machine', nom: 'Shrug machine', muscle: 'trapezes', type: 'isolation', mode: 'machine' }),
 
   // --- Lombaires ---
   exo({ id: 'extension_lombaire', nom: 'Extension lombaire banc à 45°', muscle: 'lombaires', secondaires: sec(['fessiers', 0.5]), type: 'isolation', mode: 'poids_corps' }),
   exo({ id: 'extension_lombaire_machine', nom: 'Extension lombaire machine', muscle: 'lombaires', type: 'isolation', mode: 'machine' }),
-  exo({ id: 'good_morning', nom: 'Good morning barre', muscle: 'lombaires', secondaires: sec(['ischios', 0.5], ['fessiers', 0.5]), type: 'compose', mode: 'machine', suivreE1rm: false }),
+  exo({ id: 'good_morning', nom: 'Good morning barre', muscle: 'lombaires', secondaires: sec(['ischios', 0.5], ['fessiers', 0.5]), type: 'compose', mode: 'machine', barre: 20, suivreE1rm: false }),
 
   // --- Épaules ---
-  exo({ id: 'dev_militaire', nom: 'Développé militaire barre', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'machine' }),
+  exo({ id: 'dev_militaire', nom: 'Développé militaire barre', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'dev_epaules_halteres', nom: 'Développé épaules haltères assis', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'par_main' }),
   exo({ id: 'dev_epaules_machine', nom: 'Développé épaules machine', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'machine' }),
-  exo({ id: 'dev_epaules_smith', nom: 'Développé épaules Smith', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'machine' }),
+  exo({ id: 'dev_epaules_smith', nom: 'Développé épaules Smith', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'machine', barre: 10 }),
   exo({ id: 'dev_arnold', nom: 'Développé Arnold', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'par_main' }),
   exo({ id: 'elevation_frontale_halteres', nom: 'Élévation frontale haltères', muscle: 'epaule_avant', type: 'isolation', mode: 'par_main' }),
   exo({ id: 'elevation_frontale_poulie', nom: 'Élévation frontale poulie', muscle: 'epaule_avant', type: 'isolation', mode: 'machine' }),
@@ -113,7 +115,7 @@ const liste: Exercice[] = [
   exo({ id: 'extension_barre_poulie', nom: 'Extension triceps poulie haute barre', muscle: 'triceps', type: 'isolation', mode: 'machine' }),
   exo({ id: 'extension_haltere_tete', nom: 'Extension haltère au-dessus de la tête', muscle: 'triceps', type: 'isolation', mode: 'par_main' }),
   exo({ id: 'kickback', nom: 'Kickback haltère', muscle: 'triceps', type: 'isolation', mode: 'par_main' }),
-  exo({ id: 'dev_couche_serre', nom: 'Développé couché prise serrée', muscle: 'triceps', secondaires: sec(['pecs', 0.5]), type: 'compose', mode: 'machine' }),
+  exo({ id: 'dev_couche_serre', nom: 'Développé couché prise serrée', muscle: 'triceps', secondaires: sec(['pecs', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'dips_machine', nom: 'Dips machine assis', muscle: 'triceps', secondaires: sec(['pecs', 0.5]), type: 'compose', mode: 'machine' }),
   exo({ id: 'dips_banc', nom: 'Dips entre deux bancs', muscle: 'triceps', type: 'compose', mode: 'poids_corps', suivreE1rm: false }),
 
@@ -124,9 +126,9 @@ const liste: Exercice[] = [
   exo({ id: 'marche_fermier', nom: 'Marche du fermier', muscle: 'avant_bras', secondaires: sec(['trapezes', 0.5]), type: 'compose', mode: 'par_main', suivreE1rm: false, notes: 'Reps = nombre de pas (ou secondes).' }),
 
   // --- Quadriceps ---
-  exo({ id: 'squat_barre', nom: 'Squat barre', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5], ['adducteurs', 0.5]), type: 'compose', mode: 'machine' }),
-  exo({ id: 'squat_avant', nom: 'Squat avant (front squat)', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine' }),
-  exo({ id: 'squat_smith', nom: 'Squat Smith', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine' }),
+  exo({ id: 'squat_barre', nom: 'Squat barre', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5], ['adducteurs', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
+  exo({ id: 'squat_avant', nom: 'Squat avant (front squat)', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
+  exo({ id: 'squat_smith', nom: 'Squat Smith', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine', barre: 10 }),
   exo({ id: 'hack_squat', nom: 'Hack squat', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine' }),
   exo({ id: 'goblet_squat', nom: 'Goblet squat', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'par_main', suivreE1rm: false, notes: 'Charge = l’haltère tenu contre la poitrine.' }),
   exo({ id: 'presse_unilaterale', nom: 'Presse à cuisse une jambe', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine', suivreE1rm: false }),
@@ -138,11 +140,11 @@ const liste: Exercice[] = [
   // --- Ischios ---
   exo({ id: 'curl_jambe_allonge', nom: 'Curl jambe allongé', muscle: 'ischios', type: 'isolation', mode: 'machine' }),
   exo({ id: 'curl_jambe_debout', nom: 'Curl jambe debout unilatéral', muscle: 'ischios', type: 'isolation', mode: 'machine' }),
-  exo({ id: 'rdl_barre', nom: 'Soulevé de terre jambes tendues barre', muscle: 'ischios', secondaires: chainePost, type: 'compose', mode: 'machine' }),
+  exo({ id: 'rdl_barre', nom: 'Soulevé de terre jambes tendues barre', muscle: 'ischios', secondaires: chainePost, type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'nordic_curl', nom: 'Nordic curl', muscle: 'ischios', type: 'isolation', mode: 'poids_corps' }),
 
   // --- Fessiers ---
-  exo({ id: 'hip_thrust_barre', nom: 'Hip thrust barre', muscle: 'fessiers', secondaires: sec(['ischios', 0.5]), type: 'compose', mode: 'machine' }),
+  exo({ id: 'hip_thrust_barre', nom: 'Hip thrust barre', muscle: 'fessiers', secondaires: sec(['ischios', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'hip_thrust_machine', nom: 'Hip thrust machine', muscle: 'fessiers', secondaires: sec(['ischios', 0.5]), type: 'compose', mode: 'machine' }),
   exo({ id: 'pont_fessier', nom: 'Pont fessier au sol', muscle: 'fessiers', type: 'isolation', mode: 'poids_corps' }),
   exo({ id: 'kickback_poulie', nom: 'Kickback fessier poulie', muscle: 'fessiers', type: 'isolation', mode: 'machine' }),
@@ -159,7 +161,7 @@ const liste: Exercice[] = [
   exo({ id: 'mollets_assis', nom: 'Mollets assis machine', muscle: 'mollets', type: 'isolation', mode: 'machine' }),
   exo({ id: 'chaise', nom: 'Chaise contre le mur', muscle: 'quadriceps', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
   exo({ id: 'mollets_presse', nom: 'Mollets à la presse', muscle: 'mollets', type: 'isolation', mode: 'machine' }),
-  exo({ id: 'mollets_smith', nom: 'Mollets debout Smith', muscle: 'mollets', type: 'isolation', mode: 'machine' }),
+  exo({ id: 'mollets_smith', nom: 'Mollets debout Smith', muscle: 'mollets', type: 'isolation', mode: 'machine', barre: 10 }),
 
   // --- Abdos ---
   exo({ id: 'crunch', nom: 'Crunch au sol', muscle: 'abdos', type: 'isolation', mode: 'poids_corps' }),
