@@ -2900,24 +2900,57 @@ button.semaine-bilan.cliquable {
 }
 
 /* Accueil, journal du matin */
-.phase-accueil {
+.pills-accueil {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+.pill-accueil,
+.phase-accueil,
+button.pill-accueil,
+button.phase-accueil {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: 999px;
   background: var(--surface-2);
   border: 1px solid var(--bord);
-  font-size: 13px;
+  font: inherit;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--texte-2);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  min-height: 0;
+  line-height: 1.2;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.pill-accueil:hover,
+.pill-accueil:active,
+.phase-accueil:hover,
+.phase-accueil:active,
+button.pill-accueil:hover,
+button.pill-accueil:active,
+button.phase-accueil:hover,
+button.phase-accueil:active {
+  background: var(--surface);
+  border-color: var(--texte-3);
+  color: var(--texte);
+}
+.pill-accueil.deload {
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
 }
 .point-phase {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--phase);
+  flex-shrink: 0;
 }
 .a-battre {
   margin-top: 8px;

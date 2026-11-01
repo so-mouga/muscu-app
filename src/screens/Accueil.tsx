@@ -5,7 +5,7 @@ import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
 import { creneauxFaits, dureeReelle, recordsParSeance } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
-import { nomPhase, periodes, phaseAffichee } from '../lib/objectifs'
+import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
@@ -198,7 +198,6 @@ export default function Accueil({
     }
     return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
   }
-  const bandeauCycleVisible = !!(cycle && etat && (etat.fini || etat.deload || etat.pause || etat.n <= 0))
   const duresSemaine = semaine.reduce((a, s) => a + s.series.filter(estDure).length, 0)
   const recordsSemaine = terminees
     ? (() => {
@@ -241,37 +240,79 @@ export default function Accueil({
     }
   }
 
+  const nomCourtPhase = (p: Phase) => {
+    if (p === 'prise') return 'Prise'
+    if (p === 'seche') return 'Sèche'
+    if (p === 'maintien') return 'Maintien'
+    return nomPhase(p)
+  }
+
+  const dateAffichee = (() => {
+    const d = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })
+    return d.charAt(0).toUpperCase() + d.slice(1)
+  })()
+
+  const textePhase = phase
+    ? phase.aVenir
+      ? `${nomCourtPhase(phase.phase)} · dès ${
+          phase.debut === dateISO(new Date(Date.now() + 86400000))
+            ? 'demain'
+            : new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+        }`
+      : `${nomCourtPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`
+    : ''
+
+  const texteCycle =
+    cycle && etat
+      ? etat.fini
+        ? '🎉 Bilan cycle'
+        : etat.n <= 0
+        ? `🔁 Cycle · dès ${
+            cycle.debut === dateISO(new Date(Date.now() + 86400000))
+              ? 'demain'
+              : new Date(cycle.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+          }`
+        : etat.pause
+        ? '⏸ Cycle en pause'
+        : etat.deload
+        ? `🧘 Déload · sem. ${etat.n}/${etat.total}`
+        : `🔁 Cycle · sem. ${etat.n}/${etat.total}`
+      : ''
+
   return (
     <div>
-      <div className="entete">
-        <div>
-          <h1 style={{ textTransform: 'capitalize', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 2px', letterSpacing: '-0.3px' }}>
-            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+      <div className="entete" style={{ alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ textTransform: 'capitalize', fontSize: '1.2rem', fontWeight: 800, margin: 0, letterSpacing: '-0.2px' }}>
+            {dateAffichee}
           </h1>
-          {/* La phase toujours sous la date, même avec le bandeau du cycle : ils ne disent pas la même chose
-              (cycle = bloc d'entraînement, phase = objectif pour le corps et l'assiette). */}
-          {phase ? (
-            <button type="button" className="phase-accueil" onClick={onObjectifs}>
-              <span className={`point-phase phase-${phase.phase}`} />
-              <span>
-                {phase.aVenir
-                  ? `${phase.enCours ? `${nomPhase(phase.enCours.phase)} · ` : ''}${phase.enCours ? nomPhase(phase.phase).toLowerCase() : nomPhase(phase.phase)} ${
-                      phase.debut === dateISO(new Date(Date.now() + 86400000)) ? 'à partir de demain' : `à partir du ${new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
-                    }`
-                  : `${nomPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`}
-              </span>
-            </button>
-          ) : (
-            // Jamais de phase réglée : une proposition discrète (pas si on en a arrêté une exprès).
-            !premiereFois &&
-            !periodes(catalogue.objectifs).length && (
-              <button type="button" className="phase-accueil faible" onClick={onObjectifs}>
-                Pas de phase (prise, sèche…) · Choisir ›
+          <div className="pills-accueil">
+            {phase ? (
+              <button type="button" className="pill-accueil" onClick={onObjectifs} aria-label={`Objectif de phase : ${textePhase}`}>
+                <span className={`point-phase phase-${phase.phase}`} />
+                <span>{textePhase}</span>
               </button>
-            )
-          )}
+            ) : (
+              !premiereFois &&
+              !periodes(catalogue.objectifs).length && (
+                <button type="button" className="pill-accueil faible" onClick={onObjectifs}>
+                  + Phase
+                </button>
+              )
+            )}
+            {cycle && etat && (
+              <button
+                type="button"
+                className={'pill-accueil' + (etat.deload ? ' deload' : '')}
+                onClick={etat.fini ? () => setBilan(true) : onProgrammes}
+                aria-label={`Cycle d'entraînement : ${texteCycle}`}
+              >
+                <span>{texteCycle}</span>
+              </button>
+            )}
+          </div>
         </div>
-        <button type="button" className="btn-reglages" onClick={onReglages} aria-label="Réglages">
+        <button type="button" className="btn-reglages" onClick={onReglages} aria-label="Réglages" style={{ marginTop: 2 }}>
           <IconeOnglet nom="reglages" />
         </button>
       </div>
@@ -311,12 +352,18 @@ export default function Accueil({
         />
       )}
 
+      {/* Si le cycle est terminé, le bilan est mis en avant juste au-dessus de la séance */}
+      {!premiereFois && cycle && etat?.fini && (
+        <div style={{ marginBottom: 12 }}>
+          <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />
+        </div>
+      )}
+
       {/* La séance d'abord : c'est l'action principale de l'écran. */}
       {!premiereFois && (
       <div className="carte pile">
-        {bandeauCycleVisible && cycle && etat && <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />}
         {duJour && faite(duJour) && <div className="pastille ok">✓ {duJour.modele.nom} faite aujourd’hui</div>}
-        {!duJour && <div className="muted">Repos prévu aujourd’hui.</div>}
+        {!duJour && <div className="muted" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>💤 Repos prévu aujourd’hui.</div>}
         {proposee ? (
           <>
             <div>
