@@ -242,13 +242,17 @@ export default function Accueil({
     <div>
       <div className="entete">
         <div>
-          <h1 style={{ textTransform: 'capitalize', fontSize: '1.35rem', margin: '0 0 3px' }}>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
+          <h1 style={{ textTransform: 'capitalize', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 2px', letterSpacing: '-0.3px' }}>
+            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </h1>
           {phase && !bandeauCycleVisible && (
             <div className="phase-accueil">
               <span className={`point-phase phase-${phase.phase}`} />
-              {phase.aVenir
-                ? `${phase.enCours ? `${nomPhase(phase.enCours.phase)} · ` : ''}${nomPhase(phase.phase).toLowerCase()} à partir du ${new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
-                : `${nomPhase(phase.phase)} · semaine ${phase.semaine}${phase.total ? ` sur ${phase.total}` : ''}`}
+              <span>
+                {phase.aVenir
+                  ? `${phase.enCours ? `${nomPhase(phase.enCours.phase)} · ` : ''}${nomPhase(phase.phase).toLowerCase()} à partir du ${new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                  : `${nomPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`}
+              </span>
             </div>
           )}
         </div>
@@ -368,13 +372,13 @@ export default function Accueil({
         )}
         <div className="ligne actions-accueil">
           {proposee && (
-            <button className="btn" onClick={() => setChoix(true)}>
-              Autre séance
+            <button type="button" className="btn texte lien-discret" onClick={() => setChoix(true)}>
+              Choisir une autre séance ›
             </button>
           )}
           {variante && proposee === duJour && (
-            <button className="btn" onClick={() => voir(variante)}>
-              🏠 Pas de salle
+            <button type="button" className="btn texte lien-discret" onClick={() => voir(variante)}>
+              🏠 Pas de salle ›
             </button>
           )}
         </div>

@@ -8,10 +8,11 @@ interface Props {
   couleur?: string
   children?: ReactNode
   label?: string
+  fluide?: boolean
 }
 
 /** Anneau d'avancement avec un contenu centré (pourcentage, temps…). */
-export default function Anneau({ valeur, taille, epaisseur = 4, couleur = 'var(--accent)', children, label }: Props) {
+export default function Anneau({ valeur, taille, epaisseur = 4, couleur = 'var(--accent)', children, label, fluide = false }: Props) {
   const r = (taille - epaisseur) / 2
   const c = 2 * Math.PI * r
   const v = Math.max(0, Math.min(1, valeur))
@@ -29,6 +30,7 @@ export default function Anneau({ valeur, taille, epaisseur = 4, couleur = 'var(-
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - v)}
+          style={{ transition: fluide ? 'stroke-dashoffset 0.95s linear' : undefined }}
           transform={`rotate(-90 ${taille / 2} ${taille / 2})`}
         />
       </svg>

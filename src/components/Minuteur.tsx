@@ -102,15 +102,25 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
   // Part du repos restante (le cercle se vide) ; la fin bouge avec −15/+15, le début non.
   const total = etat.debut ? (etat.pause !== undefined ? maintenant - etat.debut + etat.pause : etat.fin - etat.debut) / 1000 : etat.duree
   const part = fini ? 0 : reste / Math.max(1, total)
+  const decompteActif = !fini && !enPause && seconde > 0 && seconde <= (bips > 0 ? bips : 5)
 
   if (variante === 'grand') {
     return (
       <div className={'minuteur grand' + (fini ? ' fini' : '') + (enPause ? ' en-pause' : '')}>
-        <button type="button" className="cercle-pause" onClick={() => !fini && basculerPause()} aria-label={enPause ? 'Reprendre le repos' : 'Mettre le repos en pause'}>
-          <Anneau valeur={part} taille={210} epaisseur={10}>
+        <button
+          type="button"
+          className={'cercle-pause' + (decompteActif ? ' pulsation' : '')}
+          onClick={() => !fini && basculerPause()}
+          aria-label={enPause ? 'Reprendre le repos' : 'Mettre le repos en pause'}
+        >
+          <Anneau valeur={part} taille={210} epaisseur={10} fluide={!enPause && !fini}>
             <div className="temps-grand">{temps}</div>
             <div className="libelle">{fini ? libelle : enPause ? '▶ Reprendre' : libelle}</div>
-            {!fini && <div className="astuce-pause">{enPause ? 'touche le cercle' : '⏸ touche = pause'}</div>}
+            {!fini && (
+              <div className={'astuce-pause' + (enPause ? ' badge-pause' : '')}>
+                {enPause ? '⏸ EN PAUSE · TOUCHE POUR REPRENDRE' : 'Touche le cercle pour mettre en pause'}
+              </div>
+            )}
           </Anneau>
         </button>
         <div className="ligne boutons-grand">{boutons}</div>
@@ -123,7 +133,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
     <div className={'minuteur' + (bandeau ? ' bandeau' : '') + (fini ? ' fini flash' : '') + (enPause ? ' en-pause' : '')}>
       <div className="contenu">
         <button className="temps" onClick={onAgrandir} disabled={!onAgrandir} aria-label={onAgrandir ? `${libelle}, ${temps}. Plein écran` : undefined}>
-          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? '#04140c' : 'var(--accent)'}>
+          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? '#04140c' : 'var(--accent)'} fluide={!enPause && !fini}>
             <span className="temps-petit">{temps}</span>
           </Anneau>
           {onAgrandir && <span className="indice-plein-ecran">⤢ Plein écran</span>}

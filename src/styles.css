@@ -9,12 +9,12 @@
   --texte-3: #9098a8;
   --accent: #ff8a3d;
   --accent-texte: #1a0d03;
-  --ok: #4cc38a;
+  --ok: #10b981;
   --alerte: #f5c04a;
   --danger: #ef5d5d;
   --finisseur: #c58bff;
   --silhouette: #3b4150;
-  --rayon: 14px;
+  --rayon: 16px;
   color-scheme: dark;
 }
 
@@ -87,7 +87,7 @@ select {
   color: var(--texte);
   background: var(--surface-2);
   border: 1px solid var(--bord);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 12px;
   width: 100%;
 }
@@ -298,7 +298,7 @@ select {
   flex: 0 0 auto;
   min-width: 44px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface);
   border: 1px solid var(--bord);
   color: var(--texte-2);
@@ -356,7 +356,7 @@ select {
 }
 .rpe button {
   height: 48px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--bord);
   font-weight: 700;
@@ -402,7 +402,7 @@ select {
 .chauffes button {
   min-height: 44px;
   padding: 0 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--bord);
   color: var(--texte-2);
@@ -420,7 +420,7 @@ select {
   width: 100%;
   text-align: left;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   margin-bottom: 6px;
   font-variant-numeric: tabular-nums;
@@ -432,7 +432,7 @@ select {
 .bandeau-fin {
   border: 1px solid var(--finisseur);
   color: var(--finisseur);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 12px;
   font-weight: 700;
 }
@@ -515,7 +515,7 @@ select {
 .modal-fond {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.72);
   z-index: 40;
   display: flex;
   align-items: flex-end;
@@ -524,7 +524,7 @@ select {
 }
 .modal {
   background: var(--surface);
-  border-radius: 18px 18px 0 0;
+  border-radius: 20px 20px 0 0;
   padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
   width: 100%;
   max-width: 560px;
@@ -675,7 +675,7 @@ html[data-sens='arriere']::view-transition-new(root) {
 .mini-stepper button {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--bord);
   font-size: 20px;
@@ -731,7 +731,7 @@ html[data-sens='arriere']::view-transition-new(root) {
 .icone {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--bord);
   flex: 0 0 auto;
@@ -785,7 +785,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   max-width: 528px;
   margin: 8px auto 0;
   padding: 8px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   text-align: left;
   font-size: 14px;
@@ -983,7 +983,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   text-align: left;
   padding: 8px 12px;
   margin-bottom: 6px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px dashed var(--bord);
   background: transparent;
   color: var(--texte-2);
@@ -1074,7 +1074,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   width: 100%;
   text-align: left;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--accent);
   background: rgba(255, 138, 61, 0.08);
   color: var(--texte);
@@ -1100,7 +1100,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   width: 100%;
   text-align: left;
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--bord);
   background: var(--surface-2);
   color: var(--texte);
@@ -1701,13 +1701,13 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   width: 100%;
   aspect-ratio: 3 / 4;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 .vignettes-poses .vide {
   aspect-ratio: 3 / 4;
   justify-content: center;
   border: 1px dashed var(--bord);
-  border-radius: 10px;
+  border-radius: 12px;
 }
 .comparaison {
   display: grid;
@@ -1726,7 +1726,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   width: 100%;
   aspect-ratio: 3 / 4;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 .comparaison .vide {
   display: flex;
@@ -1805,7 +1805,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   position: relative;
   margin: 0;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #111;
   touch-action: none;
   user-select: none;
@@ -1989,7 +1989,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   width: 100%;
   margin-top: 6px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   color: var(--texte-2);
   font-size: 14px;
@@ -2015,7 +2015,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .bandeau-deload {
   border: 1px solid var(--activite);
   color: var(--activite);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px 12px;
   margin-bottom: 12px;
   font-weight: 600;
@@ -2054,7 +2054,7 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .ligne-semaine.courante {
   margin: 0 -10px;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   border-bottom-color: transparent;
 }
@@ -2125,7 +2125,7 @@ button.pastille.cliquable {
   gap: 8px;
   margin-bottom: 8px;
   padding: 4px 4px 4px 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--alerte) 50%, var(--bord));
   font-size: 14px;
 }
@@ -2448,6 +2448,23 @@ button.semaine-bilan.cliquable {
   padding: 0;
   color: inherit;
   border-radius: 50%;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.cercle-pause:active {
+  transform: scale(0.97);
+}
+.cercle-pause.pulsation {
+  animation: pulse-repos 1s ease-in-out infinite;
+}
+@keyframes pulse-repos {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 rgba(255, 138, 61, 0));
+  }
+  50% {
+    transform: scale(1.035);
+    filter: drop-shadow(0 0 16px rgba(255, 138, 61, 0.45));
+  }
 }
 /* Plein écran : série meilleure que la dernière fois, changement d'exercice, séries de l'exercice */
 .focus-bloc.mieux {
@@ -2489,9 +2506,21 @@ button.semaine-bilan.cliquable {
   font-weight: 700;
 }
 .astuce-pause {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 11px;
-  opacity: 0.55;
+  opacity: 0.6;
+}
+.astuce-pause.badge-pause {
+  display: inline-block;
+  background: rgba(245, 192, 74, 0.15);
+  color: var(--alerte);
+  border: 1px solid color-mix(in srgb, var(--alerte) 40%, transparent);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  opacity: 1;
 }
 .echauffement .mouvement {
   display: grid;
@@ -2554,7 +2583,7 @@ button.semaine-bilan.cliquable {
 .picto-echauffement {
   flex: 0 0 auto;
   display: inline-block;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
 }
 .chip-groupe {
@@ -2742,11 +2771,16 @@ button.semaine-bilan.cliquable {
 
 /* Accueil, journal du matin */
 .phase-accueil {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 2px;
-  font-size: 14px;
+  margin-top: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--bord);
+  font-size: 13px;
+  font-weight: 600;
   color: var(--texte-2);
 }
 .point-phase {
@@ -2790,15 +2824,28 @@ button.semaine-bilan.cliquable {
   gap: 6px;
 }
 
-/* Accueil : actions secondaires en vrais boutons (cibles tactiles), sous la séance du jour. */
+/* Accueil : lien tertiaire discret pour les actions alternatives sous le duo Démarrer / Voir. */
 .actions-accueil {
-  gap: 8px;
+  margin-top: 8px;
+  justify-content: center;
+  gap: 12px;
 }
-.actions-accueil .btn {
-  flex: 1;
-  min-height: 44px;
-  padding: 8px 6px;
-  white-space: nowrap;
+.btn.lien-discret {
+  min-height: 36px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texte-3);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn.lien-discret:hover,
+.btn.lien-discret:active {
+  color: var(--texte);
+  background: var(--surface-2);
 }
 
 /* Volume par muscle en jauge : zone utile en fond, niveau de la semaine par-dessus. */

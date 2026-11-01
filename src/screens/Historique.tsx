@@ -517,7 +517,7 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
         {(records > 0 || mieux > 0 || seance.deload) && (
           <span className="ligne wrap" style={{ gap: 6, marginTop: 4 }}>
             {records > 0 && <span className="pastille ok">🏆 {pluriel(records, 'record')}</span>}
-            {mieux > 0 && <span className="pastille">↑ {mieux} exo{mieux > 1 ? 's' : ''} mieux que la dernière fois</span>}
+            {mieux > 0 && <span className="pastille ok">↑ {mieux} exo{mieux > 1 ? 's' : ''} mieux</span>}
             {seance.deload && <span className="pastille">Déload</span>}
           </span>
         )}
