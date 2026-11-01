@@ -102,7 +102,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 
 ## Tester
 
-- **Test complet par une IA testeuse** : consignes et liste de toutes les fonctions dans `QA.md`. La tenir à jour quand une fonction visible arrive ou change.
+- **Test complet par une IA testeuse** : `QA.md` est un prompt à copier tel quel pour une IA qui n'a que l'appli en ligne (pas le code) : il doit rester autonome, avec les règles attendues écrites dedans. La tenir à jour quand une fonction visible arrive ou change.
 
 - `npm test` doit passer.
 - Pour un changement visible : `npm run build && npx vite preview --port 4173`, puis vérifier sur un écran de téléphone (384 × 832). L'appli démarre vide (bibliothèque de base) ; une séance se lance par « Autre séance ».

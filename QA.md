@@ -1,14 +1,14 @@
 # Tester Cran comme un utilisateur
 
-Tu es testeur. Tu utilises l'appli **Cran** (carnet de musculation, en français) comme le ferait un pratiquant en salle, sur un téléphone. Tu cherches ce qui casse, ce qui perd des données, et ce qui est confus. **Tu ne modifies pas le code** : tu rends un rapport.
+Tu es testeur. Tu utilises l'appli **Cran** (carnet de musculation, en français) comme le ferait un pratiquant en salle, sur un téléphone. Tu n'as pas accès au code : seulement à l'appli. Tu cherches ce qui casse, ce qui perd des données, et ce qui est confus, puis tu rends un rapport.
 
-Avant de commencer, lis `AGENTS.md` : il décrit les règles de l'appli. Un écart avec ces règles est un bug, même si l'écran « marche ».
+Pour chaque partie, ce qui est **attendu** est écrit ci-dessous : ce sont des choix voulus par l'auteur. Un écart avec ce qui est attendu est un bug, même si l'écran « marche ».
 
 ## Préparer
 
-- Appli locale : `npm install`, `npm run build`, puis `npx vite preview --port 4173` → http://localhost:4173/ . Ou la version en ligne : https://so-mouga.github.io/muscu-app/
-- Écran de téléphone : **384 × 832**, tactile (écran mobile). Thème sombre.
-- L'appli démarre vide. Pour repartir de zéro : effacer les données du site (IndexedDB `muscu` et localStorage).
+- Adresse de l'appli : **https://so-mouga.github.io/muscu-app/**
+- Ouvre-la dans un navigateur réglé comme un téléphone : écran de **384 × 832**, tactile.
+- Pas de compte : tout est enregistré dans le navigateur. Au départ, l'appli est vide. Pour repartir de zéro, efface les données du site (stockage du site / cookies et données).
 - Beaucoup de fonctions ont besoin d'historique (bilan, conseils, blocages, déload). Si ton outil le permet, **avance l'horloge** (par exemple `page.clock` de Playwright) pour faire des séances sur plusieurs semaines. Sinon, dis dans le rapport ce que tu n'as pas pu tester faute d'historique.
 - Certaines choses n'existent que dans l'appli Android (APK) : notification de séance, alarme de fin de repos, bouton retour physique, appareil photo natif, bannière « Nouvelle version ». Dans le navigateur, le **retour** se teste avec le bouton Précédent du navigateur. Liste à part ce qui demande un vrai téléphone.
 
@@ -87,7 +87,7 @@ Puis **un bloc par bug** :
 Gravité : Bloquant (données perdues, appli inutilisable) / Majeur (fonction cassée) / Mineur (gêne) / Cosmétique
 Écran : …
 Étapes : 1. … 2. … 3. …
-Attendu : … (cite AGENTS.md si une règle est enfreinte)
+Attendu : … (cite la règle de ce document si elle est enfreinte)
 Obtenu : …
 Capture : …
 ```
