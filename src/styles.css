@@ -3229,3 +3229,12 @@ a.texte {
   height: 100%;
   object-fit: cover;
 }
+
+/* Ligne de phase de l'accueil : un appui ouvre Corps → Objectifs. */
+button.phase-accueil {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 0;
+  cursor: pointer;
+}

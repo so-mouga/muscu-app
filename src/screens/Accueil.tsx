@@ -5,7 +5,7 @@ import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
 import { creneauxFaits, dureeReelle, recordsParSeance } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
-import { nomPhase, phaseAffichee } from '../lib/objectifs'
+import { nomPhase, periodes, phaseAffichee } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
@@ -67,6 +67,7 @@ export default function Accueil({
   onVoirSeance,
   onMesures,
   onReglages,
+  onObjectifs,
   onBilan,
   onProgrammes,
 }: {
@@ -75,6 +76,8 @@ export default function Accueil({
   onMesures: () => void
   /** Ouvre les Réglages (⚙). */
   onReglages: () => void
+  /** Ouvre Corps → Objectifs (phase). */
+  onObjectifs: () => void
   /** Ouvre Progression → Bilan. */
   onBilan: () => void
   /** Ouvre l'onglet Programmes (gestion du cycle). */
@@ -245,15 +248,27 @@ export default function Accueil({
           <h1 style={{ textTransform: 'capitalize', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 2px', letterSpacing: '-0.3px' }}>
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
           </h1>
-          {phase && !bandeauCycleVisible && (
-            <div className="phase-accueil">
+          {/* La phase toujours sous la date, même avec le bandeau du cycle : ils ne disent pas la même chose
+              (cycle = bloc d'entraînement, phase = objectif pour le corps et l'assiette). */}
+          {phase ? (
+            <button type="button" className="phase-accueil" onClick={onObjectifs}>
               <span className={`point-phase phase-${phase.phase}`} />
               <span>
                 {phase.aVenir
-                  ? `${phase.enCours ? `${nomPhase(phase.enCours.phase)} · ` : ''}${nomPhase(phase.phase).toLowerCase()} à partir du ${new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                  ? `${phase.enCours ? `${nomPhase(phase.enCours.phase)} · ` : ''}${phase.enCours ? nomPhase(phase.phase).toLowerCase() : nomPhase(phase.phase)} ${
+                      phase.debut === dateISO(new Date(Date.now() + 86400000)) ? 'à partir de demain' : `à partir du ${new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                    }`
                   : `${nomPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`}
               </span>
-            </div>
+            </button>
+          ) : (
+            // Jamais de phase réglée : une proposition discrète (pas si on en a arrêté une exprès).
+            !premiereFois &&
+            !periodes(catalogue.objectifs).length && (
+              <button type="button" className="phase-accueil faible" onClick={onObjectifs}>
+                Pas de phase (prise, sèche…) · Choisir ›
+              </button>
+            )
           )}
         </div>
         <button type="button" className="btn-reglages" onClick={onReglages} aria-label="Réglages">

@@ -22,7 +22,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Réglages (bouton en haut à droite de l'accueil, pas dans la barre du bas) → Mon profil : taille, naissance, sexe, activité.
 
 ### 2. Accueil (journal du matin)
-- Date, phase, séance du jour, bouton Démarrer **visible sans défiler**. « 🔥 À battre » (3 lignes max) n'apparaît que si un objectif plus haut que la dernière fois a été fixé (conseil 💡 appliqué ou ✎ en fin de séance) : par défaut on refait pareil, il n'y a donc rien à battre.
+- Date, puis la **phase toujours sous la date** (même quand le bandeau du cycle est affiché ; un appui ouvre Corps → Objectifs ; sans phase jamais réglée : « Pas de phase · Choisir › »), séance du jour, bouton Démarrer **visible sans défiler**. « 🔥 À battre » (3 lignes max) n'apparaît que si un objectif plus haut que la dernière fois a été fixé (conseil 💡 appliqué ou ✎ en fin de séance) : par défaut on refait pareil, il n'y a donc rien à battre.
 - Carte « Aujourd'hui » (absente à la toute première ouverture) : pesée sur une ligne (toujours là), sommeil de la nuit (≤5h … 9h+, **jamais pré-rempli**, un appui enregistre), calories d'hier (Tenu / Trop / Pas assez).
 - « Autre séance », séance libre.
 - Rappels en haut sur une ligne : sauvegarde (après 7 jours sans export), masquables.
@@ -34,7 +34,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Passer en « ☰ Vue liste » et revenir en « ⤢ Plein écran ».
 - Naviguer entre exercices : en plein écran, l'appli enchaîne seule et « Voir la suite de la séance › » montre le reste (pas de pastilles d'exercices, voulu) ; en vue liste, pastilles et Précédent / Suivant. « Machine prise », remplacer un exercice, ajouter un exercice.
 - Superset : relier deux exercices, vérifier l'alternance des séries et le repos de transition.
-- Échauffement : coupé par défaut ; l'activer (« 🤸 Activer l'échauffement » sur l'écran « Voir », ou dans Programmes), cocher des mouvements, le texte du bouton suit les cases (« Passer l'échauffement », « Terminer l'échauffement (2/4) », « ✓ Échauffé, on attaque »).
+- Échauffement : coupé par défaut ; l'activer (interrupteur « 🤸 Échauffement » en haut de l'écran « Voir », ou dans Programmes), cocher des mouvements, le texte du bouton suit les cases (« Passer l'échauffement », « Terminer l'échauffement (2/4) », « ✓ Échauffé, on attaque »).
 - Fiche ⓘ d'un exercice : consignes, « Modifier l'exercice ».
 - Les changements faits en séance **ne modifient pas** la séance enregistrée dans le programme (sauf « Modifier l'exercice »).
 - **Retour** pendant la séance : ferme d'abord les fenêtres, puis défait ta dernière navigation (exercice 3 → retour → exercice 1, plein écran ↔ liste). Au départ sans série faite : la séance est annulée, retour à l'écran d'où tu l'as lancée. Avec des séries : fenêtre Continuer / Terminer et enregistrer / Supprimer.

@@ -94,6 +94,14 @@ export default function App() {
             catalogue={catalogue}
             onVoirSeance={setDetail}
             onMesures={() => setOnglet('corps')}
+            onObjectifs={() => {
+              try {
+                localStorage.setItem('sous_onglet_corps', 'objectifs')
+              } catch {
+                /* stockage indisponible */
+              }
+              setOnglet('corps')
+            }}
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onBilan={() => (setVue('bilan'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
