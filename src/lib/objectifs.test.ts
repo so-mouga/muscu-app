@@ -126,3 +126,10 @@ describe('audit rythme visé', () => {
     expect(avisRythme('seche', -1.2 * 8, 8)).toMatch(/−0,2 à −1 kg par semaine/)
   })
 })
+
+describe('fin de phase affichée', () => {
+  it('le texte donne le dernier jour de la phase, comme Objectifs (12 semaines du 1 nov. : jusqu’au 23 janv.)', () => {
+    const f = modifier([], '2026-11-01', { phase: 'prise', finPrevue: finApres('2026-11-01', 12) })
+    expect(textePhase(f, '2026-11-01', (iso) => iso)).toMatch(/fin prévue le 2027-01-23/)
+  })
+})

@@ -13,7 +13,7 @@ import VolumeMuscles from './VolumeMuscles'
 import { confirmer } from './Dialogues'
 
 export const AIDE_CYCLE =
-  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut), avec une semaine de déload à la fin. Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, l’appli te demande si tu veux l’appliquer tout de suite ou seulement au prochain cycle.'
+  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine de déload à la fin : 5 de travail + 1 de déload). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, l’appli te demande si tu veux l’appliquer tout de suite ou seulement au prochain cycle.'
 export const AIDE_DELOAD =
   'Déload : une semaine allégée pour récupérer et repartir plus fort. L’appli divise les séries par deux, baisse les charges d’environ 10 %, vise un RPE de 6-7 et retire les finisseurs. Garde tes repas et tes pas comme d’habitude : une semaine allégée ne fait pas perdre de muscle. Ces séances ne comptent pas pour ta progression : ensuite, tu reprends là où tu en étais.'
 
@@ -174,7 +174,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
         </label>
 
         <div className="champ">
-          <span>Durée</span>
+          <span>Durée, déload compris</span>
           <div className="chips">
             {[4, 5, 6, 7, 8, 10, 12]
               .filter((n) => !etat || n >= etat.n)
@@ -296,7 +296,7 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
           ←
         </button>
         <div style={{ flex: 1 }}>
-          <h2>Cycle en cours</h2>
+          <h2>{etat.n <= 0 ? 'Cycle à venir' : etat.fini ? 'Cycle terminé' : 'Cycle en cours'}</h2>
           <div className="faible">
             {nomCycle(cycle)} · {cycle.semaines} semaines depuis le {debutSemaine(cycle.debut)}
             {cycle.priorites?.length ? ` · priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}` : ''}

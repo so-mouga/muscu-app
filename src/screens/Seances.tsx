@@ -168,7 +168,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
               return (
                 <button className="liste-btn bandeau-cycle" style={{ borderColor: 'var(--accent)' }} onClick={() => ouvrir({ type: 'cycle' })}>
                   <span>
-                    <span className="faible">Cycle en cours</span>
+                    <span className="faible">{e.n <= 0 ? 'Cycle à venir' : e.fini ? 'Cycle' : 'Cycle en cours'}</span>
                     <strong>🔁 {nomCycle(catalogue.cycle)}</strong>
                     <span className="faible">
                       {e.fini ? 'terminé : voir le bilan' : e.n <= 0 ? 'commence la semaine prochaine' : e.pause ? 'semaine en pause' : `semaine ${e.n}/${e.total}${e.deload ? ' · 🧘 déload' : ''}`}

@@ -413,9 +413,11 @@ interface EditeurProps {
   compact?: boolean
   /** Heure d'une série ajoutée après coup (séance passée), au lieu de maintenant. */
   heure?: number
+  /** Dans une fenêtre : reçoit de quoi la fermer en gardant la correction (appui à côté, retour). */
+  fermeture?: { current: (() => void) | null }
 }
 
-export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure }: EditeurProps) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1
@@ -461,6 +463,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     repsMax: p.repsMax,
     douleur: douleur || undefined,
     heure: edition?.heure ?? heure ?? Date.now(),
+    // Corriger un drop set ou un rest-pause garde ses mini-séries.
+    ...(edition?.suite && { suite: edition.suite }),
     ...extra,
   })
 
@@ -498,6 +502,11 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     }
     if (edition) onFini(s)
   }
+
+  // Fermer la fenêtre (appui à côté, retour) garde la correction, comme partout ; rien de changé : on ferme.
+  const serieAffichee = () => construire(type, type === 'serie_longue' ? { demiReps: demi, zone } : { demiReps: undefined, zone: undefined })
+  const modifiee = !!edition && (charge !== edition.charge || reps !== edition.reps || rpe !== edition.rpe || type !== edition.type || douleur !== !!edition.douleur || (type === 'serie_longue' && demi !== edition.demiReps))
+  if (fermeture) fermeture.current = () => (modifiee && reps > 0 ? void enregistrer(serieAffichee()) : onAnnulerEdition())
 
   const supprimer = async () => {
     if (!edition || !(await confirmer(`Supprimer la série ${index + 1} ?`, { oui: 'Supprimer la série', danger: true }))) return
@@ -732,7 +741,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         <button
           className={'btn grand' + (enRepos ? '' : ' primaire')}
           disabled={reps <= 0}
-          onClick={() => enregistrer(construire(type, type === 'serie_longue' ? { demiReps: demi, zone } : { demiReps: undefined, zone: undefined }))}
+          onClick={() => enregistrer(serieAffichee())}
         >
           {reps <= 0 ? (temps ? 'INDIQUE LE TEMPS TENU' : 'INDIQUE AU MOINS 1 REP') : edition ? 'METTRE À JOUR' : 'VALIDER LA SÉRIE'}
         </button>

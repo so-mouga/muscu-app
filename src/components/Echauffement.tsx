@@ -98,12 +98,21 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
   )
 }
 
-/** Réglage de l'échauffement d'une séance (éditeur) : coupé par défaut ; activé, on choisit ses mouvements dans une liste. */
-export function ReglageEchauffement({ modele, onChange }: { modele: SeanceModele; exo?: (id: string) => Exercice; onChange: (v: SeanceModele['echauffement']) => void }) {
+/**
+ * Réglage de l'échauffement d'une séance : coupé par défaut ; activé, on choisit ses mouvements dans une liste.
+ * `discret` (écran « Voir ») : coupé, ce n'est qu'un petit bouton « Activer l'échauffement ».
+ */
+export function ReglageEchauffement({ modele, onChange, discret = false }: { modele: SeanceModele; exo?: (id: string) => Exercice; onChange: (v: SeanceModele['echauffement']) => void; discret?: boolean }) {
   const [choix, setChoix] = useState(false)
   const liste = useMouvements()
   const actif = Array.isArray(modele.echauffement)
   const ids = echauffementDe(modele).filter((id) => mouvement(id, liste))
+  if (discret && !actif)
+    return (
+      <button type="button" className="btn discret petit" onClick={() => (onChange([]), setChoix(true))}>
+        🤸 Activer l’échauffement
+      </button>
+    )
   return (
     <div className="carte pile">
       <Interrupteur

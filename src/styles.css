@@ -337,6 +337,10 @@ select {
   background: transparent;
   border: 0;
   padding: 4px;
+  /* Discret : on peut toucher le nombre pour le taper au clavier. */
+  text-decoration: underline dotted var(--texte-3);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
 }
 .stepper .unite {
   display: block;

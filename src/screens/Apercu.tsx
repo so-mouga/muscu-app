@@ -12,17 +12,20 @@ import { diagnostic, texteBlocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
 import type { SeanceModele } from '../types'
 import { BoutonLexique } from '../components/Lexique'
+import { ReglageEchauffement } from '../components/Echauffement'
 
 interface Props {
   modele: SeanceModele
   catalogue: Catalogue
   onDemarrer: () => void
+  /** Active ou coupe l'échauffement de cette séance (enregistré sur la séance, comme dans Programmes). */
+  onEchauffement?: (v: SeanceModele['echauffement']) => void
   onFermer: () => void
   /** Semaine de déload : la séance sera allégée au démarrage. */
   deload?: boolean
 }
 
-export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload = false }: Props) {
+export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, onFermer, deload = false }: Props) {
   useRetour(true, onFermer)
   useEffect(() => {
     document.body.classList.add('sans-onglets')
@@ -145,6 +148,8 @@ export default function Apercu({ modele, catalogue, onDemarrer, onFermer, deload
           onFermer={() => setObjectif(null)}
         />
       )}
+
+      {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} discret />}
 
       <div className="barre-demarrer">
         <button className="btn primaire grand" onClick={onDemarrer}>

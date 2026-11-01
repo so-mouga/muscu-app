@@ -12,9 +12,11 @@ export const RIR: Record<number, string> = {
 export const kg = (x: number | null | undefined) =>
   x === null || x === undefined ? '—' : x.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
 
-export function chargeTexte(exo: Exercice, charge: number | null | undefined): string {
+/** `long` : « poids du corps » en toutes lettres (détail de séance) plutôt que « PDC » (là où la place manque). */
+export function chargeTexte(exo: Exercice, charge: number | null | undefined, long = false): string {
   if (charge === null || charge === undefined) return 'à calibrer'
-  if (exo.mode === 'poids_corps') return charge === 0 ? 'PDC' : `PDC ${charge > 0 ? '+' : '−'}${kg(Math.abs(charge))} kg`
+  const pdc = long ? 'poids du corps' : 'PDC'
+  if (exo.mode === 'poids_corps') return charge === 0 ? pdc : `${pdc} ${charge > 0 ? '+' : '−'}${kg(Math.abs(charge))} kg`
   if (exo.mode === 'elastique') return `niveau ${charge}`
   if (exo.mode === 'par_main') return `${kg(charge)} kg/main`
   return `${kg(charge)} kg`
@@ -37,8 +39,8 @@ export function schemaPlan(exo: Exercice, p: ExoPlan): string {
 }
 
 /** Charge et quantité : « 30 kg × 12 », « PDC +10 kg × 45 s », ou juste « 45 s » au poids du corps. */
-export const chargeQte = (exo: Exercice, charge: number | null | undefined, n: number | string) =>
-  enTemps(exo) && exo.mode === 'poids_corps' && charge === 0 ? qte(exo, n) : `${chargeTexte(exo, charge)} × ${qte(exo, n)}`
+export const chargeQte = (exo: Exercice, charge: number | null | undefined, n: number | string, long = false) =>
+  enTemps(exo) && exo.mode === 'poids_corps' && charge === 0 ? qte(exo, n) : `${chargeTexte(exo, charge, long)} × ${qte(exo, n)}`
 
 /** Objectif d'un exercice : « 30 kg × 12/12/10 », « 30 kg → 25 kg × 12/12 », « 45/45/45 s ». */
 export function cibleTexte(exo: Exercice, charges: (number | null)[], reps: number[]): string {
@@ -60,8 +62,9 @@ export function kgSouleves(s: Serie, exo?: Exercice): number {
 export const ecartQte = (exo: Exercice | undefined, d: number) =>
   exo && enTemps(exo) ? `${d > 0 ? '+' : '−'}${Math.abs(d)} s` : `${d > 0 ? '+' : '−'}${Math.abs(d)} rep${Math.abs(d) > 1 ? 's' : ''}`
 
-export function serieTexte(exo: Exercice, s: Serie): string {
-  let t = `${chargeQte(exo, s.charge, s.reps)} @${kg(s.rpe)}`
+/** « PDC +10 kg × 8 @8 » ; `long` : « poids du corps +10 kg × 8 », l'effort étant écrit à part. */
+export function serieTexte(exo: Exercice, s: Serie, long = false): string {
+  let t = long ? chargeQte(exo, s.charge, s.reps, true) : `${chargeQte(exo, s.charge, s.reps)} @${kg(s.rpe)}`
   if (s.demiReps) t += ` + ${s.demiReps} demi-reps`
   if (s.suite?.length) t += s.type === 'drop' ? s.suite.map((x) => ` ↘ ${kg(x.charge)}×${x.reps}`).join('') : ` + ${s.suite.map((x) => x.reps).join(' + ')}`
   return t
@@ -190,16 +193,17 @@ export function dureeEstimee(m: SeanceModele): number {
   return Math.round(s / 300) * 5
 }
 
-/** Durée effective d'une séance : de la 1re à la dernière série si possible, sinon fin - début, plafonnée à 4 h. */
+/** Durée effective d'une séance : de la 1re à la dernière série si possible, sinon fin - début ; toujours plafonnée à 4 h (séance oubliée ouverte). */
 export function dureeSeanceEffective(s: Seance): number {
+  const MAX = 4 * 3600000
   const heures = s.series.map((x) => x.heure).filter((h): h is number => typeof h === 'number' && h > 0)
   if (heures.length >= 2) {
     const diff = Math.max(...heures) - Math.min(...heures)
-    if (diff > 0) return diff
+    if (diff > 0) return Math.min(diff, MAX)
   }
   const fin = s.fin ?? (heures.length ? Math.max(...heures) : s.debut)
   const total = fin - s.debut
-  return total > 0 ? (total > 4 * 3600000 && heures.length ? Math.max(...heures) - s.debut : Math.min(total, 4 * 3600000)) : 0
+  return total > 0 ? Math.min(total > MAX && heures.length ? Math.max(...heures) - s.debut : total, MAX) : 0
 }
 
 /** Durée réelle habituelle (min) d'une séance : médiane des 3 dernières fois, arrondie à 5 min. */
@@ -267,5 +271,8 @@ export function ecartSerie(s: Serie, avant: Serie | undefined, exo?: Exercice): 
     .filter(Boolean)
     .join(', ')
   const sens = dc > 0 || (dc === 0 && dr > 0) ? 'mieux' : dc === 0 && dr === 0 ? 'egal' : 'moins'
-  return { sens, texte: texte || 'identique' }
+  // Mêmes charge et reps : l'effort noté dit si c'était plus dur ou plus facile.
+  const memes = exo && enTemps(exo) ? 'même temps' : 'mêmes reps'
+  const effort = s.rpe > avant.rpe ? `${memes}, effort plus dur` : s.rpe < avant.rpe ? `${memes}, effort plus facile` : 'identique'
+  return { sens, texte: texte || effort }
 }

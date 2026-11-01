@@ -167,7 +167,11 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
   const phases = periodes(frise)
   const phaseDuJour = (iso: string) => phases.find((p) => p.debut <= iso && iso <= finAffichee(p, dateISO()))?.phase
   const auj = new Date()
-  const [mois, setMois] = useState(() => new Date(auj.getFullYear(), auj.getMonth(), 1))
+  // Au retour d'une fiche, on revient sur le mois du jour choisi (pas sur le mois en cours).
+  const [mois, setMois] = useState(() => {
+    const c = new Date(choisi + 'T12:00:00')
+    return new Date(c.getFullYear(), c.getMonth(), 1)
+  })
   const parJour = new Map<string, Seance[]>()
   for (const s of seances) parJour.set(s.date, [...(parJour.get(s.date) ?? []), s])
   const activitesDuJour = new Map<string, Activite[]>()
@@ -464,7 +468,7 @@ function JourChoisi({
           {prevu.deload && <span className="pastille deload">Déload</span>}
         </div>
       ))}
-      {vide && !prevu?.seances.length && !prevu?.pause && <div className="faible ligne-jour">{date > dateISO() ? 'Rien de prévu ce jour-là.' : 'Pas d’entraînement ce jour-là.'}</div>}
+      {vide && !prevu?.seances.length && !prevu?.pause && <div className="faible ligne-jour">{date > dateISO() ? 'Rien de prévu ce jour-là.' : date === dateISO() ? 'Pas encore d’entraînement aujourd’hui.' : 'Pas d’entraînement ce jour-là.'}</div>}
       {pesee !== undefined && (
         <div className="ligne-jour">
           <span>⚖️ Poids</span>
@@ -643,7 +647,10 @@ function CorrectionSerie({
   catalogue: Catalogue
   onFermer: () => void
 }) {
-  useRetour(true, onFermer)
+  // Correction d'une série : fermer (appui à côté, retour) l'enregistre. Série oubliée : on ferme sans l'ajouter.
+  const fermeture = useRef<(() => void) | null>(null)
+  const fermer = () => (fermeture.current ? fermeture.current() : onFermer())
+  useRetour(true, fermer)
   const id = serie?.exoId ?? exoId!
   const exo = exoAvecReglages(catalogue.exo(id), reglages)
   const plan = seance.exercices.find((p) => p.exoId === id) ?? planParDefaut(exo)
@@ -651,7 +658,7 @@ function CorrectionSerie({
   // Série ajoutée : juste après la dernière de l'exercice, pour ne pas fausser les durées.
   const heure = (faites[faites.length - 1]?.heure ?? seance.fin ?? seance.debut) + 60000
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond" onClick={fermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="faible">
           {exo.nom} · {jourCourt(seance.date)}
@@ -671,6 +678,7 @@ function CorrectionSerie({
           verrou={false}
           onFini={onFermer}
           onAnnulerEdition={onFermer}
+          fermeture={serie ? fermeture : undefined}
         />
       </div>
     </div>

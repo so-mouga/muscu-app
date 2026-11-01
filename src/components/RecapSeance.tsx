@@ -3,6 +3,16 @@ import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
 import { chrono, duree, dureePrevueExo, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
+import { LEXIQUE } from '../data/lexique'
+import { Aide } from './Cycle'
+
+/** Effort visé en clair : « 8/10 », ou « 8 à 10/10 » quand il varie selon la série. */
+const effortVise = (plan: ExoPlan) => {
+  const v = plan.series.map((x) => Math.round(x.rpe))
+  const min = Math.min(...v)
+  const max = Math.max(...v)
+  return min === max ? `${min}/10` : `${min} à ${max}/10`
+}
 
 /** Durée d'une séance : effective (de la 1re à la dernière série), ou jusqu'à maintenant si elle est en cours. */
 export const dureeSeance = (s: Seance) => (s.enCours ? Date.now() - s.debut : dureeSeanceEffective(s))
@@ -71,8 +81,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                 )}
               </div>
               <div className="faible">
-                Visé : {schemaPlan(exo, plan)} · RPE {plan.series.map((x) => kg(x.rpe)).join(', ')} ·
-                repos {reposTexte(plan)}
+                Visé : {schemaPlan(exo, plan)} · effort {effortVise(plan)} · repos {reposTexte(plan)}
               </div>
             </div>
             <div>
@@ -81,14 +90,14 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                 const ecartRpe = x.rpeCible !== undefined ? x.rpe - x.rpeCible : 0
                 const contenu = (
                   <>
-                    <div className="ligne entre">
-                      <span>
-                        <span className="faible">S{k + 1}</span> {serieTexte(exo, x)}
+                    <div className="ligne entre" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+                      <span style={{ flex: '1 1 auto', minWidth: 0 }}>
+                        <span className="faible">S{k + 1}</span> {serieTexte(exo, x, true)}
                         {x.douleur ? ' ⚠️' : ''}
                         {onSerie && <span className="faible"> ✎</span>}
                       </span>
                       {e ? (
-                        <span className={'avant ' + e.sens} style={{ display: 'inline', marginTop: 0 }}>
+                        <span className={'avant ' + e.sens} style={{ display: 'inline', marginTop: 0, flex: '0 1 40%', textAlign: 'right' }}>
                           {e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓'} {e.texte}
                         </span>
                       ) : (
@@ -96,14 +105,12 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                       )}
                     </div>
                     <div className="faible petit-info">
-                      {x.rpeCible !== undefined && (
-                        <span style={ecartRpe > 0.5 ? { color: 'var(--alerte)' } : undefined}>
-                          RPE visé {kg(x.rpeCible)}
-                          {ecartRpe ? ` (${ecartRpe > 0 ? '+' : '−'}${kg(Math.abs(ecartRpe))})` : ' ✓'}
-                        </span>
-                      )}
+                      <span style={ecartRpe > 0.5 ? { color: 'var(--alerte)' } : undefined}>
+                        effort {kg(x.rpe)}/10
+                        {x.rpeCible !== undefined && (ecartRpe ? ` (visé ${kg(x.rpeCible)})` : ' ✓')}
+                      </span>
                       {k > 0 && <span>⏱ {chrono((x.heure - series[k - 1].heure) / 1000)} depuis S{k}</span>}
-                      {precedente[k] && <span>avant : {serieTexte(exo, precedente[k])}</span>}
+                      {precedente[k] && <span>avant : {serieTexte(exo, precedente[k], true)}, effort {kg(precedente[k].rpe)}/10</span>}
                     </div>
                   </>
                 )
@@ -128,6 +135,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
               {meilleur > 0 && (
                 <span className={'pastille' + (record && meilleur > record ? ' ok' : '')}>
                   1RM estimé {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}{record && meilleur > record ? ' · record 🏆' : ''}
+                  <Aide texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
                 </span>
               )}
             </div>

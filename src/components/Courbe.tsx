@@ -6,7 +6,7 @@ export default function Courbe({ points, format, label = 'Évolution' }: { point
   const [actif, setActif] = useState(points.length - 1)
   const L = 320
   const H = 140
-  const m = { g: 8, d: 8, h: 12, b: 22 }
+  const m = { g: 8, d: 8, h: 16, b: 22 }
   const vals = points.map((p) => p.valeur)
   let min = Math.min(...vals)
   let max = Math.max(...vals)
@@ -25,6 +25,13 @@ export default function Courbe({ points, format, label = 'Évolution' }: { point
         {[min, (min + max) / 2, max].map((v) => (
           <line key={v} x1={m.g} x2={L - m.d} y1={y(v)} y2={y(v)} stroke="var(--bord)" strokeWidth="1" />
         ))}
+        {/* Graduations : le haut et le bas de l'axe, juste au-dessus de leur ligne. */}
+        <text x={m.g} y={y(max) - 3}>
+          {format(max)}
+        </text>
+        <text x={m.g} y={y(min) - 3}>
+          {format(min)}
+        </text>
         <polyline
           fill="none"
           stroke="var(--accent)"

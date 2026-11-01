@@ -19,7 +19,7 @@ export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[];
     // Nombre complet seulement (« 72,3 ») : un champ mal tapé (« 71,572,3 ») est refusé, pas tronqué.
     const t = valeur.trim().replace(',', '.')
     const poids = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
-    if (!(poids > 30 && poids < 250)) return informer('Tape par exemple 72,3.', 'Poids non reconnu')
+    if (!(poids > 30 && poids < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
     await db.pesees.put({ date: aujourdhui, poids })
     // Séances faites sans poids noté : on leur donne celui-ci, pour le 1RM des exercices au poids du corps.
     await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
@@ -62,7 +62,7 @@ export default function Poids({ pesees, aujourdhui, onDate }: { pesees: Pesee[];
           <input type="date" value={aujourdhui} max={dateISO()} style={{ width: 'auto' }} onChange={(e) => e.target.value && (onDate(e.target.value), setValeur(''))} />
         </label>
       )}
-      <div className="faible">Sert aussi au calcul de l’e1RM des tractions et dips. Seule la moyenne compte, pas la variation d’un jour.</div>
+      <div className="faible">Sert aussi à estimer ta force (1RM estimé) aux tractions et aux dips. Seule la moyenne compte, pas la variation d’un jour.</div>
     </div>
   )
 }

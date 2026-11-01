@@ -125,11 +125,11 @@ export function phaseAffichee(frise: EtapeObjectifs[], aujourdhui: string) {
   return enCours && { ...enCours, aVenir: false as const, enCours: null }
 }
 
-/** Texte pour un bilan : « Sèche depuis le 3 nov. (semaine 3 sur 12, fin prévue le 26 janv.) ». */
+/** Texte pour un bilan : « Sèche depuis le 3 nov. (semaine 3 sur 12, fin prévue le 25 janv.) ». `finPrevue` est le 1er jour d'après : on affiche la veille, son dernier jour. */
 export function textePhase(frise: EtapeObjectifs[], date: string, jour: (iso: string) => string): string | null {
   const p = phaseA(frise, date)
   if (!p) return null
-  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.total ? ` sur ${p.total}, fin prévue le ${jour(p.finPrevue!)}` : ''}${p.ecartVise ? `, objectif ${ecartTexte(p.ecartVise)}` : ''})`
+  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.total ? ` sur ${p.total}, fin prévue le ${jour(veille(p.finPrevue!))}` : ''}${p.ecartVise ? `, objectif ${ecartTexte(p.ecartVise)}` : ''})`
 }
 
 const virgule = (x: number) => String(Math.round(x * 100) / 100).replace('.', ',')

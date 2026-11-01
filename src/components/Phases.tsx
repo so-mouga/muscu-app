@@ -66,7 +66,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
       {enCours && finie && (
         <div className="carte pile rappel-phase">
           <strong>
-            Ta {nomPhase(enCours.phase).toLowerCase()} prévue jusqu’au {jour(enCours.finPrevue!)} est finie.
+            Ta {nomPhase(enCours.phase).toLowerCase()} prévue jusqu’au {jour(plusJours(enCours.finPrevue!, -1))} est finie.
           </strong>
           <div className="ligne wrap" style={{ gap: 8 }}>
             <button className="btn petit" onClick={() => enregistrer(dureePhase(frise, enCours.debut, semainesEntre(enCours.debut, enCours.finPrevue!) + 4, aujourdhui))}>

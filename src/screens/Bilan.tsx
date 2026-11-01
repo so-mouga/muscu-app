@@ -2,6 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import { informer } from '../components/Dialogues'
+import { Aide } from '../components/Cycle'
+import { LEXIQUE } from '../data/lexique'
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { db } from '../db'
@@ -319,7 +321,9 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
       )}
       {progres.length > 0 && (
         <div>
-          <div className="faible">Plus fortes progressions</div>
+          <div className="faible">
+            Plus fortes progressions <Aide texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
+          </div>
           {progres.map((p) => (
             <LigneExo key={p.exo.id} onClick={onExo ? () => onExo(p.exo.id) : undefined}>
               <span>

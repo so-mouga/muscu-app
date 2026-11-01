@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import { kcalActivite } from '../data/activites'
-import type { Seance } from '../types'
+import type { Seance, Serie } from '../types'
 import { calories, dureeHabituelle, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
@@ -161,4 +161,19 @@ describe('schéma du plan', () => {
   const plan = (reps: [number, number][]) => ({ exoId: 'x', repos: 90, series: reps.map(([repsMin, repsMax]) => ({ repsMin, repsMax, rpe: 8 })), chauffes: [], finisseur: false, charge: null })
   it('identiques : 3 × 8–12', () => expect(schemaPlan(EXERCICES.butterfly, plan([[8, 12], [8, 12], [8, 12]]))).toBe('3 × 8–12'))
   it('différentes : série par série', () => expect(schemaPlan(EXERCICES.butterfly, plan([[12, 12], [10, 10], [8, 8]]))).toBe('12 / 10 / 8'))
+})
+
+describe('textes en clair', () => {
+  const tractions = EXERCICES.tractions
+  const s = (charge: number, reps: number, rpe: number): Serie => ({ id: 'a', exoId: 'tractions', type: 'normale', charge, reps, rpe, heure: 0 })
+  it('détail de séance : « poids du corps » en toutes lettres, sans « @8 »', () => {
+    expect(serieTexte(tractions, s(10, 8, 8), true)).toBe('poids du corps +10 kg × 8')
+    expect(serieTexte(tractions, s(0, 8, 8), true)).toBe('poids du corps × 8')
+    expect(serieTexte(tractions, s(10, 8, 8))).toBe('PDC +10 kg × 8 @8')
+  })
+  it('mêmes charge et reps mais RPE différent : pas « identique »', () => {
+    expect(ecartSerie(s(10, 8, 9), s(10, 8, 7))).toEqual({ sens: 'egal', texte: 'mêmes reps, effort plus dur' })
+    expect(ecartSerie(s(10, 8, 7), s(10, 8, 9))?.texte).toBe('mêmes reps, effort plus facile')
+    expect(ecartSerie(s(10, 8, 8), s(10, 8, 8))?.texte).toBe('identique')
+  })
 })

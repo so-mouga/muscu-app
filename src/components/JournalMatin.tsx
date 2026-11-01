@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
+import { informer } from './Dialogues'
 import { dateISO, kg } from '../lib/calc'
 import { conseilRepas, meilleureProgression } from '../lib/journal'
 import { CLE_PROFIL, objectifDuJour, type Profil } from '../lib/nutrition'
@@ -63,7 +64,6 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const objectifHier = objectifDuJour(catalogue.objectifs, hier, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
   const repas = conseilRepas(phase?.phase, entrainement, deload)
   const progres = terminees ? meilleureProgression(terminees, catalogue.exo, phase ? phase.debut : dateISO(new Date(Date.now() - 28 * JOUR))) : null
-  const peser = phase?.phase === 'seche' || phase?.phase === 'prise' || pesees.length > 0
 
   const ouvrirSaisiePoids = () => {
     const init = pesee ? pesee.poids : poids ?? 70
@@ -74,7 +74,8 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const enregistrerPoids = async () => {
     const t = (valPoids || (poids ? kg(poids) : '70')).trim().replace(',', '.')
     const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
-    if (val > 30 && val < 250) {
+    if (!(val > 30 && val < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
+    {
       const arr = Math.round(val * 10) / 10
       await db.pesees.put({ date: aujourdhui, poids: arr })
       await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
@@ -97,8 +98,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   return (
     <div className="carte pile journal-matin">
       <h3>Aujourd’hui</h3>
-      {peser && (
-        saisiePoids || !pesee ? (
+      {saisiePoids || !pesee ? (
           <div className="ligne-jour" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '4px 0' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center' }}>
               <PictoPesePersonne /> <strong>Poids :</strong>
@@ -181,8 +181,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
               )}
             </div>
           </div>
-        )
-      )}
+        )}
 
       {enSaisie ? (
         <div className="pile" style={{ gap: 6 }}>

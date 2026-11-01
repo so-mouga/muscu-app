@@ -197,7 +197,23 @@ export default function Accueil({
       })()
     : 0
 
-  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu, true)} onFermer={() => voir(null)} />
+  // Échauffement activé depuis « Voir » : enregistré sur la séance (comme dans Programmes) et pris en compte tout de suite.
+  const changerEchauffement = (v: SeanceModele['echauffement']) => {
+    if (!apercu) return
+    const base = catalogue.modele(apercu.id)
+    const avec = <T extends SeanceModele>(m: T): T => {
+      const c = structuredClone(m)
+      if (v === undefined) delete c.echauffement
+      else c.echauffement = v
+      return c
+    }
+    if (base) void db.modeles.put(avec(base))
+    // Pendant un cycle, la séance lancée est sa copie : elle suit aussi (sinon le réglage serait oublié).
+    const c = catalogue.cycle
+    if (c?.modeles.some((m) => m.id === apercu.id)) void db.cycles.update(c.id, { modeles: c.modeles.map((m) => (m.id === apercu.id ? avec(m) : m)) })
+    setApercuEtat(avec(apercu))
+  }
+  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu, true)} onEchauffement={changerEchauffement} onFermer={() => voir(null)} />
 
   // Rappel des mensurations : seulement après 3 semaines sans en prendre.
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
@@ -347,7 +363,7 @@ export default function Accueil({
       )}
 
       {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
-      <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />
+      {!premiereFois && <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />}
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
       {deloadPlusTot && !masque('deload') && (
@@ -378,9 +394,15 @@ export default function Accueil({
         <div className="ligne entre" style={{ marginBottom: 10 }}>
           <h3>Cette semaine</h3>
           <span className="faible">
-            {/* Séances prévues faites ; les autres (doublon, séance libre) à part. */}
-            Prévues {planning.filter(faite).length}/{planning.length}
-            {semaine.length > planning.filter(faite).length && ` · +${semaine.length - planning.filter(faite).length} autre${semaine.length - planning.filter(faite).length > 1 ? 's' : ''}`}
+            {/* Séances prévues faites ; les autres (doublon, séance libre) à part. Sans planning : juste le nombre fait. */}
+            {planning.length ? (
+              <>
+                Prévues {planning.filter(faite).length}/{planning.length}
+                {semaine.length > planning.filter(faite).length && ` · +${semaine.length - planning.filter(faite).length} autre${semaine.length - planning.filter(faite).length > 1 ? 's' : ''}`}
+              </>
+            ) : (
+              semaine.length > 0 && `${semaine.length} séance${semaine.length > 1 ? 's' : ''} faite${semaine.length > 1 ? 's' : ''}`
+            )}
           </span>
         </div>
         <div className="ligne wrap">
