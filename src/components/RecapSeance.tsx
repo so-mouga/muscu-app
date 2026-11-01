@@ -1,18 +1,8 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
-import { chrono, duree, dureePrevueExo, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, reposTexte, schemaPlan, serieTexte, tempsParExo } from '../lib/calc'
+import { duree, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
-import { LEXIQUE } from '../data/lexique'
-import { Aide } from './Cycle'
-
-/** Effort visé en clair : « 8/10 », ou « 8 à 10/10 » quand il varie selon la série. */
-const effortVise = (plan: ExoPlan) => {
-  const v = plan.series.map((x) => Math.round(x.rpe))
-  const min = Math.min(...v)
-  const max = Math.max(...v)
-  return min === max ? `${min}/10` : `${min} à ${max}/10`
-}
 
 /** Durée d'une séance : effective (de la 1re à la dernière série), ou jusqu'à maintenant si elle est en cours. */
 export const dureeSeance = (s: Seance) => (s.enCours ? Date.now() - s.debut : dureeSeanceEffective(s))
@@ -53,6 +43,9 @@ interface Props {
 
 /** Récap par exercice : séries comparées à la fois d'avant, temps, échauffements, 1RM estimé. */
 export default function RecapExos({ seance, avant, reglages, catalogue, basExo, onSerie }: Props) {
+  const [details, setDetails] = useState<Record<string, boolean>>({})
+  const toggleDetail = (id: string) => setDetails((d) => ({ ...d, [id]: !d[id] }))
+
   const temps = tempsParExo(seance)
   const plans = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
 
@@ -65,54 +58,85 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
         const record = Math.max(0, ...histo.flat().map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
         const series = seance.series.filter((x) => x.exoId === plan.exoId)
         const ms = temps[plan.exoId] ?? 0
-        const prevu = dureePrevueExo(seance.exercices, seance.exercices.indexOf(plan))
-        const ch = plan.chauffes.filter((_, k) => seance.chauffes[`${exo.id}:${k}`]).length
         const volumeExo = series.reduce((a, x) => a + kgSouleves(x, exo), 0)
         const meilleur = Math.max(0, ...series.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
+        const ouvert = !!details[exo.id]
+
         return (
           <div key={exo.id} className="carte pile recap">
-            <div>
-              <div className="ligne entre" style={{ alignItems: 'baseline' }}>
-                <strong>{exo.nom}</strong>
-                {ms > 0 && (
-                  <span className="faible" style={{ whiteSpace: 'nowrap' }}>
-                    ⏱ {duree(ms)} <span className="muted">/ prévu {duree(prevu * 1000)}</span>
-                  </span>
-                )}
-              </div>
-              <div className="faible">
-                Visé : {schemaPlan(exo, plan)} · effort {effortVise(plan)} · repos {reposTexte(plan)}
+            <div className="ligne entre" style={{ alignItems: 'center' }}>
+              <strong style={{ fontSize: '1.05rem' }}>{exo.nom}</strong>
+              <button
+                type="button"
+                className={'btn discret petit' + (ouvert ? ' actif' : '')}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: 999,
+                  fontSize: '0.82rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+                onClick={() => toggleDetail(exo.id)}
+                aria-label={`Détails pour ${exo.nom}`}
+                aria-expanded={ouvert}
+              >
+                ℹ <span className={'chevron-accordeon' + (ouvert ? ' ouvert' : '')} style={{ fontSize: 11 }}>▸</span>
+              </button>
+            </div>
+
+            <div className={'accordeon-tiroir' + (ouvert ? ' ouvert' : '')}>
+              <div className="accordeon-contenu">
+                <div className="pile" style={{ gap: 6, padding: '8px 0 4px', borderTop: '1px solid var(--bord)', fontSize: '0.86rem' }}>
+                  {seance.notes[exo.id] && (
+                    <div>
+                      📝 <strong>Réglage / note :</strong> {seance.notes[exo.id]}
+                    </div>
+                  )}
+                  {meilleur > 0 && (
+                    <div>
+                      🏆 <strong>1RM estimé :</strong> {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}
+                      {record && meilleur > record ? ' · record battu 🏆' : ''}
+                    </div>
+                  )}
+                  {volumeExo > 0 && (
+                    <div>
+                      📊 <strong>Volume :</strong> {kg(Math.round(volumeExo))} kg soulevés
+                    </div>
+                  )}
+                  {ms > 0 && (
+                    <div>
+                      ⏱ <strong>Durée :</strong> {duree(ms)}
+                    </div>
+                  )}
+                  {precedente.length > 0 && (
+                    <div className="faible" style={{ marginTop: 2 }}>
+                      🗓 <strong>Séance précédente :</strong> {precedente.map((s) => serieTexte(exo, s, false)).join(' · ')}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div>
+
+            <div className="pile" style={{ gap: 2 }}>
               {series.map((x, k) => {
                 const e = ecartSerie(x, precedente[k], exo)
-                const ecartRpe = x.rpeCible !== undefined ? x.rpe - x.rpeCible : 0
                 const contenu = (
-                  <>
-                    <div className="ligne entre" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
-                      <span style={{ flex: '1 1 auto', minWidth: 0 }}>
-                        <span className="faible">S{k + 1}</span> {serieTexte(exo, x, true)}
-                        {x.douleur ? ' ⚠️' : ''}
-                        {onSerie && <span className="faible"> ✎</span>}
+                  <div className="ligne entre" style={{ alignItems: 'baseline', flexWrap: 'nowrap', width: '100%', padding: '2px 0' }}>
+                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span className="faible" style={{ minWidth: 26, display: 'inline-block' }}>S{k + 1}</span>
+                      <strong>{serieTexte(exo, x, false)}</strong>
+                      {x.douleur ? ' ⚠️' : ''}
+                      {onSerie && <span className="faible"> ✎</span>}
+                    </span>
+                    {e ? (
+                      <span className={'avant ' + e.sens} style={{ display: 'inline', textAlign: 'right', whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+                        {e.sens === 'mieux' ? '↑ ' : e.sens === 'egal' ? '= ' : '↓ '}{e.texte}
                       </span>
-                      {e ? (
-                        <span className={'avant ' + e.sens} style={{ display: 'inline', marginTop: 0, flex: '0 1 40%', textAlign: 'right' }}>
-                          {e.sens === 'mieux' ? '↑' : e.sens === 'egal' ? '=' : '↓'} {e.texte}
-                        </span>
-                      ) : (
-                        <span className="faible">{precedente.length ? '' : '1re fois'}</span>
-                      )}
-                    </div>
-                    <div className="faible petit-info">
-                      <span style={ecartRpe > 0.5 ? { color: 'var(--alerte)' } : undefined}>
-                        effort {kg(x.rpe)}/10
-                        {x.rpeCible !== undefined && (ecartRpe ? ` (visé ${kg(x.rpeCible)})` : ' ✓')}
-                      </span>
-                      {k > 0 && <span>⏱ {chrono((x.heure - series[k - 1].heure) / 1000)} depuis S{k}</span>}
-                      {precedente[k] && <span>avant : {serieTexte(exo, precedente[k], true)}, effort {kg(precedente[k].rpe)}/10</span>}
-                    </div>
-                  </>
+                    ) : (
+                      <span className="faible" style={{ fontSize: '0.82rem' }}>{precedente.length ? '' : '1re fois'}</span>
+                    )}
+                  </div>
                 )
                 return onSerie ? (
                   <button key={x.id} className="recap-serie cliquable" onClick={() => onSerie(x)}>
@@ -125,21 +149,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                 )
               })}
             </div>
-            <div className="ligne wrap" style={{ gap: 6 }}>
-              {plan.chauffes.length > 0 && (
-                <span className="pastille">
-                  Échauffement {ch}/{plan.chauffes.length}
-                </span>
-              )}
-              {volumeExo > 0 && <span className="pastille">{kg(Math.round(volumeExo))} kg soulevés</span>}
-              {meilleur > 0 && (
-                <span className={'pastille' + (record && meilleur > record ? ' ok' : '')}>
-                  1RM estimé {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}{record && meilleur > record ? ' · record 🏆' : ''}
-                  <Aide texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
-                </span>
-              )}
-            </div>
-            {seance.notes[exo.id] && <div className="faible">📝 {seance.notes[exo.id]}</div>}
+
             {basExo?.(exo, plan)}
           </div>
         )

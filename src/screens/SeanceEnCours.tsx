@@ -1220,12 +1220,12 @@ function FinSeance({
 
       {faits.length > 0 && (
         <>
-          <h3 style={{ margin: '18px 0 4px' }}>Récap par exercice</h3>
-          <div className="faible" style={{ marginBottom: 10 }}>
-            {seance.deload
-              ? 'Séance de déload : pas d’objectif à fixer. La prochaine vraie séance reprend là où tu en étais avant le déload.'
-              : 'Tes séries comparées à la dernière fois. La prochaine fois, tu refais pareil, sauf si tu appliques un conseil 💡 (exercices avec une fourchette de reps) ; ✎ pour régler toi-même.'}
-          </div>
+          <h3 style={{ margin: '18px 0 8px' }}>Récap par exercice</h3>
+          {seance.deload && (
+            <div className="faible" style={{ marginBottom: 10 }}>
+              Séance de déload : maintien des acquis.
+            </div>
+          )}
           <RecapExos
             seance={seance}
             avant={terminees}
