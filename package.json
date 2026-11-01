@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "test": "vitest run",
+    "e2e": "playwright test",
     "android": "cap sync android && cd android && ./gradlew assembleRelease -q && cp app/build/outputs/apk/release/app-release.apk ../muscu.apk"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@capacitor/android": "^8.6.0",
     "@capacitor/cli": "^8.6.0",
+    "@playwright/test": "^1.64.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",

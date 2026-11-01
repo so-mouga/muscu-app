@@ -6,3 +6,5 @@ src/**/*.js
 /index.js
 /vite.config.js
 /muscu.apk
+test-results/
+playwright-report/

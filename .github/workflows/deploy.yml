@@ -26,6 +26,9 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      # Parcours principal dans un vrai navigateur (séance, export / import, ancienne base) : bloque la mise en ligne s'il casse.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
