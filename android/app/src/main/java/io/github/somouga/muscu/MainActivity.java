@@ -32,10 +32,20 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void handleOnBackPressed() {
                     WebView vue = bridge.getWebView();
-                    if (vue.canGoBack() && !vue.copyBackForwardList().getItemAtIndex(vue.copyBackForwardList().getCurrentIndex() - 1).getUrl().startsWith("data:")) {
-                        vue.goBack();
-                        return;
-                    }
+                    // On demande directement à l'appli s'il y a quelque chose à fermer (src/lib/nav.ts,
+                    // window.__retourCran) : l'historique ne suffit pas, la WebView saute les entrées
+                    // ajoutées sans geste de l'utilisateur et le retour fermait l'appli par erreur.
+                    vue.evaluateJavascript("(function(){return window.__retourCran ? window.__retourCran() : null})()", r -> {
+                        if ("true".equals(r)) return;
+                        if (!"false".equals(r) && vue.canGoBack() && !vue.copyBackForwardList().getItemAtIndex(vue.copyBackForwardList().getCurrentIndex() - 1).getUrl().startsWith("data:")) {
+                            vue.goBack(); // page sans __retourCran (« Pas de connexion », ancienne version du site)
+                            return;
+                        }
+                        quitter();
+                    });
+                }
+
+                private void quitter() {
                     setEnabled(false);
                     getOnBackPressedDispatcher().onBackPressed();
                     setEnabled(true);

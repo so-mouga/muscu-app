@@ -25,16 +25,27 @@ function retirerPiegeSiInutile() {
   }
 }
 
+/** Ferme la couche du dessus ; faux s'il n'y avait rien à fermer. */
+function fermerDessus(): boolean {
+  const haut = pile.pop()
+  if (haut && haut.fn() === 'rester') pile.push(haut)
+  setTimeout(assurerPiege, 0)
+  return !!haut
+}
+
 window.addEventListener('popstate', () => {
   if (aIgnorer > 0) {
     aIgnorer--
     assurerPiege()
     return
   }
-  const haut = pile.pop()
-  if (haut && haut.fn() === 'rester') pile.push(haut)
-  setTimeout(assurerPiege, 0)
+  fermerDessus()
 })
+
+// Appli Android 1.8 et plus : le bouton retour appelle directement cette fonction (MainActivity), sans
+// passer par l'historique. Chrome saute les entrées ajoutées sans geste de l'utilisateur : le piège remis
+// après un retour était ignoré, et le retour suivant fermait l'appli. Vrai : une couche a été fermée.
+;(window as unknown as { __retourCran?: () => boolean }).__retourCran = fermerDessus
 
 /** Tant que `actif`, le bouton retour appelle `onRetour`. Renvoyer 'rester' garde la couche. */
 export function useRetour(actif: boolean, onRetour: () => 'rester' | void) {
