@@ -1091,6 +1091,12 @@ function MachinePrise({
   )
 }
 
+const OPTIONS_FORME = [
+  { val: 1, label: 'Difficile', emoji: '😫' },
+  { val: 3, label: 'Bien', emoji: '👌' },
+  { val: 5, label: 'Au top', emoji: '🔥' },
+] as const
+
 function FinSeance({
   seance,
   terminees,
@@ -1106,14 +1112,22 @@ function FinSeance({
 }) {
   const modele = catalogue.modele(seance.modeleId)
   // Rien de présélectionné : une note non choisie n'est pas enregistrée.
-  const [ressenti, setRessenti] = useState<number | undefined>(undefined)
-  const [energie, setEnergie] = useState<number | undefined>(undefined)
+  const [forme, setForme] = useState<number | undefined>(seance.energie ?? seance.ressenti ?? undefined)
+  const [ressenti, setRessenti] = useState<number | undefined>(seance.ressenti)
+  const [energie, setEnergie] = useState<number | undefined>(seance.energie)
   const [garder, setGarder] = useState(false)
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
   const [ajuste, setAjuste] = useState<string | null>(null)
   const [voirMuscles, setVoirMuscles] = useState(false)
   const libre = !modele && seance.exercices.length > 0
+
+  const choisirForme = (v: number) => {
+    const n = forme === v ? undefined : v
+    setForme(n)
+    setRessenti(n)
+    setEnergie(n)
+  }
 
   // « Prochaine fois » : par défaut, refaire exactement cette séance ; l'utilisateur monte lui-même.
   const avecCelleCi = [seance, ...terminees]
@@ -1145,21 +1159,6 @@ function FinSeance({
     await annulerSeance(seance.id)
   }
 
-  const echelle = (v: number | undefined, set: (n: number | undefined) => void, label: string) => (
-    <div>
-      <div className="faible" style={{ marginBottom: 6 }}>
-        {label}
-      </div>
-      <div className="rpe" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className={v === n ? 'actif' : ''} onClick={() => set(v === n ? undefined : n)}>
-            {n}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-
   return (
     <div className="apparait">
       <div className="entete">
@@ -1186,29 +1185,38 @@ function FinSeance({
       </div>
 
       {seance.series.length > 0 && (
-        <div className="carte pile">
-          {echelle(ressenti, setRessenti, 'Ressenti global (1 = dur, 5 = excellent) · facultatif')}
-          {echelle(energie, setEnergie, 'Énergie (1 = vidé, 5 = au top) · facultatif')}
+        <div className="carte pile" style={{ gap: 8 }}>
+          <div className="faible" style={{ fontSize: '0.85rem' }}>
+            Sensations générales · facultatif
+          </div>
+          <div className="ligne" style={{ gap: 8 }}>
+            {OPTIONS_FORME.map((o) => {
+              const actif = forme === o.val
+              return (
+                <button
+                  key={o.val}
+                  type="button"
+                  className={'btn ' + (actif ? 'primaire' : 'discret')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: '0.85rem',
+                    fontWeight: actif ? 700 : 500,
+                  }}
+                  onClick={() => choisirForme(o.val)}
+                >
+                  <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>{o.emoji}</span>
+                  <span>{o.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
-
-      {seance.series.length > 0 &&
-        (() => {
-          const volume = volumeParMuscle([seance], catalogue.exercices)
-          const travailles = MUSCLES.filter((m) => volume[m.id] >= 1).sort((a, b) => volume[b.id] - volume[a.id])
-          return (
-            <div className="carte">
-              <button type="button" className="groupe-repli" onClick={() => setVoirMuscles(!voirMuscles)} aria-expanded={voirMuscles}>
-                <span>
-                  <strong>Muscles travaillés</strong>
-                  <span className="faible"> · {travailles.slice(0, 4).map((m) => m.nom.toLowerCase()).join(', ')}{travailles.length > 4 ? '…' : ''}</span>
-                </span>
-                <span className="muted">{voirMuscles ? '▾' : '▸'}</span>
-              </button>
-              {voirMuscles && <SilhouetteVolume volume={volume} cibles={catalogue.cibles} legende="objectif de la semaine" />}
-            </div>
-          )
-        })()}
 
       {faits.length > 0 && (
         <>
@@ -1304,6 +1312,37 @@ function FinSeance({
                 setAjuste(null)
               }}
             />
+          )
+        })()}
+
+      {seance.series.length > 0 &&
+        (() => {
+          const volume = volumeParMuscle([seance], catalogue.exercices)
+          const travailles = MUSCLES.filter((m) => volume[m.id] >= 1).sort((a, b) => volume[b.id] - volume[a.id])
+          if (!travailles.length) return null
+          return (
+            <div className="carte" style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                className="groupe-repli"
+                onClick={() => setVoirMuscles(!voirMuscles)}
+                aria-expanded={voirMuscles}
+                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <span>
+                  <strong>Muscles travaillés</strong>
+                  <span className="faible"> · {travailles.slice(0, 4).map((m) => m.nom.toLowerCase()).join(', ')}{travailles.length > 4 ? '…' : ''}</span>
+                </span>
+                <span className={'muted chevron-accordeon' + (voirMuscles ? ' ouvert' : '')}>▸</span>
+              </button>
+              <div className={'accordeon-tiroir' + (voirMuscles ? ' ouvert' : '')}>
+                <div className="accordeon-contenu">
+                  <div style={{ paddingTop: 10 }}>
+                    <SilhouetteVolume volume={volume} cibles={catalogue.cibles} legende="objectif de la semaine" />
+                  </div>
+                </div>
+              </div>
+            </div>
           )
         })()}
 
