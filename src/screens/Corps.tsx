@@ -20,10 +20,10 @@ const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(
 /** Valeurs d'une clé dans le temps (prises qui la contiennent, de la plus ancienne à la plus récente). */
 const serie = (mesures: Mesure[], cle: string) => mesures.filter((m) => m.valeurs[cle] !== undefined).map((m) => ({ date: m.date, valeur: m.valeurs[cle] }))
 
-type SousOngletCorps = 'poids' | 'mensurations' | 'photos'
+type SousOngletCorps = 'poids' | 'objectifs' | 'mensurations' | 'photos'
 
 /**
- * Onglet Corps (barre du bas) : Poids (avec la phase, l'objectif de poids et les calories visées),
+ * Onglet Corps (barre du bas) : Poids, Objectifs (phase, timeline, calories),
  * Mensurations, Photos.
  */
 export default function Corps({ catalogue }: { catalogue: Catalogue }) {
@@ -60,6 +60,15 @@ export default function Corps({ catalogue }: { catalogue: Catalogue }) {
         <button
           type="button"
           role="tab"
+          aria-selected={onglet === 'objectifs'}
+          className={onglet === 'objectifs' ? 'actif' : ''}
+          onClick={() => changerOnglet('objectifs')}
+        >
+          Objectifs
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={onglet === 'mensurations'}
           className={onglet === 'mensurations' ? 'actif' : ''}
           onClick={() => changerOnglet('mensurations')}
@@ -77,14 +86,8 @@ export default function Corps({ catalogue }: { catalogue: Catalogue }) {
         </button>
       </div>
 
-      {onglet === 'poids' && (
-        <>
-          <OngletPoids />
-          {/* La phase et le poids visé vont avec le poids. */}
-          <h2 style={{ margin: '24px 0 8px' }}>Objectifs</h2>
-          <Objectifs catalogue={catalogue} />
-        </>
-      )}
+      {onglet === 'poids' && <OngletPoids />}
+      {onglet === 'objectifs' && <Objectifs catalogue={catalogue} />}
       {onglet === 'mensurations' && <Mesures />}
       {onglet === 'photos' && <Photos />}
     </div>

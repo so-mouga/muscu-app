@@ -1448,6 +1448,9 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   background: none;
   color: var(--texte-3);
   font-weight: 700;
+  font-size: clamp(0.78rem, 2.7vw, 0.95rem);
+  padding: 4px 2px;
+  white-space: nowrap;
 }
 .segments button.actif {
   background: var(--surface-2);

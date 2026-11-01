@@ -1148,18 +1148,12 @@ function FinSeance({
   return (
     <div>
       <div className="entete">
-        <h1 style={{ whiteSpace: 'nowrap', fontSize: 'clamp(20px, 6vw, 28px)' }}>Fin de séance</h1>
-        <span className="ligne" style={{ gap: 6 }}>
-          {/* En haut, loin d'Enregistrer (en bas) : pratique pour jeter une séance d'essai, sans risque d'appui de travers. */}
-          {seance.series.length > 0 && (
-            <button className="btn petit" onClick={abandonner} aria-label="Supprimer la séance">
-              🗑
-            </button>
-          )}
-          <button className="btn petit" style={{ whiteSpace: 'nowrap' }} onClick={onRetour}>
-            ← Reprendre
-          </button>
-        </span>
+        <button className="btn" onClick={onRetour} aria-label="Reprendre la séance">
+          ←
+        </button>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ whiteSpace: 'nowrap', fontSize: 'clamp(20px, 6vw, 28px)' }}>Fin de séance</h1>
+        </div>
       </div>
       <div className="carte">
         <h2>{seance.nom}</h2>
@@ -1300,32 +1294,25 @@ function FinSeance({
 
       {seance.series.length > 0 ? (
         <>
-          {/* Loin du bouton Enregistrer : effacer une séance ne doit jamais se faire d'un appui de travers. */}
-          <button className="btn discret danger plein" style={{ marginTop: 12 }} onClick={abandonner}>
-            Supprimer la séance
-          </button>
           <div className="barre-enregistrer">
             <button className="btn primaire grand" onClick={enregistrer}>
               ✓ ENREGISTRER LA SÉANCE
             </button>
           </div>
+          <button className="btn discret danger plein" style={{ marginTop: 8, marginBottom: 24 }} onClick={abandonner}>
+            Supprimer la séance
+          </button>
         </>
       ) : (
-        <>
+        <div style={{ marginTop: 20, marginBottom: 24 }}>
           <button
             className="btn primaire grand"
+            style={{ width: '100%' }}
             onClick={() => void annulerSeance(seance.id)}
           >
             Quitter sans enregistrer
           </button>
-          <button
-            className="btn discret plein"
-            style={{ marginTop: 10, marginBottom: 24 }}
-            onClick={onRetour}
-          >
-            ← Reprendre la séance
-          </button>
-        </>
+        </div>
       )}
     </div>
   )

@@ -75,6 +75,8 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
       </div>
       <BoutonLexique />
 
+      {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} compact />}
+
       {deload && <div className="bandeau-deload">🧘 Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
       {modele.exercices.map((p0, i) => {
@@ -149,7 +151,6 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
         />
       )}
 
-      {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} discret />}
 
       <div className="barre-demarrer">
         <button className="btn primaire grand" onClick={onDemarrer}>

@@ -102,11 +102,49 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
  * Réglage de l'échauffement d'une séance : coupé par défaut ; activé, on choisit ses mouvements dans une liste.
  * `discret` (écran « Voir ») : coupé, ce n'est qu'un petit bouton « Activer l'échauffement ».
  */
-export function ReglageEchauffement({ modele, onChange, discret = false }: { modele: SeanceModele; exo?: (id: string) => Exercice; onChange: (v: SeanceModele['echauffement']) => void; discret?: boolean }) {
+export function ReglageEchauffement({
+  modele,
+  onChange,
+  discret = false,
+  compact = false,
+}: {
+  modele: SeanceModele
+  exo?: (id: string) => Exercice
+  onChange: (v: SeanceModele['echauffement']) => void
+  discret?: boolean
+  compact?: boolean
+}) {
   const [choix, setChoix] = useState(false)
   const liste = useMouvements()
   const actif = Array.isArray(modele.echauffement)
   const ids = echauffementDe(modele).filter((id) => mouvement(id, liste))
+
+  if (compact) {
+    return (
+      <div className="carte" style={{ padding: '8px 12px', marginBottom: 12 }}>
+        <Interrupteur
+          on={actif}
+          onChange={(v) => {
+            onChange(v ? (modele.echauffement ?? []) : undefined)
+            if (v && (!modele.echauffement || !modele.echauffement.length)) setChoix(true)
+          }}
+          label={actif && ids.length ? `🤸 Échauffement (≈ ${minutesDe(ids, liste)})` : '🤸 Échauffement avant la séance'}
+        />
+        {actif && (
+          <div className="ligne entre" style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--bord)', alignItems: 'center' }}>
+            <span className="faible" style={{ fontSize: '0.85rem' }}>
+              {ids.length ? `${ids.length} mouvement${ids.length > 1 ? 's' : ''} : ${ids.map((id) => mouvement(id, liste)!.nom).slice(0, 2).join(', ')}${ids.length > 2 ? '…' : ''}` : 'Aucun mouvement sélectionné'}
+            </span>
+            <button type="button" className="btn discret petit lien-action" style={{ padding: '2px 6px', fontSize: '0.85rem' }} onClick={() => setChoix(true)}>
+              Modifier ›
+            </button>
+          </div>
+        )}
+        {choix && <ChoixMouvements ids={ids} liste={liste} onChange={onChange} onFermer={() => setChoix(false)} />}
+      </div>
+    )
+  }
+
   if (discret && !actif)
     return (
       <button type="button" className="btn discret petit" onClick={() => (onChange([]), setChoix(true))}>
