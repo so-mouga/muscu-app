@@ -377,7 +377,7 @@ function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; dern
 function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
   // Date de la pesée saisie : aujourd'hui, ou celle d'une ligne touchée dans la liste (correction).
   const [date, setDate] = useState(dateISO())
-  const [jours, setJours] = useState(91)
+  const [jours, setJours] = useState(30)
   const [voirPesees, setVoirPesees] = useState(false)
   const depuis = jours ? dateISO(new Date(Date.now() - jours * 86400000)) : ''
   const points = [...pesees]
