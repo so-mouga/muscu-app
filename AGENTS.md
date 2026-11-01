@@ -1,6 +1,6 @@
 # muscu-app — règles pour les IA qui codent sur ce projet
 
-Appli perso de musculation (PWA), en français, utilisée en salle sur un téléphone Android (Samsung S25).
+**Cran** (ex-« Muscu ») : appli de musculation (PWA), en français, utilisée en salle sur un téléphone Android (Samsung S25).
 En ligne sur https://so-mouga.github.io/muscu-app/ — chaque push sur `main` est déployé par GitHub Actions (`.github/workflows/deploy.yml`).
 
 Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à tour de rôle**, jamais en même temps.
@@ -17,6 +17,8 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Git : compte perso uniquement — `git -c user.email=kevin.mougammadaly@gmail.com commit …`, dépôt `so-mouga/muscu-app`.
 
 ## Appli Android (Capacitor)
+
+- **Nom et logo** : « Cran » (« monte d'un cran »), logo = disque de fonte orange avec une encoche en haut et un trou au centre, sur fond `--bg`. Source : `public/icon.svg` ; même tracé dans `android/…/drawable/ic_launcher_foreground.xml` (aussi l'écran de lancement). Les PNG (`public/icon-*.png`, `mipmap-*/ic_launcher*.png`) en sont des rendus. L'identifiant `io.github.somouga.muscu`, le dépôt, la base `muscu` et l'URL ne changent pas (changer l'identifiant = autre appli, données perdues). La notification de séance garde son icône de chrono (elle parle du repos).
 
 - Dossier `android/` (Capacitor 8). L'appli charge **le site en ligne** (`server.url` dans `capacitor.config.ts`) : un push sur `main` la met à jour sans réinstaller. Un nouvel APK n'est nécessaire que si on touche à `android/`.
 - `npm run android` : synchronise et construit `muscu.apk` (release, non versionné) à la racine. Il faut JDK 21 (`~/.gradle/gradle.properties` → `org.gradle.java.home`) et le SDK Android (`android/local.properties`).

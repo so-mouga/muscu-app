@@ -4,7 +4,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
 // Le service worker garde l'appli utilisable sans réseau. Seul le code natif (android/) demande un nouvel APK.
 const config: CapacitorConfig = {
   appId: 'io.github.somouga.muscu',
-  appName: 'Muscu',
+  appName: 'Cran',
   webDir: 'dist',
   server: {
     // MUSCU_URL : pour essayer une version locale (ex. http://10.0.2.2:4173/ depuis l'émulateur).

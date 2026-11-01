@@ -19,7 +19,7 @@ export default function UneFenetre({ children }: { children: ReactNode }) {
   if (!ailleurs) return children
   return (
     <div className="carte pile" style={{ marginTop: 40 }}>
-      <h2>Muscu est ouverte ailleurs</h2>
+      <h2>Cran est ouverte ailleurs</h2>
       <div className="faible">
         L’appli est ouverte dans une autre fenêtre (onglet Chrome ou appli installée). Une seule à la fois, pour ne pas mélanger les enregistrements.
       </div>

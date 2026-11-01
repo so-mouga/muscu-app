@@ -365,7 +365,7 @@ const CONTACT_AVIS = 'kevin.mougammadaly+muscu@gmail.com'
 /** Retours des utilisateurs : un mail pré-rempli, avec de quoi reproduire un souci (version, appareil). */
 function DonnerAvis() {
   const corps = `Ce qui m’a plu :\n\n\nCe qui m’a bloqué ou pas clair :\n\n\nCe qui m’a manqué :\n\n\n---\nVersion du ${__VERSION__} · ${natif ? 'appli Android' : 'navigateur'} · ${navigator.userAgent}`
-  const lien = `mailto:${CONTACT_AVIS}?subject=${encodeURIComponent('Muscu : mon avis')}&body=${encodeURIComponent(corps)}`
+  const lien = `mailto:${CONTACT_AVIS}?subject=${encodeURIComponent('Cran : mon avis')}&body=${encodeURIComponent(corps)}`
   return (
     <div className="carte pile">
       <h3>💬 Donner mon avis</h3>
