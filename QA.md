@@ -63,6 +63,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 ### 7. Réglages (bouton en haut à droite de l'accueil ; ← et le retour reviennent à l'accueil)
 - « 💬 Donner mon avis » en haut (mail pré-rempli).
 - Saisie de la charge, bips de fin de repos.
+- « 🔔 Rappel de séance » : seulement dans l'appli Android 1.6 et plus (à lister dans « vrai téléphone » sinon).
 - Sauvegarde : Exporter (choix des données), **Importer** ce fichier dans un site vidé : tout doit revenir à l'identique. Export CSV des séries.
 - Stockage, À propos.
 
