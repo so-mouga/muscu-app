@@ -121,8 +121,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [toast, setToast] = useState<string | null>(null)
   // Mode plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
   // Plein écran par défaut : un nouveau découvre le grand chrono dès sa 1re série ; son choix est ensuite gardé.
-  const [focus, setFocusEtat] = useState<boolean>(() => stocke('modeFocus', true))
-  const setFocus = (v: boolean) => (transition(() => setFocusEtat(v), 'fondu'), range('modeFocus', v), window.scrollTo({ top: 0 }))
+  // Chaque séance démarre en plein écran (on y saisit tout sans défiler) ; la vue liste sert à regarder, à un appui.
+  const [focus, setFocusEtat] = useState(true)
+  const setFocus = (v: boolean) => (transition(() => setFocusEtat(v), 'fondu'), window.scrollTo({ top: 0 }))
   /** Plein écran pendant le repos : afficher quand même la saisie. */
   const [saisie, setSaisie] = useState(false)
   /** Plein écran : série en cours de correction. */
@@ -154,7 +155,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const reposTraite = useRef<number | null>(null)
 
   const plans = seance.exercices
-  const avecEchauffement = !!seance.echauffement?.ids.length
+  // Échauffement passé sans rien cocher : plus de pastille 🤸, il n'y a rien à revoir.
+  const avecEchauffement = !!seance.echauffement?.ids.length && !(seance.echauffement.fini && !seance.echauffement.faits.length)
   const idx = idxBrut === -1 && avecEchauffement ? -1 : Math.max(0, Math.min(idxBrut, plans.length - 1))
   const surEchauffement = idx === -1 || echauffementActif(seance)
 

@@ -28,7 +28,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Rappels en haut sur une ligne : sauvegarde (après 7 jours sans export), masquables.
 
 ### 3. Une séance complète
-- Démarrer. Elle s'ouvre **en plein écran** (grand chrono).
+- Démarrer. Elle s'ouvre **en plein écran** (grand chrono), **à chaque séance**, même si la vue liste avait été choisie la fois d'avant.
 - Plein écran : pastilles S1 S2 S3 (faite ✓ ✎, en cours ▶, à venir avec leur cible), charge et reps côte à côte, RPE en 5 gros boutons (6 à 10, pas de demis). Tout tient **sans défiler**, chaque info une seule fois.
 - Valider des séries, laisser tourner le repos (dans l'appli : toucher le cercle = pause, −15 / +15, Passer ; « Pause / +30 s / Passer » sont les boutons de la notification Android), corriger une série déjà faite. Les nombres (charge, reps) se tapent aussi au clavier en les touchant (soulignés en pointillé).
 - Passer en « ☰ Vue liste » et revenir en « ⤢ Plein écran ».
