@@ -53,6 +53,10 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Couleurs uniquement via les variables CSS de `:root` (`--bg`, `--surface`, `--accent`, `--texte-2`…). Thème sombre.
 - Pas d'illustrations copiées d'autres applis : icônes et pictogrammes maison en SVG.
 
+## Fiche Play Store
+
+- Textes de la fiche dans `fastlane/metadata/android/fr-FR/` (`title.txt` ≤ 30 car., `short_description.txt` ≤ 80, `full_description.txt` ≤ 4000). Les tenir à jour quand une fonction visible change. Pas encore publiée sur le Play Store.
+
 ## Nouvel utilisateur
 
 - Pas de compte. **Première ouverture** (aucun programme enregistré, aucune séance) : l'accueil montre seulement « Pour commencer, choisis ton programme » (`ChoixProgramme`). Choisir copie les séances (ids suffixés) et rend le programme actif (`installerProgramme`). Aussi dans Programmes → « Programmes tout prêts ».

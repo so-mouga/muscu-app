@@ -1,0 +1,40 @@
+Muscu est un carnet d'entraînement pensé pour la salle : tu suis ton programme, tu notes tes séries en deux appuis, et tu vois clairement si tu progresses. Pas de compte, pas de pub, pas d'abonnement : tes données restent sur ton téléphone.
+
+<b>Démarrer en une minute</b>
+• Choisis un programme tout prêt (Full body 3 jours, Haut / Bas 4 jours, Recompo 4 jours) ou crée le tien.
+• Plus de 150 exercices, avec les consignes d'exécution et les muscles travaillés.
+• Ajoute tes propres exercices, modifie ou masque ceux de base.
+
+<b>Pendant la séance</b>
+• Grand chrono de repos en plein écran, lisible d'un coup d'œil entre deux séries.
+• Ton objectif du jour pour chaque série : ce que tu as fait la dernière fois, à refaire ou à battre.
+• Saisie rapide de la charge, des répétitions et de l'effort ressenti (RPE de 6 à 10).
+• Supersets, échauffement à cocher, calculateur de disques.
+• Notification sur l'écran verrouillé avec le temps de repos : pause, +30 s ou passer, sans rouvrir l'appli. Une alarme sonne à la fin du repos, même écran éteint, sans couper ta musique.
+
+<b>Progresser sans se tromper</b>
+• En fin de séance, un conseil clair : une répétition de plus, ou monter la charge. C'est toi qui décides, rien ne change sans ton accord.
+• Records et exercices en progrès mis en avant.
+• Exercice qui stagne depuis 3 semaines ? L'appli te le signale, avec des pistes concrètes tirées de tes données (sommeil, alimentation, fatigue, déload).
+• Volume par muscle : une jauge simple te dit si chaque muscle travaille assez, ou trop.
+• Cycles avec semaine de déload, et rappel quand la fatigue s'accumule.
+
+<b>Suivre ton corps</b>
+• Poids avec moyenne sur 7 jours, mensurations avec l'écart depuis la dernière fois.
+• Photos de progression guidées (face, profil, dos), avec la photo précédente en transparence pour te placer pareil et un retardateur.
+• Compare deux dates côte à côte ou superposées, et zoome sur chaque photo.
+• Sommeil et calories notés en un appui : « dans l'objectif », « trop » ou « pas assez », sans rien compter.
+
+<b>Tes objectifs</b>
+• Sèche, maintien ou prise de masse, sur une période et avec un objectif de poids.
+• Bilan de la période : assiduité, charges, poids, sommeil. L'appli te dit si ta sèche ou ta prise se passe bien, et quoi ajuster.
+• Journal avec calendrier : séances faites, séances prévues, activités (course, vélo, sport…).
+
+<b>Tes données t'appartiennent</b>
+• Aucun compte, aucune donnée envoyée sur Internet : tout est enregistré sur ton téléphone.
+• Sauvegarde en un appui vers Drive, ton mail ou où tu veux, et rappel si tu n'as pas sauvegardé depuis une semaine.
+• Export de tes séries en tableur (CSV).
+
+Tout est en français, sans jargon : chaque terme technique est expliqué dans l'appli.
+
+Une idée, un souci ? Réglages → « Donner mon avis ».
