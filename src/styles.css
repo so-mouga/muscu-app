@@ -1397,9 +1397,16 @@ body:has(.focus) {
 
 /* Historique */
 .calendrier .icone {
-  min-width: 44px;
-  min-height: 44px;
-  font-size: 22px;
+  min-width: 36px;
+  min-height: 36px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .grille-mois {
   display: grid;
@@ -2849,30 +2856,10 @@ button.semaine-bilan.cliquable {
   position: relative;
 }
 .grille-mois .jour[class*='phase-']::before {
-  content: '';
-  position: absolute;
-  left: -3px;
-  right: -3px;
-  bottom: -6px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--phase);
+  display: none;
 }
 .legende-phases {
-  display: flex;
-  gap: 14px;
-  margin-top: 10px;
-  font-size: 12px;
-}
-.legende-phases span::before {
-  content: '';
-  display: inline-block;
-  width: 14px;
-  height: 3px;
-  margin-right: 6px;
-  vertical-align: middle;
-  border-radius: 2px;
-  background: var(--phase);
+  display: none;
 }
 .barre-phase {
   height: 6px;
@@ -2905,15 +2892,29 @@ button.semaine-bilan.cliquable {
   display: inline-block;
 }
 
-/* Calendrier : séances prévues (cercle pointillé), déload dans la couleur des finisseurs */
+/* Calendrier : séances prévues (point orange sous le chiffre), déload dans la couleur des finisseurs */
 .grille-mois .jour.prevu {
+  position: relative;
   color: var(--texte);
-  outline: 1.5px dashed var(--accent);
-  outline-offset: -3px;
+  outline: none;
   box-shadow: none;
 }
-.grille-mois .jour.prevu.deload {
-  outline-color: var(--finisseur);
+.grille-mois .jour.prevu::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-orange);
+}
+.grille-mois .jour.prevu.deload::after {
+  background: var(--finisseur);
+}
+.grille-mois .jour.fait::after {
+  display: none;
 }
 .grille-mois .jour.prevu.choisi {
   box-shadow: 0 0 0 2px var(--texte);

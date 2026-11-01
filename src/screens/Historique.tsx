@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { type ReactNode, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { Camera, ChevronLeft, ChevronRight, Dumbbell, Flame, Moon, Ruler, Scale } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
@@ -13,8 +14,9 @@ import { CALORIES, HEURES, heures, noterJournal } from '../components/JournalMat
 import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { PlanchePhotos, POSES } from './Photos'
 import Bilan from './Bilan'
-import { finAffichee, periodes, PHASES, textePhase, type EtapeObjectifs } from '../lib/objectifs'
+import { finAffichee, nomPhase, periodes, textePhase, type EtapeObjectifs } from '../lib/objectifs'
 import { prevuLe } from '../lib/cycle'
+import { objectifDuJour } from '../lib/nutrition'
 
 type Prevu = ReturnType<typeof prevuLe>
 import { planParDefaut } from './Seances'
@@ -121,6 +123,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
           <Calendrier seances={terminees} frise={catalogue.objectifs} prevu={prevu} choisi={jourChoisi} onChoix={setJourChoisi} />
           <JourChoisi
             date={jourChoisi}
+            catalogue={catalogue}
             prevu={prevu(jourChoisi)}
             phase={textePhase(catalogue.objectifs, jourChoisi, (iso) => jourCourt(iso).replace(/^\S+ /, ''))}
             seances={terminees.filter((x) => x.date === jourChoisi).reverse()}
@@ -180,22 +183,46 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
   }
   const aujourdhui = dateISO()
   const prevuesMois = cases.reduce((n, d) => n + (d ? (prevu(dateISO(d))?.seances.length ?? 0) : 0), 0)
+  const phaseMois = phases.find((p) => p.debut <= dateISO(mois) && dateISO(mois) <= finAffichee(p, dateISO()))?.phase ?? phases.find((p) => p.debut <= aujourdhui && aujourdhui <= finAffichee(p, dateISO()))?.phase
 
   return (
-    <div className="carte calendrier" {...glisse}>
-      <div className="ligne entre">
-        <button className="icone" onClick={() => aller(-1)} aria-label="Mois précédent">
-          ‹
+    <div className="carte calendrier" style={{ padding: '16px', borderRadius: 18 }} {...glisse}>
+      <div className="ligne entre" style={{ marginBottom: 6 }}>
+        <button className="icone" onClick={() => aller(-1)} aria-label="Mois précédent" style={{ color: 'var(--text-secondary)' }}>
+          <ChevronLeft size={22} strokeWidth={2} />
         </button>
         <div style={{ textAlign: 'center' }}>
-          <strong style={{ textTransform: 'capitalize' }}>{mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</strong>
-          <div className="faible">
-            {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
-            {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
+          <strong style={{ textTransform: 'capitalize', fontSize: '1.1rem', color: 'var(--texte)' }}>
+            {mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          </strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+            <span className="faible" style={{ fontSize: '0.8rem' }}>
+              {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
+              {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
+            </span>
+            {phaseMois && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  border: '1px solid rgba(34, 197, 94, 0.25)',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: '#22c55e',
+                }}
+              >
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
+                <span>{nomPhase(phaseMois)}</span>
+              </span>
+            )}
           </div>
         </div>
-        <button className="icone" onClick={() => aller(1)} disabled={dernierMois} aria-label="Mois suivant">
-          ›
+        <button className="icone" onClick={() => aller(1)} disabled={dernierMois} aria-label="Mois suivant" style={{ color: 'var(--text-secondary)' }}>
+          <ChevronRight size={22} strokeWidth={2} />
         </button>
       </div>
       <div key={dateISO(mois)} className={'grille-mois' + (sens ? ` glisse-${sens}` : '')}>
@@ -211,7 +238,7 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
           const ph = phaseDuJour(iso)
           const pr = prevu(iso)
           const prevue = !!pr?.seances.length
-          // Séance de muscu : case pleine ; jour choisi : contour ; phase : trait sous la case.
+          // Séance de muscu : case pleine ; jour choisi : contour.
           return (
             <button
               key={i}
@@ -225,94 +252,7 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
           )
         })}
       </div>
-      {(() => {
-        // Légende de ce qui est visible ce mois-ci : phases, séances prévues, déload.
-        const debutMois = dateISO(mois)
-        const finMois = dateISO(new Date(mois.getFullYear(), mois.getMonth() + 1, 0))
-        const isos = cases.filter((d): d is Date => !!d).map((d) => dateISO(d))
-        const prevus = isos.map(prevu).filter((p) => p?.seances.length)
-        const phasesMois = PHASES.filter((x) => phases.some((p) => p.phase === x.id && p.debut <= finMois && finAffichee(p, dateISO()) >= debutMois))
-        if (!phasesMois.length && !prevus.length) return null
-        return (
-          <div className="legende-phases faible">
-            {phasesMois.map((x) => (
-              <span key={x.id} className={`phase-${x.id}`}>
-                {x.nom}
-              </span>
-            ))}
-            {prevus.some((p) => !p!.deload) && <span className="legende-prevu">prévue</span>}
-            {prevus.some((p) => p!.deload) && <span className="legende-prevu deload">déload</span>}
-          </div>
-        )
-      })()}
     </div>
-  )
-}
-
-/**
- * Sommeil de la nuit d'avant et calories du jour : une ligne qu'on touche pour noter ou corriger.
- * Rien de pré-rempli (une fausse nuit fausserait le Bilan) ; choisir enregistre et referme.
- */
-function NotesDuJour({ date, journal }: { date: string; journal?: JourJournal }) {
-  const [ouvert, setOuvert] = useState<'sommeil' | 'calories' | null>(null)
-  const noter = (c: Partial<JourJournal>) => void noterJournal(date, c).then(() => setOuvert(null))
-  const sommeil = journal?.sommeil
-  const calories = CALORIES.find(([id]) => id === journal?.calories)?.[1]
-  const choix = (titre: string, boutons: ReactNode, efface: Partial<JourJournal> | null) => (
-    <div className="ligne-jour" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 6 }}>
-      <span>{titre}</span>
-      {boutons}
-      <div className="ligne" style={{ gap: 8 }}>
-        <button className="btn discret petit" onClick={() => setOuvert(null)}>
-          Annuler
-        </button>
-        {efface && (
-          <button className="btn discret petit" onClick={() => noter(efface)}>
-            Effacer
-          </button>
-        )}
-      </div>
-    </div>
-  )
-  return (
-    <>
-      {ouvert === 'sommeil' ? (
-        choix(
-          '😴 La nuit d’avant, tu as dormi (heures) :',
-          <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
-            {HEURES.map(([h, txt]) => (
-              <button key={h} className={sommeil === h ? 'actif' : ''} onClick={() => noter({ sommeil: h })}>
-                {txt}
-              </button>
-            ))}
-          </div>,
-          sommeil !== undefined ? { sommeil: undefined } : null,
-        )
-      ) : (
-        <button className="ligne-jour" onClick={() => setOuvert('sommeil')}>
-          <span>😴 Sommeil</span>
-          {sommeil !== undefined ? <strong>{heures(sommeil)}</strong> : <span className="faible">Noter ›</span>}
-        </button>
-      )}
-      {ouvert === 'calories' ? (
-        choix(
-          '🍽 Calories ce jour-là :',
-          <div className="chips">
-            {CALORIES.map(([id, nom]) => (
-              <button key={id} className={journal?.calories === id ? 'actif' : ''} onClick={() => noter({ calories: id })}>
-                {nom}
-              </button>
-            ))}
-          </div>,
-          journal?.calories ? { calories: undefined } : null,
-        )
-      ) : (
-        <button className="ligne-jour" onClick={() => setOuvert('calories')}>
-          <span>🍽 Calories</span>
-          {calories ? <strong>{calories}</strong> : <span className="faible">Noter ›</span>}
-        </button>
-      )}
-    </>
   )
 }
 
@@ -367,8 +307,8 @@ function FenetreMesures({ date, mesures, onFermer }: { date: string; mesures: Me
 /** Le jour choisi en court : ses séances (records, exos en progrès), activités, poids et mesures. Le détail s'ouvre en touchant. */
 function JourChoisi({
   date,
+  catalogue,
   prevu,
-  phase,
   seances,
   pesee,
   mesure,
@@ -381,9 +321,9 @@ function JourChoisi({
   onSeance,
 }: {
   date: string
+  catalogue: Catalogue
   /** Séances prévues (jour à venir, ou aujourd'hui sans séance faite). */
   prevu: Prevu | null
-  /** « Sèche depuis le 3 nov. (semaine 3 sur 12…) » */
   phase: string | null
   seances: Seance[]
   pesee?: number
@@ -402,67 +342,278 @@ function JourChoisi({
   const vide = !seances.length
   const [voirMesures, setVoirMesures] = useState(false)
   const [voirPhotos, setVoirPhotos] = useState(false)
+  const [saisieSommeil, setSaisieSommeil] = useState(false)
+  const [saisieCalories, setSaisieCalories] = useState(false)
+
   // Mensurations : la taille d'abord (la plus parlante), sinon la première prise ; l'écart avec la fois d'avant.
   const clesMesure = mesure ? MESURES.flatMap(clesDe).filter((c) => mesure.valeurs[c] !== undefined) : []
   const cleUne = clesMesure.includes('taille') ? 'taille' : clesMesure[0]
   const ecartUne = cleUne ? ecartMesure(mesures, date, cleUne) : null
   const poses = POSES.flatMap((p) => photos.filter((x) => x.date === date && x.pose === p.id))
+  const objectif = objectifDuJour(catalogue.objectifs, date)
+  const noter = (c: Partial<JourJournal>) => noterJournal(date, c)
+
   return (
-    <div className="carte jour-choisi">
-      <strong style={{ textTransform: 'capitalize' }}>
+    <div className="carte jour-choisi" style={{ padding: '16px', borderRadius: 18 }}>
+      <div className="faible" style={{ fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 2 }}>
+        Détail du jour
+      </div>
+      <strong style={{ textTransform: 'capitalize', fontSize: '1.25rem', fontWeight: 800, color: 'var(--texte)', display: 'block', marginBottom: 12 }}>
         {date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
       </strong>
-      {phase && <div className="faible">🎯 {phase}</div>}
+
+      {/* Séances réalisées */}
       {seances.map((s) => (
         <LigneSeance key={s.id} seance={s} records={records[s.id] ?? 0} mieux={mieux[s.id] ?? 0} onOuvrir={() => onSeance(s.id)} />
       ))}
-      {prevu?.pause && <div className="faible ligne-jour">Semaine en pause dans le cycle.</div>}
+
+      {/* Séances prévues */}
+      {prevu?.pause && <div className="faible" style={{ padding: '8px 0' }}>Semaine en pause dans le cycle.</div>}
       {prevu?.seances.map((m) => (
-        <div key={m.id} className="ligne-jour prevue">
-          <span style={{ minWidth: 0 }}>
-            <span className="faible">Prévu · </span>
-            <strong>{m.nom}</strong>
-            {prevu.semaine && (
-              <span className="faible">
-                {' '}
-                · semaine {prevu.semaine} sur {prevu.total} du cycle
-              </span>
-            )}
-          </span>
-          {prevu.deload && <span className="pastille deload">Déload</span>}
+        <div
+          key={m.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'var(--subcard-gradient)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ color: 'var(--text-secondary)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>{m.nom}</div>
+              <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+                Prévu{prevu.semaine ? ` · Semaine ${prevu.semaine}/${prevu.total}` : ''}
+              </div>
+            </div>
+          </div>
+          {prevu.deload && (
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--finisseur)', background: 'rgba(197, 139, 255, 0.12)', padding: '2px 8px', borderRadius: 6 }}>
+              Déload
+            </span>
+          )}
         </div>
       ))}
-      {vide && !prevu?.seances.length && !prevu?.pause && <div className="faible ligne-jour">{date > dateISO() ? 'Rien de prévu ce jour-là.' : date === dateISO() ? 'Pas encore d’entraînement aujourd’hui.' : 'Pas d’entraînement ce jour-là.'}</div>}
-      {pesee !== undefined && (
-        <div className="ligne-jour">
-          <span>⚖️ Poids</span>
-          <strong>{kg(pesee)} kg</strong>
+
+      {vide && !prevu?.seances.length && !prevu?.pause && (
+        <div className="faible" style={{ padding: '8px 0 12px', fontSize: '0.9rem' }}>
+          {date > dateISO() ? 'Repos · Rien de prévu ce jour-là.' : date === dateISO() ? 'Repos · Pas encore d’entraînement aujourd’hui.' : 'Repos ce jour-là.'}
         </div>
       )}
-      {cleUne && (
-        <button className="ligne-jour" onClick={() => setVoirMesures(true)}>
-          <span style={{ minWidth: 0 }}>
-            📏 {nomCle(cleUne)} <strong>{kg(mesure!.valeurs[cleUne])} cm</strong>
-            {ecartUne && <span className="faible"> ({ecartUne.texte})</span>}
-            {clesMesure.length > 1 && <span className="faible"> · +{clesMesure.length - 1} autre{clesMesure.length > 2 ? 's' : ''}</span>}
-          </span>
-          <span className="faible">›</span>
-        </button>
-      )}
-      {poses.length > 0 && (
-        <button className="ligne-jour" onClick={() => setVoirPhotos(true)}>
-          <span>📸 Photos</span>
-          <span className="vignettes">
-            {poses.map((p) => (
-              <img key={p.id} src={p.image} alt={p.pose} />
+
+      {/* Grille 2x2 des métriques du jour */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 4 }}>
+        {/* Tuile Poids */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'var(--subcard-gradient)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            minHeight: 74,
+          }}
+        >
+          <div style={{ color: 'var(--text-secondary)' }}><Scale size={18} strokeWidth={1.75} /></div>
+          <div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
+              {pesee !== undefined ? `${kg(pesee)} kg` : <span className="faible">—</span>}
+            </div>
+            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>Poids</div>
+          </div>
+        </div>
+
+        {/* Tuile Mensurations (Taille) */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => cleUne && setVoirMesures(true)}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'var(--subcard-gradient)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            minHeight: 74,
+            cursor: cleUne ? 'pointer' : 'default',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+            <Ruler size={18} strokeWidth={1.75} />
+            {cleUne && <ChevronRight size={14} strokeWidth={1.75} className="muted" />}
+          </div>
+          <div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
+              {cleUne && mesure ? `${kg(mesure.valeurs[cleUne])} cm` : <span className="faible">—</span>}
+              {ecartUne && <span className="faible" style={{ fontSize: '0.78rem', fontWeight: 500, marginLeft: 4 }}>({ecartUne.texte})</span>}
+            </div>
+            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>
+              {cleUne ? nomCle(cleUne) : 'Mensurations'}
+            </div>
+          </div>
+        </div>
+
+        {/* Tuile Sommeil */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setSaisieSommeil(!saisieSommeil)}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'var(--subcard-gradient)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            minHeight: 74,
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#8e8eff' }}>
+            <Moon size={18} strokeWidth={1.75} />
+            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
+          </div>
+          <div>
+            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
+              {journal?.sommeil !== undefined ? heures(journal.sommeil) : <span className="faible">—</span>}
+            </div>
+            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>Sommeil</div>
+          </div>
+        </div>
+
+        {/* Tuile Calories */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setSaisieCalories(!saisieCalories)}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'var(--subcard-gradient)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            minHeight: 74,
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#f97316' }}>
+            <Flame size={18} strokeWidth={1.75} />
+            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
+          </div>
+          <div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>
+              {journal?.calories ? (
+                CALORIES.find(([id]) => id === journal.calories)?.[1]
+              ) : objectif?.kcal ? (
+                `${objectif.kcal.toLocaleString('fr-FR')} kcal`
+              ) : (
+                <span className="faible">—</span>
+              )}
+            </div>
+            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>Calories</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Saisie Sommeil dépliée */}
+      {saisieSommeil && (
+        <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div className="ligne entre" style={{ marginBottom: 6 }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Sommeil cette nuit</span>
+            <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieSommeil(false)}>
+              Fermer
+            </button>
+          </div>
+          <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+            {HEURES.map(([h, txt]) => (
+              <button key={h} className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noter({ sommeil: h }).then(() => setSaisieSommeil(false))}>
+                {txt}
+              </button>
             ))}
-            <span className="faible">›</span>
-          </span>
-        </button>
+          </div>
+        </div>
       )}
+
+      {/* Saisie Calories dépliée */}
+      {saisieCalories && (
+        <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div className="ligne entre" style={{ marginBottom: 6 }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calories ce jour-là</span>
+            <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieCalories(false)}>
+              Fermer
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {CALORIES.map(([id, nom]) => (
+              <button
+                key={id}
+                type="button"
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 20,
+                  fontSize: '0.8rem',
+                  fontWeight: journal?.calories === id ? 600 : 400,
+                  background: journal?.calories === id ? 'rgba(249, 115, 22, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid ' + (journal?.calories === id ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                  color: journal?.calories === id ? 'var(--accent-orange)' : 'var(--texte)',
+                  cursor: 'pointer',
+                }}
+                onClick={() => void noter({ calories: journal?.calories === id ? undefined : id }).then(() => setSaisieCalories(false))}
+              >
+                {nom}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Photos */}
+      {poses.length > 0 && (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setVoirPhotos(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'var(--subcard-gradient)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            marginTop: 10,
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ color: 'var(--text-secondary)' }}><Camera size={18} strokeWidth={1.75} /></span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>Photos du jour</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {poses.map((p) => (
+                <img key={p.id} src={p.image} alt={p.pose} style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }} />
+              ))}
+            </div>
+            <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+          </div>
+        </div>
+      )}
+
       {voirMesures && <FenetreMesures date={date} mesures={mesures} onFermer={() => setVoirMesures(false)} />}
       {voirPhotos && <PlanchePhotos photos={photos} dates={[date]} comparerAvec={dernieresPhotos} onFermer={() => setVoirPhotos(false)} />}
-      {date <= dateISO() && <NotesDuJour key={date} date={date} journal={journal} />}
     </div>
   )
 }
@@ -470,22 +621,40 @@ function JourChoisi({
 function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; records: number; mieux: number; onOuvrir: () => void }) {
   const dures = seance.series.filter(estDure).length
   return (
-    <button className="ligne-jour" onClick={onOuvrir}>
-      <span style={{ minWidth: 0 }}>
-        <strong>{seance.nom}</strong>
-        <span className="faible">
-          {' '}
-          · {duree(dureeReelle(seance))} · {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
-        </span>
-        {(records > 0 || mieux > 0 || seance.deload) && (
-          <span className="ligne wrap" style={{ gap: 6, marginTop: 4 }}>
-            {records > 0 && <span className="pastille ok">🏆 {pluriel(records, 'record')}</span>}
-            {mieux > 0 && <span className="pastille ok">↑ {mieux} exo{mieux > 1 ? 's' : ''} mieux</span>}
-            {seance.deload && <span className="pastille">Déload</span>}
+    <button
+      type="button"
+      onClick={onOuvrir}
+      style={{
+        width: '100%',
+        textAlign: 'left',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 14px',
+        borderRadius: 14,
+        background: 'var(--subcard-gradient)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        marginBottom: 10,
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: 'var(--accent-orange)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
+        <div>
+          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>{seance.nom}</div>
+          <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+            {duree(dureeReelle(seance))} · {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {(records > 0 || mieux > 0) && (
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '2px 8px', borderRadius: 6 }}>
+            {records > 0 ? `${records} record${records > 1 ? 's' : ''}` : `${mieux} mieux`}
           </span>
         )}
-      </span>
-      <span className="muted">›</span>
+        <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+      </div>
     </button>
   )
 }

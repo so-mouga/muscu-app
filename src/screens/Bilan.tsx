@@ -1,9 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
+import { Award, ChevronRight, Sparkles, TrendingUp } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { informer } from '../components/Dialogues'
-import { Aide } from '../components/Cycle'
-import { LEXIQUE } from '../data/lexique'
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { db } from '../db'
@@ -84,72 +83,151 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
 
   return (
     <div>
-      <div className="chips" style={{ marginBottom: 6 }}>
+      {/* Filtres de période en une seule rangée fine */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', overflowX: 'auto', marginBottom: 6, scrollbarWidth: 'none' }}>
         {(
           [
-            ['semaine', 'Cette semaine'],
-            ['derniere', 'Semaine dernière'],
-            ['4', '4 semaines'],
-            ...(cycle ? [['cycle', 'Cycle en cours']] : []),
+            ['semaine', 'Semaine'],
+            ['4', '4 sem.'],
+            ...(cycle ? [['cycle', 'Cycle']] as [Periode, string][] : [['derniere', 'Sem. préc.']] as [Periode, string][]),
             ['12', '3 mois'],
           ] as [Periode, string][]
-        ).map(([id, nom]) => (
-          <button key={id} className={periode === id ? 'actif' : ''} onClick={() => setPeriode(id)}>
-            {nom}
-          </button>
-        ))}
+        ).map(([id, nom]) => {
+          const actif = periode === id
+          return (
+            <button
+              key={id}
+              type="button"
+              style={{
+                flex: 1,
+                minWidth: 'fit-content',
+                padding: '6px 12px',
+                fontSize: '0.82rem',
+                fontWeight: actif ? 600 : 400,
+                color: actif ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                background: actif ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
+                border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                borderRadius: 8,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+              onClick={() => setPeriode(id)}
+            >
+              {nom}
+            </button>
+          )
+        })}
       </div>
-      <div className="faible" style={{ marginBottom: 12 }}>
+      <div className="faible" style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
         Du {jour(a.debut)} au {jour(fin)}
         {comparable ? ` · comparé au ${jour(debutAvant)} – ${jour(finAvant)}` : ''}
       </div>
 
-      <div className="carte pile a-retenir">
-        <h3>À retenir</h3>
-        <ul>
-          {retenir.map((t) => (
-            <li key={t}>{t}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="carte">
-        <h3 style={{ marginBottom: 10 }}>Assiduité et travail</h3>
-        <div className="tuiles">
-          <Tuile valeur={a.prevues ? `${a.faites}/${a.prevues}` : String(a.seances)} label={a.prevues ? `séances faites / prévues${a.enPlus ? ` · +${a.enPlus} en plus` : ''}` : 'séances'} n={a.seances} m={avant.seances} comparable={comparable} />
-          <Tuile valeur={a.temps ? duree(a.temps) : '0'} label="d’entraînement" n={a.temps} m={avant.temps} comparable={comparable} texteAvant={avant.temps ? duree(avant.temps) : '0'} />
-          <Tuile valeur={String(a.dures)} label={a.dures > 1 ? 'séries dures' : 'série dure'} n={a.dures} m={avant.dures} comparable={comparable} />
-          <Tuile valeur={kg(Math.round(a.tonnage))} label="kg soulevés" n={a.tonnage} m={avant.tonnage} comparable={comparable} texteAvant={kg(Math.round(avant.tonnage))} />
-          {a.semaines.length > 1 && <Tuile valeur={String(a.enchainees)} label={`semaine${a.enchainees > 1 ? 's' : ''} d’affilée`} />}
+      {/* Carte À retenir masquée s'il n'y a pas assez de données */}
+      {retenir.length > 0 && !retenir[0].startsWith('Pas encore assez') && (
+        <div className="carte pile a-retenir" style={{ padding: '14px 16px', borderRadius: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-orange)' }}>
+            <Sparkles size={16} strokeWidth={2} />
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--texte)' }}>À retenir</h3>
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+            {retenir.map((t) => (
+              <li key={t} style={{ marginTop: 4 }}>
+                {t}
+              </li>
+            ))}
+          </ul>
         </div>
-        {a.deloads > 0 && <div className="faible" style={{ marginTop: 8 }}>Dont {a.deloads} séance(s) de déload.</div>}
+      )}
+
+      {/* Carte Assiduité et travail en grille 2x2 symétrique */}
+      <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: '1.1rem', fontWeight: 700 }}>Assiduité et travail</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          <Tuile valeur={a.prevues ? `${a.faites}/${a.prevues}` : String(a.seances)} label={a.prevues ? 'séances' : 'séances'} n={a.seances} m={avant.seances} comparable={comparable} />
+          <Tuile valeur={a.temps ? duree(a.temps) : '0 min'} label="d’entraînement" n={a.temps} m={avant.temps} comparable={comparable} texteAvant={avant.temps ? duree(avant.temps) : '0 min'} />
+          <Tuile valeur={String(a.dures)} label={a.dures > 1 ? 'séries dures' : 'série dure'} n={a.dures} m={avant.dures} comparable={comparable} />
+          <Tuile valeur={kg(Math.round(a.tonnage)) + ' kg'} label="soulevés" n={a.tonnage} m={avant.tonnage} comparable={comparable} texteAvant={kg(Math.round(avant.tonnage)) + ' kg'} />
+        </div>
+        {(a.enchainees > 1 || a.deloads > 0) && (
+          <div className="faible" style={{ marginTop: 10, fontSize: '0.82rem', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {a.enchainees > 1 && <span>🔥 {a.enchainees} semaines d’affilée</span>}
+            {a.deloads > 0 && <span>🧘 {a.deloads} séance(s) de déload</span>}
+          </div>
+        )}
       </div>
 
       {a.semaines.length > 1 && <SemaineParSemaine semaines={a.semaines} seances={seances} records={records} catalogue={catalogue} />}
 
-      <div className="carte">
-        <div className="ligne entre">
-          <h3>Muscles</h3>
-          <div className="chips mini-chips" role="tablist" aria-label="Volume affiché">
-            <button role="tab" aria-selected={vueMuscles === 'fait'} className={vueMuscles === 'fait' ? 'actif' : ''} onClick={() => setVueMuscles('fait')}>
+      {/* Carte Volume musculaire */}
+      <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Volume musculaire</h3>
+          <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(255, 255, 255, 0.04)', padding: 3, borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+            <button
+              type="button"
+              style={{
+                padding: '3px 10px',
+                fontSize: '0.75rem',
+                fontWeight: vueMuscles === 'fait' ? 600 : 400,
+                color: vueMuscles === 'fait' ? 'var(--texte)' : 'var(--text-secondary)',
+                background: vueMuscles === 'fait' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+              }}
+              onClick={() => setVueMuscles('fait')}
+            >
               Fait
             </button>
-            <button role="tab" aria-selected={vueMuscles === 'prevu'} className={vueMuscles === 'prevu' ? 'actif' : ''} onClick={() => setVueMuscles('prevu')}>
+            <button
+              type="button"
+              style={{
+                padding: '3px 10px',
+                fontSize: '0.75rem',
+                fontWeight: vueMuscles === 'prevu' ? 600 : 400,
+                color: vueMuscles === 'prevu' ? 'var(--texte)' : 'var(--text-secondary)',
+                background: vueMuscles === 'prevu' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+              }}
+              onClick={() => setVueMuscles('prevu')}
+            >
               Prévu
             </button>
           </div>
         </div>
-        <div className="faible" style={{ margin: '4px 0 8px' }}>
-          {vueMuscles === 'prevu'
-            ? `Séries dures prévues chaque semaine par « ${catalogue.actif.nom} », face aux objectifs.`
-            : `Séries dures par semaine en moyenne${a.deloads ? ' (hors déload)' : ''}, face aux objectifs.`}
+        <div style={{ maxHeight: 220, overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
+          <SilhouetteVolume volume={volMuscles} cibles={cibles} choisi={muscle} onChoisir={setMuscle} legende="objectif de la semaine" quoi={vueMuscles === 'prevu' ? 'prévues' : 'par semaine'} />
         </div>
-        <SilhouetteVolume volume={volMuscles} cibles={cibles} choisi={muscle} onChoisir={setMuscle} legende="objectif de la semaine" quoi={vueMuscles === 'prevu' ? 'prévues' : 'par semaine'} />
-        <button type="button" className="groupe-repli" onClick={() => setDetailMuscles(!detailMuscles)} aria-expanded={detailMuscles}>
+        <button
+          type="button"
+          onClick={() => setDetailMuscles(!detailMuscles)}
+          aria-expanded={detailMuscles}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'none',
+            border: 'none',
+            padding: '10px 0 2px',
+            color: 'var(--accent-orange)',
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
           <span>Détail par muscle</span>
-          <span className="muted">{detailMuscles ? '▾' : '▸'}</span>
+          <span>{detailMuscles ? '▴' : '▾'}</span>
         </button>
-        {detailMuscles && <VolumeMuscles volume={volMuscles} cibles={cibles} actif={muscle} onChoix={(m) => setMuscle(m === muscle ? null : m)} />}
+        {detailMuscles && (
+          <div style={{ marginTop: 8 }}>
+            <VolumeMuscles volume={volMuscles} cibles={cibles} actif={muscle} onChoix={(m) => setMuscle(m === muscle ? null : m)} />
+          </div>
+        )}
       </div>
 
       <Progression a={a} onExo={onExo} />
@@ -283,61 +361,130 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
   const progres = a.progressions.filter((p) => p.pct > 0).slice(0, 3)
   if (!a.records.length && !progres.length && !a.stagnations.length) return null
   return (
-    <div className="carte pile">
-      <h3>Progression</h3>
+    <div className="carte pile" style={{ padding: '16px', borderRadius: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <TrendingUp size={18} strokeWidth={2} style={{ color: 'var(--accent-orange)' }} />
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Progression</h3>
+      </div>
+
       {a.records.length > 0 && (
-        <div>
-          <div className="faible">Records battus 🏆</div>
-          {/* Un exercice par ligne : son dernier record, et combien il en a battu. */}
-          {[...new Set(a.records.map((r) => r.exo.id))]
-            .map((id) => a.records.filter((r) => r.exo.id === id))
-            .sort((x, y) => y[y.length - 1].date.localeCompare(x[x.length - 1].date))
-            .map((l) => {
-              const r = l[l.length - 1]
-              return (
-                <LigneExo key={r.exo.id} onClick={onExo ? () => onExo(r.exo.id) : undefined}>
-                  <span>
-                    {r.exo.nom}
-                    <span className="faible petit-detail">{l.length > 1 ? `${l.length} records · ${jour(r.date)}` : jour(r.date)}</span>
-                  </span>
-                  <strong>{r.perf}</strong>
-                </LigneExo>
-              )
-            })}
-        </div>
-      )}
-      {progres.length > 0 && (
-        <div>
-          <div className="faible">
-            Plus fortes progressions <Aide texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
+        <div style={{ marginTop: 8 }}>
+          <div className="faible" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Award size={14} style={{ color: '#f5c04a' }} />
+            <span>Records battus</span>
           </div>
-          {progres.map((p) => (
-            <LigneExo key={p.exo.id} onClick={onExo ? () => onExo(p.exo.id) : undefined}>
-              <span>
-                {p.exo.nom}
-                <span className="faible petit-detail">
-                  {p.detail ?? `1RM estimé : ${kg(arrondi(p.avant))} → ${kg(arrondi(p.apres))} kg`}
-                </span>
-              </span>
-              <strong>+{kg(arrondi(p.pct))} %</strong>
-            </LigneExo>
-          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[...new Set(a.records.map((r) => r.exo.id))]
+              .map((id) => a.records.filter((r) => r.exo.id === id))
+              .sort((x, y) => y[y.length - 1].date.localeCompare(x[x.length - 1].date))
+              .map((l) => {
+                const r = l[l.length - 1]
+                return (
+                  <div
+                    key={r.exo.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={onExo ? () => onExo(r.exo.id) : undefined}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      borderRadius: 12,
+                      background: 'var(--subcard-gradient)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      cursor: onExo ? 'pointer' : 'default',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>{r.exo.nom}</div>
+                      <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1 }}>
+                        {l.length > 1 ? `${l.length} records · ${jour(r.date)}` : jour(r.date)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <strong style={{ color: '#22c55e', fontSize: '0.95rem' }}>{r.perf}</strong>
+                      {onExo && <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
         </div>
       )}
+
+      {progres.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div className="faible" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+            Plus fortes progressions
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {progres.map((p) => (
+              <div
+                key={p.exo.id}
+                role="button"
+                tabIndex={0}
+                onClick={onExo ? () => onExo(p.exo.id) : undefined}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  background: 'var(--subcard-gradient)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  cursor: onExo ? 'pointer' : 'default',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>{p.exo.nom}</div>
+                  <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1 }}>
+                    {p.detail ?? `1RM estimé : ${kg(arrondi(p.avant))} → ${kg(arrondi(p.apres))} kg`}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <strong style={{ color: '#22c55e', fontSize: '0.95rem' }}>+{kg(arrondi(p.pct))} %</strong>
+                  {onExo && <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {a.stagnations.length > 0 && (
-        <div>
-          <div className="faible">Bloqués</div>
-          {a.stagnations.map((s) => (
-            <LigneExo key={s.exo.id} onClick={onExo ? () => onExo(s.exo.id) : undefined}>
-              <span>
-                {s.exo.nom}
-                <span className="faible petit-detail">
-                  sans progrès depuis {s.semaines} semaines{s.pistes.length ? ` · ${s.pistes.join(', ')}` : ''}
-                </span>
-              </span>
-              <span />
-            </LigneExo>
-          ))}
+        <div style={{ marginTop: 8 }}>
+          <div className="faible" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+            Stagnations
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {a.stagnations.map((s) => (
+              <div
+                key={s.exo.id}
+                role="button"
+                tabIndex={0}
+                onClick={onExo ? () => onExo(s.exo.id) : undefined}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  background: 'var(--subcard-gradient)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  cursor: onExo ? 'pointer' : 'default',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>{s.exo.nom}</div>
+                  <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1 }}>
+                    sans progrès depuis {s.semaines} sem.{s.pistes.length ? ` · ${s.pistes.join(', ')}` : ''}
+                  </div>
+                </div>
+                {onExo && <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -348,11 +495,31 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
 function Tuile({ valeur, label, n, m, comparable = false, texteAvant, neutre = false }: { valeur: string; label: string; n?: number; m?: number; comparable?: boolean; texteAvant?: string; neutre?: boolean }) {
   const montre = comparable && n !== undefined && m !== undefined
   return (
-    <div className="tuile">
-      <strong>{valeur}</strong>
-      <span className="faible">{label}</span>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '12px 14px',
+        borderRadius: 14,
+        background: 'var(--subcard-gradient)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        minHeight: 74,
+      }}
+    >
+      <div>
+        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--texte)', letterSpacing: '-0.3px' }}>{valeur}</div>
+        <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1, color: 'var(--text-secondary)' }}>{label}</div>
+      </div>
       {montre && (
-        <span className={'delta' + (neutre ? '' : n! > m! ? ' plus' : n! < m! ? ' moins' : '')}>
+        <span
+          style={{
+            fontSize: '0.75rem',
+            marginTop: 4,
+            fontWeight: 600,
+            color: neutre ? 'var(--text-secondary)' : n! > m! ? '#22c55e' : n! < m! ? '#f87171' : 'var(--text-secondary)',
+          }}
+        >
           {n! > m! ? '↑' : n! < m! ? '↓' : '='} vs {texteAvant ?? kg(arrondi(m!))}
         </span>
       )}

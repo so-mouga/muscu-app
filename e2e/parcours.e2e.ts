@@ -10,12 +10,14 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
   const erreurs = suivreErreurs(p)
   await p.goto('/')
   await p.getByRole('button', { name: 'Choisir' }).first().click()
-  // Si c'est un jour de repos (comme dimanche), l'accueil affiche « Voir la séance ». On l'ouvre pour lancer « DÉMARRER ».
+  // Si c'est un jour d'entraînement (comme lundi), l'accueil affiche « Démarrer ». Si c'est repos, « Voir la séance ».
   const btnDemarrer = p.getByRole('button', { name: 'Démarrer', exact: true })
+  const btnVoirRepos = p.getByRole('button', { name: 'Voir la séance' })
+  await expect(btnDemarrer.or(btnVoirRepos)).toBeVisible()
   if (await btnDemarrer.isVisible()) {
     await btnDemarrer.click()
   } else {
-    await p.getByRole('button', { name: 'Voir la séance' }).click()
+    await btnVoirRepos.click()
     await p.getByRole('button', { name: /démarrer/i }).click()
   }
 

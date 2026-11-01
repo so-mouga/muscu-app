@@ -79,6 +79,6 @@ export const onglet = (p: Page, nom: string) => p.locator('nav button, .onglets 
 export async function ouvrirSeanceDuJour(p: Page, nom: string) {
   await onglet(p, 'Progression')
   await p.getByText('Journal', { exact: true }).first().click()
-  await p.locator('button', { hasText: nom }).first().click()
+  await p.locator('.jour-choisi button', { hasText: nom }).first().click()
   await expect(p.getByText('Récap par exercice')).toBeVisible()
 }
