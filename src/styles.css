@@ -695,27 +695,35 @@ html[data-sens='arriere']::view-transition-new(root) {
   border-radius: 12px;
   background: var(--surface-2);
 }
-.exo-ligne.en-superset {
-  border-left: 3px solid var(--accent);
-  padding-left: 8px;
+.exo-ligne.en-superset,
+.carte.en-superset {
+  position: relative;
+  border-left: 4px solid var(--accent);
+  padding-left: 12px;
 }
-.exo-ligne.enchaine-vers-suivant {
+.exo-ligne.enchaine-vers-suivant,
+.carte.enchaine-vers-suivant {
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
-.exo-ligne.suite-superset {
+.exo-ligne.suite-superset,
+.carte.suite-superset {
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
-  margin-top: 2px;
+  margin-top: 0;
 }
 .badge-superset {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 0.72rem;
-  padding: 1px 6px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
   background: var(--accent);
-  color: #fff;
-  font-weight: 600;
+  color: var(--accent-texte);
+  font-weight: 700;
+  letter-spacing: 0.2px;
   white-space: nowrap;
 }
 .exo-ligne .texte .faible {
@@ -2024,6 +2032,91 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
 .semaines-cycle {
   display: flex;
   gap: 4px;
+}
+
+/* Planning / Programmes : cartes de programme dépliables et sous-séances */
+.carte-programme-actif {
+  border-width: 1.5px;
+}
+.badge-jour {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid var(--bord);
+}
+.badge-jour.libre {
+  color: var(--texte-3);
+  font-weight: 500;
+  font-size: 11px;
+}
+.sous-seance-item {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: left;
+  margin-bottom: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: border-color 0.15s ease;
+}
+.sous-seance-item:hover,
+.sous-seance-item:active {
+  border-color: var(--texte-3);
+}
+
+/* Éditeur de planning : carte de séance et bande 7 jours */
+.seance-plan-carte {
+  background: var(--surface-2);
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.pastilles-jours {
+  display: flex;
+  gap: 4px;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--bord);
+  margin-top: 6px;
+}
+.btn-jour {
+  flex: 1;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--bord);
+  background: var(--surface);
+  color: var(--texte-3);
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-jour:hover {
+  background: var(--surface-2);
+  color: var(--texte);
+}
+.btn-jour.actif {
+  background: var(--accent);
+  color: var(--accent-texte);
+  border-color: var(--accent);
 }
 .semaines-cycle > span {
   flex: 1;

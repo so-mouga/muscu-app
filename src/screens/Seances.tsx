@@ -19,6 +19,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
+import { estDansSuperset, groupeSuperset } from '../lib/superset'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -82,6 +83,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
       return 'programmes'
     }
   })
+  const [deplies, setDeplies] = useState<Record<string, boolean>>(() => ({ [catalogue.actif.id]: true }))
 
   const changerOnglet = (o: 'programmes' | 'seances') => {
     setOnglet(o)
@@ -148,7 +150,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
           className={onglet === 'programmes' ? 'actif' : ''}
           onClick={() => changerOnglet('programmes')}
         >
-          Programmes ({catalogue.programmes.length})
+          Planning ({catalogue.programmes.length})
         </button>
         <button
           role="tab"
@@ -156,7 +158,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
           className={onglet === 'seances' ? 'actif' : ''}
           onClick={() => changerOnglet('seances')}
         >
-          Séances ({catalogue.modeles.length})
+          Bibliothèque ({catalogue.modeles.length})
         </button>
       </div>
 
@@ -192,31 +194,103 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
           )}
           {lancer && <LancerCycle catalogue={catalogue} onFermer={() => setLancer(false)} />}
           {catalogue.programmes.map((p) => {
-            const seances = p.seances.filter((e) => catalogue.modele(e.modeleId))
+            const estActif = p.id === catalogue.actif.id
+            const ouvert = deplies[p.id] ?? estActif
+            const seances = p.seances.map((e) => ({ ...e, m: catalogue.modele(e.modeleId) })).filter((e) => !!e.m)
             const jours = seances.filter((e) => e.jour).sort((a, b) => a.jour! - b.jour!)
             return (
-              <button key={p.id} className="liste-btn" style={p.id === catalogue.actif.id ? { borderColor: 'var(--accent)' } : undefined} onClick={() => ouvrirProgramme(p)}>
-                <span>
-                  <strong>{p.nom}</strong> {p.id === catalogue.actif.id && <span className="pastille accent">actif</span>}
-                  <div className="faible">
-                    {seances.length} séance{seances.length > 1 ? 's' : ''}
-                    {jours.length > 0 && ' · ' + jours.map((e) => jourCourt(e.jour)).join(', ')}
+              <div key={p.id} className={'carte pile' + (estActif ? ' carte-programme-actif' : '')} style={estActif ? { borderColor: 'var(--accent)' } : undefined}>
+                <div className="ligne entre" style={{ gap: 8 }}>
+                  <button
+                    type="button"
+                    className="texte"
+                    style={{ flex: 1, textAlign: 'left', minWidth: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                    onClick={() => setDeplies((d) => ({ ...d, [p.id]: !ouvert }))}
+                  >
+                    <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
+                      <strong style={{ fontSize: '1.05rem' }}>{p.nom}</strong>
+                      {estActif && <span className="pastille accent">actif</span>}
+                    </div>
+                    <div className="faible" style={{ marginTop: 2 }}>
+                      {seances.length} séance{seances.length > 1 ? 's' : ''}
+                      {jours.length > 0 && ' · ' + jours.map((e) => jourCourt(e.jour)).join(', ')}
+                    </div>
+                  </button>
+                  <div className="ligne" style={{ gap: 6 }}>
+                    <button
+                      type="button"
+                      className="btn petit discret"
+                      onClick={() => ouvrirProgramme(p)}
+                      aria-label={`Modifier le programme ${p.nom}`}
+                    >
+                      ⚙️ Planning
+                    </button>
+                    <button
+                      type="button"
+                      className="icone"
+                      onClick={() => setDeplies((d) => ({ ...d, [p.id]: !ouvert }))}
+                      aria-label={ouvert ? 'Replier les séances' : 'Déplier les séances'}
+                    >
+                      {ouvert ? '▾' : '▸'}
+                    </button>
                   </div>
-                </span>
-                <span className="muted">›</span>
-              </button>
+                </div>
+
+                {ouvert && (
+                  <div className="pile" style={{ gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bord)' }}>
+                    {seances.length === 0 ? (
+                      <div className="faible" style={{ fontStyle: 'italic', padding: '6px 0' }}>
+                        Aucune séance dans ce programme pour l’instant.
+                      </div>
+                    ) : (
+                      seances.map(({ m, jour }, sIdx) => (
+                        <button
+                          key={m!.id + sIdx}
+                          type="button"
+                          className="sous-seance-item"
+                          onClick={() => ouvrirSeance(m!)}
+                        >
+                          <span style={{ minWidth: 0 }}>
+                            <div className="ligne" style={{ gap: 8, alignItems: 'center' }}>
+                              {jour ? (
+                                <span className="badge-jour">{jourCourt(jour)}</span>
+                              ) : (
+                                <span className="badge-jour libre">Libre</span>
+                              )}
+                              <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m!.nom}</strong>
+                              {m!.sousTitre && <span className="muted petit">— {m!.sousTitre}</span>}
+                            </div>
+                            <div className="faible" style={{ marginTop: 3, paddingLeft: 46 }}>
+                              {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)}
+                            </div>
+                          </span>
+                          <span className="muted">›</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
             )
           })}
-          <button className="btn plein" style={{ marginBottom: 24 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
+          <button className="btn plein" style={{ marginBottom: 12 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
             + Nouveau programme
           </button>
-          <button type="button" className="groupe-repli" onClick={() => setVoirTypes(!voirTypes)} aria-expanded={voirTypes}>
+          <button type="button" className="groupe-repli" style={{ marginBottom: 14 }} onClick={() => setVoirTypes(!voirTypes)} aria-expanded={voirTypes}>
             <span>
               Programmes tout prêts <span className="faible">· full body, haut / bas…</span>
             </span>
             <span className="muted">{voirTypes ? '▾' : '▸'}</span>
           </button>
           {voirTypes && <ChoixProgramme catalogue={catalogue} titre="Programmes tout prêts" intro="Choisir un programme le copie dans tes programmes (modifiable) et en fait ton programme actif." onChoisi={() => setVoirTypes(false)} />}
+          <button
+            type="button"
+            className="btn texte lien-discret"
+            style={{ width: '100%', justifyContent: 'center', marginTop: 4, marginBottom: 20 }}
+            onClick={() => changerOnglet('seances')}
+          >
+            📚 Voir toutes les séances dans la Bibliothèque ({catalogue.modeles.length}) ›
+          </button>
         </>
       )}
 
@@ -386,34 +460,41 @@ function EditeurProgramme({
         {entrees.length === 0 && <div className="muted petit" style={{ marginTop: 10 }}>Aucune séance pour l’instant.</div>}
         <div ref={glisser.liste}>
         {entrees.map(({ e, i, m }, k) => (
-          <div key={e.modeleId + i} className={'exo-ligne' + glisser.classes(k, entrees.length)}>
-            {entrees.length > 1 && (
-              <button className="poignee" aria-label={`Déplacer ${m!.nom}`} {...glisser.poignee(k)}>
-                ⠿
+          <div key={e.modeleId + i} className={'seance-plan-carte' + glisser.classes(k, entrees.length)}>
+            <div className="ligne entre" style={{ gap: 8 }}>
+              {entrees.length > 1 && (
+                <button type="button" className="poignee" aria-label={`Déplacer ${m!.nom}`} {...glisser.poignee(k)}>
+                  ⠿
+                </button>
+              )}
+              <button type="button" className="texte" style={{ flex: 1, textAlign: 'left', minWidth: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }} onClick={() => onOuvrirSeance(m!)}>
+                <strong>{m!.nom}</strong>
+                <div className="faible">
+                  {m!.sousTitre ? m!.sousTitre + ' · ' : ''}
+                  {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)} ›
+                </div>
               </button>
-            )}
-            <button className="texte" onClick={() => onOuvrirSeance(m!)}>
-              <strong>{m!.nom}</strong>
-              <div className="faible">
-                {m!.sousTitre ? m!.sousTitre + ' · ' : ''}
-                {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)} ›
-              </div>
-            </button>
-            <select
-              value={e.jour ?? 0}
-              style={{ width: 84, padding: '8px 6px' }}
-              onChange={(ev) => maj((x) => (x.seances[i].jour = +ev.target.value || undefined))}
-            >
-              <option value={0}>—</option>
-              {JOURS.slice(1).map((j, n) => (
-                <option key={j} value={n + 1}>
-                  {j.slice(0, 3)}
-                </option>
-              ))}
-            </select>
-            <button className="icone" aria-label="Retirer" onClick={() => maj((x) => x.seances.splice(i, 1))}>
-              ✕
-            </button>
+              <button type="button" className="icone" aria-label={`Retirer ${m!.nom} de ce programme`} onClick={() => maj((x) => x.seances.splice(i, 1))}>
+                ✕
+              </button>
+            </div>
+            <div className="ligne pastilles-jours" role="group" aria-label={`Jour pour ${m!.nom}`}>
+              {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((nomJour, idxJour) => {
+                const jNum = idxJour + 1
+                const estActif = e.jour === jNum
+                return (
+                  <button
+                    key={nomJour + idxJour}
+                    type="button"
+                    className={'btn-jour' + (estActif ? ' actif' : '')}
+                    aria-label={`${JOURS[jNum]}${estActif ? ' (sélectionné)' : ''}`}
+                    onClick={() => maj((x) => (x.seances[i].jour = estActif ? undefined : jNum))}
+                  >
+                    {nomJour}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         ))}
         </div>
@@ -692,9 +773,11 @@ function Editeur({
         <div ref={glisser.liste}>
         {m.exercices.map((p, i) => {
           const exo = catalogue.exo(p.exoId)
+          const dansSuperset = estDansSuperset(m.exercices, i)
+          const groupe = groupeSuperset(m.exercices, i)
+          const posSuperset = dansSuperset ? groupe.indexOf(i) + 1 : 0
           const enchaine = !!p.enchaine
           const precEnchaine = i > 0 && !!m.exercices[i - 1]?.enchaine
-          const dansSuperset = enchaine || precEnchaine
           return (
             <div
               key={p.exoId + i}
@@ -714,8 +797,7 @@ function Editeur({
                   <strong>
                     {i + 1}. {exo.nom}
                   </strong>
-                  {enchaine && <span className="badge-superset">🔗 Superset ⇣</span>}
-                  {precEnchaine && !enchaine && <span className="badge-superset">🔗 Fin superset</span>}
+                  {dansSuperset && <span className="badge-superset">🔗 A{posSuperset} · Superset</span>}
                 </div>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">{resumePlan(exo, p)}</div>

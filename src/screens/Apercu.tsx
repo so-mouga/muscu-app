@@ -13,6 +13,7 @@ import { phaseA } from '../lib/objectifs'
 import type { SeanceModele } from '../types'
 import { BoutonLexique } from '../components/Lexique'
 import { ReglageEchauffement } from '../components/Echauffement'
+import { estDansSuperset, groupeSuperset } from '../lib/superset'
 
 interface Props {
   modele: SeanceModele
@@ -88,9 +89,21 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
         const hausses = sugg ? sugg.charges.map((_, n) => hausse(exo, sugg, derniere, n)) : []
         const battre = hausses.some(Boolean)
         const bloque = !deload && contexte ? diagnostic(exo, contexte, aujourdhui) : null
-        const dansSuperset = p.enchaine || (i > 0 && !!modele.exercices[i - 1]?.enchaine)
+        const dansSuperset = estDansSuperset(modele.exercices, i)
+        const groupe = groupeSuperset(modele.exercices, i)
+        const posSuperset = dansSuperset ? groupe.indexOf(i) + 1 : 0
+        const enchaine = !!p.enchaine
+        const precEnchaine = i > 0 && !!modele.exercices[i - 1]?.enchaine
         return (
-          <div key={p.exoId + i} className={'carte pile' + (dansSuperset ? ' en-superset' : '')} style={dansSuperset ? { borderLeft: '3px solid var(--accent)' } : undefined}>
+          <div
+            key={p.exoId + i}
+            className={
+              'carte pile' +
+              (dansSuperset ? ' en-superset' : '') +
+              (enchaine ? ' enchaine-vers-suivant' : '') +
+              (precEnchaine && !enchaine ? ' suite-superset' : '')
+            }
+          >
             <div className="ligne" style={{ gap: 12 }}>
               <Vignette exo={exo} taille={44} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -98,8 +111,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
                   <strong>
                     {i + 1}. {exo.nom}
                   </strong>
-                  {p.enchaine && <span className="badge-superset">🔗 Superset ⇣</span>}
-                  {i > 0 && modele.exercices[i - 1]?.enchaine && !p.enchaine && <span className="badge-superset">🔗 Fin superset</span>}
+                  {dansSuperset && <span className="badge-superset">🔗 A{posSuperset} · Superset</span>}
                 </div>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">
