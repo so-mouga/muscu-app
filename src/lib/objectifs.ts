@@ -237,16 +237,16 @@ export function poidsDepart(pesees: PeseeSimple[], debut: string): number | null
 /** Moyenne des pesées des 7 jours qui finissent à `date`. */
 export const poidsSemaine = (pesees: PeseeSimple[], date: string) => moyennePoids(pesees.filter((p) => p.date > plusJours(date, -7) && p.date <= date))
 
-/** Rythme d'une variation visée : un mot si c'est trop lent ou trop rapide pour la phase (repères du programme). */
+/** Rythme d'une variation visée : un mot si c'est trop lent ou trop rapide pour la phase. La zone citée est exactement celle où l'on ne dit rien. */
 export function avisRythme(phase: Phase, ecart: number, semaines: number): string | null {
   const r = ecart / semaines
   if (phase === 'prise') {
-    if (r < 0.15) return 'un peu lent pour une prise : vise +0,15 à +0,25 kg par semaine'
-    if (r > 0.4) return 'rapide : une partie risque d’être du gras, vise +0,15 à +0,25 kg par semaine'
+    if (r < 0.15) return 'un peu lent pour une prise : vise +0,15 à +0,4 kg par semaine'
+    if (r > 0.4) return 'rapide : une partie risque d’être du gras, vise +0,15 à +0,4 kg par semaine'
   }
   if (phase === 'seche') {
-    if (r > -0.2) return 'lent pour une sèche : vise −0,3 à −0,7 kg par semaine'
-    if (r < -1) return 'trop rapide : risque de perdre du muscle, vise −0,3 à −0,7 kg par semaine'
+    if (r > -0.2) return 'lent pour une sèche : vise −0,2 à −1 kg par semaine'
+    if (r < -1) return 'trop rapide : risque de perdre du muscle, vise −0,2 à −1 kg par semaine'
   }
   return null
 }

@@ -105,3 +105,16 @@ describe('audit blocages', () => {
     expect(p[0]).toBe('sommeil moyen 6 h 00')
   })
 })
+
+describe('audit déload conseillé', () => {
+  it('énergie basse lue sur les 10 derniers jours seulement, pas sur des séances anciennes', () => {
+    const recentes = ['2026-10-24', '2026-10-26', '2026-10-28'].map((d, i) =>
+      seance(d, [
+        ['smith_incline', i === 2 ? 47.5 : 52.5, 8, 8],
+        ['tirage_large', i === 2 ? 55 : 60, 10, 8],
+      ])
+    )
+    const anciennes = ['2026-10-05', '2026-10-08'].map((d) => seance(d, [], { energie: 1 }))
+    expect(deloadConseille([...anciennes, ...recentes], exo, FIN)).toBeNull()
+  })
+})

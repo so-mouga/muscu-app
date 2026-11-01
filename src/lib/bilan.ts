@@ -2,8 +2,8 @@ import { MUSCLES } from '../data/exercices'
 import { typeActivite } from '../data/activites'
 import { nomCle } from '../data/mesures'
 import type { Activite, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
-import { dateCourte, dateISO, duree, e1rm, estDure, heuresMinutes, kg, lundi, serieTexte, volumeParMuscle } from './calc'
-import { dureeReelle, recordsParSeance, semaineDe } from './historique'
+import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, serieTexte, volumeParMuscle } from './calc'
+import { dureeReelle, evolutionForce, recordsParSeance, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
 import { diagnostic, texteBlocage } from './blocages'
 
@@ -138,12 +138,11 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
       const series = s.series.filter((x) => x.exoId === id)
       lignes.push(`  ${jour(s.date)}${s.deload ? ' (déload)' : ''} : ${series.map((x) => serieTexte(exo, x)).join(', ')}${series.some((x) => x.douleur) ? ' ⚠ douleur' : ''}`)
     }
-    // Tendance : meilleur 1RM estimé (ou meilleure série) de la première à la dernière séance de la période.
-    const meilleur = (s: Seance) => Math.max(0, ...s.series.filter((x) => x.exoId === id).map((x) => e1rm(exo, x, s.poidsCorps) ?? 0))
-    const normales = avec.filter((s) => !s.deload)
-    if (normales.length >= 2 && meilleur(normales[0]) && meilleur(normales[normales.length - 1])) {
-      const a = meilleur(normales[0])
-      const b = meilleur(normales[normales.length - 1])
+    // Tendance : meilleur 1RM estimé des séries de travail, des 2 premières aux 2 dernières séances (voir `evolutionForce`).
+    const ev = evolutionForce(exo, avec.filter((s) => !s.deload))
+    if (ev?.avant.e1rm && ev.apres.e1rm) {
+      const a = ev.avant.e1rm
+      const b = ev.apres.e1rm
       lignes.push(`  1RM estimé : ${kg(arrondi(a))} → ${kg(arrondi(b))} kg (${b >= a ? '+' : '−'}${kg(Math.abs(arrondi(((b - a) / a) * 100)))} %)`)
     }
     const bloque = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase: d.objectifs && phaseA(d.objectifs, fin)?.phase }, fin)

@@ -155,3 +155,31 @@ describe('calories et sommeil dans la lecture', () => {
     expect(aRetenir(a, null, cibles(), true).join('\n')).toMatch(/Sommeil moyen 6 h 00 sur 5 nuits/)
   })
 })
+
+describe('force du Bilan mesurée comme les blocages', () => {
+  const avec = (id: string, date: string, smith: number[], finisseur?: [number, number]) => {
+    const s = seance(id, date, smith)
+    if (finisseur) s.series.push({ id: id + 'f', exoId: 'smith_incline', type: 'echec', charge: finisseur[0], reps: finisseur[1], rpe: 10, heure: 0 })
+    return s
+  }
+  const smithDe = (a: Analyse) => a.progressions.find((p) => p.exo.id === 'smith_incline')
+
+  it('une série d’échec, un drop ou un rest-pause ne compte pas dans la force', () => {
+    // Mêmes séries de travail ; seule la 2e séance a un finisseur à 15 reps (1RM estimé plus haut).
+    const a = analyser(donnees([avec('a', '2026-10-05', [60]), avec('b', '2026-10-12', [60], [60, 15])]), '2026-10-05', '2026-10-18')
+    expect(smithDe(a)?.pct).toBe(0)
+  })
+
+  it('meilleure des 2 premières séances face à la meilleure des 2 dernières', () => {
+    // 55 → 60 → 62 → 60 : +3,3 % (60 → 62), pas +9 % (55 → 60).
+    const a = analyser(donnees(['a', 'b', 'c', 'd'].map((id, i) => seance(id, `2026-10-${String(5 + 7 * i).padStart(2, '0')}`, [[55, 60, 62, 60][i]]))), '2026-10-05', '2026-11-01')
+    expect(smithDe(a)?.pct).toBeCloseTo((62 / 60 - 1) * 100, 5)
+  })
+
+  it('sommeil court : le message dit le même seuil que l’alerte (6 h 30)', () => {
+    const a = analyser({ ...donnees(seances), journal: ['2026-10-06', '2026-10-07', '2026-10-08'].map((date) => ({ date, sommeil: 6 })) }, '2026-10-05', '2026-11-01', 2)
+    const msg = aRetenir(a, null, cibles()).find((t) => t.startsWith('Sommeil'))
+    expect(msg).toMatch(/sous 6 h 30/)
+    expect(msg).not.toMatch(/7 h/)
+  })
+})

@@ -110,7 +110,7 @@ export function texteBlocage(d: Blocage & { pistes: string[] }): string {
 
 /**
  * Déload à avancer : force en baisse sur au moins 2 exercices ces 10 derniers jours (meilleure série sous
- * celle des 2 séances d'avant), avec une énergie basse (≤ 2/5) sur 2 des 3 dernières séances, ou une
+ * celle des 2 séances d'avant), avec une énergie basse (≤ 2/5) sur 2 des 3 dernières séances de ces 10 jours, ou une
  * baisse sur 3 exercices ou plus. Jamais dans les 3 semaines qui suivent un déload.
  */
 export function deloadConseille(seances: Seance[], exo: (id: string) => Exercice, jusqua: string): { baisses: Exercice[]; energieBasse: boolean } | null {
@@ -124,8 +124,9 @@ export function deloadConseille(seances: Seance[], exo: (id: string) => Exercice
     const avant = Math.max(l[l.length - 2].score, l[l.length - 3].score)
     return l[l.length - 1].score < (seuil(e) > 1 ? avant * 0.97 : Math.min(l[l.length - 2].score, l[l.length - 3].score))
   })
-  const energies = faites
-    .filter((s) => !s.deload && s.energie !== undefined)
+  // Même fenêtre que la baisse de force : une fatigue d'il y a un mois n'explique pas celle d'aujourd'hui.
+  const energies = recentes
+    .filter((s) => s.energie !== undefined)
     .sort((a, b) => b.debut - a.debut)
     .slice(0, 3)
   const energieBasse = energies.filter((s) => s.energie! <= 2).length >= 2

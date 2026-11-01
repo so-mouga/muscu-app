@@ -100,6 +100,34 @@ export function parSemaine(seances: Seance[]): { lundi: string; seances: Seance[
   return [...groupes].map(([l, x]) => ({ lundi: l, seances: x }))
 }
 
+/**
+ * Meilleure série de travail d'un exercice sur un groupe de séances, mesurée comme les blocages :
+ * séries normales seulement (ni échec, ni drop, ni rest-pause), comparées par `scoreSerie`.
+ */
+export function meilleureDeTravail(exo: Exercice, seances: Seance[]): { serie: Serie; score: number; e1rm: number | null } | undefined {
+  let res: { serie: Serie; score: number; e1rm: number | null } | undefined
+  for (const s of seances)
+    for (const x of s.series) {
+      if (x.exoId !== exo.id || x.type !== 'normale' || x.reps <= 0) continue
+      const score = scoreSerie(exo, x, s.poidsCorps)
+      if (!res || score > res.score) res = { serie: x, score, e1rm: e1rm(exo, x, s.poidsCorps) }
+    }
+  return res
+}
+
+/**
+ * Force au début et à la fin d'une période (séances de la plus ancienne à la plus récente) : meilleure
+ * des 2 premières face à la meilleure des 2 dernières, pour qu'une séance ratée ne fausse pas tout ;
+ * la 1re face à la dernière quand il y en a moins de 4. Null avec moins de 2 séances.
+ */
+export function evolutionForce(exo: Exercice, seances: Seance[]) {
+  if (seances.length < 2) return null
+  const k = seances.length >= 4 ? 2 : 1
+  const avant = meilleureDeTravail(exo, seances.slice(0, k))
+  const apres = meilleureDeTravail(exo, seances.slice(-k))
+  return avant && apres ? { avant, apres } : null
+}
+
 /** Meilleure série d'un exercice dans une séance : la plus lourde, puis le plus de reps. */
 export function meilleureSerie(series: Serie[]): Serie | undefined {
   return series.reduce<Serie | undefined>((a, s) => (!a || s.charge > a.charge || (s.charge === a.charge && s.reps > a.reps) ? s : a), undefined)

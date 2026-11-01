@@ -113,3 +113,16 @@ describe('audit objectifs', () => {
     expect(objectifsA(f, '2026-10-02')?.calories).toBeUndefined()
   })
 })
+
+describe('audit rythme visé', () => {
+  it('le texte donne la zone exacte où il n’y a plus de message', () => {
+    // Prise : rien entre +0,15 et +0,4 kg par semaine, donc c'est cette zone que le texte conseille.
+    expect(avisRythme('prise', 0.3 * 8, 8)).toBeNull()
+    expect(avisRythme('prise', 0.1 * 8, 8)).toMatch(/\+0,15 à \+0,4 kg par semaine/)
+    expect(avisRythme('prise', 0.5 * 8, 8)).toMatch(/\+0,15 à \+0,4 kg par semaine/)
+    // Sèche : rien entre −0,2 et −1 kg par semaine.
+    expect(avisRythme('seche', -0.25 * 8, 8)).toBeNull()
+    expect(avisRythme('seche', -0.1 * 8, 8)).toMatch(/−0,2 à −1 kg par semaine/)
+    expect(avisRythme('seche', -1.2 * 8, 8)).toMatch(/−0,2 à −1 kg par semaine/)
+  })
+})

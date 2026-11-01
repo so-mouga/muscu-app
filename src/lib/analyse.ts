@@ -1,9 +1,9 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
-import type { Exercice, Muscle, Seance, Serie } from '../types'
-import { chargeQte, dateISO, e1rm, estDure, heuresMinutes, kg, kgSouleves, volumeParMuscle } from './calc'
+import type { Exercice, Muscle, Serie } from '../types'
+import { chargeQte, dateISO, estDure, heuresMinutes, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
-import { dureeReelle, meilleureSerie, scoreSerie, semaineDe } from './historique'
+import { dureeReelle, evolutionForce, scoreSerie, semaineDe } from './historique'
 import { nomPhase, type Phase } from './objectifs'
 import { diagnostic } from './blocages'
 
@@ -96,19 +96,20 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const stagnations: Analyse['stagnations'] = []
   for (const id of ids) {
     const exo = d.exo(id)
+    // Force mesurée comme les blocages (séries de travail seulement), meilleure des 2 premières séances
+    // face à la meilleure des 2 dernières ; une seule séance sur la période : face à la dernière d'avant.
     const avec = travail.filter((s) => s.series.some((x) => x.exoId === id))
-    const sAvant: Seance | undefined = avec.length >= 2 ? avec[0] : anterieures.find((s) => s.series.some((x) => x.exoId === id))
-    const sApres: Seance | undefined = avec[avec.length - 1]
-    const top = (s: Seance) => Math.max(0, ...s.series.filter((x) => x.exoId === id).map((x) => e1rm(exo, x, s.poidsCorps) ?? 0))
-    if (sAvant && sApres && sAvant.id !== sApres.id) {
-      if (top(sAvant) > 0 && top(sApres) > 0) {
-        const avant = top(sAvant)
-        const apres = top(sApres)
+    const anterieure = anterieures.find((s) => s.series.some((x) => x.exoId === id))
+    const ev = evolutionForce(exo, avec.length >= 2 || !anterieure ? avec : [anterieure, ...avec])
+    if (ev) {
+      if (ev.avant.e1rm && ev.apres.e1rm) {
+        const avant = ev.avant.e1rm
+        const apres = ev.apres.e1rm
         progressions.push({ exo, avant, apres, pct: ((apres - avant) / avant) * 100 })
       } else {
-        const mAvant = meilleureSerie(sAvant.series.filter((x) => x.exoId === id && x.reps > 0))
-        const mApres = meilleureSerie(sApres.series.filter((x) => x.exoId === id && x.reps > 0))
-        if (mAvant && mApres && scoreSerie(exo, mApres, sApres.poidsCorps) > scoreSerie(exo, mAvant, sAvant.poidsCorps)) {
+        const mAvant = ev.avant.serie
+        const mApres = ev.apres.serie
+        if (ev.apres.score > ev.avant.score) {
           const pct =
             mAvant.charge > 0 && mApres.charge !== mAvant.charge
               ? ((mApres.charge - mAvant.charge) / mAvant.charge) * 100
@@ -221,7 +222,7 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
 
   // Sommeil court : il explique souvent une baisse de forme avant le programme.
   if (a.sommeil && a.sommeil.nuits >= 3 && a.sommeil.moyenne < 6.5)
-    r.push(`Sommeil moyen ${heuresMinutes(a.sommeil.moyenne)} sur ${a.sommeil.nuits} nuits : sous 7 h, la récupération et les perfs en pâtissent.`)
+    r.push(`Sommeil moyen ${heuresMinutes(a.sommeil.moyenne)} sur ${a.sommeil.nuits} nuits : sous 6 h 30, la récupération et les perfs en pâtissent.`)
 
   // Assiduité
   if (a.prevues) {
