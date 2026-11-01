@@ -1161,7 +1161,7 @@ function FinSeance({
   )
 
   return (
-    <div>
+    <div className="apparait">
       <div className="entete">
         <button className="btn" onClick={onRetour} aria-label="Reprendre la séance">
           ←
@@ -1314,12 +1314,12 @@ function FinSeance({
               ✓ ENREGISTRER LA SÉANCE
             </button>
           </div>
-          <button className="btn discret danger plein" style={{ marginTop: 8, marginBottom: 24 }} onClick={abandonner}>
+          <button className="btn discret danger plein" style={{ marginTop: 8 }} onClick={abandonner}>
             Supprimer la séance
           </button>
         </>
       ) : (
-        <div style={{ marginTop: 20, marginBottom: 24 }}>
+        <div style={{ marginTop: 20 }}>
           <button
             className="btn primaire grand"
             style={{ width: '100%' }}
