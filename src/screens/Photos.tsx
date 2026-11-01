@@ -42,7 +42,20 @@ export default function Photos() {
   const [prise, setPrise] = useState(false)
   const [importer, setImporter] = useState(false)
   const [vue, setVue] = useState<PhotoCorps | null>(null)
+  /** Date dont on modifie les photos (date, une pose, tout supprimer). */
+  const [gerer, setGerer] = useState<string | null>(null)
+  /** Les dates plus anciennes, repliées par défaut : seules les 3 dernières sont affichées en grand. */
+  const [toutes, setToutes] = useState(false)
   const dates = parDate(photos)
+  const recentes = dates.slice(0, 3)
+  const anciennes = dates.slice(3)
+  const parMois = anciennes.reduce<[string, typeof anciennes][]>((l, d) => {
+    const mois = new Date(d[0] + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    const der = l[l.length - 1]
+    if (der && der[0] === mois) der[1].push(d)
+    else l.push([mois, [d]])
+    return l
+  }, [])
 
   if (prise) return <PriseGuidee photos={photos} onFermer={() => setPrise(false)} />
 
@@ -61,15 +74,12 @@ export default function Photos() {
 
       {dates.length >= 2 && <Comparaison dates={dates} />}
 
-      {dates.map(([date, poses]) => (
+      {recentes.map(([date, poses]) => (
         <div key={date} className="carte pile">
           <div className="ligne entre">
             <strong>{dateCourte(date)}</strong>
-            <button
-              className="btn discret petit danger"
-              onClick={async () => (await confirmer(`Supprimer les photos du ${dateCourte(date)} ?`, { oui: 'Supprimer les photos', danger: true })) && db.photos.where('date').equals(date).delete()}
-            >
-              Supprimer
+            <button className="btn discret petit" onClick={() => setGerer(date)}>
+              ✎ Modifier
             </button>
           </div>
           <div className="vignettes-poses">
@@ -88,8 +98,120 @@ export default function Photos() {
           </div>
         </div>
       ))}
+      {anciennes.length > 0 &&
+        (!toutes ? (
+          <button className="btn plein" onClick={() => setToutes(true)}>
+            Voir les photos plus anciennes ({anciennes.length} date{anciennes.length > 1 ? 's' : ''})
+          </button>
+        ) : (
+          <div className="carte pile">
+            {parMois.map(([mois, l]) => (
+              <div key={mois} className="pile" style={{ gap: 4 }}>
+                <span className="faible" style={{ textTransform: 'capitalize' }}>
+                  {mois}
+                </span>
+                {l.map(([date, poses]) => (
+                  <div key={date} className="ligne entre ligne-photos">
+                    <button className="btn discret petit" onClick={() => setGerer(date)}>
+                      {dateCourte(date)} ✎
+                    </button>
+                    <span className="ligne" style={{ gap: 4 }}>
+                      {POSES.map((p) =>
+                        poses[p.id] ? (
+                          <button key={p.id} className="mini-photo" onClick={() => setVue(poses[p.id]!)} aria-label={`${p.nom}, ${dateCourte(date)}`}>
+                            <img src={poses[p.id]!.image} alt="" />
+                          </button>
+                        ) : (
+                          <span key={p.id} className="mini-photo vide" />
+                        )
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+            <button className="btn discret petit" onClick={() => setToutes(false)}>
+              Replier
+            </button>
+          </div>
+        ))}
       {vue && <PhotoPleine photo={vue} onFermer={() => setVue(null)} />}
+      {gerer && <GererPhotos date={gerer} photos={photos} onFermer={() => setGerer(null)} />}
     </>
+  )
+}
+
+/**
+ * Modifier les photos d'une date : changer la date (import daté de travers), remplacer une pose par une
+ * photo de la galerie, supprimer une pose ou toute la date.
+ */
+function GererPhotos({ date, photos, onFermer }: { date: string; photos: PhotoCorps[]; onFermer: () => void }) {
+  useRetour(true, onFermer)
+  const duJour = photos.filter((p) => p.date === date)
+  const changerDate = async (nouvelle: string) => {
+    if (!nouvelle || nouvelle === date) return
+    const deja = photos.filter((p) => p.date === nouvelle && duJour.some((x) => x.pose === p.pose))
+    if (deja.length && !(await confirmer(`Il y a déjà des photos le ${dateCourte(nouvelle)} pour les mêmes poses : elles seront remplacées.`, { titre: 'Changer la date ?', oui: 'Remplacer' }))) return
+    await db.transaction('rw', db.photos, async () => {
+      await db.photos.bulkDelete(deja.map((p) => p.id))
+      await db.photos.where('date').equals(date).modify({ date: nouvelle })
+    })
+    onFermer()
+  }
+  const remplacer = async (pose: Pose, f: File | undefined) => {
+    if (f) await enregistrerPhotos(date, { [pose]: await photoReduite(f, 1280) })
+  }
+  const supprimerPose = async (p: PhotoCorps) => {
+    if (await confirmer(`Supprimer la photo « ${POSES.find((x) => x.id === p.pose)!.nom} » du ${dateCourte(date)} ?`, { oui: 'Supprimer', danger: true })) {
+      await db.photos.delete(p.id)
+      if (duJour.length === 1) onFermer()
+    }
+  }
+  const toutSupprimer = async () => {
+    if (await confirmer(`Supprimer les photos du ${dateCourte(date)} ?`, { oui: 'Supprimer les photos', danger: true })) {
+      await db.photos.where('date').equals(date).delete()
+      onFermer()
+    }
+  }
+  return createPortal(
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <h2>Photos du {dateCourte(date)}</h2>
+        <label className="ligne entre">
+          <span>Date</span>
+          <input type="date" defaultValue={date} max={dateISO()} onChange={(e) => void changerDate(e.target.value)} style={{ width: 'auto' }} />
+        </label>
+        {POSES.map((pose) => {
+          const p = duJour.find((x) => x.pose === pose.id)
+          return (
+            <div key={pose.id} className="ligne entre" style={{ gap: 8 }}>
+              <span className="ligne" style={{ gap: 8 }}>
+                {p ? <img className="mini-photo" src={p.image} alt="" /> : <span className="mini-photo vide" />}
+                {pose.nom}
+              </span>
+              <span className="ligne" style={{ gap: 4 }}>
+                <label className="btn discret petit">
+                  {p ? 'Remplacer' : 'Ajouter'}
+                  <input type="file" accept="image/*" hidden onChange={(e) => void remplacer(pose.id, e.target.files?.[0])} />
+                </label>
+                {p && (
+                  <button className="btn discret petit danger" onClick={() => void supprimerPose(p)}>
+                    Supprimer
+                  </button>
+                )}
+              </span>
+            </div>
+          )
+        })}
+        <button className="btn discret plein danger" onClick={() => void toutSupprimer()}>
+          Supprimer toutes les photos de ce jour
+        </button>
+        <button className="btn plein" onClick={onFermer}>
+          Fermer
+        </button>
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -421,7 +543,8 @@ function PhotoZoomable({ image, date }: { image?: string; date: string }) {
 
 /** Séance photo guidée : face, profil, dos, avec la photo précédente en transparence pour se placer pareil. */
 function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () => void }) {
-  useRetour(true, onFermer)
+  // Retour Android = Terminer : on garde ce qui est pris (voir `terminer`).
+  useRetour(true, () => void terminer())
   const video = useRef<HTMLVideoElement>(null)
   const [flux, setFlux] = useState<MediaStream | null>(null)
   const [erreur, setErreur] = useState<string | null>(null)
@@ -446,7 +569,8 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
   }
   const [decompte, setDecompte] = useState<number | null>(null)
   const [apercu, setApercu] = useState<string | null>(null)
-  const [faites, setFaites] = useState<Partial<Record<Pose, string>>>({})
+  /** Poses enregistrées pendant cette séance photo (chacune l'est dès qu'on la garde). */
+  const [faites, setFaites] = useState<Pose[]>([])
   const date = dateISO()
   const pose = POSES[etape]
   // Dernière photo de cette pose (y compris plus tôt aujourd'hui) : le repère pour se placer pareil.
@@ -515,27 +639,35 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
     if (f) setApercu(await photoReduite(f, 1280))
   }
 
-  const suivante = async (garder: boolean) => {
-    // Une photo de cette pose existe déjà aujourd'hui : on demande avant de la remplacer.
-    if (garder && duJour(pose.id) && !(await confirmer(`Tu as déjà une photo « ${pose.nom} » aujourd’hui.`, { titre: 'Remplacer la photo ?', oui: 'Remplacer', non: 'Garder l’ancienne' })))
-      garder = false
-    const f = garder && apercu ? { ...faites, [pose.id]: apercu } : faites
-    setFaites(f)
-    setApercu(null)
-    if (etape < POSES.length - 1) setEtape(etape + 1)
-    else void terminer(f)
+  /** Enregistre tout de suite la photo de la pose en cours (une seule photo suffit, rien ne se perd). */
+  const garder = async (): Promise<boolean> => {
+    if (!apercu) return false
+    // Une photo de cette pose existe déjà aujourd'hui (et pas de cette séance) : on demande avant de la remplacer.
+    if (duJour(pose.id) && !faites.includes(pose.id) && !(await confirmer(`Tu as déjà une photo « ${pose.nom} » aujourd’hui.`, { titre: 'Remplacer la photo ?', oui: 'Remplacer', non: 'Garder l’ancienne' })))
+      return false
+    await enregistrerPhotos(date, { [pose.id]: apercu })
+    setFaites((f) => [...f.filter((p) => p !== pose.id), pose.id])
+    return true
   }
 
-  const terminer = async (f: Partial<Record<Pose, string>>) => {
-    await enregistrerPhotos(date, f)
+  const suivante = async (avecPhoto: boolean) => {
+    if (avecPhoto) await garder()
+    setApercu(null)
+    if (etape < POSES.length - 1) setEtape(etape + 1)
+    else onFermer()
+  }
+
+  /** Terminer à tout moment : la photo affichée (prise, pas encore gardée) est gardée aussi. */
+  const terminer = async () => {
+    await garder()
     onFermer()
   }
 
   return (
     <div className="prise-photo">
       <div className="ligne entre prise-haut">
-        <button className="btn" onClick={onFermer}>
-          ✕
+        <button className="btn" onClick={() => void terminer()} aria-label={faites.length || apercu ? 'Terminer en gardant les photos prises' : 'Fermer'}>
+          {faites.length || apercu ? 'Terminer' : '✕'}
         </button>
         <div style={{ textAlign: 'center' }}>
           <strong>
@@ -572,44 +704,41 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
         </div>
       ) : (
         <div className="pile prise-bas">
+          {/* Réglages sur une seule rangée : retardateur, repère, caméra. */}
           {!erreur && (
-            <div className="ligne entre wrap" style={{ gap: 6 }}>
-              <div className="chips">
-                {[0, 3, 10].map((d) => (
-                  <button key={d} className={delai === d ? 'actif' : ''} onClick={() => setDelai(d)}>
-                    {d ? `⏱ ${d} s` : 'Direct'}
-                  </button>
-                ))}
-              </div>
-              <span className="ligne" style={{ gap: 6 }}>
-                {precedente && (
-                  <button className={'btn petit' + (fantome ? ' actif-btn' : '')} onClick={() => setFantome(!fantome)}>
-                    👻 {fantome ? 'Repère' : 'Sans repère'}
-                  </button>
-                )}
-                <button className="btn petit" onClick={() => setAvantCam(!avantCam)} aria-label="Changer de caméra">
-                  🔄
+            <div className="reglages-prise">
+              <span className="faible">⏱</span>
+              {[0, 3, 10].map((d) => (
+                <button key={d} className={'pastille-reglage' + (delai === d ? ' actif' : '')} onClick={() => setDelai(d)} aria-label={d ? `Retardateur ${d} secondes` : 'Sans retardateur'}>
+                  {d ? `${d} s` : 'Direct'}
                 </button>
-              </span>
+              ))}
+              <span style={{ flex: 1 }} />
+              {precedente && (
+                <button className={'pastille-reglage' + (fantome ? ' actif' : '')} onClick={() => setFantome(!fantome)} aria-label={fantome ? 'Masquer le repère' : 'Afficher le repère'}>
+                  👻 Repère
+                </button>
+              )}
+              <button className="pastille-reglage" onClick={() => setAvantCam(!avantCam)} aria-label="Changer de caméra">
+                🔄
+              </button>
             </div>
           )}
-          <div className="ligne" style={{ gap: 8 }}>
-            {erreur ? (
-              <label className="btn primaire grand" style={{ flex: 1 }}>
-                📸 PRENDRE LA PHOTO
-                <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
-              </label>
-            ) : (
-              <button className="btn primaire grand" style={{ flex: 1 }} onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}>
-                {decompte !== null ? `Photo dans ${decompte} s · annuler` : '📸 PRENDRE LA PHOTO'}
-              </button>
-            )}
-            {/* Une photo déjà prise (avec l'appareil du téléphone, un miroir…) : on la choisit dans la galerie. */}
-            <label className="btn grand" aria-label="Choisir dans la galerie">
-              🖼 Galerie
-              <input type="file" accept="image/*" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
+          {erreur ? (
+            <label className="btn primaire grand plein">
+              📸 PRENDRE LA PHOTO
+              <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
             </label>
-          </div>
+          ) : (
+            <button className="btn primaire grand plein" onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}>
+              {decompte !== null ? `Photo dans ${decompte} s · annuler` : '📸 PRENDRE LA PHOTO'}
+            </button>
+          )}
+          {/* Une photo déjà prise (avec l'appareil du téléphone, un miroir…) : on la choisit dans la galerie. */}
+          <label className="btn plein" aria-label="Choisir dans la galerie">
+            🖼 Choisir dans la galerie
+            <input type="file" accept="image/*" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
+          </label>
           {precedente && fantome && (
             <div className="faible">
               En transparence, ta photo {precedente.date === date ? 'prise plus tôt aujourd’hui' : `du ${dateCourte(precedente.date)}`} : cale-toi dessus.
