@@ -404,12 +404,20 @@ export default function Accueil({
                 })()}
             </div>
             <div className="ligne">
-              <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => lancer(proposee.modele)}>
-                Démarrer
-              </button>
-              <button className="btn grand" style={{ flex: 1 }} onClick={() => voir(proposee.modele)}>
-                Voir
-              </button>
+              {proposee === duJour ? (
+                <>
+                  <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => lancer(proposee.modele)}>
+                    Démarrer
+                  </button>
+                  <button className="btn grand" style={{ flex: 1 }} onClick={() => voir(proposee.modele)}>
+                    Voir
+                  </button>
+                </>
+              ) : (
+                <button className="btn grand" style={{ width: '100%' }} onClick={() => voir(proposee.modele)}>
+                  Voir la séance
+                </button>
+              )}
             </div>
           </>
         ) : planning.length > 0 ? (
@@ -435,7 +443,7 @@ export default function Accueil({
         <div className="ligne actions-accueil">
           {proposee && (
             <button type="button" className="btn texte lien-discret" onClick={() => setChoix(true)}>
-              Choisir une autre séance ›
+              {proposee === duJour ? 'Choisir une autre séance ›' : 'Choisir une séance à faire aujourd’hui ›'}
             </button>
           )}
           {variante && proposee === duJour && (
