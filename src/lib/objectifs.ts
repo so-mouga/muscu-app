@@ -63,7 +63,7 @@ export function objectifsA(frise: EtapeObjectifs[], date: string): EtapeObjectif
 
 /**
  * Nouvelle étape à `date` : reprend les objectifs en vigueur (ou `base` pour le volume s'il n'y en a
- * pas) et applique le changement. Changer de phase efface la fin prévue et le poids visé de l'ancienne ; `phase:
+ * pas) et applique le changement. Changer de phase efface la fin prévue, le poids visé et les calories fixées de l'ancienne ; `phase:
  * undefined` arrête la phase. Deux changements le même jour : une seule étape, la dernière. Un
  * nouveau volume vaut aussi pour les étapes déjà prévues après (phase programmée à l'avance).
  */
@@ -75,6 +75,7 @@ export function modifier(frise: EtapeObjectifs[], date: string, changement: Part
     ...(avant?.phase && { phase: avant.phase }),
     ...(!nouvellePhase && avant?.finPrevue && { finPrevue: avant.finPrevue }),
     ...(!nouvellePhase && avant?.ecartVise && { ecartVise: avant.ecartVise }),
+    ...(!nouvellePhase && avant?.calories && { calories: avant.calories }),
     ...changement,
     depuis: date,
   }

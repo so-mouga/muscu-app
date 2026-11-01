@@ -1,5 +1,5 @@
 import type { Exercice, JourJournal, Pesee, Seance } from '../types'
-import { enTemps, kg } from './calc'
+import { enTemps, heuresMinutes, kg } from './calc'
 import { scoreSerie } from './historique'
 import type { Phase } from './objectifs'
 
@@ -8,7 +8,6 @@ const jours = (a: string, b: string) => Math.round((Date.parse(b + 'T12:00:00') 
 const decaler = (iso: string, n: number) => new Date(Date.parse(iso + 'T12:00:00') + n * JOUR).toISOString().slice(0, 10)
 const moyenne = (l: number[]) => (l.length ? l.reduce((a, b) => a + b, 0) / l.length : null)
 const arrondi = (x: number, d = 1) => Math.round(x * 10 ** d) / 10 ** d
-const heures = (h: number) => `${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, '0')}`
 
 /** Le 1RM estimé bouge avec le RPE noté : sous +1 %, ce n'est pas un vrai progrès. Sinon (isolation, temps), tout gain compte. */
 const seuil = (exo: Exercice) => (exo.suivreE1rm && !enTemps(exo) ? 1.01 : 1)
@@ -39,12 +38,14 @@ export interface Blocage {
 export function blocage(exo: Exercice, seances: Seance[], jusqua: string): Blocage | null {
   const l = scores(exo, seances, jusqua)
   if (l.length < 4) return null
-  let meilleur = l[0].score
+  // Comparé au score du dernier vrai progrès : des gains sous 1 % qui s'additionnent finissent par compter.
+  let ref = l[0].score
   let depuis = l[0].date
-  for (const x of l.slice(1)) {
-    if (x.score > meilleur * seuil(exo)) depuis = x.date
-    meilleur = Math.max(meilleur, x.score)
-  }
+  for (const x of l.slice(1))
+    if (x.score > ref * seuil(exo)) {
+      ref = x.score
+      depuis = x.date
+    }
   const apres = l.filter((x) => x.date > depuis).length
   const semaines = Math.floor(jours(depuis, jusqua) / 7)
   return semaines >= 3 && apres >= 3 && jours(l[l.length - 1].date, jusqua) <= 14 ? { semaines, seances: apres, depuis } : null
@@ -64,7 +65,7 @@ export function pistes(exo: Exercice, depuis: string, jusqua: string, c: Context
   const jrs = (c.journal ?? []).filter((j) => j.date > depuis && j.date <= jusqua)
   const nuits = jrs.flatMap((j) => (j.sommeil !== undefined ? [j.sommeil] : []))
   const sommeil = nuits.length >= 5 ? moyenne(nuits)! : null
-  if (sommeil !== null && sommeil < 6.5) r.push(`sommeil moyen ${heures(sommeil)}`)
+  if (sommeil !== null && sommeil < 6.5) r.push(`sommeil moyen ${heuresMinutes(sommeil)}`)
 
   const notes = jrs.filter((j) => j.calories)
   const pasAssez = notes.filter((j) => j.calories === 'pasAssez').length

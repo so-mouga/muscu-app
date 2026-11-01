@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance, Serie } from '../types'
 import { delies, relies, repere } from './equivalents'
-import { bilan, creneauxFaits, meilleureSerie, mieuxParSeance, parSemaine, recordsParSeance } from './historique'
+import { bilan, creneauxFaits, historiqueDe, meilleureSerie, mieuxParSeance, parSemaine, recordsParSeance } from './historique'
 
 const exoId = Object.values(EXERCICES).find((e) => e.suivreE1rm && e.mode !== 'poids_corps')!.id
 const serie = (charge: number, reps: number, rpe = 8): Serie => ({ id: `${charge}-${reps}`, exoId, type: 'normale', charge, reps, rpe, heure: 0 })
@@ -80,5 +80,20 @@ describe('créneaux de la semaine', () => {
   })
   it('deux fois : les deux créneaux', () => {
     expect([...creneauxFaits(planning, [{ id: 'A', jour: 1 }, { id: 'A', jour: 3 }])].sort()).toEqual([0, 2])
+  })
+})
+
+describe('audit historique', () => {
+  it('records d’un exercice assisté sans poids noté : moins d’assistance = record', () => {
+    const t = (charge: number): Serie => ({ id: String(charge), exoId: 'tractions', type: 'normale', charge, reps: 8, rpe: 8, heure: 0 })
+    const s1 = seance('s1', '2026-10-01', [t(-20)])
+    const s2 = seance('s2', '2026-10-08', [t(-15)])
+    expect(recordsParSeance([s1, s2], (id) => EXERCICES[id])).toEqual({ s1: 0, s2: 1 })
+  })
+
+  it('« la dernière fois » ne prend jamais une séance de déload', () => {
+    const normale = seance('n', '2026-10-01', [serie(60, 8)])
+    const deload = { ...seance('d', '2026-10-08', [serie(52.5, 6, 6)]), deload: true }
+    expect(historiqueDe([deload, normale], exoId)).toEqual([[serie(60, 8)]])
   })
 })

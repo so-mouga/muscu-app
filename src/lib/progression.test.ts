@@ -222,7 +222,7 @@ describe('conseil de surcharge (proposition, jamais automatique)', () => {
 
   it('montée de plus de 10 % : conseil de confirmer d’abord au haut de la fourchette', () => {
     const plan3 = { ...plan, charge: 15, finisseur: false, series: plan.series.slice(0, 3) }
-    const r = conseil(EXERCICES.butterfly, plan3, [seance(15, '20@7')])
+    const r = conseil(EXERCICES.butterfly, plan3, [seance(15, '20@7', '20@7', '20@7')])
     expect(r?.decision).toBe('consolider')
     expect(r?.reps).toEqual([15, 15, 15])
     expect(r?.message).toMatch(/pour confirmer/)
@@ -248,5 +248,41 @@ describe('conseil de surcharge (proposition, jamais automatique)', () => {
     expect(monterMaintenant(EXERCICES.butterfly, plan, s, 1)).toBe(17.5)
     expect(monterMaintenant(EXERCICES.butterfly, plan, seance(15, '16@8')[0], 1)).toBeNull()
     expect(monterMaintenant(EXERCICES.butterfly, fixe, s, 1)).toBeNull()
+  })
+})
+
+describe('audit des conseils', () => {
+  const plan = (series: [number, number][], finisseur = false) => ({
+    exoId: 'smith_incline',
+    repos: 120,
+    chauffes: [],
+    finisseur,
+    charge: 50,
+    series: series.map(([repsMin, repsMax]) => ({ repsMin, repsMax, rpe: 8 })),
+  })
+  const smithExo = EXERCICES.smith_incline
+
+  it('fourchette différente par série (12 / 10 / 8) : chaque série est jugée sur la sienne', () => {
+    const p = plan([[10, 12], [8, 10], [6, 8]])
+    const auSommet = suggere(smithExo, p, [seance(50, '12@8', '10@8', '8@8')])
+    expect(auSommet.decision).toBe('augmenter')
+    expect(auSommet.reps).toEqual([10, 8, 6])
+    // 8 reps sur la 3e série est dans sa fourchette : pas un « raté ».
+    expect(conseil(smithExo, p, [seance(50, '12@8', '10@8', '8@8')])?.decision).toBe('augmenter')
+    const enCours = suggere(smithExo, p, [seance(50, '11@8', '9@8', '7@8')])
+    expect(enCours.decision).toBe('plus_une_rep')
+    expect(enCours.reps).toEqual([12, 10, 7])
+  })
+
+  it('séance écourtée au sommet : pas de « toutes tes séries ont atteint le haut »', () => {
+    const p = planDe('haut_a', 'butterfly')
+    expect(suggere(EXERCICES.butterfly, p, [seance(30, '15@8', '15@8')]).decision).not.toBe('augmenter')
+    expect(conseil(EXERCICES.butterfly, p, [seance(30, '15@8', '15@8')])).toBeNull()
+  })
+
+  it('reps fixes ratées deux fois de suite : vise toujours le bas, même charge', () => {
+    const p = plan([[5, 5], [5, 5], [5, 5]])
+    const c = conseil(smithExo, p, [seance(80, '5@8', '4@9', '3@10'), seance(80, '5@8', '4@9', '4@9')])
+    expect(c).toMatchObject({ decision: 'consolider', charges: [80, 80, 80], reps: [5, 5, 5] })
   })
 })

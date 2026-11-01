@@ -92,3 +92,16 @@ describe('déload conseillé', () => {
     expect(deloadConseille([seance('2026-10-15', [], { deload: true }), ...l(2)], exo, FIN)).toBeNull()
   })
 })
+
+describe('audit blocages', () => {
+  it('petits progrès réguliers (+0,6 % par séance, +2,4 % en tout) : pas bloqué', () => {
+    const l = DATES.map((d, i) => seance(d, [['smith_incline', 50 * (1 + 0.006 * i), 8, 8]]))
+    expect(blocage(smith, l, FIN)).toBeNull()
+  })
+
+  it('sommeil moyen juste sous 6 h : arrondi à « 6 h 00 », jamais « 5 h 60 »', () => {
+    const journal = Array.from({ length: 121 }, (_, i) => ({ date: new Date(Date.parse('2026-06-30T12:00:00') + i * 86400000).toISOString().slice(0, 10), sommeil: i ? 6 : 5 }))
+    const p = pistes(smith, '2026-06-29', '2026-10-31', { seances: [], journal })
+    expect(p[0]).toBe('sommeil moyen 6 h 00')
+  })
+})

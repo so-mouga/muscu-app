@@ -128,6 +128,12 @@ export function semaineType(p: Programme): Programme['seances'] {
   return planifiees.length ? planifiees : p.seances
 }
 
+/** Heures de sommeil (moyenne) → « 6 h 05 » ; arrondi à la minute avant de couper, jamais « 5 h 60 ». */
+export function heuresMinutes(h: number): string {
+  const min = Math.round(h * 60)
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`
+}
+
 export function duree(ms: number): string {
   const min = Math.round(ms / 60000)
   if (min < 1) return '< 1 min'

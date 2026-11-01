@@ -101,3 +101,15 @@ describe('phases en blocs', () => {
     expect(avisRythme('seche', -6, 4)).toMatch(/trop rapide/)
   })
 })
+
+describe('audit objectifs', () => {
+  it('calories fixées à la main : gardées quand on change le volume, la fin ou le poids visé ; oubliées au changement de phase', () => {
+    let f = modifier([], '2026-09-01', { phase: 'seche', calories: 2000 })
+    f = modifier(f, '2026-09-10', { finPrevue: '2026-12-01' })
+    f = modifier(f, '2026-09-20', { volume: { pecs: 14 } })
+    f = modifier(f, '2026-09-25', { ecartVise: -4 })
+    expect(objectifsA(f, '2026-09-26')?.calories).toBe(2000)
+    f = modifier(f, '2026-10-01', { phase: 'prise' })
+    expect(objectifsA(f, '2026-10-02')?.calories).toBeUndefined()
+  })
+})

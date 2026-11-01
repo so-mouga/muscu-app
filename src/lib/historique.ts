@@ -26,6 +26,14 @@ export function scoreSerie(exo: Exercice, x: Serie, poidsCorps?: number): number
 }
 
 /**
+ * Séries de travail d'un exercice, par séance terminée, la plus récente en premier. Les déloads
+ * (allégés) n'y sont jamais : ils ne servent ni de « dernière fois » ni de référence aux conseils.
+ */
+export function historiqueDe(seances: Seance[], exoId: string): Serie[][] {
+  return seances.filter((s) => !s.deload).map((s) => s.series.filter((x) => x.exoId === exoId)).filter((h) => h.length > 0)
+}
+
+/**
  * Nombre d'exercices qui battent leur record par séance (voir `scoreSerie`). Le premier passage sur
  * un exercice ne compte pas : il n'y a encore rien à battre. Les déloads ne comptent jamais.
  */
@@ -38,11 +46,12 @@ export function recordsParSeance(seances: Seance[], exo: (id: string) => Exercic
     if (s.deload) continue
     for (const x of s.series) {
       if (x.reps <= 0) continue
-      duJour[x.exoId] = Math.max(duJour[x.exoId] ?? 0, scoreSerie(exo(x.exoId), x, s.poidsCorps))
+      // Un exercice assisté sans poids noté a un score négatif : on part de −∞, pas de 0.
+      duJour[x.exoId] = Math.max(duJour[x.exoId] ?? -Infinity, scoreSerie(exo(x.exoId), x, s.poidsCorps))
     }
     for (const [id, e] of Object.entries(duJour)) {
       if (meilleur[id] !== undefined && e > meilleur[id]) res[s.id]++
-      meilleur[id] = Math.max(meilleur[id] ?? 0, e)
+      meilleur[id] = Math.max(meilleur[id] ?? -Infinity, e)
     }
   }
   return res
@@ -61,7 +70,7 @@ export function mieuxParSeance(seances: Seance[], exo: (id: string) => Exercice)
     const duJour: Record<string, number> = {}
     for (const x of s.series) {
       if (x.reps <= 0) continue
-      duJour[x.exoId] = Math.max(duJour[x.exoId] ?? 0, scoreSerie(exo(x.exoId), x, s.poidsCorps))
+      duJour[x.exoId] = Math.max(duJour[x.exoId] ?? -Infinity, scoreSerie(exo(x.exoId), x, s.poidsCorps))
     }
     for (const [id, e] of Object.entries(duJour)) {
       if (derniere[id] !== undefined && e > derniere[id]) res[s.id]++

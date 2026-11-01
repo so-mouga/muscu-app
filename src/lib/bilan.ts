@@ -2,7 +2,7 @@ import { MUSCLES } from '../data/exercices'
 import { typeActivite } from '../data/activites'
 import { nomCle } from '../data/mesures'
 import type { Activite, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
-import { dateCourte, dateISO, duree, e1rm, estDure, kg, lundi, serieTexte, volumeParMuscle } from './calc'
+import { dateCourte, dateISO, duree, e1rm, estDure, heuresMinutes, kg, lundi, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, recordsParSeance, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
 import { diagnostic, texteBlocage } from './blocages'
@@ -179,7 +179,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
     titre('Sommeil et calories')
     if (nuits.length) {
       const m = moyenne(nuits)!
-      lignes.push(`Sommeil moyen : ${Math.floor(m)} h ${String(Math.round((m % 1) * 60)).padStart(2, '0')} (${nuits.length} nuit${nuits.length > 1 ? 's' : ''} notée${nuits.length > 1 ? 's' : ''}, min ${kg(Math.min(...nuits))} h)`)
+      lignes.push(`Sommeil moyen : ${heuresMinutes(m)} (${nuits.length} nuit${nuits.length > 1 ? 's' : ''} notée${nuits.length > 1 ? 's' : ''}, min ${kg(Math.min(...nuits))} h)`)
     }
     if (cal.length) {
       const n = (c: string) => cal.filter((j) => j.calories === c).length

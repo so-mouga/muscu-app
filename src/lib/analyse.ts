@@ -1,7 +1,7 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
 import type { Exercice, Muscle, Seance, Serie } from '../types'
-import { chargeQte, dateISO, e1rm, estDure, kg, kgSouleves, volumeParMuscle } from './calc'
+import { chargeQte, dateISO, e1rm, estDure, heuresMinutes, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
 import { dureeReelle, meilleureSerie, scoreSerie, semaineDe } from './historique'
 import { nomPhase, type Phase } from './objectifs'
@@ -85,7 +85,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     for (const [id, { score, serie }] of duJour) {
       if (meilleur[id] !== undefined && score > meilleur[id] && s.date >= debutEffectif && s.date <= fin)
         records.push({ date: s.date, exo: d.exo(id), perf: chargeQte(d.exo(id), serie.charge, serie.reps) })
-      meilleur[id] = Math.max(meilleur[id] ?? 0, score)
+      meilleur[id] = Math.max(meilleur[id] ?? -Infinity, score)
     }
   }
 
@@ -221,7 +221,7 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
 
   // Sommeil court : il explique souvent une baisse de forme avant le programme.
   if (a.sommeil && a.sommeil.nuits >= 3 && a.sommeil.moyenne < 6.5)
-    r.push(`Sommeil moyen ${heuresTexte(a.sommeil.moyenne)} sur ${a.sommeil.nuits} nuits : sous 7 h, la récupération et les perfs en pâtissent.`)
+    r.push(`Sommeil moyen ${heuresMinutes(a.sommeil.moyenne)} sur ${a.sommeil.nuits} nuits : sous 7 h, la récupération et les perfs en pâtissent.`)
 
   // Assiduité
   if (a.prevues) {
@@ -319,8 +319,6 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
   }
   return r
 }
-
-const heuresTexte = (h: number) => `${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, '0')}`
 
 /** « Taille », « Bras droit »… */
 export const libelleMesure = (cle: string) => nomCle(cle)

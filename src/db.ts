@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { MODELES } from './data/programme'
-import type { Activite, Cycle, Exercice, JourJournal, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele, Serie } from './types'
+import type { Activite, Cycle, Exercice, JourJournal, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele } from './types'
 
 export const db = new Dexie('muscu') as Dexie & {
   seances: EntityTable<Seance, 'id'>
@@ -45,10 +45,7 @@ db.version(7).stores({ journal: 'date' })
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
-/** Séries de travail d'un exercice, par séance terminée, la plus récente en premier. */
-export function historiqueDe(seances: Seance[], exoId: string): Serie[][] {
-  return seances.map((s) => s.series.filter((x) => x.exoId === exoId)).filter((h) => h.length > 0)
-}
+export { historiqueDe } from './lib/historique'
 
 export const setReglage = (cle: string, valeur: unknown) => db.reglages.put({ cle, valeur })
 

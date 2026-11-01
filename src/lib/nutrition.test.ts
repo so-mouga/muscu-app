@@ -29,3 +29,10 @@ describe('objectif du jour', () => {
     expect(objectifDuJour(frise, '2026-11-05', undefined, 80, 4)).toBeNull()
   })
 })
+
+describe('audit nutrition', () => {
+  it('calories fixées à la main en sèche, profil incomplet : protéines à 2,2 g/kg', () => {
+    const frise = [{ depuis: '2026-10-01', phase: 'seche' as const, volume: {}, calories: 2000 }]
+    expect(objectifDuJour(frise, '2026-10-05', undefined, 80, 4)?.proteines).toBe(176)
+  })
+})

@@ -49,6 +49,6 @@ export function objectifDuJour(frise: EtapeObjectifs[], date: string, profil: Pr
   const phase = phaseA(frise, date)?.phase
   const manuel = objectifsA(frise, date)?.calories
   const calcul = poids && profilComplet(profil) ? objectifCalories(poids, profil, phase, seancesParSemaine, Number(date.slice(0, 4))) : null
-  if (manuel) return { kcal: manuel, proteines: calcul?.proteines ?? (poids ? Math.round(poids * 2) : null), maintien: calcul?.maintien ?? null, manuel: true as const, phase }
+  if (manuel) return { kcal: manuel, proteines: calcul?.proteines ?? (poids ? Math.round(poids * (phase === 'seche' ? 2.2 : 2)) : null), maintien: calcul?.maintien ?? null, manuel: true as const, phase }
   return calcul && { ...calcul, manuel: false as const, phase }
 }
