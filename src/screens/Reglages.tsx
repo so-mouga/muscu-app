@@ -10,6 +10,7 @@ import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
 import { confirmer } from '../components/Dialogues'
 import { ListeLexique } from '../components/Lexique'
+import ReglesConseils from '../components/ReglesConseils'
 import Interrupteur from '../components/Interrupteur'
 import ChampNombre from '../components/ChampNombre'
 import { ACTIVITES, CLE_PROFIL, type Profil } from '../lib/nutrition'
@@ -184,6 +185,8 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
           {persistant === null && 'État du stockage inconnu.'}
         </div>
       </div>
+
+      <ReglesConseils />
 
       <Lexique />
 
