@@ -10,7 +10,14 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
   const erreurs = suivreErreurs(p)
   await p.goto('/')
   await p.getByRole('button', { name: 'Choisir' }).first().click()
-  await p.getByRole('button', { name: 'Démarrer', exact: true }).click()
+  // Si c'est un jour de repos (comme dimanche), l'accueil affiche « Voir la séance ». On l'ouvre pour lancer « DÉMARRER ».
+  const btnDemarrer = p.getByRole('button', { name: 'Démarrer', exact: true })
+  if (await btnDemarrer.isVisible()) {
+    await btnDemarrer.click()
+  } else {
+    await p.getByRole('button', { name: 'Voir la séance' }).click()
+    await p.getByRole('button', { name: /démarrer/i }).click()
+  }
 
   // Plein écran : 1re série à 40 kg × 10.
   const charge = p.locator('.stepper input').first()
@@ -26,7 +33,13 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
 
   await p.getByRole('button', { name: 'Fin de séance' }).first().click()
   await p.getByRole('button', { name: '✓ ENREGISTRER LA SÉANCE' }).click()
-  await expect(p.getByRole('button', { name: 'Démarrer', exact: true }).or(p.getByRole('button', { name: /Démarrer une séance/ })).first()).toBeVisible()
+  await expect(
+    p
+      .getByRole('button', { name: 'Démarrer', exact: true })
+      .or(p.getByRole('button', { name: /Démarrer une séance/ }))
+      .or(p.getByRole('button', { name: 'Voir la séance' }))
+      .first()
+  ).toBeVisible()
 
   // Rechargement : la séance est enregistrée, terminée, avec la série corrigée.
   await p.reload()
