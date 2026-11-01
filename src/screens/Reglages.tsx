@@ -11,8 +11,6 @@ import { confirmer } from '../components/Dialogues'
 import { ListeLexique } from '../components/Lexique'
 import ReglesConseils from '../components/ReglesConseils'
 import Interrupteur from '../components/Interrupteur'
-import ChampNombre from '../components/ChampNombre'
-import { ACTIVITES, CLE_PROFIL, type Profil } from '../lib/nutrition'
 
 export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue; onFermer?: () => void }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
@@ -80,8 +78,6 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
       </div>
 
       <DonnerAvis />
-
-      <MonProfil />
 
       <RappelSeance />
 
@@ -298,7 +294,6 @@ function Lexique() {
   )
 }
 
-/** Profil saisi une fois : sert à calculer l'objectif calories (le poids vient des pesées). */
 /**
  * Rappel de séance (appli Android 1.6 et plus) : les jours prévus par le planning, à l'heure choisie,
  * sauf si une séance a déjà été démarrée ce jour-là. Coupé par défaut. Android reçoit le réglage depuis App.
@@ -331,57 +326,6 @@ function RappelSeance() {
       ) : (
         <div className="faible">Il faut la dernière version de l’appli Android : installe-la depuis le bandeau de l’accueil (tes données sont gardées).</div>
       )}
-    </div>
-  )
-}
-
-function MonProfil() {
-  const reglage = useLiveQuery(() => db.reglages.get(CLE_PROFIL), [], null)
-  if (reglage === null) return null
-  const p = (reglage?.valeur as Profil | undefined) ?? {}
-  // Relu en base à chaque fois : deux saisies rapprochées ne s'écrasent pas.
-  const maj = (c: Partial<Profil>) => void db.transaction('rw', db.reglages, async () => db.reglages.put({ cle: CLE_PROFIL, valeur: { ...((await db.reglages.get(CLE_PROFIL))?.valeur as Profil | undefined), ...c } }))
-  return (
-    <div className="carte pile">
-      <h3>Mon profil</h3>
-      <div className="faible">Pour calculer ton objectif calories selon ta phase (Corps → Poids, plus bas : Objectifs). Ton poids vient de tes pesées. Tout reste sur ce téléphone.</div>
-      <div className="ligne entre">
-        <span>Taille</span>
-        <span className="ligne" style={{ gap: 6 }}>
-          <ChampNombre valeur={p.taille} placeholder="—" onChange={(v) => maj({ taille: v && Math.round(v) })} />
-          <span className="faible">cm</span>
-        </span>
-      </div>
-      <div className="ligne entre">
-        <span>Année de naissance</span>
-        <ChampNombre valeur={p.naissance} placeholder="—" onChange={(v) => maj({ naissance: v && v > 1900 && v < 2020 ? Math.round(v) : undefined })} />
-      </div>
-      <div className="ligne entre">
-        <span>Sexe</span>
-        <div className="chips">
-          {(
-            [
-              ['h', 'Homme'],
-              ['f', 'Femme'],
-            ] as const
-          ).map(([id, nom]) => (
-            <button key={id} className={p.sexe === id ? 'actif' : ''} onClick={() => maj({ sexe: id })}>
-              {nom}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <div style={{ marginBottom: 6 }}>Activité hors salle</div>
-        <div className="chips">
-          {ACTIVITES.map((a) => (
-            <button key={a.id} className={p.activite === a.id ? 'actif' : ''} onClick={() => maj({ activite: a.id })}>
-              {a.nom}
-            </button>
-          ))}
-        </div>
-        {p.activite && <div className="faible" style={{ marginTop: 4 }}>{ACTIVITES.find((a) => a.id === p.activite)!.detail}</div>}
-      </div>
     </div>
   )
 }

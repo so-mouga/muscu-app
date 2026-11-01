@@ -7,7 +7,7 @@ import { chargeQte, dateISO, kg } from '../lib/calc'
 import { conseilRepas } from '../lib/journal'
 import { depuisDebut } from '../lib/motivation'
 import { etatCycle } from '../lib/cycle'
-import { CLE_PROFIL, objectifDuJour, type Profil } from '../lib/nutrition'
+import { objectifDuJour } from '../lib/nutrition'
 import { nomPhase, phaseA } from '../lib/objectifs'
 import type { JourJournal, Seance } from '../types'
 
@@ -49,12 +49,11 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const hier = dateISO(new Date(Date.now() - JOUR))
   const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * JOUR))).sortBy('date'), [], [])
   const journal = useLiveQuery(() => db.journal.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 30 * JOUR))).sortBy('date'), [], null)
-  const profil = useLiveQuery(() => db.reglages.get(CLE_PROFIL), [], null)
   const phase = phaseA(catalogue.objectifs, aujourdhui)
   const [nuit, setNuit] = useState<number | null>(null)
   const [saisiePoids, setSaisiePoids] = useState(false)
   const [valPoids, setValPoids] = useState<string>('')
-  if (journal === null || profil === null) return null
+  if (journal === null) return null
 
   const duJour = journal.find((j) => j.date === aujourdhui)
   const dHier = journal.find((j) => j.date === hier)
@@ -62,8 +61,8 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
 
   const pesee = pesees.find((p) => p.date === aujourdhui)
   const poids = pesees[pesees.length - 1]?.poids
-  const objectif = objectifDuJour(catalogue.objectifs, aujourdhui, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
-  const objectifHier = objectifDuJour(catalogue.objectifs, hier, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
+  const objectif = objectifDuJour(catalogue.objectifs, aujourdhui)
+  const objectifHier = objectifDuJour(catalogue.objectifs, hier)
   const repas = conseilRepas(phase?.phase, entrainement, deload)
   // Progrès du bloc en charge × reps : depuis le début du cycle en cours, sinon de la phase, sinon 4 semaines.
   const etatC = catalogue.cycle && etatCycle(catalogue.cycle)
@@ -229,7 +228,7 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
             {repas && <>🥗 {repas}</>}
             {objectif && (
               <span className={repas ? 'faible' : ''} style={{ display: 'block', marginTop: repas ? 2 : 0 }}>
-                {repas ? '' : '🥗 '}Cible aujourd’hui : {objectif.kcal.toLocaleString('fr-FR')} kcal{objectif.proteines ? ` · ${objectif.proteines} g de protéines` : ''}
+                {repas ? '' : '🥗 '}Cible aujourd’hui : {objectif.kcal.toLocaleString('fr-FR')} kcal
               </span>
             )}
           </span>

@@ -22,7 +22,7 @@ export interface EtapeObjectifs {
   ecartVise?: number
   /** Séries dures par semaine, par muscle. */
   volume: Partial<Record<Muscle, number>>
-  /** Objectif calories fixé à la main (sinon calculé d'après le profil et la phase). */
+  /** Objectif calories quotidien si souhaité. */
   calories?: number
 }
 
