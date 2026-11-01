@@ -421,31 +421,33 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
             <span>
               Pesées <span className="faible">({pesees.length})</span>
             </span>
-            <span className="muted">{voirPesees ? '▾' : '▸'}</span>
+            <span className={'muted chevron-accordeon' + (voirPesees ? ' ouvert' : '')}>▸</span>
           </button>
-          {voirPesees && (
-            <div className="faible" style={{ margin: '8px 0 4px' }}>
-              Touche une pesée pour la corriger.
+          <div className={'accordeon-tiroir' + (voirPesees ? ' ouvert' : '')}>
+            <div className="accordeon-contenu">
+              <div className="faible" style={{ margin: '8px 0 4px' }}>
+                Touche une pesée pour la corriger.
+              </div>
+              {pesees.slice(0, 30).map((p) => (
+                <div key={p.date} className={'ligne-mesure' + (p.date === date ? ' active' : '')}>
+                  <button
+                    type="button"
+                    className="texte"
+                    style={{ flex: 1, textAlign: 'left', background: 'none', padding: '6px 0', color: 'inherit' }}
+                    onClick={() => (setDate(p.date), window.scrollTo({ top: 0, behavior: 'smooth' }))}
+                  >
+                    {dateCourte(p.date)}
+                  </button>
+                  <span className="ligne" style={{ gap: 8 }}>
+                    <strong>{kg(p.poids)} kg</strong>
+                    <button className="btn discret petit" aria-label="Supprimer" onClick={async () => (await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })) && db.pesees.delete(p.date)}>
+                      ✕
+                    </button>
+                  </span>
+                </div>
+              ))}
             </div>
-          )}
-          {voirPesees && pesees.slice(0, 30).map((p) => (
-            <div key={p.date} className={'ligne-mesure' + (p.date === date ? ' active' : '')}>
-              <button
-                type="button"
-                className="texte"
-                style={{ flex: 1, textAlign: 'left', background: 'none', padding: '6px 0', color: 'inherit' }}
-                onClick={() => (setDate(p.date), window.scrollTo({ top: 0, behavior: 'smooth' }))}
-              >
-                {dateCourte(p.date)}
-              </button>
-              <span className="ligne" style={{ gap: 8 }}>
-                <strong>{kg(p.poids)} kg</strong>
-                <button className="btn discret petit" aria-label="Supprimer" onClick={async () => (await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })) && db.pesees.delete(p.date)}>
-                  ✕
-                </button>
-              </span>
-            </div>
-          ))}
+          </div>
         </div>
       )}
     </>

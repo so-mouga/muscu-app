@@ -546,90 +546,92 @@ export default function Accueil({
                         ({g.seances.length} séance{g.seances.length > 1 ? 's' : ''})
                       </span>
                     </div>
-                    <span className="muted" style={{ fontSize: 16 }}>{ouvert ? '▾' : '▸'}</span>
+                    <span className={'muted chevron-accordeon' + (ouvert ? ' ouvert' : '')} style={{ fontSize: 16 }}>▸</span>
                   </button>
 
-                  {ouvert && (
-                    <div
-                      className="pile"
-                      style={{
-                        gap: 8,
-                        marginTop: 10,
-                        paddingTop: 10,
-                        borderTop: '1px solid var(--bord)',
-                      }}
-                    >
-                      {g.seances.length === 0 ? (
-                        <div className="faible" style={{ fontStyle: 'italic', padding: '6px 2px' }}>
-                          Aucune séance dans ce programme.
-                        </div>
-                      ) : (
-                        g.seances.map((m) => {
-                          const creneauxJours = g.prog
-                            ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => e.jour!)
-                            : []
-                          const estAujourdhui = creneauxJours.includes(jour)
-                          const faiteSemaine = realisees(m) > 0
+                  <div className={'accordeon-tiroir' + (ouvert ? ' ouvert' : '')}>
+                    <div className="accordeon-contenu">
+                      <div
+                        className="pile"
+                        style={{
+                          gap: 8,
+                          marginTop: 10,
+                          paddingTop: 10,
+                          borderTop: '1px solid var(--bord)',
+                        }}
+                      >
+                        {g.seances.length === 0 ? (
+                          <div className="faible" style={{ fontStyle: 'italic', padding: '6px 2px' }}>
+                            Aucune séance dans ce programme.
+                          </div>
+                        ) : (
+                          g.seances.map((m) => {
+                            const creneauxJours = g.prog
+                              ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => e.jour!)
+                              : []
+                            const estAujourdhui = creneauxJours.includes(jour)
+                            const faiteSemaine = realisees(m) > 0
 
-                          return (
-                            <button
-                              key={m.id}
-                              type="button"
-                              className="sous-seance-item"
-                              style={{
-                                padding: '12px 14px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: 12,
-                              }}
-                              onClick={() => voir(m)}
-                            >
-                              <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                                <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
-                                  <strong style={{ fontSize: '1rem', color: 'var(--texte)' }}>{m.nom}</strong>
-                                  {creneauxJours.map((j) => (
-                                    <span key={j} className={'badge-jour' + (j === jour ? ' aujourdhui' : '')}>
-                                      {['', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][j]}
-                                    </span>
-                                  ))}
-                                </div>
-                                {m.sousTitre && (
-                                  <div
-                                    className="muted petit"
-                                    style={{
-                                      marginTop: 2,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    {m.sousTitre}
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                className="sous-seance-item"
+                                style={{
+                                  padding: '12px 14px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: 12,
+                                }}
+                                onClick={() => voir(m)}
+                              >
+                                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                                  <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
+                                    <strong style={{ fontSize: '1rem', color: 'var(--texte)' }}>{m.nom}</strong>
+                                    {creneauxJours.map((j) => (
+                                      <span key={j} className={'badge-jour' + (j === jour ? ' aujourdhui' : '')}>
+                                        {['', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][j]}
+                                      </span>
+                                    ))}
                                   </div>
-                                )}
-                                <div className="faible" style={{ marginTop: 4, fontSize: '0.8rem' }}>
-                                  {dureeTexte(m, terminees)}
+                                  {m.sousTitre && (
+                                    <div
+                                      className="muted petit"
+                                      style={{
+                                        marginTop: 2,
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                    >
+                                      {m.sousTitre}
+                                    </div>
+                                  )}
+                                  <div className="faible" style={{ marginTop: 4, fontSize: '0.8rem' }}>
+                                    {dureeTexte(m, terminees)}
+                                  </div>
                                 </div>
-                              </div>
 
-                              <div className="ligne" style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
-                                {faiteSemaine ? (
-                                  <span className="pastille ok" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                                    ✓ Faite
-                                  </span>
-                                ) : estAujourdhui ? (
-                                  <span className="pastille accent" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                                    Aujourd'hui
-                                  </span>
-                                ) : null}
-                                <span className="muted" style={{ fontSize: '1.1rem', marginLeft: 2 }}>›</span>
-                              </div>
-                            </button>
-                          )
-                        })
-                      )}
+                                <div className="ligne" style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                                  {faiteSemaine ? (
+                                    <span className="pastille ok" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                      ✓ Faite
+                                    </span>
+                                  ) : estAujourdhui ? (
+                                    <span className="pastille accent" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                      Aujourd'hui
+                                    </span>
+                                  ) : null}
+                                  <span className="muted" style={{ fontSize: '1.1rem', marginLeft: 2 }}>›</span>
+                                </div>
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               )
             })}

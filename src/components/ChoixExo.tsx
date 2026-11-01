@@ -155,21 +155,28 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
               </div>
             ) : null}
             <div>
-              {groupes.map((g) => (
-                <div key={g.muscle}>
-                  <button className="groupe-repli" onClick={() => basculer(g.muscle)} aria-expanded={ouvert(g.muscle)}>
-                    <span className="ligne" style={{ gap: 8 }}>
-                      <IconeMuscle muscle={g.muscle} taille={26} />
-                      <span>
-                        {g.nom}
-                        {g.muscle === muscle ? ' · même muscle' : ''} <span className="nb">({g.exos.length})</span>
+              {groupes.map((g) => {
+                const estOuvert = ouvert(g.muscle)
+                return (
+                  <div key={g.muscle}>
+                    <button className="groupe-repli" onClick={() => basculer(g.muscle)} aria-expanded={estOuvert}>
+                      <span className="ligne" style={{ gap: 8 }}>
+                        <IconeMuscle muscle={g.muscle} taille={26} />
+                        <span>
+                          {g.nom}
+                          {g.muscle === muscle ? ' · même muscle' : ''} <span className="nb">({g.exos.length})</span>
+                        </span>
                       </span>
-                    </span>
-                    <span className="muted">{ouvert(g.muscle) ? '▾' : '▸'}</span>
-                  </button>
-                  {ouvert(g.muscle) && g.exos.map((e) => ligne(e))}
-                </div>
-              ))}
+                      <span className={'muted chevron-accordeon' + (estOuvert ? ' ouvert' : '')}>▸</span>
+                    </button>
+                    <div className={'accordeon-tiroir' + (estOuvert ? ' ouvert' : '')}>
+                      <div className="accordeon-contenu">
+                        {g.exos.map((e) => ligne(e))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
               {groupes.length === 0 && <div className="muted">Aucun exercice trouvé.</div>}
             </div>
             {onChoixMultiple ? (

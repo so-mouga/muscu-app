@@ -213,20 +213,27 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
         ))}
       </div>
 
-      {groupes.map((g) => (
-        <div key={g.muscle}>
-          <button className="groupe-repli" onClick={() => basculer(g.muscle)} aria-expanded={ouvert(g.muscle)}>
-            <span className="ligne" style={{ gap: 8 }}>
-              {g.muscle !== 'recents' && <IconeMuscle muscle={g.muscle as Muscle} taille={26} />}
-              <span>
-                {g.nom} <span className="nb">({g.exos.length})</span>
+      {groupes.map((g) => {
+        const estOuvert = ouvert(g.muscle)
+        return (
+          <div key={g.muscle}>
+            <button className="groupe-repli" onClick={() => basculer(g.muscle)} aria-expanded={estOuvert}>
+              <span className="ligne" style={{ gap: 8 }}>
+                {g.muscle !== 'recents' && <IconeMuscle muscle={g.muscle as Muscle} taille={26} />}
+                <span>
+                  {g.nom} <span className="nb">({g.exos.length})</span>
+                </span>
               </span>
-            </span>
-            <span className="muted">{ouvert(g.muscle) ? '▾' : '▸'}</span>
-          </button>
-          {ouvert(g.muscle) && g.exos.map(ligne)}
-        </div>
-      ))}
+              <span className={'muted chevron-accordeon' + (estOuvert ? ' ouvert' : '')}>▸</span>
+            </button>
+            <div className={'accordeon-tiroir' + (estOuvert ? ' ouvert' : '')}>
+              <div className="accordeon-contenu">
+                {g.exos.map(ligne)}
+              </div>
+            </div>
+          </div>
+        )
+      })}
       {groupes.every((g) => g.exos.length === 0) && <div className="carte muted" style={{ marginTop: 12 }}>Aucun exercice.</div>}
 
       {supprimes.length > 0 && filtre === 'tous' && !recherche && (

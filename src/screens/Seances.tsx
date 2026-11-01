@@ -231,45 +231,47 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
                       onClick={() => setDeplies((d) => ({ ...d, [p.id]: !ouvert }))}
                       aria-label={ouvert ? 'Replier les séances' : 'Déplier les séances'}
                     >
-                      {ouvert ? '▾' : '▸'}
+                      <span className={'chevron-accordeon' + (ouvert ? ' ouvert' : '')}>▸</span>
                     </button>
                   </div>
                 </div>
 
-                {ouvert && (
-                  <div className="pile" style={{ gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bord)' }}>
-                    {seances.length === 0 ? (
-                      <div className="faible" style={{ fontStyle: 'italic', padding: '6px 0' }}>
-                        Aucune séance dans ce programme pour l’instant.
-                      </div>
-                    ) : (
-                      seances.map(({ m, jour }, sIdx) => (
-                        <button
-                          key={m!.id + sIdx}
-                          type="button"
-                          className="sous-seance-item"
-                          onClick={() => ouvrirSeance(m!)}
-                        >
-                          <span style={{ minWidth: 0 }}>
-                            <div className="ligne" style={{ gap: 8, alignItems: 'center' }}>
-                              {jour ? (
-                                <span className="badge-jour">{jourCourt(jour)}</span>
-                              ) : (
-                                <span className="badge-jour libre">Libre</span>
-                              )}
-                              <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m!.nom}</strong>
-                              {m!.sousTitre && <span className="muted petit">— {m!.sousTitre}</span>}
-                            </div>
-                            <div className="faible" style={{ marginTop: 3, paddingLeft: 46 }}>
-                              {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)}
-                            </div>
-                          </span>
-                          <span className="muted">›</span>
-                        </button>
-                      ))
-                    )}
+                <div className={'accordeon-tiroir' + (ouvert ? ' ouvert' : '')}>
+                  <div className="accordeon-contenu">
+                    <div className="pile" style={{ gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bord)' }}>
+                      {seances.length === 0 ? (
+                        <div className="faible" style={{ fontStyle: 'italic', padding: '6px 0' }}>
+                          Aucune séance dans ce programme pour l’instant.
+                        </div>
+                      ) : (
+                        seances.map(({ m, jour }, sIdx) => (
+                          <button
+                            key={m!.id + sIdx}
+                            type="button"
+                            className="sous-seance-item"
+                            onClick={() => ouvrirSeance(m!)}
+                          >
+                            <span style={{ minWidth: 0 }}>
+                              <div className="ligne" style={{ gap: 8, alignItems: 'center' }}>
+                                {jour ? (
+                                  <span className="badge-jour">{jourCourt(jour)}</span>
+                                ) : (
+                                  <span className="badge-jour libre">Libre</span>
+                                )}
+                                <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m!.nom}</strong>
+                                {m!.sousTitre && <span className="muted petit">— {m!.sousTitre}</span>}
+                              </div>
+                              <div className="faible" style={{ marginTop: 3, paddingLeft: 46 }}>
+                                {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)}
+                              </div>
+                            </span>
+                            <span className="muted">›</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             )
           })}
@@ -280,9 +282,13 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
             <span>
               Programmes tout prêts <span className="faible">· full body, haut / bas…</span>
             </span>
-            <span className="muted">{voirTypes ? '▾' : '▸'}</span>
+            <span className={'muted chevron-accordeon' + (voirTypes ? ' ouvert' : '')}>▸</span>
           </button>
-          {voirTypes && <ChoixProgramme catalogue={catalogue} titre="Programmes tout prêts" intro="Choisir un programme le copie dans tes programmes (modifiable) et en fait ton programme actif." onChoisi={() => setVoirTypes(false)} />}
+          <div className={'accordeon-tiroir' + (voirTypes ? ' ouvert' : '')}>
+            <div className="accordeon-contenu">
+              <ChoixProgramme catalogue={catalogue} titre="Programmes tout prêts" intro="Choisir un programme le copie dans tes programmes (modifiable) et en fait ton programme actif." onChoisi={() => setVoirTypes(false)} />
+            </div>
+          </div>
           <button
             type="button"
             className="btn texte lien-discret"
