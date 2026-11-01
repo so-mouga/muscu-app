@@ -3,8 +3,10 @@ import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
 import { informer } from './Dialogues'
-import { dateISO, kg } from '../lib/calc'
-import { conseilRepas, meilleureProgression } from '../lib/journal'
+import { chargeQte, dateISO, kg } from '../lib/calc'
+import { conseilRepas } from '../lib/journal'
+import { depuisDebut } from '../lib/motivation'
+import { etatCycle } from '../lib/cycle'
 import { CLE_PROFIL, objectifDuJour, type Profil } from '../lib/nutrition'
 import { nomPhase, phaseA } from '../lib/objectifs'
 import type { JourJournal, Seance } from '../types'
@@ -63,7 +65,11 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
   const objectifHier = objectifDuJour(catalogue.objectifs, hier, profil?.valeur as Profil | undefined, poids, catalogue.planning.length)
   const repas = conseilRepas(phase?.phase, entrainement, deload)
-  const progres = terminees ? meilleureProgression(terminees, catalogue.exo, phase ? phase.debut : dateISO(new Date(Date.now() - 28 * JOUR))) : null
+  // Progrès du bloc en charge × reps : depuis le début du cycle en cours, sinon de la phase, sinon 4 semaines.
+  const etatC = catalogue.cycle && etatCycle(catalogue.cycle)
+  const blocCycle = catalogue.cycle && etatC && etatC.n >= 1 && !etatC.fini ? catalogue.cycle.debut : undefined
+  const depuis = blocCycle ?? phase?.debut ?? dateISO(new Date(Date.now() - 28 * JOUR))
+  const progres = terminees ? depuisDebut(terminees, catalogue.exo, depuis) : []
 
   const ouvrirSaisiePoids = () => {
     const init = pesee ? pesee.poids : poids ?? 70
@@ -230,12 +236,14 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
         </div>
       )}
 
-      {progres && (
-        <div className="ligne-jour">
-          <span>
-            📈 {phase ? `Depuis le début de ta ${nomPhase(phase.phase).toLowerCase()}` : 'En 4 semaines'} : <strong>{progres.exo.nom}</strong>{' '}
-            <span className="plus">+{kg(Math.round(progres.pct * 10) / 10)} %</span>
-          </span>
+      {progres.length > 0 && (
+        <div className="ligne-jour" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+          <span className="faible">📈 {blocCycle ? 'Depuis le début de ton cycle' : phase ? `Depuis le début de ta ${nomPhase(phase.phase).toLowerCase()}` : 'En 4 semaines'}</span>
+          {progres.map((p) => (
+            <span key={p.exo.id}>
+              <strong>{p.exo.nom}</strong> : {chargeQte(p.exo, p.avant.charge, p.avant.reps)} → <span className="plus">{chargeQte(p.exo, p.apres.charge, p.apres.reps)}</span>
+            </span>
+          ))}
         </div>
       )}
     </div>

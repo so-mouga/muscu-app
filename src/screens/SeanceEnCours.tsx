@@ -11,6 +11,7 @@ import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
 import Minuteur, { resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
+import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
 import { ecartSerie, lireChauffe, volumeParMuscle, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
@@ -1162,6 +1163,16 @@ function FinSeance({
       </div>
       <div className="carte">
         <h2>{seance.nom}</h2>
+        {(() => {
+          // Le moment où on est le plus réceptif : ce qui a été mieux aujourd'hui (jamais en déload).
+          const r = seance.deload ? null : resumeSeance(seance, terminees, catalogue.exo)
+          if (!r || (!r.mieux && !r.records)) return null
+          const morceaux = [
+            r.mieux > 0 && `${r.mieux} exercice${r.mieux > 1 ? 's' : ''} mieux que la dernière fois`,
+            r.records > 0 && `${r.records} record${r.records > 1 ? 's' : ''} 🏆`,
+          ].filter(Boolean)
+          return <div className="mieux-titre" style={{ marginTop: 4 }}>↑ {morceaux.join(', ')}</div>
+        })()}
         <ResumeSeance seance={seance} exo={catalogue.exo} />
       </div>
 

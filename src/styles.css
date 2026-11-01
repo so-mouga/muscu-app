@@ -2769,7 +2769,8 @@ button.semaine-bilan.cliquable {
   white-space: nowrap;
 }
 .a-battre .plus,
-.journal-matin .plus {
+.journal-matin .plus,
+.modal strong.plus {
   color: var(--ok);
   font-weight: 700;
 }

@@ -18,6 +18,7 @@ import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
 import IconeOnglet from '../components/IconeOnglet'
+import { joursSansSeance, semainesTenues, seuilSemaine } from '../lib/motivation'
 import { nouvelleVersionAndroid } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
@@ -127,6 +128,7 @@ export default function Accueil({
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
+  const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   // Appli Android : un APK plus récent publié ? (le site, lui, se met à jour tout seul)
   const [majAndroid, setMajAndroid] = useState<{ version: string; url: string } | null>(null)
   useEffect(() => void nouvelleVersionAndroid().then(setMajAndroid), [])
@@ -305,6 +307,15 @@ export default function Accueil({
                   {proposee.modele.sousTitre}
                 </div>
               )}
+              {(() => {
+                // Retour après un trou : pas de reproche, on reprend où on en était.
+                const n = terminees ? joursSansSeance(terminees, dateISO()) : null
+                return n !== null && n >= 10 ? (
+                  <div className="faible" style={{ margin: '4px 0 6px' }}>
+                    Première séance depuis {n} jours : mêmes charges que la dernière fois, baisse un peu si c’est trop dur.
+                  </div>
+                ) : null
+              })()}
               {!etat?.deload &&
                 (() => {
                   const l = aBattreDe(proposee.modele)
@@ -423,6 +434,15 @@ export default function Accueil({
               {JOURS[jourSemaine(new Date(a.date + 'T12:00:00'))]} · {typeActivite(a.type).emoji} {typeActivite(a.type).nom}
             </span>
           ))}
+          {(() => {
+            // Semaines tenues (les trois quarts des séances prévues, `seuilSemaine`) d'affilée ; déloads et pauses ne cassent rien.
+            const n = terminees ? semainesTenues(terminees, planning.length, cycles, dateISO()) : 0
+            return n >= 2 ? (
+              <div className="faible" style={{ width: '100%', marginTop: 6 }}>
+                {n}ᵉ semaine tenue de suite ({seuilSemaine(planning.length)} séances sur {planning.length} ou plus)
+              </div>
+            ) : null
+          })()}
         </div>
         {(semaine.length > 0 || activitesSemaine.length > 0) && (
           <button

@@ -3,7 +3,8 @@ import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { nomCle } from '../data/mesures'
 import { db, setReglage, uid } from '../db'
-import { dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle, volumePrevu } from '../lib/calc'
+import { chargeQte, dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle, volumePrevu } from '../lib/calc'
+import { depuisDebut } from '../lib/motivation'
 import { BONUS_PRIORITE, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle, nouveauCycle, type EtatCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { recordsParSeance } from '../lib/historique'
@@ -426,6 +427,7 @@ export function BilanCycle({ cycle, catalogue, onFermer }: { cycle: Cycle; catal
   const volume = volumeParMuscle(travail, catalogue.exercices)
   const moyen = Object.fromEntries(Object.entries(volume).map(([m, v]) => [m, normales.length ? Math.round((v / normales.length) * 10) / 10 : 0])) as typeof volume
   const records = recordsParSeance(toutes, catalogue.exo)
+  const progres = depuisDebut(duCycle, catalogue.exo, cycle.debut, 8)
   const nbRecords = duCycle.reduce((a, s) => a + (records[s.id] ?? 0), 0)
 
   const finCycle = cycle.fin ?? dateISO()
@@ -464,6 +466,21 @@ export function BilanCycle({ cycle, catalogue, onFermer }: { cycle: Cycle; catal
             <span className="faible">séance(s) de déload</span>
           </div>
         </div>
+
+        {progres.length > 0 && (
+          <div>
+            <h3>Depuis le début du cycle</h3>
+            <div className="faible" style={{ margin: '4px 0 8px' }}>Meilleure série de la 1re séance face à la dernière.</div>
+            {progres.map((p) => (
+              <div key={p.exo.id} className="ligne entre" style={{ gap: 8 }}>
+                <span>{p.exo.nom}</span>
+                <span className="faible" style={{ textAlign: 'right' }}>
+                  {chargeQte(p.exo, p.avant.charge, p.avant.reps)} → <strong className="plus">{chargeQte(p.exo, p.apres.charge, p.apres.reps)}</strong>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div>
           <h3>Volume moyen par semaine</h3>
