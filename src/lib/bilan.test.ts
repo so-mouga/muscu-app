@@ -26,7 +26,6 @@ const donnees = (seances: Seance[]) => ({
     { date: '2026-10-27', poids: 73.4 },
   ],
   mesures: [],
-  activites: [{ id: 'a', date: '2026-10-22', type: 'padel', duree: 90, intensite: 7 }],
   exo: (id: string) => EXERCICES[id],
   exercices: EXERCICES,
   cibles: cibles(),
@@ -46,7 +45,6 @@ describe('bilan à partager', () => {
     expect(t).toContain('1RM estimé : 70 → 73,5 kg (+5 %)')
     expect(t).toContain('(2 semaines)')
     expect(t).toContain('Poids moyen par semaine : 74 / 73,4 kg (−0,6 kg)')
-    expect(t).toContain('Padel, 1 h 30, intensité 7/10')
     expect(t).toContain('Siège cran 4')
   })
   it('sans séance : le dit simplement', () => {

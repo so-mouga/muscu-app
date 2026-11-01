@@ -14,7 +14,7 @@ import { analyser, aRetenir, libelleMesure, type Analyse } from '../lib/analyse'
 import { debutPeriode, genererBilan, type DonneesBilan } from '../lib/bilan'
 import { dateCourte, dateISO, duree, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
 import { bilan, recordsParSeance, semaineDe } from '../lib/historique'
-import type { Activite, Muscle, Seance } from '../types'
+import type { Muscle, Seance } from '../types'
 
 type Periode = 'semaine' | 'derniere' | '4' | 'cycle' | '12'
 
@@ -33,7 +33,6 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
   const seances = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
-  const activites = useLiveQuery(() => db.activites.toArray(), [], [])
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])
   const records = useMemo(() => (seances ? recordsParSeance(seances, catalogue.exo) : {}), [seances, catalogue])
   const prevuMuscles = useMemo(() => volumePrevu(semaineType(catalogue.actif).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices), [catalogue])
@@ -52,7 +51,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
 
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
   const cibles = catalogue.ciblesA(fin)
-  const donnees: DonneesBilan = { seances, pesees, mesures, activites, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycle && `Cycle « ${nomCycle(cycle)} » (${cycle.programme.nom}), semaine ${Math.max(1, etatCycle(cycle).n)}/${cycle.semaines}${cycle.priorites?.length ? `, priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
+  const donnees: DonneesBilan = { seances, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycle && `Cycle « ${nomCycle(cycle)} » (${cycle.programme.nom}), semaine ${Math.max(1, etatCycle(cycle).n)}/${cycle.semaines}${cycle.priorites?.length ? `, priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
   const prevues = catalogue.planning.length
   const phaseEnCours = phaseA(catalogue.objectifs, fin)
   const phaseFin = phaseEnCours?.phase
@@ -122,21 +121,11 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
           <Tuile valeur={String(a.dures)} label={a.dures > 1 ? 'séries dures' : 'série dure'} n={a.dures} m={avant.dures} comparable={comparable} />
           <Tuile valeur={kg(Math.round(a.tonnage))} label="kg soulevés" n={a.tonnage} m={avant.tonnage} comparable={comparable} texteAvant={kg(Math.round(avant.tonnage))} />
           {a.semaines.length > 1 && <Tuile valeur={String(a.enchainees)} label={`semaine${a.enchainees > 1 ? 's' : ''} d’affilée`} />}
-          {(a.sports.n > 0 || avant.sports.n > 0) && (
-            <Tuile
-              valeur={a.sports.minutes ? duree(a.sports.minutes * 60000) : '0'}
-              label={`d’autre sport (${a.sports.n})`}
-              n={a.sports.minutes}
-              m={avant.sports.minutes}
-              comparable={comparable}
-              texteAvant={avant.sports.minutes ? duree(avant.sports.minutes * 60000) : '0'}
-            />
-          )}
         </div>
         {a.deloads > 0 && <div className="faible" style={{ marginTop: 8 }}>Dont {a.deloads} séance(s) de déload.</div>}
       </div>
 
-      {a.semaines.length > 1 && <SemaineParSemaine semaines={a.semaines} seances={seances} activites={activites} records={records} catalogue={catalogue} />}
+      {a.semaines.length > 1 && <SemaineParSemaine semaines={a.semaines} seances={seances} records={records} catalogue={catalogue} />}
 
       <div className="carte">
         <div className="ligne entre">
@@ -250,18 +239,16 @@ const ecart = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
 /** Chaque semaine de la période en une ligne, la plus récente en premier. */
-function SemaineParSemaine({ semaines, seances, activites, records, catalogue }: { semaines: string[]; seances: Seance[]; activites: Activite[]; records: Record<string, number>; catalogue: Catalogue }) {
+function SemaineParSemaine({ semaines, seances, records, catalogue }: { semaines: string[]; seances: Seance[]; records: Record<string, number>; catalogue: Catalogue }) {
   const cette = lundi()
   return (
     <div className="carte">
       <h3 style={{ marginBottom: 4 }}>Semaine par semaine</h3>
       {[...semaines].reverse().map((l) => {
         const b = bilan(seances.filter((s) => semaineDe(s.date) === l), records, catalogue.exo)
-        const sports = activites.filter((x) => semaineDe(x.date) === l).length
         const detail = [
           b.dures ? `${b.dures} série${b.dures > 1 ? 's' : ''} dure${b.dures > 1 ? 's' : ''}` : '',
           b.records ? `🏆 ${b.records}` : '',
-          sports ? (sports > 1 ? `${sports} autres sports` : '1 autre sport') : '',
         ].filter(Boolean)
         return (
           <div key={l} className="semaine-bilan">

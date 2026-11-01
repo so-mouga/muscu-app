@@ -9,7 +9,6 @@ import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
-import { typeActivite } from '../data/activites'
 import { BandeauCycle, BilanCycle } from '../components/Cycle'
 import { etatCycle, planDeload } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
@@ -123,7 +122,6 @@ export default function Accueil({
     window.scrollTo({ top: 0 })
   }
   const debutSemaine = lundi()
-  const activitesSemaine = useLiveQuery(() => db.activites.where('date').aboveOrEqual(debutSemaine).sortBy('date'), [debutSemaine], [])
   const semaine = useLiveQuery(
     () => db.seances.where('date').aboveOrEqual(debutSemaine).filter((s) => !s.enCours).toArray(),
     [debutSemaine],
@@ -456,7 +454,7 @@ export default function Accueil({
       )}
 
       {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
-      {!premiereFois && <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} onCorps={onMesures} />}
+      {!premiereFois && <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} />}
 
       {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
       {deloadPlusTot && !masque('deload') && (
@@ -504,11 +502,6 @@ export default function Accueil({
               {JOURS[e.jour]} · {e.modele.nom} {faite(e) ? '✓' : ''}
             </button>
           ))}
-          {activitesSemaine.map((a) => (
-            <span key={a.id} className="pastille activite">
-              {JOURS[jourSemaine(new Date(a.date + 'T12:00:00'))]} · {typeActivite(a.type).emoji} {typeActivite(a.type).nom}
-            </span>
-          ))}
           {(() => {
             // Semaines tenues (les trois quarts des séances prévues, `seuilSemaine`) d'affilée ; déloads et pauses ne cassent rien.
             const n = terminees ? semainesTenues(terminees, planning.length, cycles, dateISO()) : 0
@@ -519,7 +512,7 @@ export default function Accueil({
             ) : null
           })()}
         </div>
-        {(semaine.length > 0 || activitesSemaine.length > 0) && (
+        {semaine.length > 0 && (
           <button
             className="ligne-jour"
             style={{ marginTop: 12, paddingTop: 10, paddingBottom: derniere ? 10 : 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }}
@@ -532,13 +525,12 @@ export default function Accueil({
               </strong>
               {duresSemaine > 0 && ` · ${duresSemaine} série${duresSemaine > 1 ? 's' : ''} dure${duresSemaine > 1 ? 's' : ''}`}
               {recordsSemaine > 0 && ` · 🏆 ${recordsSemaine}`}
-              {activitesSemaine.length > 0 && ` · +${activitesSemaine.length} sport${activitesSemaine.length > 1 ? 's' : ''}`}
             </span>
             <span className="muted">›</span>
           </button>
         )}
         {derniere && (
-          <button className="ligne-jour" style={{ marginTop: semaine.length > 0 || activitesSemaine.length > 0 ? 0 : 12, paddingTop: 10, paddingBottom: 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }} onClick={() => onVoirSeance(derniere.id)}>
+          <button className="ligne-jour" style={{ marginTop: semaine.length > 0 ? 0 : 12, paddingTop: 10, paddingBottom: 0, borderTop: '1px solid var(--bord)', borderBottom: 'none' }} onClick={() => onVoirSeance(derniere.id)}>
             <span style={{ minWidth: 0 }}>
               <span className="faible">Dernière · </span>
               <strong>{derniere.nom}</strong>{' '}

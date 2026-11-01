@@ -1,5 +1,4 @@
 import { PROGRAMME } from '../data/programme'
-import { kcalActivite } from '../data/activites'
 import type { Seance, Serie } from '../types'
 import { calories, dureeHabituelle, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
@@ -133,13 +132,6 @@ describe('volume prévu', () => {
   it('semaine type : seulement les séances planifiées', () => {
     expect(semaineType({ id: 'p', nom: 'p', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b' }] }).map((e) => e.modeleId)).toEqual(['a'])
     expect(semaineType({ id: 'p', nom: 'p', seances: [{ modeleId: 'a' }, { modeleId: 'b' }] })).toHaveLength(2)
-  })
-})
-
-describe('activités', () => {
-  it('calories : padel 1 h à intensité moyenne, 75 kg', () => {
-    expect(kcalActivite({ type: 'padel', duree: 60, intensite: 5 }, 75)).toBe(450)
-    expect(kcalActivite({ type: 'padel', duree: 60, intensite: 10 }, 75)).toBeGreaterThan(450)
   })
 })
 

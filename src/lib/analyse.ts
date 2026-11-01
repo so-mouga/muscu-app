@@ -32,7 +32,6 @@ export interface Analyse {
   temps: number
   dures: number
   tonnage: number
-  sports: { n: number; minutes: number }
   /** Semaines d'affilée avec au moins une séance, jusqu'à la dernière semaine de la période. */
   enchainees: number
   /** Séries dures par semaine, moyenne hors semaines de déload. */
@@ -153,7 +152,6 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const pesees1 = parSemainePoids.map((x, k) => (x !== null ? k : -1)).filter((k) => k >= 0)
   const ecartSemaines = pesees1.length ? pesees1[pesees1.length - 1] - pesees1[0] : 0
   const mesures = d.mesures.filter((m) => m.date >= debutEffectif && m.date <= fin).sort((a, b) => a.date.localeCompare(b.date))
-  const sports = d.activites.filter((a) => a.date >= debutEffectif && a.date <= fin)
 
   return {
     debut: debutEffectif,
@@ -170,7 +168,6 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     temps: periode.reduce((a, s) => a + dureeReelle(s), 0),
     dures: travail.reduce((a, s) => a + s.series.filter(estDure).length, 0),
     tonnage: periode.reduce((a, s) => a + s.series.reduce((b, x) => b + kgSouleves(x, d.exo(x.exoId)), 0), 0),
-    sports: { n: sports.length, minutes: sports.reduce((a, x) => a + x.duree, 0) },
     enchainees,
     volume,
     records,

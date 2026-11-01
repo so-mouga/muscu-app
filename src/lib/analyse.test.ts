@@ -32,7 +32,6 @@ const donnees = (seances: Seance[]) => ({
     { date: '2026-10-05', valeurs: { taille: 85 } },
     { date: '2026-10-26', valeurs: { taille: 84 } },
   ],
-  activites: [],
   exo: (id: string) => EXERCICES[id],
   exercices: EXERCICES,
   cibles: cibles(),

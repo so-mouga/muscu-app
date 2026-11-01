@@ -1,7 +1,6 @@
 import { MUSCLES } from '../data/exercices'
-import { typeActivite } from '../data/activites'
 import { nomCle } from '../data/mesures'
-import type { Activite, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
+import type { Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
 import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, evolutionForce, recordsParSeance, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
@@ -12,7 +11,6 @@ export interface DonneesBilan {
   seances: Seance[]
   pesees: Pesee[]
   mesures: Mesure[]
-  activites: Activite[]
   exo: (id: string) => Exercice
   exercices: Record<string, Exercice>
   /** Objectif de séries dures par semaine, par muscle. */
@@ -96,13 +94,11 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
       continue
     }
     const r = moyenne(ss.map((s) => s.ressenti).filter((x): x is number => x !== undefined))
-    const sports = d.activites.filter((a) => semaineDe(a.date) === l)
     lignes.push(
       `Sem. du ${jour(l)} : ${ss.length} séance${ss.length > 1 ? 's' : ''} (${ss.map((s) => s.nom).join(', ')}) · ` +
         `${ss.filter((s) => !s.deload).reduce((a, s) => a + s.series.filter(estDure).length, 0)} séries dures` +
         (ss.some((s) => s.deload) ? ' · déload' : '') +
-        (r !== null ? ` · ressenti ${kg(arrondi(r))}/5` : '') +
-        (sports.length ? ` · + ${sports.map((a) => `${typeActivite(a.type).nom.toLowerCase()} ${duree(a.duree * 60000)}`).join(', ')}` : '')
+        (r !== null ? ` · ressenti ${kg(arrondi(r))}/5` : '')
     )
   }
 
@@ -184,13 +180,6 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
       const n = (c: string) => cal.filter((j) => j.calories === c).length
       lignes.push(`Calories face à l’objectif (${cal.length} jours notés) : ${n('ok')} dans l’objectif, ${n('trop')} trop, ${n('pasAssez')} pas assez`)
     }
-  }
-
-  // Autres sports
-  const sports = d.activites.filter((a) => a.date >= debut && a.date <= fin)
-  if (sports.length) {
-    titre('Autres sports')
-    for (const a of sports) lignes.push(`${jour(a.date)} : ${typeActivite(a.type).nom}, ${duree(a.duree * 60000)}, intensité ${a.intensite}/10${a.note ? ` (${a.note})` : ''}`)
   }
 
   // Notes

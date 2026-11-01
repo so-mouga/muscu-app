@@ -44,7 +44,7 @@ export const noterJournal = (date: string, c: Partial<JourJournal>) => db.transa
  * chacun, tout facultatif), l'assiette du jour selon la phase et un vrai progrès. Ce qui est noté va
  * dans la table `journal`, pour le Bilan.
  */
-export default function JournalMatin({ catalogue, terminees, entrainement, deload = false, onCorps }: { catalogue: Catalogue; terminees?: Seance[]; entrainement: boolean; deload?: boolean; onCorps: () => void }) {
+export default function JournalMatin({ catalogue, terminees, entrainement, deload = false }: { catalogue: Catalogue; terminees?: Seance[]; entrainement: boolean; deload?: boolean }) {
   const aujourdhui = dateISO()
   const hier = dateISO(new Date(Date.now() - JOUR))
   const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * JOUR))).sortBy('date'), [], [])
@@ -164,28 +164,15 @@ export default function JournalMatin({ catalogue, terminees, entrainement, deloa
                 <PictoPesePersonne /> <strong>{kg(pesee.poids)} kg ce matin</strong>
               </span>
             </button>
-            <div className="ligne" style={{ gap: 2 }}>
-              <button
-                type="button"
-                className="btn discret petit"
-                aria-label="Modifier la pesée"
-                onClick={ouvrirSaisiePoids}
-                style={{ padding: '4px 8px' }}
-              >
-                ✎
-              </button>
-              {onCorps && (
-                <button
-                  type="button"
-                  className="btn discret petit"
-                  aria-label="Voir les courbes de poids"
-                  onClick={onCorps}
-                  style={{ padding: '4px 8px' }}
-                >
-                  ›
-                </button>
-              )}
-            </div>
+            <button
+              type="button"
+              className="btn discret petit"
+              aria-label="Modifier la pesée"
+              onClick={ouvrirSaisiePoids}
+              style={{ padding: '4px 8px' }}
+            >
+              ✎
+            </button>
           </div>
         )}
 

@@ -8,12 +8,10 @@ import { dateISO, duree, estDure, kg } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
-import type { Activite, JourJournal, Mesure, PhotoCorps, Reglage, Seance, Serie } from '../types'
+import type { JourJournal, Mesure, PhotoCorps, Reglage, Seance, Serie } from '../types'
 import { CALORIES, HEURES, heures, noterJournal } from '../components/JournalMatin'
 import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { PlanchePhotos, POSES } from './Photos'
-import FormActivite from '../components/FormActivite'
-import { typeActivite } from '../data/activites'
 import Bilan from './Bilan'
 import { finAffichee, periodes, PHASES, textePhase, type EtapeObjectifs } from '../lib/objectifs'
 import { prevuLe } from '../lib/cycle'
@@ -53,13 +51,8 @@ interface Props {
 export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, onCorps }: Props) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
-  const activites = useLiveQuery(() => db.activites.orderBy('date').reverse().toArray(), [], [])
-  /** Activité ouverte (ou 'nouvelle'). */
-  const [activite, setActivite] = useState<Activite | 'nouvelle' | null>(null)
   /** Jour choisi dans le calendrier (aujourd'hui par défaut). */
   const [jourChoisi, setJourChoisi] = useState(dateISO())
-  /** Nouvelle activité : sa date (jour vide choisi dans le calendrier). */
-  const [dateActivite, setDateActivite] = useState<string | undefined>(undefined)
   const mesuresJour = useLiveQuery(() => db.mesures.toArray(), [], [])
   const peseesJour = useLiveQuery(() => db.pesees.toArray(), [], [])
   const journalJour = useLiveQuery(() => db.journal.get(jourChoisi), [jourChoisi])
@@ -119,27 +112,18 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
     <div>
       {haut}
 
-      {activite && (
-        <FormActivite
-          initial={activite === 'nouvelle' ? undefined : activite}
-          date={activite === 'nouvelle' ? dateActivite : undefined}
-          onFermer={() => (setActivite(null), setDateActivite(undefined))}
-        />
-      )}
-
-      {terminees.length === 0 && activites.length === 0 && (
+      {terminees.length === 0 && (
         <div className="faible" style={{ marginBottom: 10 }}>
           Tes séances terminées apparaîtront ici jour par jour, avec leur récap et tes records. Avance dans les mois pour voir ce qui est prévu.
         </div>
       )}
       <>
-          <Calendrier seances={terminees} activites={activites} frise={catalogue.objectifs} prevu={prevu} choisi={jourChoisi} onChoix={setJourChoisi} />
+          <Calendrier seances={terminees} frise={catalogue.objectifs} prevu={prevu} choisi={jourChoisi} onChoix={setJourChoisi} />
           <JourChoisi
             date={jourChoisi}
             prevu={prevu(jourChoisi)}
             phase={textePhase(catalogue.objectifs, jourChoisi, (iso) => jourCourt(iso).replace(/^\S+ /, ''))}
             seances={terminees.filter((x) => x.date === jourChoisi).reverse()}
-            activites={activites.filter((x) => x.date === jourChoisi)}
             pesee={peseesJour.find((x) => x.date === jourChoisi)?.poids}
             mesure={mesuresJour.find((x) => x.date === jourChoisi)}
             mesures={mesuresJour}
@@ -149,8 +133,6 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             records={records}
             mieux={mieux}
             onSeance={(id) => onDetail(id)}
-            onActivite={setActivite}
-            onAjouter={() => (setDateActivite(jourChoisi), setActivite('nouvelle'))}
           />
       </>
     </div>
@@ -158,7 +140,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
 }
 
 /** Mois en calendrier : chaque jour entraîné est marqué, la phase soulignée ; un appui choisit le jour (sa carte s'affiche dessous). */
-function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { seances: Seance[]; activites: Activite[]; frise: EtapeObjectifs[]; prevu: (iso: string) => Prevu | null; choisi: string; onChoix: (iso: string) => void }) {
+function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seance[]; frise: EtapeObjectifs[]; prevu: (iso: string) => Prevu | null; choisi: string; onChoix: (iso: string) => void }) {
   // Phase de chaque jour : jusqu'à sa vraie fin, sinon jusqu'à sa fin prévue (jours à venir en pointillé), sinon aujourd'hui.
   const phases = periodes(frise)
   const phaseDuJour = (iso: string) => phases.find((p) => p.debut <= iso && iso <= finAffichee(p, dateISO()))?.phase
@@ -170,14 +152,11 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
   })
   const parJour = new Map<string, Seance[]>()
   for (const s of seances) parJour.set(s.date, [...(parJour.get(s.date) ?? []), s])
-  const activitesDuJour = new Map<string, Activite[]>()
-  for (const a of activites) activitesDuJour.set(a.date, [...(activitesDuJour.get(a.date) ?? []), a])
 
   const decalage = (mois.getDay() + 6) % 7
   const nbJours = new Date(mois.getFullYear(), mois.getMonth() + 1, 0).getDate()
   const cases = [...Array(decalage).fill(null), ...Array.from({ length: nbJours }, (_, i) => new Date(mois.getFullYear(), mois.getMonth(), i + 1))]
   const duMois = seances.filter((s) => s.date.startsWith(dateISO(mois).slice(0, 7))).length
-  const activitesMois = activites.filter((a) => a.date.startsWith(dateISO(mois).slice(0, 7))).length
   // Vers l'avenir : un an, pour voir le cycle, ses déloads et les phases prévues.
   const dernierMois = mois.getFullYear() * 12 + mois.getMonth() >= auj.getFullYear() * 12 + auj.getMonth() + 12
   const aller = (d: number) => {
@@ -213,7 +192,6 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
           <div className="faible">
             {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
             {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
-            {activitesMois ? ` · ${pluriel(activitesMois, 'activité')}` : ''}
           </div>
         </div>
         <button className="icone" onClick={() => aller(1)} disabled={dernierMois} aria-label="Mois suivant">
@@ -230,18 +208,17 @@ function Calendrier({ seances, activites, frise, prevu, choisi, onChoix }: { sea
           if (!d) return <span key={i} />
           const iso = dateISO(d)
           const s = parJour.get(iso)
-          const a = activitesDuJour.get(iso)
           const ph = phaseDuJour(iso)
           const pr = prevu(iso)
           const prevue = !!pr?.seances.length
-          // Séance de muscu : case pleine ; autre activité : point en dessous ; jour choisi : contour ; phase : trait sous la case.
+          // Séance de muscu : case pleine ; jour choisi : contour ; phase : trait sous la case.
           return (
             <button
               key={i}
-              className={'jour' + (s ? ' fait' : '') + (a ? ' activite' : '') + (iso === aujourdhui ? ' aujourdhui' : '') + (iso === choisi ? ' choisi' : '') + (ph ? ` phase-${ph}` : '') + (prevue ? (pr?.deload ? ' prevu deload' : ' prevu') : '')}
+              className={'jour' + (s ? ' fait' : '') + (iso === aujourdhui ? ' aujourdhui' : '') + (iso === choisi ? ' choisi' : '') + (ph ? ` phase-${ph}` : '') + (prevue ? (pr?.deload ? ' prevu deload' : ' prevu') : '')}
               onClick={() => onChoix(iso)}
               aria-pressed={iso === choisi}
-              aria-label={`${d.getDate()}${s || a || prevue ? ` : ${[...(s ?? []).map((x) => x.nom), ...(a ?? []).map((x) => typeActivite(x.type).nom), ...(prevue ? pr!.seances.map((x) => `${x.nom} prévue`) : [])].join(', ')}` : ''}`}
+              aria-label={`${d.getDate()}${s || prevue ? ` : ${[...(s ?? []).map((x) => x.nom), ...(prevue ? pr!.seances.map((x) => `${x.nom} prévue`) : [])].join(', ')}` : ''}`}
             >
               {d.getDate()}
             </button>
@@ -393,7 +370,6 @@ function JourChoisi({
   prevu,
   phase,
   seances,
-  activites,
   pesee,
   mesure,
   mesures,
@@ -403,8 +379,6 @@ function JourChoisi({
   records,
   mieux,
   onSeance,
-  onActivite,
-  onAjouter,
 }: {
   date: string
   /** Séances prévues (jour à venir, ou aujourd'hui sans séance faite). */
@@ -412,7 +386,6 @@ function JourChoisi({
   /** « Sèche depuis le 3 nov. (semaine 3 sur 12…) » */
   phase: string | null
   seances: Seance[]
-  activites: Activite[]
   pesee?: number
   mesure?: { valeurs: Record<string, number> }
   /** Toutes les mensurations, pour l'écart avec la prise d'avant. */
@@ -425,10 +398,8 @@ function JourChoisi({
   records: Record<string, number>
   mieux: Record<string, number>
   onSeance: (id: string) => void
-  onActivite: (a: Activite) => void
-  onAjouter: () => void
 }) {
-  const vide = !seances.length && !activites.length
+  const vide = !seances.length
   const [voirMesures, setVoirMesures] = useState(false)
   const [voirPhotos, setVoirPhotos] = useState(false)
   // Mensurations : la taille d'abord (la plus parlante), sinon la première prise ; l'écart avec la fois d'avant.
@@ -444,9 +415,6 @@ function JourChoisi({
       {phase && <div className="faible">🎯 {phase}</div>}
       {seances.map((s) => (
         <LigneSeance key={s.id} seance={s} records={records[s.id] ?? 0} mieux={mieux[s.id] ?? 0} onOuvrir={() => onSeance(s.id)} />
-      ))}
-      {activites.map((a) => (
-        <LigneActivite key={a.id} activite={a} onOuvrir={() => onActivite(a)} />
       ))}
       {prevu?.pause && <div className="faible ligne-jour">Semaine en pause dans le cycle.</div>}
       {prevu?.seances.map((m) => (
@@ -495,11 +463,6 @@ function JourChoisi({
       {voirMesures && <FenetreMesures date={date} mesures={mesures} onFermer={() => setVoirMesures(false)} />}
       {voirPhotos && <PlanchePhotos photos={photos} dates={[date]} comparerAvec={dernieresPhotos} onFermer={() => setVoirPhotos(false)} />}
       {date <= dateISO() && <NotesDuJour key={date} date={date} journal={journal} />}
-      {date <= dateISO() && (
-        <button className="btn discret petit lien-action" onClick={onAjouter}>
-          + Ajouter une activité ce jour-là
-        </button>
-      )}
     </div>
   )
 }
@@ -523,24 +486,6 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
         )}
       </span>
       <span className="muted">›</span>
-    </button>
-  )
-}
-
-function LigneActivite({ activite, onOuvrir }: { activite: Activite; onOuvrir: () => void }) {
-  const t = typeActivite(activite.type)
-  return (
-    <button className="ligne-jour" onClick={onOuvrir}>
-      <span style={{ minWidth: 0 }}>
-        <strong>
-          {t.emoji} {t.nom}
-        </strong>
-        <span className="faible">
-          {' '}
-          · {duree(activite.duree * 60000)} · intensité {activite.intensite}/10
-        </span>
-      </span>
-      <span className="muted">✎</span>
     </button>
   )
 }
