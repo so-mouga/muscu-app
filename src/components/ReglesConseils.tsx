@@ -29,7 +29,7 @@ const REGLES: [string, string[]][] = [
       'Le conseil n’existe que pour un exercice avec une fourchette de reps (ex. 8–12). Chaque série est jugée sur sa propre fourchette. Tu l’appliques ou non.',
       'Une rep de plus sur 1 ou 2 séries (celles qui sont le plus loin du haut), même charge.',
       'Monter la charge quand toutes les séries prévues sont au haut de leur fourchette, à l’effort visé (en moyenne pas plus d’un demi-point au-dessus, aucune série à plus d’un point), et que la série d’échec n’est pas trop courte. Les reps repartent au bas de la fourchette.',
-      'De combien : environ +2,5 %, arrondi au-dessus au pas réglé dans la fiche de l’exercice (au moins un pas). Saut de plus de 10 % (petites charges) : refais d’abord une séance au haut de la fourchette pour confirmer. Charge maximale du matériel atteinte : ralentis la descente ou ajoute une pause.',
+      'De combien : environ +2,5 %, arrondi au-dessus au pas réglé dans la fiche de l’exercice (au moins un pas). Saut de plus de 10 % (petites charges) : refais d’abord une séance au haut de la fourchette pour confirmer. Charge maximale du matériel atteinte (à régler dans la fiche de l’exercice, facultatif) : ralentis la descente ou ajoute une pause.',
       'Série ratée (sous le bas de la fourchette alors que l’effort était au niveau visé) : même charge, vise le bas. Vaut aussi pour des reps fixes.',
       'Deux séances ratées de suite (avec fourchette) : baisser d’environ 5 % (au moins un pas).',
       'Séance écourtée : pas de conseil de montée.',

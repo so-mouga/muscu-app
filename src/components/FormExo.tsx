@@ -32,6 +32,8 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
   const [secondaires, setSecondaires] = useState(initial?.secondaires ?? [])
   const [mode, setMode] = useState<ModeCharge>(initial?.mode ?? 'machine')
   const [pas, setPas] = useState(String(initial?.pas ?? 2.5).replace('.', ','))
+  // Charge maximale du matériel (haut de la pile, haltères les plus lourds) : vide = pas de limite.
+  const [max, setMax] = useState(initial?.chargeMax !== undefined ? String(initial.chargeMax).replace('.', ',') : '')
   const [compose, setCompose] = useState(initial ? initial.type === 'compose' : false)
   const [temps, setTemps] = useState(initial?.mesure === 'temps')
   // Calculateur de disques : réglé exercice par exercice ; un exercice créé n'en a pas tant qu'on ne l'active pas.
@@ -68,6 +70,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
       type: compose ? 'compose' : 'isolation',
       mode,
       pas: p > 0 ? p : mode === 'elastique' ? 1 : 2.5,
+      chargeMax: mode !== 'poids_corps' && parseFloat(max.replace(',', '.')) > 0 ? parseFloat(max.replace(',', '.')) : undefined,
       suivreE1rm: compose && !temps,
       mesure: temps ? 'temps' : undefined,
       barre: mode === 'machine' && disques ? barre : undefined,
@@ -78,6 +81,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
     if (!exo.secondaires?.length) delete exo.secondaires
     if (!exo.mesure) delete exo.mesure
     if (exo.barre === undefined) delete exo.barre
+    if (exo.chargeMax === undefined) delete exo.chargeMax
     await db.exercices.put(exo)
     // L'ancien réglage de pas (écran Progression) est remplacé par celui de la fiche.
     await db.reglages.delete(`pas:${exo.id}`)
@@ -173,6 +177,13 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         <span>Pas de charge ({mode === 'elastique' ? 'niveau' : 'kg'}) — boutons −/+</span>
         <input inputMode="decimal" value={pas} onChange={(e) => setPas(e.target.value)} />
       </label>
+      {mode !== 'poids_corps' && (
+        <label className="champ">
+          <span>Charge maximale du matériel ({mode === 'elastique' ? 'niveau' : mode === 'par_main' ? 'kg par main' : 'kg'}) — facultatif</span>
+          <input inputMode="decimal" value={max} onChange={(e) => setMax(e.target.value)} placeholder="vide = pas de limite" />
+          <span className="faible">Le haut de la pile, ou tes haltères les plus lourds. Une fois atteinte, l’appli ne propose plus de monter : elle conseille de ralentir la descente ou d’ajouter une pause.</span>
+        </label>
+      )}
       <Interrupteur
         on={compose}
         onChange={setCompose}

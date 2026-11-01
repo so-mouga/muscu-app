@@ -286,3 +286,18 @@ describe('audit des conseils', () => {
     expect(c).toMatchObject({ decision: 'consolider', charges: [80, 80, 80], reps: [5, 5, 5] })
   })
 })
+
+describe('charge maximale du matériel', () => {
+  const plan = { exoId: 'curl_halteres', repos: 90, chauffes: [], finisseur: false, charge: 20, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })) }
+  const halteres = { ...EXERCICES.curl_halteres, chargeMax: 20 }
+  it('au haut de la fourchette mais au max : pas de montée, ralentir la descente', () => {
+    const c = conseil(halteres, plan, [seance(20, '12@8', '12@8', '12@8')])
+    expect(c?.decision).toBe('consolider')
+    expect(c?.charges).toEqual([20, 20, 20])
+    expect(c?.message).toMatch(/Charge max du matériel/)
+  })
+  it('sans maximum, la montée est proposée ; « monte d’un cran » respecte aussi le maximum', () => {
+    expect(conseil({ ...halteres, chargeMax: undefined }, plan, [seance(20, '12@8', '12@8', '12@8')])?.charges[0]).toBeGreaterThan(20)
+    expect(monterMaintenant(halteres, plan, seance(20, '15@8')[0], 1)).toBeNull()
+  })
+})
