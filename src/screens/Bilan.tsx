@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Award, ChevronRight, Sparkles, TrendingUp } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
+import Aide from '../components/Aide'
 import { informer } from '../components/Dialogues'
 import SilhouetteVolume from '../components/SilhouetteVolume'
 import VolumeMuscles from '../components/VolumeMuscles'
@@ -124,26 +125,59 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
         {comparable ? ` · comparé au ${jour(debutAvant)} – ${jour(finAvant)}` : ''}
       </div>
 
-      {/* Carte À retenir masquée s'il n'y a pas assez de données */}
-      {retenir.length > 0 && !retenir[0].startsWith('Pas encore assez') && (
-        <div className="carte pile a-retenir" style={{ padding: '14px 16px', borderRadius: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-orange)' }}>
-            <Sparkles size={16} strokeWidth={2} />
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--texte)' }}>À retenir</h3>
+      {/* Carte À retenir : compacte si données insuffisantes, mise en valeur si insights */}
+      {retenir.length > 0 && (
+        retenir[0].startsWith('Pas encore assez') ? (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 12px',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              borderRadius: 12,
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              marginBottom: 12,
+            }}
+          >
+            <Sparkles size={14} strokeWidth={2} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
+            <span>{retenir[0]}</span>
           </div>
-          <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-            {retenir.map((t) => (
-              <li key={t} style={{ marginTop: 4 }}>
-                {t}
-              </li>
-            ))}
-          </ul>
-        </div>
+        ) : (
+          <div
+            className="carte pile a-retenir"
+            style={{
+              padding: '14px 16px',
+              borderRadius: 16,
+              background: 'linear-gradient(145deg, rgba(249, 115, 22, 0.08) 0%, rgba(30, 41, 59, 0.5) 100%)',
+              border: '1px solid rgba(249, 115, 22, 0.3)',
+              boxShadow: '0 4px 20px rgba(249, 115, 22, 0.08)',
+              marginBottom: 12,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-orange)' }}>
+              <Sparkles size={16} strokeWidth={2} />
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--texte)' }}>À retenir</h3>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+              {retenir.map((t) => (
+                <li key={t} style={{ marginTop: 4 }}>
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       )}
 
       {/* Carte Assiduité et travail en grille 2x2 symétrique */}
       <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
-        <h3 style={{ margin: '0 0 12px', fontSize: '1.1rem', fontWeight: 700 }}>Assiduité et travail</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Assiduité et travail</h3>
+          <Aide titre="Assiduité & séries dures" texte="Une série dure est une série effective (RPE 7 ou plus, proche de l'échec). C'est ce travail de qualité qui stimule le muscle et déclenche la progression." />
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           <Tuile valeur={a.prevues ? `${a.faites}/${a.prevues}` : String(a.seances)} label={a.prevues ? 'séances' : 'séances'} n={a.seances} m={avant.seances} comparable={comparable} />
           <Tuile valeur={a.temps ? duree(a.temps) : '0 min'} label="d’entraînement" n={a.temps} m={avant.temps} comparable={comparable} texteAvant={avant.temps ? duree(avant.temps) : '0 min'} />
@@ -163,7 +197,10 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
       {/* Carte Volume musculaire */}
       <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Volume musculaire</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Volume musculaire</h3>
+            <Aide titre="Volume musculaire" texte="Nombre de séries effectives (dures) par groupe musculaire sur la période. L'idéal se situe généralement entre 10 et 20 séries par semaine selon le groupe." />
+          </div>
           <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(255, 255, 255, 0.04)', padding: 3, borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
             <button
               type="button"
@@ -234,7 +271,10 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
 
       {(a.rpe !== null || a.ressenti !== null || a.energie !== null || a.douleurs.length > 0 || a.sommeil || a.calories.ok + a.calories.trop + a.calories.pasAssez > 0) && (
         <div className="carte pile">
-          <h3>Intensité et forme</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <h3 style={{ margin: 0 }}>Intensité et forme</h3>
+            <Aide titre="Intensité & forme" texte="Le RPE évalue l'effort ressenti de 6 à 10 (10 = échec, 8 = 2 reps en réserve). Le sommeil et la régularité nutritionnelle complètent ton niveau de forme." />
+          </div>
           {(a.rpe !== null || a.ressenti !== null || a.energie !== null || a.sommeil || a.calories.ok + a.calories.trop + a.calories.pasAssez > 0) && (
             <div className="tuiles">
               {a.rpe !== null && <Tuile valeur={kg(arrondi(a.rpe))} label="RPE moyen" n={a.rpe} m={avant.rpe ?? undefined} comparable={avant.rpe !== null} neutre texteAvant={avant.rpe !== null ? kg(arrondi(avant.rpe)) : ''} />}
@@ -365,6 +405,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <TrendingUp size={18} strokeWidth={2} style={{ color: 'var(--accent-orange)' }} />
         <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Progression</h3>
+        <Aide titre="Progression & 1RM" texte="Le 1RM estimé (charge théorique maximale sur 1 répétition) est calculé d'après tes séries pour mesurer tes gains réels même si tes répétitions changent." />
       </div>
 
       {a.records.length > 0 && (

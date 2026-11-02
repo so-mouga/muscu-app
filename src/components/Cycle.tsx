@@ -12,6 +12,7 @@ import { useRetour } from '../lib/nav'
 import type { Cycle, Muscle, Programme } from '../types'
 import VolumeMuscles from './VolumeMuscles'
 import { confirmer } from './Dialogues'
+import Aide from './Aide'
 
 export const AIDE_CYCLE =
   'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine de déload à la fin : 5 de travail + 1 de déload). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, l’appli te demande si tu veux l’appliquer tout de suite ou seulement au prochain cycle.'
@@ -20,22 +21,7 @@ export const AIDE_DELOAD =
 
 const debutSemaine = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
-/** Petit bouton ⓘ qui déplie une explication. */
-export function Aide({ texte }: { texte: string }) {
-  const [ouvert, setOuvert] = useState(false)
-  return (
-    <>
-      <button type="button" className="btn-infos" aria-label="Explication" onClick={(e) => (e.stopPropagation(), setOuvert(!ouvert))}>
-        i
-      </button>
-      {ouvert && (
-        <div className="aide-texte" onClick={() => setOuvert(false)}>
-          {texte}
-        </div>
-      )}
-    </>
-  )
-}
+export { Aide } from './Aide'
 
 /** Accueil : où en est le cycle (semaine, déload, pause, fin). */
 export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cycle; etat: EtatCycle; onBilan: () => void; onProgrammes: () => void }) {

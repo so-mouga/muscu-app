@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { AlertTriangle, ChevronDown, ChevronRight, Pencil, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
+import Aide from './Aide'
 import { db, setReglage } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import {
@@ -96,7 +97,10 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
 
       <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--texte)' }}>Phases</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--texte)' }}>Phases</h3>
+            <Aide titre="Phases d'entraînement" texte="Planifie tes cycles de Prise de masse, Sèche ou Maintien avec un objectif de durée et d'évolution de poids." />
+          </div>
         </div>
 
         {/* --- PHASE EN COURS --- */}

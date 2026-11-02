@@ -199,9 +199,9 @@ export function Detail({
             {!temps && tuile(`${kg(Math.round(volumeTotal))} kg`, 'volume total')}
           </div>
           {exo.suivreE1rm && (
-            <div className="ligne" style={{ gap: 8, marginBottom: 12 }}>
-              <span className="faible">C’est quoi, le 1RM estimé ?</span>
-              <Aide texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+              <span className="faible" style={{ fontSize: '0.82rem' }}>1RM estimé</span>
+              <Aide titre="1RM estimé" texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
             </div>
           )}
 

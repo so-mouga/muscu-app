@@ -3,6 +3,7 @@ import { Check, ChevronRight } from 'lucide-react'
 import { db } from '../db'
 import { dateISO, kg } from '../lib/calc'
 import type { Pesee } from '../types'
+import Aide from './Aide'
 import { informer } from './Dialogues'
 
 /**
@@ -75,9 +76,12 @@ export default function Poids({
       {/* En-tête : Titre & Date cliquable à gauche, Moyenne 7j à droite */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--texte)' }}>
-            {estAujourdhui ? 'Poids du jour' : 'Pesée'}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--texte)' }}>
+              {estAujourdhui ? 'Poids du jour' : 'Pesée'}
+            </h3>
+            <Aide titre="Poids de corps (PDC)" texte="Le poids fluctue naturellement au jour le jour avec l'eau et les repas. La moyenne sur 7 jours donne la vraie tendance de ton poids de corps (PDC) et sert aussi à calibrer tes exercices au poids du corps et l'estimation de ta force." />
+          </div>
           {onDate ? (
             <button
               type="button"
