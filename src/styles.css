@@ -3620,8 +3620,17 @@ button.phase-accueil {
 .focus .ligne-series > .courante {
   color: var(--accent);
 }
+.focus .chauffes-ligne .titre {
+  color: var(--texte-salle);
+}
 .focus .chauffes-ligne button {
   min-height: var(--salle-secondaire);
+  border: 1px solid var(--voile-bord);
+  color: var(--texte);
+}
+.focus .chauffes-ligne button.fait {
+  border-color: var(--ok-bord);
+  color: var(--ok);
 }
 .rpe {
   gap: var(--e2);

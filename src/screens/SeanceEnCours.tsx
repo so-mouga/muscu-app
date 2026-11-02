@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Check, Flame, Frown, Info, Link2, Maximize2, Pencil, Play, Smile, StickyNote, Timer, TriangleAlert, Trophy, Wind, X } from 'lucide-react'
+import { Check, Flame, Frown, Info, Link2, Maximize2, Pencil, Play, Smile, Square, StickyNote, Timer, TriangleAlert, Trophy, Wind, X } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -1492,7 +1492,7 @@ function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPla
               })
             }
           >
-            {fait ? '✓' : '☐'} {l ? chargeQte(exo, l.charge, l.reps) : c}
+            {fait ? <Check size={16} /> : <Square size={16} />} {l ? chargeQte(exo, l.charge, l.reps) : c}
           </button>
         )
       })}
