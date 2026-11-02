@@ -350,3 +350,12 @@ describe('conseil expliqué, +1 rep selon l’effort', () => {
     expect(c?.message).toMatch(/Pourquoi : 6 reps sur la 3e série, sous le bas de ta fourchette \(8\)/)
   })
 })
+
+describe('« plus dur que prévu » en clair', () => {
+  it('donne l’effort moyen réel et l’effort visé, sans « RPE » ni arrondi trompeur', () => {
+    const plan = { exoId: 'smith_incline', repos: 180, chauffes: [], finisseur: false, charge: 20, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 12, rpe: 7 })) }
+    const r = raisonPareil(EXERCICES.smith_incline, plan, [seance(20, '9@7', '9@8', '8@8')])
+    expect(r).toMatch(/effort moyen 7,7 pour 7 visé/)
+    expect(r).not.toMatch(/RPE/)
+  })
+})

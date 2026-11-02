@@ -1,6 +1,5 @@
 import { createPortal } from 'react-dom'
 import { Flame, Frown, Smile, Trophy } from 'lucide-react'
-import { MUSCLES } from '../data/exercices'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -11,11 +10,11 @@ import EditeurObjectif, { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
 import Minuteur, { BIPS_DEFAUT, resteRepos, type EtatMinuteur } from '../components/Minuteur'
-import RecapExos, { ResumeSeance } from '../components/RecapSeance'
+import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { ecartSerie, lireChauffe, volumeParMuscle, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
+import { ecartSerie, lireChauffe, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -28,7 +27,6 @@ import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../typ
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
-import SilhouetteVolume from '../components/SilhouetteVolume'
 import Echauffement, { echauffementActif } from '../components/Echauffement'
 
 function stocke<T>(cle: string, defaut: T): T {
@@ -1120,7 +1118,9 @@ function FinSeance({
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
   const [ajuste, setAjuste] = useState<string | null>(null)
-  const [voirMuscles, setVoirMuscles] = useState(false)
+  /** Exercices dont on a déplié les séries. */
+  const [ouverts, setOuverts] = useState<Record<string, boolean>>({})
+  const basculer = (id: string) => setOuverts((x) => ({ ...x, [id]: !x[id] }))
   const libre = !modele && seance.exercices.length > 0
 
   const choisirForme = (v: number) => {
@@ -1139,6 +1139,56 @@ function FinSeance({
     return { exo, s: pareil(exo, p, histo), conseil: conseil(exo, p, histo), raison: raisonPareil(exo, p, histo) }
   }
   const faits = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
+  const lignes = faits.map((plan) => ({ plan, ...suggestionDe(plan.exoId) }))
+  // En déload, rien à décider : tout passe dans la liste simple.
+  const aDecider = seance.deload ? [] : lignes.filter((l) => l.conseil)
+  const autres = seance.deload ? lignes : lignes.filter((l) => !l.conseil)
+  const retirerObjectif = (id: string) =>
+    setObjectifs((x) => {
+      const { [id]: _retire, ...reste } = x
+      return reste
+    })
+  const seriesDuJour = (exo: Exercice) => seance.series.filter((x) => x.exoId === exo.id)
+  /** « 105 kg × 10/10/10 » : ce qui a été fait aujourd'hui sur l'exercice. */
+  const resumeDuJour = (exo: Exercice) => {
+    const l = seriesDuJour(exo)
+    return cibleTexte(exo, l.map((x) => x.charge), l.map((x) => x.reps))
+  }
+  /** Une ligne : objectif fixé, raison de refaire pareil, ou comparaison avec la dernière fois. */
+  const statut = (exo: Exercice, raison: string | null) => {
+    const o = objectifs[exo.id]
+    if (o) return `✎ prochaine fois ${cibleTexte(exo, o.charges, o.reps)}`
+    if (seance.deload) return 'déload'
+    if (raison) return raison
+    const avant = historiqueDe(terminees, exo.id)[0] ?? []
+    if (!avant.length) return '1re fois · prochaine fois : pareil'
+    const sens = seriesDuJour(exo).map((x, k) => ecartSerie(x, avant[k], exo)?.sens)
+    if (sens.includes('mieux')) return '↑ mieux que la dernière fois · prochaine fois : pareil'
+    if (sens.every((x) => x === 'egal')) return '= comme la dernière fois'
+    return 'un peu moins que la dernière fois · prochaine fois : pareil'
+  }
+  /** Les séries du jour, en clair, comparées à la dernière fois. */
+  const detailSeries = (exo: Exercice) => {
+    const avant = historiqueDe(terminees, exo.id)[0] ?? []
+    return (
+      <div className="pile fin-detail">
+        {seriesDuJour(exo).map((x, k) => {
+          const e = ecartSerie(x, avant[k], exo)
+          return (
+            <div key={x.id} className="ligne entre" style={{ gap: 8 }}>
+              <span>
+                <span className="faible">S{k + 1} </span>
+                {serieTexte(exo, x, true)}
+                <span className="faible"> · effort {kg(x.rpe)}/10</span>
+                {x.douleur ? ' ⚠️' : ''}
+              </span>
+              {e && <span className={'avant ' + e.sens}>{e.sens === 'mieux' ? '↑ ' : e.sens === 'egal' ? '= ' : '↓ '}{e.texte}</span>}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
 
   const enregistrer = async () => {
     let modeleId = seance.modeleId
@@ -1190,8 +1240,110 @@ function FinSeance({
         <ResumeSeance seance={seance} exo={catalogue.exo} />
       </div>
 
+      {/* Ce qui compte : décider de la prochaine fois, seulement là où il y a un conseil. Le reste en une ligne. */}
+      {aDecider.length > 0 && (
+        <>
+          <h3 style={{ margin: '18px 0 8px' }}>À décider pour la prochaine fois</h3>
+          {aDecider.map(({ plan, exo, s: base, conseil: c }) => {
+            const o = objectifs[exo.id]
+            const choix = !o ? 'pareil' : JSON.stringify([o.charges, o.reps]) === JSON.stringify([c!.charges, c!.reps]) ? 'conseil' : 'perso'
+            return (
+              <div key={plan.exoId} className="carte pile decision">
+                <div className="ligne entre" style={{ alignItems: 'baseline', gap: 8 }}>
+                  <strong>{exo.nom}</strong>
+                  <span className="faible petit">aujourd’hui {resumeDuJour(exo)}</span>
+                </div>
+                <div className="choix-prochaine" role="radiogroup" aria-label={`Prochaine fois, ${exo.nom}`}>
+                  <button type="button" role="radio" aria-checked={choix === 'pareil'} className={choix === 'pareil' ? 'actif' : ''} onClick={() => retirerObjectif(exo.id)}>
+                    <span className="faible petit">Comme aujourd’hui</span>
+                    <strong>{cibleTexte(exo, base.charges, base.reps)}</strong>
+                  </button>
+                  <button type="button" role="radio" aria-checked={choix === 'conseil'} className={choix === 'conseil' ? 'actif' : ''} onClick={() => setObjectifs((x) => ({ ...x, [exo.id]: { charges: c!.charges, reps: c!.reps } }))}>
+                    <span className="faible petit">{(c!.titre ?? 'Conseil').replace(/^💡\s*/, '')}</span>
+                    <strong>{cibleTexte(exo, c!.charges, c!.reps)}</strong>
+                  </button>
+                </div>
+                {choix === 'perso' && <div className="faible">✎ Fixé par toi : {cibleTexte(exo, o!.charges, o!.reps)}</div>}
+                <div className="faible" style={{ whiteSpace: 'pre-line' }}>
+                  {c!.message}
+                </div>
+                <div className="ligne entre">
+                  <button type="button" className="btn discret petit" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
+                    {ouverts[exo.id] ? 'Masquer les séries' : 'Voir les séries'}
+                  </button>
+                  <button type="button" className="btn discret petit" onClick={() => setAjuste(exo.id)}>
+                    ✎ Autre objectif
+                  </button>
+                </div>
+                {ouverts[exo.id] && detailSeries(exo)}
+              </div>
+            )
+          })}
+        </>
+      )}
+
+      {autres.length > 0 && (
+        <>
+          <h3 style={{ margin: '18px 0 8px' }}>{aDecider.length ? 'Les autres exercices' : 'Tes exercices'}</h3>
+          {seance.deload && <div className="faible" style={{ marginBottom: 8 }}>Séance de déload : pas d’objectif à fixer, la prochaine vraie séance reprend là où tu en étais.</div>}
+          <div className="carte pile" style={{ gap: 0, paddingTop: 4, paddingBottom: 4 }}>
+            {autres.map(({ plan, exo, raison }) => (
+              <div key={plan.exoId}>
+                <div className="ligne-fin">
+                  <button type="button" className="ligne-fin-principal" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
+                    <strong>{exo.nom}</strong>
+                    <span className="faible petit">
+                      {resumeDuJour(exo)} · {statut(exo, raison)}
+                    </span>
+                  </button>
+                  {!seance.deload && (
+                    <button type="button" className="btn discret petit" onClick={() => setAjuste(exo.id)} aria-label={`Fixer un objectif pour ${exo.nom}`}>
+                      ✎
+                    </button>
+                  )}
+                </div>
+                {ouverts[exo.id] && detailSeries(exo)}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {libre && (
+        <div className="carte pile">
+          <Interrupteur
+            on={garder}
+            onChange={setGarder}
+            label="Enregistrer comme séance réutilisable"
+            aide="Tu pourras la relancer ou l’ajouter à un programme depuis l’onglet Programmes."
+          />
+          {garder && <input placeholder="Nom de la séance" value={nomModele} onChange={(e) => setNomModele(e.target.value)} />}
+        </div>
+      )}
+      {ajuste &&
+        (() => {
+          const p = suggestionDe(ajuste)
+          const histo = historiqueDe(terminees, ajuste)
+          const faitesExo = seance.series.filter((x) => x.exoId === ajuste)
+          const record = Math.max(0, ...histo.flat().map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
+          const meilleur = Math.max(0, ...faitesExo.map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
+          return (
+            <EditeurObjectif
+              exo={p.exo}
+              base={p.s}
+              actuel={objectifs[ajuste]}
+              faites={faitesExo}
+              precedente={histo[0] ?? []}
+              record={record > 0 && meilleur > record}
+              onFermer={() => setAjuste(null)}
+              onValider={(o) => (setObjectifs((x) => ({ ...x, [ajuste]: o })), setAjuste(null))}
+              onDefaut={() => (retirerObjectif(ajuste), setAjuste(null))}
+            />
+          )
+        })()}
+
       {seance.series.length > 0 && (
-        <div className="carte pile" style={{ gap: 8 }}>
+        <div className="carte pile" style={{ gap: 8, marginTop: 16 }}>
           <div className="faible" style={{ fontSize: '0.85rem' }}>
             Sensations générales · facultatif
           </div>
@@ -1223,135 +1375,6 @@ function FinSeance({
           </div>
         </div>
       )}
-
-      {faits.length > 0 && (
-        <>
-          <h3 style={{ margin: '18px 0 8px' }}>Récap par exercice</h3>
-          {seance.deload && (
-            <div className="faible" style={{ marginBottom: 10 }}>
-              Séance de déload : maintien des acquis.
-            </div>
-          )}
-          <RecapExos
-            seance={seance}
-            avant={terminees}
-            reglages={reglages}
-            catalogue={catalogue}
-            basExo={(exo) => {
-              if (seance.deload) return null
-              const { s, conseil: c, raison } = suggestionDe(exo.id)
-              const o = objectifs[exo.id]
-              const charges = o?.charges ?? s.charges
-              const reps = o?.reps ?? s.reps
-              const monte = o && charges.some((c, k) => (c ?? 0) > (s.charges[k] ?? 0) || (c === s.charges[k] && reps[k] > s.reps[k]))
-              // Conseil de surcharge : affiché tant qu'il n'est pas déjà l'objectif retenu.
-              const applique = c && JSON.stringify([c.charges, c.reps]) === JSON.stringify([charges, reps])
-              return (
-                <>
-                <button className="prochaine" onClick={() => setAjuste(exo.id)}>
-                  <span>
-                    <span className="label">Prochaine fois</span>
-                    <strong>
-                      {cibleTexte(exo, charges, reps)}
-                    </strong>
-                    <span className="faible" style={{ display: 'block' }}>
-                      {!o ? ((!c && raison) || (c ? 'Comme aujourd’hui, sauf si tu vises plus ci-dessous.' : 'Comme aujourd’hui.')) : monte ? '↑ Tu vises plus.' : '✎ Fixé par toi.'}
-                    </span>
-                  </span>
-                  <span className="modifier">✎ Modifier</span>
-                </button>
-                {c && !applique && (
-                  <div className="conseil-surcharge empile">
-                    <span>
-                      <span className="label">{c.titre ?? '💡 Conseil'}</span>
-                      <strong>{cibleTexte(exo, c.charges, c.reps)}</strong>
-                      {/* « Pourquoi : … » avec les vrais chiffres de la séance, puis ce qui vient ensuite. */}
-                      <span className="faible" style={{ display: 'block', whiteSpace: 'pre-line' }}>
-                        {c.message}
-                      </span>
-                    </span>
-                    <button className="btn petit" onClick={() => setObjectifs((x) => ({ ...x, [exo.id]: { charges: c.charges, reps: c.reps } }))}>
-                      Viser ça la prochaine fois
-                    </button>
-                  </div>
-                )}
-                </>
-              )
-            }}
-          />
-        </>
-      )}
-
-
-      {libre && (
-        <div className="carte pile">
-          <Interrupteur
-            on={garder}
-            onChange={setGarder}
-            label="Enregistrer comme séance réutilisable"
-            aide="Tu pourras la relancer ou l’ajouter à un programme depuis l’onglet Programmes."
-          />
-          {garder && <input placeholder="Nom de la séance" value={nomModele} onChange={(e) => setNomModele(e.target.value)} />}
-        </div>
-      )}
-      {ajuste &&
-        (() => {
-          const p = suggestionDe(ajuste)
-          const histo = historiqueDe(terminees, ajuste)
-          const faitesExo = seance.series.filter((x) => x.exoId === ajuste)
-          const record = Math.max(0, ...histo.flat().map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
-          const meilleur = Math.max(0, ...faitesExo.map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
-          return (
-            <EditeurObjectif
-              exo={p.exo}
-              base={p.s}
-              actuel={objectifs[ajuste]}
-              faites={faitesExo}
-              precedente={histo[0] ?? []}
-              record={record > 0 && meilleur > record}
-              onFermer={() => setAjuste(null)}
-              onValider={(o) => (setObjectifs((x) => ({ ...x, [ajuste]: o })), setAjuste(null))}
-              onDefaut={() => {
-                setObjectifs((x) => {
-                  const { [ajuste]: _retire, ...reste } = x
-                  return reste
-                })
-                setAjuste(null)
-              }}
-            />
-          )
-        })()}
-
-      {seance.series.length > 0 &&
-        (() => {
-          const volume = volumeParMuscle([seance], catalogue.exercices)
-          const travailles = MUSCLES.filter((m) => volume[m.id] >= 1).sort((a, b) => volume[b.id] - volume[a.id])
-          if (!travailles.length) return null
-          return (
-            <div className="carte" style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                className="groupe-repli"
-                onClick={() => setVoirMuscles(!voirMuscles)}
-                aria-expanded={voirMuscles}
-                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <span>
-                  <strong>Muscles travaillés</strong>
-                  <span className="faible"> · {travailles.slice(0, 4).map((m) => m.nom.toLowerCase()).join(', ')}{travailles.length > 4 ? '…' : ''}</span>
-                </span>
-                <span className={'muted chevron-accordeon' + (voirMuscles ? ' ouvert' : '')}>▸</span>
-              </button>
-              <div className={'accordeon-tiroir' + (voirMuscles ? ' ouvert' : '')}>
-                <div className="accordeon-contenu">
-                  <div style={{ paddingTop: 10 }}>
-                    <SilhouetteVolume volume={volume} cibles={catalogue.cibles} legende="objectif de la semaine" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
 
       {seance.series.length > 0 ? (
         <>

@@ -318,7 +318,16 @@ export function raisonPareil(exo: Exercice, plan: ExoPlan, historique: Serie[][]
     return `Tu as fait ${b.faites} série${b.faites > 1 ? 's' : ''} sur ${b.prevues} : refais d’abord les ${b.prevues}${r.every((x) => x === r[0]) ? ` à ${r[0]} reps` : ''}, le conseil viendra ensuite.`
   }
   if (!b.garde) return `Série d’échec trop courte (moins de ${bas(plan, plan.series.length - 1) - 3} reps) : refais pareil avant de monter.`
-  if (!b.rpeOk) return `Plus dur que prévu (${b.ecartMoyen > 0.5 + EPS ? `RPE +${nombre(Math.round(b.ecartMoyen * 2) / 2)} en moyenne` : 'une série bien au-dessus du RPE visé'}) : refais pareil pour consolider avant de monter.`
+  if (!b.rpeOk) {
+    // En clair et au dixième près : un arrondi au demi-point faisait croire qu'on était pile à la limite.
+    const ref = derniere.filter((x) => x.type === 'normale')
+    const moy = (l: number[]) => Math.round((l.reduce((x, y) => x + y, 0) / l.length) * 10) / 10
+    const fait = moy(ref.map((x) => x.rpe))
+    const vise = moy(ref.map((x) => x.rpeCible ?? plan.series[derniere.indexOf(x)]?.rpe ?? plan.series[0].rpe))
+    return b.ecartMoyen > 0.5 + EPS
+      ? `Plus dur que prévu (effort moyen ${nombre(fait)} pour ${nombre(vise)} visé) : refais pareil pour consolider avant de monter.`
+      : `Plus dur que prévu (une série bien au-dessus de l’effort visé) : refais pareil pour consolider avant de monter.`
+  }
   return null
 }
 

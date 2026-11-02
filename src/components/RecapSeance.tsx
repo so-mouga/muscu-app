@@ -120,7 +120,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                   )}
                   {precedente.length > 0 && (
                     <div className="faible" style={{ marginTop: 2 }}>
-                      🗓 <strong>Séance précédente :</strong> {precedente.map((s) => serieTexte(exo, s, false)).join(' · ')}
+                      🗓 <strong>Séance précédente :</strong> {precedente.map((s) => `${serieTexte(exo, s, true)} (effort ${kg(s.rpe)}/10)`).join(' · ')}
                     </div>
                   )}
                 </div>
@@ -134,7 +134,8 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                   <div className="ligne entre" style={{ alignItems: 'baseline', flexWrap: 'nowrap', width: '100%', padding: '2px 0' }}>
                     <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       <span className="faible" style={{ minWidth: 26, display: 'inline-block' }}>S{k + 1}</span>
-                      <strong>{serieTexte(exo, x, false)}</strong>
+                      <strong>{serieTexte(exo, x, true)}</strong>
+                      <span className="faible"> · effort {kg(x.rpe)}/10</span>
                       {x.douleur ? ' ⚠️' : ''}
                       {onSerie && <span className="faible"> ✎</span>}
                     </span>

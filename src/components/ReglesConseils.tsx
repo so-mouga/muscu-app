@@ -33,7 +33,7 @@ const REGLES: [string, string[]][] = [
       'Série ratée (sous le bas de la fourchette alors que l’effort était au niveau visé) : même charge, vise le bas. Vaut aussi pour des reps fixes.',
       'Deux séances ratées de suite (avec fourchette) : baisser d’environ 5 % (au moins un pas).',
       'Séance écourtée (moins de séries que prévu) : pas de conseil, refais d’abord la séance en entier.',
-      'Chaque conseil dit pourquoi, avec tes chiffres du jour (quelle série, combien de reps, quel effort). Le bouton « Viser ça la prochaine fois » en fait ton objectif ; sinon, la prochaine fois reste comme aujourd’hui.',
+      'Chaque conseil dit pourquoi, avec tes chiffres du jour (quelle série, combien de reps, quel effort). En fin de séance, tu choisis entre « Comme aujourd’hui » (coché par défaut) et le conseil ; rien ne monte tout seul.',
       'Sans conseil, la carte dit pourquoi on refait pareil : effort plus dur que prévu, ou série d’échec trop courte.',
     ],
   ],

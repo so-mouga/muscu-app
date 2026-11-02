@@ -3486,3 +3486,55 @@ button.phase-accueil {
   min-height: 0;
   cursor: pointer;
 }
+
+/* Fin de séance : un choix à deux options par exercice qui a un conseil. */
+.choix-prochaine {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.choix-prochaine button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--bord);
+  background: var(--surface-2);
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+}
+.choix-prochaine button.actif {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-uni));
+}
+/* Fin de séance : les autres exercices, une ligne chacun. */
+.ligne-fin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--bord);
+}
+.ligne-fin-principal {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 0;
+  min-height: 0;
+  background: none;
+  border: 0;
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+}
+.fin-detail {
+  gap: 4px;
+  padding: 4px 0 10px;
+  font-size: 0.86rem;
+}
