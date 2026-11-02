@@ -57,6 +57,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Réordonner une liste : poignée ⠿ avec appui maintenu, via `useGlisser` (`lib/glisser.ts`). Pas de flèches ↑↓.
 - Exercices de base : « Masquer » (réversible), jamais supprimés. Exercices créés : « Supprimer » (effacés pour de bon s'ils n'ont jamais servi).
 - **Jamais `overflow-x: hidden` sur `html`, `body` ou `#root`** : la page ne défile plus au doigt et les en-têtes collants ne tiennent plus (arrivé le 2 nov. 2026). Un débordement en largeur se corrige sur l'élément fautif ; filet de sécurité : `overflow-x: clip` sur `#root` (déjà en place).
+- **Pas de couleur écrite en dur dans les `.tsx`** (`#22c55e`, `#f97316`, `#fff`, `rgba(…)`…) : utiliser `var(--ok)`, `var(--accent)`, `var(--texte)`, etc. ; une couleur nouvelle = une variable dans `:root`. Environ 300 couleurs en dur ont été ajoutées pendant la refonte « Dark Glassmorphism » : nettoyage prévu en une passe à la fin de la refonte, ne pas en ajouter d'autres.
 - Couleurs uniquement via les variables CSS de `:root` (`--bg`, `--surface`, `--accent`, `--texte-2`…). Thème sombre.
 - Pas d'illustrations copiées d'autres applis : icônes et pictogrammes maison en SVG.
 
