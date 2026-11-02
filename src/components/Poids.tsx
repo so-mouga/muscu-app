@@ -159,17 +159,18 @@ export default function Poids({
       </div>
 
       {/* Contrôle de saisie sur une seule ligne harmonieuse : Stepper unifié + Bouton d'action */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 14 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 14 }}>
         {/* Stepper unifié */}
         <div
           style={{
             flex: 1,
+            minWidth: 0,
             display: 'flex',
             alignItems: 'center',
             background: 'var(--subcard-gradient)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: 14,
-            padding: '4px',
+            padding: '3px',
           }}
         >
           <button
@@ -177,8 +178,8 @@ export default function Poids({
             onClick={() => ajuster(-0.1)}
             aria-label="Diminuer de 0,1 kg"
             style={{
-              width: 42,
-              height: 42,
+              width: 38,
+              height: 38,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -189,20 +190,21 @@ export default function Poids({
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
+              flexShrink: 0,
             }}
           >
             −
           </button>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
             <input
               type="text"
               inputMode="decimal"
               enterKeyHint="done"
               className="duree"
               style={{
-                width: 72,
+                width: 58,
                 textAlign: 'center',
-                fontSize: '1.35rem',
+                fontSize: '1.25rem',
                 fontWeight: 800,
                 color: 'var(--texte)',
                 background: 'transparent',
@@ -222,15 +224,15 @@ export default function Poids({
               }}
               onKeyDown={(e) => e.key === 'Enter' && void enregistrer()}
             />
-            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>kg</span>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>kg</span>
           </div>
           <button
             type="button"
             onClick={() => ajuster(0.1)}
             aria-label="Augmenter de 0,1 kg"
             style={{
-              width: 42,
-              height: 42,
+              width: 38,
+              height: 38,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -241,6 +243,7 @@ export default function Poids({
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
+              flexShrink: 0,
             }}
           >
             +
@@ -252,9 +255,9 @@ export default function Poids({
           type="button"
           onClick={enregistrer}
           style={{
-            height: 50,
-            padding: '0 18px',
-            borderRadius: 14,
+            height: 44,
+            padding: '0 14px',
+            borderRadius: 12,
             background: estEnregistre && !enregistreAnim
               ? 'rgba(34, 197, 94, 0.12)'
               : 'var(--accent-orange)',
@@ -263,19 +266,20 @@ export default function Poids({
               : 'none',
             color: estEnregistre && !enregistreAnim ? '#22c55e' : '#fff',
             fontWeight: 700,
-            fontSize: '0.92rem',
+            fontSize: '0.88rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 5,
             boxShadow: estEnregistre && !enregistreAnim
               ? 'none'
               : '0 4px 14px rgba(249, 115, 22, 0.35)',
             transition: 'all 0.15s ease',
             whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
-          <Check size={18} strokeWidth={2.5} />
+          <Check size={16} strokeWidth={2.5} />
           <span>{enregistreAnim ? 'Enregistré !' : estEnregistre ? 'Enregistré' : 'Enregistrer'}</span>
         </button>
       </div>
