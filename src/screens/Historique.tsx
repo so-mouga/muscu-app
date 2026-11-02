@@ -29,6 +29,11 @@ const dateLongue = (s: Seance) =>
   ' · ' +
   new Date(s.debut).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 const jourCourt = (iso: string) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+const jourLong = (iso: string) => {
+  const dt = new Date(iso + 'T12:00:00')
+  const str = dt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
 export type VueProgression = 'bilan' | 'journal'
@@ -303,19 +308,22 @@ function FenetreMesures({
   date,
   mesures,
   onFermer,
-  onModifier,
+  onAjouterOuModifier,
   onCorps,
 }: {
   date: string
   mesures: Mesure[]
   onFermer: () => void
-  onModifier?: () => void
+  onAjouterOuModifier?: () => void
   onCorps?: () => void
 }) {
   useRetour(true, onFermer)
   const valeurs = mesures.find((m) => m.date === date)?.valeurs ?? {}
   const cles = MESURES.flatMap(clesDe).filter((c) => valeurs[c] !== undefined)
   const depuis = [...new Set(cles.map((c) => ecartMesure(mesures, date, c)?.depuis).filter(Boolean))]
+  const vide = cles.length === 0
+  const dateTexte = jourLong(date)
+
   return (
     <div className="modal-fond" onClick={onFermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '88dvh' }}>
@@ -323,8 +331,8 @@ function FenetreMesures({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
               style={{
-                width: 34,
-                height: 34,
+                width: 36,
+                height: 36,
                 borderRadius: '50%',
                 background: 'rgba(249, 115, 22, 0.15)',
                 display: 'flex',
@@ -334,14 +342,14 @@ function FenetreMesures({
                 flexShrink: 0,
               }}
             >
-              <Ruler size={18} strokeWidth={2} />
+              <Ruler size={19} strokeWidth={2} />
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
                 Mensurations
               </h3>
-              <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
-                {jourCourt(date)}
+              <div className="faible" style={{ fontSize: '0.82rem', marginTop: 1, color: 'var(--text-secondary)' }}>
+                {dateTexte}
               </div>
             </div>
           </div>
@@ -350,113 +358,184 @@ function FenetreMesures({
             className="icone"
             onClick={onFermer}
             aria-label="Fermer"
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 6, borderRadius: '50%' }}
           >
             <X size={18} strokeWidth={2} />
           </button>
         </div>
 
-        {depuis.length === 1 && (
-          <div className="faible" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
-            Écart avec la prise du {jourCourt(depuis[0]!)}
-          </div>
-        )}
+        {vide ? (
+          /* État vide : aucune prise enregistrée pour ce jour */
+          <div style={{ textAlign: 'center', padding: '16px 8px 8px' }}>
+            <div className="faible" style={{ fontSize: '0.9rem', marginBottom: 20, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              Aucune mensuration enregistrée pour ce jour.
+            </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '42dvh', overflowY: 'auto' }}>
-          {cles.map((c) => {
-            const e = ecartMesure(mesures, date, c)
-            return (
-              <div
-                key={c}
+            {onAjouterOuModifier && (
+              <button
+                type="button"
+                className="btn primaire plein"
+                onClick={onAjouterOuModifier}
                 style={{
+                  height: 44,
+                  minHeight: 44,
+                  borderRadius: 12,
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '9px 12px',
-                  borderRadius: 10,
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginBottom: 10,
                 }}
               >
-                <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--texte)' }}>{nomCle(c)}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <strong style={{ fontSize: '0.92rem', color: 'var(--texte)' }}>{kg(valeurs[c])} cm</strong>
-                  {e && (
-                    <span
-                      style={{
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        color: e.texte.startsWith('+') ? '#22c55e' : e.texte.startsWith('−') ? '#3b82f6' : 'var(--text-secondary)',
-                      }}
-                    >
-                      ({e.texte})
-                    </span>
-                  )}
-                </span>
+                <span>+ Ajouter une prise pour ce jour</span>
+              </button>
+            )}
+
+            {onCorps && (
+              <button
+                type="button"
+                className="btn discret plein"
+                onClick={() => {
+                  try {
+                    localStorage.setItem('sous_onglet_corps', 'mensurations')
+                  } catch {}
+                  onFermer()
+                  onCorps()
+                }}
+                style={{
+                  height: 40,
+                  borderRadius: 12,
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  marginBottom: 6,
+                }}
+              >
+                <span>Gérer toutes les mensurations ›</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="btn discret plein"
+              onClick={onFermer}
+              style={{ height: 38, borderRadius: 12, fontSize: '0.85rem' }}
+            >
+              Fermer
+            </button>
+          </div>
+        ) : (
+          /* Prise existante */
+          <>
+            {depuis.length === 1 && (
+              <div className="faible" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
+                Écart avec la prise du {jourCourt(depuis[0]!)}
               </div>
-            )
-          })}
-        </div>
+            )}
 
-        {/* Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-          {onModifier && (
-            <button
-              type="button"
-              className="btn discret"
-              onClick={onModifier}
-              style={{
-                height: 40,
-                borderRadius: 12,
-                fontSize: '0.88rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <Pencil size={15} strokeWidth={1.75} />
-              <span>Modifier cette prise</span>
-            </button>
-          )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '42dvh', overflowY: 'auto' }}>
+              {cles.map((c) => {
+                const e = ecartMesure(mesures, date, c)
+                return (
+                  <div
+                    key={c}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '9px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--texte)' }}>{nomCle(c)}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <strong style={{ fontSize: '0.92rem', color: 'var(--texte)' }}>{kg(valeurs[c])} cm</strong>
+                      {e && (
+                        <span
+                          style={{
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            color: e.texte.startsWith('+') ? '#22c55e' : e.texte.startsWith('−') ? '#3b82f6' : 'var(--text-secondary)',
+                          }}
+                        >
+                          ({e.texte})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
 
-          {onCorps && (
-            <button
-              type="button"
-              className="btn primaire"
-              onClick={() => {
-                try {
-                  localStorage.setItem('sous_onglet_corps', 'mensurations')
-                } catch {}
-                onFermer()
-                onCorps()
-              }}
-              style={{
-                height: 44,
-                minHeight: 44,
-                borderRadius: 12,
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <span>Voir l'historique complet dans Corps ›</span>
-            </button>
-          )}
+            {/* Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              {onAjouterOuModifier && (
+                <button
+                  type="button"
+                  className="btn discret"
+                  onClick={onAjouterOuModifier}
+                  style={{
+                    height: 40,
+                    borderRadius: 12,
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Pencil size={15} strokeWidth={1.75} />
+                  <span>Modifier cette prise</span>
+                </button>
+              )}
 
-          <button
-            type="button"
-            className="btn discret plein"
-            onClick={onFermer}
-            style={{ height: 38, borderRadius: 12, fontSize: '0.85rem' }}
-          >
-            Fermer
-          </button>
-        </div>
+              {onCorps && (
+                <button
+                  type="button"
+                  className="btn discret"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('sous_onglet_corps', 'mensurations')
+                    } catch {}
+                    onFermer()
+                    onCorps()
+                  }}
+                  style={{
+                    height: 40,
+                    borderRadius: 12,
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>Gérer toutes les mensurations ›</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="btn discret plein"
+                onClick={onFermer}
+                style={{ height: 38, borderRadius: 12, fontSize: '0.85rem' }}
+              >
+                Fermer
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
@@ -677,13 +756,7 @@ function JourChoisi({
         <div
           role="button"
           tabIndex={0}
-          onClick={() => {
-            if (clesMesure.length > 0) {
-              setVoirMesures(true)
-            } else {
-              setSaisieMesures(true)
-            }
-          }}
+          onClick={() => setVoirMesures(true)}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -699,7 +772,7 @@ function JourChoisi({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
             <Ruler size={18} strokeWidth={1.75} />
             <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>
-              {clesMesure.length > 0 ? '›' : '✎'}
+              {clesMesure.length > 0 ? '›' : '+'}
             </span>
           </div>
           <div>
@@ -972,7 +1045,7 @@ function JourChoisi({
           date={date}
           mesures={mesures}
           onFermer={() => setVoirMesures(false)}
-          onModifier={() => {
+          onAjouterOuModifier={() => {
             setVoirMesures(false)
             setSaisieMesures(true)
           }}
