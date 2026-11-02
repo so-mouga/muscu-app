@@ -181,6 +181,8 @@ select {
   border: 1px solid var(--bord);
   font-weight: 600;
 }
+button,
+[role="button"],
 .btn,
 .liste-btn,
 .serie-faite,
@@ -188,19 +190,35 @@ select {
 .rpe button,
 .chips button,
 .chauffes button,
-.pills button {
-  transition: transform 0.08s ease, filter 0.08s ease, background-color 0.15s ease;
+.pills button,
+.pastille-jour,
+.frise-jour-rond,
+.sous-seance-item,
+.carte-seance,
+.carte-activite,
+.fermer-rappel,
+.icone {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.1s cubic-bezier(0.2, 0, 0, 1), filter 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
-.btn:active,
+button:active:not(:disabled),
+[role="button"]:active,
+.btn:active:not(:disabled),
 .liste-btn:active,
 .serie-faite:active,
 .stepper button:active,
 .rpe button:active,
 .chips button:active,
 .chauffes button:active,
-.pills button:active {
-  transform: scale(0.96);
-  filter: brightness(1.25);
+.pills button:active,
+.pastille-jour:active,
+.frise-jour-rond:active,
+.sous-seance-item:active,
+.carte-seance:active,
+.carte-activite:active {
+  transform: scale(0.98);
+  filter: brightness(0.94);
 }
 .btn.primaire {
   background: var(--accent);
@@ -562,7 +580,9 @@ select {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  animation: fondu 0.2s ease-out;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: fondu-fond 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .modal {
   background: var(--surface);
@@ -573,7 +593,8 @@ select {
   max-height: 88dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  animation: monte 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+  animation: modal-monter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom center;
 }
 .modal::before {
   content: '';
@@ -626,6 +647,64 @@ th {
 }
 
 /* --- Animations ------------------------------------------------------------ */
+
+@keyframes fondu-fond {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+@keyframes modal-monter {
+  from {
+    transform: translateY(14px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes modal-dialogue {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes popover-zoom {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+.popover-aide {
+  animation: popover-zoom 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+@keyframes banniere-entree {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 @keyframes monte {
   from {
@@ -1107,15 +1186,22 @@ html[data-sens='arriere']::view-transition-new(root) {
 .accordeon-tiroir {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-in-out;
+  pointer-events: none;
 }
 .accordeon-tiroir.ouvert {
   grid-template-rows: 1fr;
+  max-height: 1200px;
+  opacity: 1;
+  pointer-events: auto;
 }
 .accordeon-tiroir > .accordeon-contenu {
   overflow: hidden;
   min-height: 0;
-  transition: opacity 0.22s ease;
+  transition: opacity 0.25s ease-in-out;
   opacity: 0;
 }
 .accordeon-tiroir.ouvert > .accordeon-contenu {
@@ -2308,7 +2394,14 @@ button.pastille.cliquable {
 
 /* Fenêtres de l'appli (remplacent confirm / alert) */
 .modal-fond.dialogue {
+  align-items: center;
+  padding: 16px;
   z-index: 60;
+}
+.modal-fond.dialogue .modal {
+  border-radius: 20px;
+  transform-origin: center center;
+  animation: modal-dialogue 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .texte-dialogue {
   white-space: pre-line;
@@ -2330,6 +2423,8 @@ button.pastille.cliquable {
   border: 1px solid color-mix(in srgb, var(--alerte) 50%, var(--bord));
   font-size: 14px;
   white-space: nowrap;
+  animation: banniere-entree 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s ease-in-out;
 }
 .rappel-ligne .texte {
   background: none;

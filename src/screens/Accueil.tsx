@@ -1020,63 +1020,65 @@ export default function Accueil({
               </span>
             </button>
 
-            {estSemaineDepliee && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, paddingTop: 4 }}>
-                {[...semaine]
-                  .sort((a, b) => b.debut - a.debut)
-                  .map((s) => {
-                    const dures = s.series.filter(estDure).length
-                    const t = duree(dureeSeanceEffective(s))
-                    const d = new Date(s.debut)
-                    const jourNom = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
-                    return (
-                      <div
-                        key={s.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSeanceFaiteModal(s)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px 12px',
-                          borderRadius: 10,
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.06)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>
-                            {s.nom}
+            <div className={`accordeon-tiroir ${estSemaineDepliee ? 'ouvert' : ''}`}>
+              <div className="accordeon-contenu">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, paddingTop: 4 }}>
+                  {[...semaine]
+                    .sort((a, b) => b.debut - a.debut)
+                    .map((s) => {
+                      const dures = s.series.filter(estDure).length
+                      const t = duree(dureeSeanceEffective(s))
+                      const d = new Date(s.debut)
+                      const jourNom = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+                      return (
+                        <div
+                          key={s.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSeanceFaiteModal(s)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            borderRadius: 10,
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>
+                              {s.nom}
+                            </div>
+                            <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+                              <span style={{ textTransform: 'capitalize' }}>{jourNom}</span> · {t}{dures > 0 ? ` · ${dures} séries dures` : ''}
+                            </div>
                           </div>
-                          <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
-                            <span style={{ textTransform: 'capitalize' }}>{jourNom}</span> · {t}{dures > 0 ? ` · ${dures} séries dures` : ''}
-                          </div>
+                          <ChevronRight size={16} strokeWidth={1.75} className="muted" />
                         </div>
-                        <ChevronRight size={16} strokeWidth={1.75} className="muted" />
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
 
-                <button
-                  type="button"
-                  className="btn texte"
-                  onClick={onBilan}
-                  style={{
-                    color: 'var(--accent)',
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    marginTop: 4,
-                    padding: '6px 0',
-                    textAlign: 'center',
-                    width: '100%',
-                  }}
-                >
-                  Voir les statistiques complètes ›
-                </button>
+                  <button
+                    type="button"
+                    className="btn texte"
+                    onClick={onBilan}
+                    style={{
+                      color: 'var(--accent)',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      marginTop: 4,
+                      padding: '6px 0',
+                      textAlign: 'center',
+                      width: '100%',
+                    }}
+                  >
+                    Voir les statistiques complètes ›
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>

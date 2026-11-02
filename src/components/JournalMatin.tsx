@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { Moon, Flame, Check } from 'lucide-react'
+import { Moon, Flame, Check, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
 import { informer } from './Dialogues'
@@ -177,71 +177,75 @@ export default function JournalMatin({
         </button>
       </div>
 
-      {/* Saisie Poids dépliée */}
-      {saisiePoids && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Poids du jour</span>
-          <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
-            <span className="mini-stepper compact">
-              <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
-                −
-              </button>
-              <input
-                type="text"
-                inputMode="decimal"
-                enterKeyHint="done"
-                className="duree"
-                value={valPoids || (poids ? kg(poids) : '70')}
-                onFocus={(e) => {
-                  if (!valPoids) setValPoids(poids ? kg(poids) : '70')
-                  e.target.select()
-                }}
-                onChange={(e) => setValPoids(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
-              />
-              <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
-                +
-              </button>
-            </span>
-            <button
-              type="button"
-              className="btn primaire petit"
-              style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={() => void enregistrerPoids()}
-              aria-label="Valider"
-            >
-              <Check size={18} strokeWidth={2.5} />
-            </button>
-            <button
-              type="button"
-              className="btn discret petit"
-              style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={() => setSaisiePoids(false)}
-              aria-label="Fermer"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Saisie Sommeil dépliée */}
-      {saisieSommeil && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Sommeil cette nuit</span>
-          <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
-            {HEURES.map(([h, txt]) => (
+      {/* Saisie Poids dépliée avec transition fluide */}
+      <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
+        <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Poids du jour</span>
+            <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
+              <span className="mini-stepper compact">
+                <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
+                  −
+                </button>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  enterKeyHint="done"
+                  className="duree"
+                  value={valPoids || (poids ? kg(poids) : '70')}
+                  onFocus={(e) => {
+                    if (!valPoids) setValPoids(poids ? kg(poids) : '70')
+                    e.target.select()
+                  }}
+                  onChange={(e) => setValPoids(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
+                />
+                <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
+                  +
+                </button>
+              </span>
               <button
-                key={h}
-                className={duJour?.sommeil === h ? 'actif' : ''}
-                onClick={() => void noter(aujourdhui, { sommeil: h }).then(() => setSaisieSommeil(false))}
+                type="button"
+                className="btn primaire petit"
+                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+                onClick={() => void enregistrerPoids()}
+                aria-label="Valider"
               >
-                {txt}
+                <Check size={18} strokeWidth={2.5} />
               </button>
-            ))}
+              <button
+                type="button"
+                className="btn discret petit"
+                style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+                onClick={() => setSaisiePoids(false)}
+                aria-label="Fermer"
+              >
+                <X size={15} strokeWidth={2} />
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Saisie Sommeil dépliée avec transition fluide */}
+      <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
+        <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Sommeil cette nuit</span>
+            <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+              {HEURES.map(([h, txt]) => (
+                <button
+                  key={h}
+                  className={duJour?.sommeil === h ? 'actif' : ''}
+                  onClick={() => void noter(aujourdhui, { sommeil: h }).then(() => setSaisieSommeil(false))}
+                >
+                  {txt}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Inset Box Calories (comme dans la maquette) */}
       <div

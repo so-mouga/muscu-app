@@ -55,6 +55,7 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
 
           {/* Bulle / Popover Dark Glassmorphism */}
           <div
+            className="popover-aide"
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'absolute',

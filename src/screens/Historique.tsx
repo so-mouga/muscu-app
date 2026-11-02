@@ -611,123 +611,128 @@ function JourChoisi({
         </div>
       </div>
 
-      {/* Saisie Poids dépliée */}
-      {saisiePoids && (
-        <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div className="ligne entre" style={{ marginBottom: 8 }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              Pesée ({date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})
-            </span>
-            <button
-              type="button"
-              className="btn discret petit"
-              style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }}
-              onClick={() => setSaisiePoids(false)}
-            >
-              Fermer
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-            <span className="mini-stepper compact" style={{ flex: 1 }}>
-              <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
-                −
-              </button>
-              <input
-                type="text"
-                inputMode="decimal"
-                enterKeyHint="done"
-                className="duree"
-                value={valPoids || (pesee !== undefined ? kg(pesee) : '70')}
-                onFocus={(e) => {
-                  if (!valPoids) setValPoids(pesee !== undefined ? kg(pesee) : '70')
-                  e.target.select()
-                }}
-                onChange={(e) => setValPoids(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
-              />
-              <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
-                +
-              </button>
-            </span>
-            <button
-              type="button"
-              className="btn primaire petit"
-              style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
-              onClick={() => void enregistrerPoids()}
-              aria-label="Valider le poids"
-            >
-              <Check size={18} strokeWidth={2.5} />
-            </button>
-            {pesee !== undefined && (
+      {/* Saisie Poids dépliée avec transition fluide */}
+      <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
+        <div className="accordeon-contenu">
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div className="ligne entre" style={{ marginBottom: 8 }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                Pesée ({date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})
+              </span>
               <button
                 type="button"
                 className="btn discret petit"
-                style={{ height: 34, minHeight: 34, padding: '0 8px', fontSize: '0.75rem', color: 'var(--danger)', borderRadius: 8 }}
-                onClick={() => void supprimerPoids()}
-                aria-label="Effacer la pesée"
+                style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }}
+                onClick={() => setSaisiePoids(false)}
               >
-                Effacer
+                Fermer
               </button>
-            )}
-          </div>
+            </div>
 
-          {/* Raccourcis d'ajustement rapide */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-            {[-0.5, -0.2, +0.2, +0.5].map((delta) => (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+              <span className="mini-stepper compact" style={{ flex: 1 }}>
+                <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
+                  −
+                </button>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  enterKeyHint="done"
+                  className="duree"
+                  value={valPoids || (pesee !== undefined ? kg(pesee) : '70')}
+                  onFocus={(e) => {
+                    if (!valPoids) setValPoids(pesee !== undefined ? kg(pesee) : '70')
+                    e.target.select()
+                  }}
+                  onChange={(e) => setValPoids(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
+                />
+                <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
+                  +
+                </button>
+              </span>
               <button
-                key={delta}
                 type="button"
-                style={{
-                  padding: '5px 0',
-                  borderRadius: 8,
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: 'var(--texte)',
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-                onClick={() => ajusterPoids(delta)}
+                className="btn primaire petit"
+                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+                onClick={() => void enregistrerPoids()}
+                aria-label="Valider le poids"
               >
-                {delta > 0 ? `+${delta}` : delta} kg
+                <Check size={18} strokeWidth={2.5} />
               </button>
-            ))}
+              {pesee !== undefined && (
+                <button
+                  type="button"
+                  className="btn discret petit"
+                  style={{ height: 34, minHeight: 34, padding: '0 8px', fontSize: '0.75rem', color: 'var(--danger)', borderRadius: 8 }}
+                  onClick={() => void supprimerPoids()}
+                  aria-label="Effacer la pesée"
+                >
+                  Effacer
+                </button>
+              )}
+            </div>
+
+            {/* Raccourcis d'ajustement rapide */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+              {[-0.5, -0.2, +0.2, +0.5].map((delta) => (
+                <button
+                  key={delta}
+                  type="button"
+                  style={{
+                    padding: '5px 0',
+                    borderRadius: 8,
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    color: 'var(--texte)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                  }}
+                  onClick={() => ajusterPoids(delta)}
+                >
+                  {delta > 0 ? `+${delta}` : delta} kg
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Saisie Sommeil dépliée */}
-      {saisieSommeil && (
-        <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div className="ligne entre" style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Sommeil cette nuit</span>
-            <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieSommeil(false)}>
-              Fermer
-            </button>
-          </div>
-          <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
-            {HEURES.map(([h, txt]) => (
-              <button key={h} className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noter({ sommeil: h }).then(() => setSaisieSommeil(false))}>
-                {txt}
+      {/* Saisie Sommeil dépliée avec transition fluide */}
+      <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
+        <div className="accordeon-contenu">
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div className="ligne entre" style={{ marginBottom: 6 }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Sommeil cette nuit</span>
+              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieSommeil(false)}>
+                Fermer
               </button>
-            ))}
+            </div>
+            <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+              {HEURES.map(([h, txt]) => (
+                <button key={h} className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noter({ sommeil: h }).then(() => setSaisieSommeil(false))}>
+                  {txt}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Saisie Calories dépliée */}
-      {saisieCalories && (
-        <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div className="ligne entre" style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calories ce jour-là</span>
-            <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieCalories(false)}>
-              Fermer
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {CALORIES.map(([id, nom]) => (
+      {/* Saisie Calories dépliée avec transition fluide */}
+      <div className={`accordeon-tiroir ${saisieCalories ? 'ouvert' : ''}`}>
+        <div className="accordeon-contenu">
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+            <div className="ligne entre" style={{ marginBottom: 6 }}>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calories ce jour-là</span>
+              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieCalories(false)}>
+                Fermer
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {CALORIES.map(([id, nom]) => (
               <button
                 key={id}
                 type="button"
@@ -746,9 +751,10 @@ function JourChoisi({
                 {nom}
               </button>
             ))}
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Photos */}
       {poses.length > 0 && (
