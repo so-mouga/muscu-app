@@ -42,6 +42,7 @@ body {
   font-size: 16px;
   line-height: 1.4;
   overscroll-behavior: none;
+  overflow-x: hidden;
   /* Comportement d'appli : pas de sélection au toucher long, pas de zoom au double-tap */
   -webkit-user-select: none;
   user-select: none;
@@ -64,6 +65,8 @@ textarea {
   margin: 0 auto;
   min-height: 100dvh;
   padding: 0 16px calc(96px + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+  position: relative;
 }
 
 #root:has(.onglets) {
@@ -1795,15 +1798,17 @@ body:has(.focus) {
 /* Page Corps : mensurations */
 .mesures-haut {
   display: grid;
-  grid-template-columns: 44% 1fr;
-  gap: 12px;
-  align-items: start;
+  grid-template-columns: minmax(90px, 115px) 1fr;
+  gap: 14px;
+  align-items: center;
 }
 .silhouette-mesures {
   width: 100%;
+  max-width: 115px;
   height: auto;
   display: block;
   user-select: none;
+  margin: 0 auto;
 }
 .silhouette-mesures text {
   pointer-events: none;

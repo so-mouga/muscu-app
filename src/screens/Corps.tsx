@@ -184,12 +184,12 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
       <Tendances mesures={mesures} />
 
       {/* Carte silhouette & courbe de détail sans doublon */}
-      <div className="carte" ref={carte} style={{ padding: '16px', borderRadius: 18, scrollMarginTop: 12, marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ flexShrink: 0 }}>
+      <div className="carte" ref={carte} style={{ padding: '16px', borderRadius: 18, scrollMarginTop: 12, marginBottom: 12, overflow: 'hidden' }}>
+        <div className="mesures-haut">
+          <div style={{ width: '100%', maxWidth: 115, margin: '0 auto' }}>
             <SilhouetteMesures active={active} onChoix={(id) => setActive(id)} remplies={remplies} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <span className="faible" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                 {MESURES.indexOf(def) + 1} ·
@@ -204,7 +204,7 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
         </div>
 
         {points.length >= 2 && (
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10, width: '100%', overflow: 'hidden' }}>
             {def.cotes && clesDef.every((c) => serie(mesures, c).length) && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
                 {(['g', 'd'] as const).map((c) => {
