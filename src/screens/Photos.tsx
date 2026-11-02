@@ -77,6 +77,7 @@ export default function Photos() {
             justifyContent: 'center',
             gap: 8,
             background: 'var(--accent)',
+            boxShadow: 'var(--ombre-primaire)',
             border: 'none',
             borderRadius: 'var(--rayon-2)',
             color: 'var(--accent-texte)',

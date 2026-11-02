@@ -124,7 +124,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
             valeur={part}
             taille={210}
             epaisseur={10}
-            couleur={fini ? 'var(--ok)' : enPause ? 'var(--texte-2)' : decompteActif ? 'var(--alerte)' : 'var(--accent)'}
+            couleur={fini ? 'var(--ok)' : enPause ? 'var(--accent-attenu)' : decompteActif ? 'var(--alerte)' : 'var(--accent)'}
             fluide={!enPause && !fini}
             saut={saut}
           >
@@ -144,7 +144,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
     <div className={'minuteur' + (bandeau ? ' bandeau' : '') + (fini ? ' fini flash' : '') + (enPause ? ' en-pause' : '') + (decompteActif ? ' decompte' : '')}>
       <div className="contenu">
         <button className="temps" onClick={onAgrandir} disabled={!onAgrandir} aria-label={onAgrandir ? `${libelle}, ${temps}. Plein écran` : undefined}>
-          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? 'var(--minuteur-fini)' : enPause ? 'var(--texte-2)' : decompteActif ? 'var(--alerte)' : 'var(--accent)'} fluide={!enPause && !fini} saut={saut}>
+          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? 'var(--minuteur-fini)' : enPause ? 'var(--accent-attenu)' : decompteActif ? 'var(--alerte)' : 'var(--accent)'} fluide={!enPause && !fini} saut={saut}>
             <span className="temps-petit">{temps}</span>
           </Anneau>
           {onAgrandir && <span className="indice-plein-ecran"><Maximize2 size={12} className="ico-texte" /> Plein écran</span>}

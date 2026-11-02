@@ -269,6 +269,7 @@ export default function Poids({
               ? '1px solid var(--ok-bord)'
               : 'none',
             color: estEnregistre && !enregistreAnim ? 'var(--ok)' : 'var(--accent-texte)',
+            boxShadow: estEnregistre && !enregistreAnim ? 'none' : 'var(--ombre-primaire)',
             fontWeight: 700,
             fontSize: 'var(--t-legende)',
             letterSpacing: '0.01em',
