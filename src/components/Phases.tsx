@@ -75,7 +75,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
   return (
     <>
       {enCours && finie && (
-        <div className="carte pile rappel-phase" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+        <div className="carte pile rappel-phase" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
           <strong>
             Ta {nomPhase(enCours.phase).toLowerCase()} prévue jusqu’au {jour(plusJours(enCours.finPrevue!, -1))} est finie.
           </strong>
@@ -95,10 +95,10 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
         </div>
       )}
 
-      <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
+      <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--texte)' }}>Phases</h3>
+            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>Phases</h3>
             <Aide titre="Phases d'entraînement" texte="Planifie tes cycles de Prise de masse, Sèche ou Maintien avec un objectif de durée et d'évolution de poids." />
           </div>
         </div>
@@ -110,9 +110,9 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               /* Vue Dashboard compacte */
               <div
                 style={{
-                  background: 'var(--subcard-gradient)',
+                  background: 'var(--sous-carte)',
                   border: '1px solid var(--bord)',
-                  borderRadius: 14,
+                  borderRadius: 'var(--rayon-2)',
                   padding: '14px 16px',
                   marginBottom: aVenir.length || peutAjouter ? 16 : 8,
                 }}
@@ -121,7 +121,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className={`point-phase phase-${enCours.phase}`} style={{ width: 10, height: 10 }} />
-                    <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--texte)' }}>
+                    <span style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
                       {nomPhase(enCours.phase)}
                     </span>
                   </div>
@@ -129,12 +129,12 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span
                       style={{
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--t-legende)',
                         fontWeight: 600,
                         color: `var(--phase-${enCours.phase})`,
-                        background: 'var(--voile-5)',
+                        background: 'var(--voile)',
                         padding: '2px 8px',
-                        borderRadius: 6,
+                        borderRadius: 'var(--rayon-2)',
                         border: '1px solid var(--bord)',
                       }}
                     >
@@ -147,12 +147,12 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                         background: 'transparent',
                         border: 'none',
                         padding: '4px',
-                        color: 'var(--text-secondary)',
+                        color: 'var(--texte-2)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
-                        borderRadius: 6,
+                        borderRadius: 'var(--rayon-2)',
                       }}
                       onClick={() => setEditionEnCours(true)}
                     >
@@ -163,11 +163,11 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
 
                 {/* Ligne 2 : Dates et Objectif de poids */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 8 }}>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
                     {jour(enCours.debut)} → {enCours.finPrevue ? jour(plusJours(enCours.finPrevue, -1)) : 'sans fin prévue'}
                   </div>
                   {enCours.ecartVise && departEnCours !== null && (
-                    <div style={{ fontSize: '0.82rem', color: 'var(--texte)', fontWeight: 500 }}>
+                    <div style={{ fontSize: 'var(--t-petit)', color: 'var(--texte)', fontWeight: 500 }}>
                       {kg(departEnCours)} kg → {viseEnCours !== null ? `${kg(viseEnCours)} kg` : ''} ({ecartTexte(enCours.ecartVise)})
                       {totalEnCours && ` · ${ecartTexte(Math.round((enCours.ecartVise / totalEnCours) * 100) / 100)}/sem`}
                       {avanceEnCours?.atteint && ' 🎉'}
@@ -180,7 +180,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   <div
                     style={{
                       height: 6,
-                      background: 'var(--voile-6)',
+                      background: 'var(--voile)',
                       borderRadius: 3,
                       overflow: 'hidden',
                       marginTop: 12,
@@ -206,11 +206,11 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                       gap: 6,
                       marginTop: 10,
                       padding: '6px 10px',
-                      borderRadius: 8,
-                      background: 'var(--ambre-voile-10)',
-                      border: '1px solid var(--ambre-voile-25)',
-                      color: 'var(--ambre)',
-                      fontSize: '0.78rem',
+                      borderRadius: 'var(--rayon-2)',
+                      background: 'var(--alerte-voile)',
+                      border: '1px solid var(--alerte-bord)',
+                      color: 'var(--alerte)',
+                      fontSize: 'var(--t-legende)',
                       fontWeight: 500,
                     }}
                   >
@@ -223,9 +223,9 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               /* Vue Édition de la phase en cours */
               <div
                 style={{
-                  background: 'var(--subcard-gradient)',
-                  border: '1px solid var(--voile-10)',
-                  borderRadius: 14,
+                  background: 'var(--sous-carte)',
+                  border: '1px solid var(--voile-fort)',
+                  borderRadius: 'var(--rayon-2)',
                   padding: '14px 16px',
                   marginBottom: 16,
                 }}
@@ -233,14 +233,14 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className={`point-phase phase-${enCours.phase}`} />
-                    <strong style={{ fontSize: '1rem', color: 'var(--texte)' }}>Modifier {nomPhase(enCours.phase)}</strong>
+                    <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>Modifier {nomPhase(enCours.phase)}</strong>
                   </div>
                   <button
                     type="button"
                     style={{
                       background: 'transparent',
                       border: 'none',
-                      color: 'var(--text-secondary)',
+                      color: 'var(--texte-2)',
                       padding: '4px',
                       cursor: 'pointer',
                       display: 'flex',
@@ -284,11 +284,11 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   type="button"
                   style={{
                     padding: '6px 14px',
-                    borderRadius: 8,
-                    background: 'var(--voile-5)',
+                    borderRadius: 'var(--rayon-2)',
+                    background: 'var(--voile)',
                     border: '1px solid var(--bord)',
                     color: 'var(--texte)',
-                    fontSize: '0.85rem',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: 600,
                     cursor: 'pointer',
                   }}
@@ -306,9 +306,9 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
           <div style={{ marginTop: 6, marginBottom: 12 }}>
             <div
               style={{
-                fontSize: '0.78rem',
+                fontSize: 'var(--t-legende)',
                 fontWeight: 600,
-                color: 'var(--text-secondary)',
+                color: 'var(--texte-2)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
                 marginBottom: 10,
@@ -326,7 +326,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   bottom: 14,
                   left: 4,
                   width: 2,
-                  background: 'var(--voile-10)',
+                  background: 'var(--voile-fort)',
                   borderRadius: 1,
                 }}
               />
@@ -346,7 +346,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                         height: 10,
                         borderRadius: '50%',
                         background: `var(--phase-${p.phase})`,
-                        border: '2px solid var(--bg-app)',
+                        border: '2px solid var(--bg)',
                       }}
                     />
 
@@ -361,23 +361,23 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '10px 14px',
-                          borderRadius: 12,
-                          background: 'var(--voile-3)',
-                          border: '1px solid var(--voile-6)',
+                          borderRadius: 'var(--rayon-2)',
+                          background: 'var(--surface-2)',
+                          border: '1px solid var(--voile)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
                       >
                         <div>
-                          <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--texte)' }}>
+                          <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>
                             {nomPhase(p.phase)}
                           </div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                          <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 2 }}>
                             Du {jour(p.debut)} {p.finPrevue ? `au ${jour(plusJours(p.finPrevue, -1))}` : ''}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <span style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
                             {total ? `${total} sem.` : 'sans fin'}
                           </span>
                           <ChevronRight size={15} strokeWidth={1.75} className="muted" />
@@ -387,19 +387,19 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                       <div
                         style={{
                           padding: '12px 14px',
-                          borderRadius: 12,
+                          borderRadius: 'var(--rayon-2)',
                           background: 'var(--surface-2)',
-                          border: '1px solid var(--voile-10)',
+                          border: '1px solid var(--voile-fort)',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--texte)' }}>
+                          <span style={{ fontSize: 'var(--t-petit)', fontWeight: 700, color: 'var(--texte)' }}>
                             {nomPhase(p.phase)} (à venir)
                           </span>
                           <button
                             type="button"
                             onClick={() => setOuverte(null)}
-                            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 2 }}
+                            style={{ background: 'none', border: 'none', color: 'var(--texte-2)', cursor: 'pointer', padding: 2 }}
                             aria-label="Fermer"
                           >
                             <X size={15} />
@@ -434,12 +434,12 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               alignItems: 'center',
               gap: 8,
               paddingTop: 8,
-              borderTop: '1px solid var(--voile-6)',
+              borderTop: '1px solid var(--voile)',
               marginTop: 6,
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
               + Planifier la suite :
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -453,7 +453,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                     background: 'var(--surface-2)',
                     border: '1px solid var(--bord)',
                     color: 'var(--texte)',
-                    fontSize: '0.78rem',
+                    fontSize: 'var(--t-legende)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
@@ -468,14 +468,14 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
         )}
 
         {derniere && !derniere.fin && !derniere.finPrevue && (
-          <div className="faible" style={{ fontSize: '0.8rem', marginTop: 8 }}>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 8 }}>
             Fixe une durée à la dernière phase pour pouvoir en ajouter une après.
           </div>
         )}
 
         {/* --- PHASES PRÉCÉDENTES --- */}
         {passees.length > 0 && (
-          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--voile-6)' }}>
+          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--voile)' }}>
             <button
               type="button"
               className="groupe-repli"
@@ -483,7 +483,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               aria-expanded={voirAvant}
               style={{ padding: '4px 0' }}
             >
-              <span style={{ fontSize: '0.85rem' }}>
+              <span style={{ fontSize: 'var(--t-petit)' }}>
                 Phases précédentes <span className="faible">({passees.length})</span>
               </span>
               <span className="muted">{voirAvant ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
@@ -583,7 +583,7 @@ function EditeurPhase({
 
       {/* Durée sur une seule ligne horizontale compacte */}
       <div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 6 }}>Durée de la phase</div>
+        <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginBottom: 6 }}>Durée de la phase</div>
         <div style={{ display: 'flex', gap: 4 }}>
           {DUREES.map((n) => {
             const fin = finApres(p.debut, n)
@@ -595,12 +595,12 @@ function EditeurPhase({
                 style={{
                   flex: 1,
                   padding: '6px 0',
-                  fontSize: '0.8rem',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: actif ? 600 : 400,
-                  borderRadius: 8,
+                  borderRadius: 'var(--rayon-2)',
                   border: '1px solid ' + (actif ? `var(--phase-${p.phase})` : 'var(--bord)'),
                   background: actif ? 'var(--bord)' : 'transparent',
-                  color: actif ? 'var(--texte)' : 'var(--text-secondary)',
+                  color: actif ? 'var(--texte)' : 'var(--texte-2)',
                   cursor: 'pointer',
                   textAlign: 'center',
                 }}
@@ -617,12 +617,12 @@ function EditeurPhase({
               style={{
                 flex: 1.2,
                 padding: '6px 0',
-                fontSize: '0.8rem',
+                fontSize: 'var(--t-legende)',
                 fontWeight: !p.finPrevue ? 600 : 400,
-                borderRadius: 8,
+                borderRadius: 'var(--rayon-2)',
                 border: '1px solid ' + (!p.finPrevue ? `var(--phase-${p.phase})` : 'var(--bord)'),
                 background: !p.finPrevue ? 'var(--bord)' : 'transparent',
-                color: !p.finPrevue ? 'var(--texte)' : 'var(--text-secondary)',
+                color: !p.finPrevue ? 'var(--texte)' : 'var(--texte-2)',
                 cursor: 'pointer',
                 textAlign: 'center',
               }}
@@ -637,12 +637,12 @@ function EditeurPhase({
       {/* Date de début si premier */}
       {premier && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Date de début</span>
+          <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Date de début</span>
           <input
             type="date"
             value={p.debut}
             min={minDebut}
-            style={{ width: 'auto', padding: '4px 8px', fontSize: '0.82rem' }}
+            style={{ width: 'auto', padding: '4px 8px', fontSize: 'var(--t-petit)' }}
             onChange={(e) =>
               e.target.value && e.target.value >= (minDebut ?? '') && enregistrer(deplacerPhase(frise, p.debut, e.target.value))
             }
@@ -654,7 +654,7 @@ function EditeurPhase({
       {p.phase !== 'maintien' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Objectif de variation</span>
+            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Objectif de variation</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ChampNombre
                 valeur={p.ecartVise}
@@ -670,7 +670,7 @@ function EditeurPhase({
                   enregistrer(ecartPhase(frise, p.debut, Math.round(signed * 10) / 10, aujourdhui))
                 }}
               />
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>kg</span>
+              <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>kg</span>
             </div>
           </div>
 
@@ -685,11 +685,11 @@ function EditeurPhase({
                   style={{
                     padding: '3px 10px',
                     borderRadius: 999,
-                    fontSize: '0.78rem',
+                    fontSize: 'var(--t-legende)',
                     fontWeight: actif ? 600 : 400,
                     background: actif ? 'var(--bord)' : 'transparent',
                     border: '1px solid ' + (actif ? `var(--phase-${p.phase})` : 'var(--bord)'),
-                    color: actif ? 'var(--texte)' : 'var(--text-secondary)',
+                    color: actif ? 'var(--texte)' : 'var(--texte-2)',
                     cursor: 'pointer',
                   }}
                   onClick={() => enregistrer(ecartPhase(frise, p.debut, p.ecartVise === x ? undefined : x, aujourdhui))}
@@ -701,7 +701,7 @@ function EditeurPhase({
           </div>
 
           {p.ecartVise && depart !== null && (
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
               Départ {kg(depart)} kg → visé {vise !== null ? `${kg(vise)} kg` : ''} ({ecartTexte(p.ecartVise)})
               {total ? ` en ${total} sem.` : ''}
             </div>
@@ -710,12 +710,12 @@ function EditeurPhase({
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--voile-6)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--voile)' }}>
         {enCours ? (
           <button
             type="button"
             className="btn discret petit"
-            style={{ color: 'var(--accent-orange)', fontSize: '0.8rem' }}
+            style={{ color: 'var(--accent)', fontSize: 'var(--t-legende)' }}
             onClick={terminer}
           >
             {suivante ? 'Passer à la phase suivante maintenant' : 'Terminer la phase'}
@@ -724,7 +724,7 @@ function EditeurPhase({
           <button
             type="button"
             className="btn discret petit"
-            style={{ color: 'var(--danger-vif)', fontSize: '0.8rem' }}
+            style={{ color: 'var(--danger)', fontSize: 'var(--t-legende)' }}
             onClick={supprimer}
           >
             Supprimer cette phase
@@ -735,7 +735,7 @@ function EditeurPhase({
           <button
             type="button"
             className="btn discret petit"
-            style={{ fontSize: '0.8rem' }}
+            style={{ fontSize: 'var(--t-legende)' }}
             onClick={onFermer}
           >
             Fermer
@@ -758,21 +758,21 @@ function LignePassee({ p, pesees }: { p: PeriodePhase; pesees: Pesees }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '8px 12px',
-        borderRadius: 10,
-        background: 'var(--voile-2)',
-        border: '1px solid var(--voile-5)',
+        borderRadius: 'var(--rayon-2)',
+        background: 'var(--surface-2)',
+        border: '1px solid var(--voile)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className={`point-phase phase-${p.phase}`} style={{ width: 8, height: 8 }} />
         <div>
-          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--texte)' }}>{nomPhase(p.phase)}</span>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>{nomPhase(p.phase)}</span>
+          <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
             {jour(p.debut)} → {jour(p.fin!)} · {semainesEntre(p.debut, plusJours(p.fin!, 1))} sem.
           </div>
         </div>
       </div>
-      <div style={{ fontSize: '0.8rem', textAlign: 'right', color: 'var(--text-secondary)' }}>
+      <div style={{ fontSize: 'var(--t-legende)', textAlign: 'right', color: 'var(--texte-2)' }}>
         {fait !== null
           ? `${kg(depart!)} → ${kg(arrivee!)} kg (${ecartTexte(fait)})`
           : p.ecartVise

@@ -656,7 +656,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           <button
             type="button"
             className="btn primaire grand"
-            style={{ width: '100%', fontSize: '1.1rem', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            style={{ width: '100%', fontSize: 'var(--t-texte)', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             onClick={() => setChronoOuvert(true)}
           >
             <span>⏱</span>
@@ -665,7 +665,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           <button
             type="button"
             className="btn discret petit lien-action"
-            style={{ marginTop: 4, color: 'var(--texte-3)', fontSize: '0.85rem' }}
+            style={{ marginTop: 4, color: 'var(--texte-3)', fontSize: 'var(--t-petit)' }}
             onClick={() => setSaisieManuelle(true)}
           >
             ✎ Saisie manuelle ({reps} s)
@@ -689,7 +689,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
               <button
                 type="button"
                 className="btn discret petit lien-action"
-                style={{ color: 'var(--accent)', fontSize: '0.85rem' }}
+                style={{ color: 'var(--accent)', fontSize: 'var(--t-petit)' }}
                 onClick={() => setSaisieManuelle(false)}
               >
                 ⏱ Utiliser le chronomètre interactif

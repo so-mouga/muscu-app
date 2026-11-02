@@ -281,7 +281,7 @@ export default function Accueil({
       <div className="entete" style={{ alignItems: 'flex-start', marginBottom: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <h1 style={{ textTransform: 'capitalize', fontSize: '1.45rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
+            <h1 style={{ textTransform: 'capitalize', fontSize: 'var(--t-titre)', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
               {dateAffichee}
             </h1>
             <button
@@ -289,7 +289,7 @@ export default function Accueil({
               className="btn-reglages"
               onClick={onReglages}
               aria-label="Réglages"
-              style={{ background: 'none', border: 'none', padding: 4, color: 'var(--texte-faible)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              style={{ background: 'none', border: 'none', padding: 4, color: 'var(--texte-3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
             >
               <SlidersHorizontal size={20} strokeWidth={1.75} />
             </button>
@@ -305,17 +305,17 @@ export default function Accueil({
                   alignItems: 'center',
                   gap: 6,
                   padding: '5px 12px',
-                  fontSize: '0.8rem',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: 500,
-                  borderRadius: 20,
-                  background: 'var(--voile-5)',
-                  border: '1px solid var(--voile-10)',
+                  borderRadius: 'var(--rayon)',
+                  background: 'var(--voile)',
+                  border: '1px solid var(--voile-fort)',
                   color: 'var(--texte)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--succes-ios)', flexShrink: 0 }} />
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ok)', flexShrink: 0 }} />
                 <span>{textePhase}</span>
               </button>
             ) : (
@@ -329,11 +329,11 @@ export default function Accueil({
                     display: 'inline-flex',
                     alignItems: 'center',
                     padding: '5px 12px',
-                    fontSize: '0.8rem',
-                    borderRadius: 20,
+                    fontSize: 'var(--t-legende)',
+                    borderRadius: 'var(--rayon)',
                     background: 'var(--surface-2)',
                     border: '1px solid var(--bord)',
-                    color: 'var(--texte-faible)',
+                    color: 'var(--texte-3)',
                     cursor: 'pointer',
                   }}
                 >
@@ -351,11 +351,11 @@ export default function Accueil({
                   alignItems: 'center',
                   gap: 6,
                   padding: '5px 12px',
-                  fontSize: '0.8rem',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: 500,
-                  borderRadius: 20,
-                  background: 'var(--voile-5)',
-                  border: '1px solid var(--voile-10)',
+                  borderRadius: 'var(--rayon)',
+                  background: 'var(--voile)',
+                  border: '1px solid var(--voile-fort)',
                   color: 'var(--texte)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -381,8 +381,8 @@ export default function Accueil({
             justifyContent: 'space-between',
             whiteSpace: 'nowrap',
             padding: '10px 14px',
-            border: '1px solid var(--info-bleu-voile-30)',
-            background: 'var(--info-bleu-voile-08)',
+            border: '1px solid var(--info-bord)',
+            background: 'var(--info-voile)',
           }}
         >
           {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
@@ -399,7 +399,7 @@ export default function Accueil({
               whiteSpace: 'nowrap',
             }}
           >
-            <Download size={16} strokeWidth={2} style={{ color: 'var(--info-bleu)', flexShrink: 0 }} />
+            <Download size={16} strokeWidth={2} style={{ color: 'var(--info)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Nouvelle version ({majAndroid.version}) : installer
               <span className="faible"> · données gardées</span>
@@ -424,8 +424,8 @@ export default function Accueil({
             justifyContent: 'space-between',
             whiteSpace: 'nowrap',
             padding: '10px 14px',
-            border: '1px solid var(--accent-ombre)',
-            background: 'var(--accent-voile-8)',
+            border: '1px solid var(--accent-bord)',
+            background: 'var(--accent-voile)',
           }}
         >
           <button
@@ -483,7 +483,7 @@ export default function Accueil({
 
       {/* La séance d'abord : c'est l'action principale de l'écran. */}
       {!premiereFois && (
-      <div className="carte pile" style={{ padding: '16px', borderRadius: 16 }}>
+      <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon-2)' }}>
         {proposee && duJour && proposee === duJour && !faite(duJour) ? (
           <>
             <div>
@@ -493,7 +493,7 @@ export default function Accueil({
               </div>
               <h2 style={{ margin: '4px 0 0' }}>{proposee.modele.nom}</h2>
               {proposee.modele.sousTitre && (
-                <div className="faible" style={{ fontSize: '0.95rem', margin: '2px 0 6px' }}>
+                <div className="faible" style={{ fontSize: 'var(--t-texte)', margin: '2px 0 6px' }}>
                   {proposee.modele.sousTitre}
                 </div>
               )}
@@ -513,19 +513,19 @@ export default function Accueil({
                   return (
                     <div
                       style={{
-                        background: 'var(--voile-3)',
-                        borderRadius: 10,
+                        background: 'var(--surface-2)',
+                        borderRadius: 'var(--rayon-2)',
                         padding: '8px 12px',
                         margin: '10px 0',
-                        border: '1px solid var(--voile-6)',
+                        border: '1px solid var(--voile)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--accent)' }}>
+                        <span style={{ fontSize: 'var(--t-legende)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--accent)' }}>
                           À battre aujourd’hui
                         </span>
                         {l.length > 3 && (
-                          <span className="faible" style={{ fontSize: '0.75rem' }}>
+                          <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>
                             +{l.length - 3} autre{l.length > 4 ? 's' : ''}
                           </span>
                         )}
@@ -539,7 +539,7 @@ export default function Accueil({
                               justifyContent: 'space-between',
                               alignItems: 'center',
                               gap: 8,
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--t-petit)',
                             }}
                           >
                             <span style={{ color: 'var(--texte)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -547,7 +547,7 @@ export default function Accueil({
                             </span>
                             <span style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                               <strong style={{ color: 'var(--texte)' }}>{x.cible}</strong>{' '}
-                              <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.82rem' }}>({x.plus})</span>
+                              <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 'var(--t-petit)' }}>({x.plus})</span>
                             </span>
                           </div>
                         ))}
@@ -564,8 +564,8 @@ export default function Accueil({
                   flex: 2,
                   height: 44,
                   minHeight: 44,
-                  borderRadius: 12,
-                  fontSize: '0.95rem',
+                  borderRadius: 'var(--rayon-2)',
+                  fontSize: 'var(--t-texte)',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
@@ -583,8 +583,8 @@ export default function Accueil({
                   flex: 1,
                   height: 44,
                   minHeight: 44,
-                  borderRadius: 12,
-                  fontSize: '0.95rem',
+                  borderRadius: 'var(--rayon-2)',
+                  fontSize: 'var(--t-texte)',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
@@ -600,10 +600,10 @@ export default function Accueil({
         ) : duJour && faite(duJour) ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--succes-ios-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={14} strokeWidth={2.5} style={{ color: 'var(--succes-ios)' }} />
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--ok-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Check size={14} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
               </div>
-              <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+              <span style={{ fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
                 {duJour.modele.nom} faite aujourd’hui
               </span>
             </div>
@@ -618,19 +618,19 @@ export default function Accueil({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderRadius: 12,
-                  background: 'var(--voile-3)',
-                  border: '1px solid var(--voile-7)',
+                  borderRadius: 'var(--rayon-2)',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--voile)',
                   cursor: 'pointer',
                   marginTop: 8,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>
+                  <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
                     Prochaine ({JOURS[prochaine.jour!]}) : {prochaine.modele.nom}
                   </div>
                   {prochaine.modele.sousTitre && (
-                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
                       {prochaine.modele.sousTitre}
                     </div>
                   )}
@@ -643,8 +643,8 @@ export default function Accueil({
           /* Jour de repos (comme dans la maquette) */
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--info-bleu-voile-15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Moon size={16} strokeWidth={2.2} style={{ color: 'var(--info-bleu)' }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--info-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Moon size={16} strokeWidth={2.2} style={{ color: 'var(--info)' }} />
               </div>
               <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--texte)' }}>
                 Repos aujourd’hui
@@ -661,19 +661,19 @@ export default function Accueil({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '14px 16px',
-                  borderRadius: 14,
-                  background: 'var(--subcard-gradient)',
-                  border: '1px solid var(--voile-6)',
+                  borderRadius: 'var(--rayon-2)',
+                  background: 'var(--sous-carte)',
+                  border: '1px solid var(--voile)',
                   cursor: 'pointer',
                   marginTop: 4,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>
+                  <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
                     {proposee.jour === (jour % 7) + 1 ? 'Demain' : `Prochaine (${JOURS[proposee.jour!]})`} : {proposee.modele.nom}
                   </div>
                   {proposee.modele.sousTitre && (
-                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
                       {proposee.modele.sousTitre}
                     </div>
                   )}
@@ -709,7 +709,7 @@ export default function Accueil({
               className="btn texte"
               onClick={() => voir(variante)}
               style={{
-                color: 'var(--texte-faible)',
+                color: 'var(--texte-3)',
                 fontSize: 13,
                 fontWeight: 500,
                 padding: '6px 0',
@@ -734,8 +734,8 @@ export default function Accueil({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '8px 12px',
-            borderRadius: 10,
-            background: 'var(--voile-3)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--surface-2)',
             border: '1px solid var(--bord)',
             marginBottom: 10,
             gap: 8,
@@ -760,10 +760,10 @@ export default function Accueil({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              fontSize: '0.85rem',
+              fontSize: 'var(--t-petit)',
             }}
           >
-            <Info size={15} strokeWidth={2} style={{ color: 'var(--info-bleu)', flexShrink: 0 }} />
+            <Info size={15} strokeWidth={2} style={{ color: 'var(--info)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Force en baisse sur {deloadPlusTot.baisses.length} exercices : déload conseillé ?
               <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span>
@@ -783,7 +783,7 @@ export default function Accueil({
               justifyContent: 'center',
               background: 'none',
               border: 'none',
-              color: 'var(--texte-faible)',
+              color: 'var(--texte-3)',
               cursor: 'pointer',
               flexShrink: 0,
             }}
@@ -800,8 +800,8 @@ export default function Accueil({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '8px 12px',
-            borderRadius: 10,
-            background: 'var(--voile-3)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--surface-2)',
             border: '1px solid var(--bord)',
             marginBottom: 10,
             gap: 8,
@@ -826,10 +826,10 @@ export default function Accueil({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              fontSize: '0.85rem',
+              fontSize: 'var(--t-petit)',
             }}
           >
-            <Ruler size={15} strokeWidth={2} style={{ color: 'var(--bleu-vif)', flexShrink: 0 }} />
+            <Ruler size={15} strokeWidth={2} style={{ color: 'var(--info)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
               {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>}
@@ -849,7 +849,7 @@ export default function Accueil({
               justifyContent: 'center',
               background: 'none',
               border: 'none',
-              color: 'var(--texte-faible)',
+              color: 'var(--texte-3)',
               cursor: 'pointer',
               flexShrink: 0,
             }}
@@ -863,10 +863,10 @@ export default function Accueil({
       {!premiereFois && <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} />}
 
       {!premiereFois && (
-      <div className="carte pile" style={{ padding: '16px', borderRadius: 16 }}>
+      <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon-2)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>Cette semaine</h3>
-          <span className="faible" style={{ fontSize: '0.9rem' }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700 }}>Cette semaine</h3>
+          <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
             {planning.length ? `${planning.filter(faite).length}/${planning.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`}
           </span>
         </div>
@@ -926,8 +926,8 @@ export default function Accueil({
               >
                 <span
                   style={{
-                    fontSize: '0.78rem',
-                    color: estAujourdhui ? 'var(--texte)' : 'var(--texte-faible)',
+                    fontSize: 'var(--t-legende)',
+                    color: estAujourdhui ? 'var(--texte)' : 'var(--texte-3)',
                     fontWeight: estAujourdhui ? 700 : 400,
                   }}
                 >
@@ -943,30 +943,30 @@ export default function Accueil({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '0.85rem',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: 600,
                     background: estFait
-                      ? 'var(--ok-voile-12)'
+                      ? 'var(--ok-voile)'
                       : ent
                       ? estAujourdhui
-                        ? 'var(--accent-voile-12)'
-                        : 'var(--voile-5)'
-                      : 'var(--voile-2)',
+                        ? 'var(--accent-voile)'
+                        : 'var(--voile)'
+                      : 'var(--surface-2)',
                     border: estFait
                       ? '1.5px solid var(--ok)'
                       : ent
                       ? estAujourdhui
                         ? '2px solid var(--accent)'
-                        : '1.5px solid var(--voile-25)'
+                        : '1.5px solid var(--voile-bord)'
                       : '1px solid var(--bord)',
                     boxShadow: estFait
-                      ? '0 0 10px var(--ok-voile-30)'
+                      ? '0 0 10px var(--ok-bord)'
                       : ent
                       ? estAujourdhui
-                        ? '0 0 12px var(--accent-voile-35)'
-                        : '0 0 8px var(--voile-10)'
+                        ? '0 0 12px var(--accent-bord)'
+                        : '0 0 8px var(--voile-fort)'
                       : 'none',
-                    color: estFait ? 'var(--ok)' : ent ? 'var(--texte)' : 'var(--texte-faible)',
+                    color: estFait ? 'var(--ok)' : ent ? 'var(--texte)' : 'var(--texte-3)',
                   }}
                 >
                   {d.lettre}
@@ -981,12 +981,12 @@ export default function Accueil({
                         width: 4,
                         height: 4,
                         borderRadius: '50%',
-                        background: estAujourdhui ? 'var(--accent)' : 'var(--voile-35)',
+                        background: estAujourdhui ? 'var(--accent)' : 'var(--voile-bord)',
                         boxShadow: estAujourdhui ? '0 0 4px var(--accent)' : 'none',
                       }}
                     />
                   ) : (
-                    <span style={{ color: 'var(--voile-15)', fontSize: '0.8rem' }}>—</span>
+                    <span style={{ color: 'var(--voile-fort)', fontSize: 'var(--t-legende)' }}>—</span>
                   )}
                 </div>
               </button>
@@ -996,7 +996,7 @@ export default function Accueil({
 
         {/* Ligne bilan en bas avec accordéon des séances de la semaine */}
         {semaine.length > 0 && (
-          <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--voile-6)' }}>
+          <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--voile)' }}>
             <button
               type="button"
               onClick={() => setSemaineDepliee(!estSemaineDepliee)}
@@ -1012,11 +1012,11 @@ export default function Accueil({
                 textAlign: 'left',
               }}
             >
-              <span className="faible" style={{ fontSize: '0.88rem' }}>
+              <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
                 Séances de la semaine <strong style={{ color: 'var(--texte)' }}>({semaine.length}{planning.length ? `/${planning.length}` : ''})</strong>
                 {duresSemaine > 0 ? ` · ${duresSemaine} séries` : ''}
               </span>
-              <span style={{ color: 'var(--texte-faible)', display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: 'var(--texte-3)', display: 'flex', alignItems: 'center' }}>
                 {estSemaineDepliee ? <ChevronUp size={18} strokeWidth={1.75} /> : <ChevronDown size={18} strokeWidth={1.75} />}
               </span>
             </button>
@@ -1042,17 +1042,17 @@ export default function Accueil({
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             padding: '10px 12px',
-                            borderRadius: 10,
-                            background: 'var(--voile-3)',
-                            border: '1px solid var(--voile-6)',
+                            borderRadius: 'var(--rayon-2)',
+                            background: 'var(--surface-2)',
+                            border: '1px solid var(--voile)',
                             cursor: 'pointer',
                           }}
                         >
                           <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>
+                            <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>
                               {s.nom}
                             </div>
-                            <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+                            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
                               <span style={{ textTransform: 'capitalize' }}>{jourNom}</span> · {t}{dures > 0 ? ` · ${dures} séries dures` : ''}
                             </div>
                           </div>
@@ -1067,7 +1067,7 @@ export default function Accueil({
                     onClick={onBilan}
                     style={{
                       color: 'var(--accent)',
-                      fontSize: '0.85rem',
+                      fontSize: 'var(--t-petit)',
                       fontWeight: 500,
                       marginTop: 4,
                       padding: '6px 0',
@@ -1124,7 +1124,7 @@ export default function Accueil({
                     padding: 12,
                     background: 'var(--surface)',
                     border: g.actif ? '1.5px solid var(--accent)' : '1px solid var(--bord)',
-                    borderRadius: 16,
+                    borderRadius: 'var(--rayon-2)',
                   }}
                 >
                   <button
@@ -1143,9 +1143,9 @@ export default function Accueil({
                     aria-expanded={ouvert}
                   >
                     <div className="ligne wrap" style={{ gap: 8, alignItems: 'center' }}>
-                      <strong style={{ fontSize: '1.05rem', color: 'var(--texte)' }}>{g.nom}</strong>
+                      <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>{g.nom}</strong>
                       {g.actif && <span className="pastille ok">actif</span>}
-                      <span className="faible" style={{ fontSize: '0.85rem' }}>
+                      <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
                         ({g.seances.length} séance{g.seances.length > 1 ? 's' : ''})
                       </span>
                     </div>
@@ -1191,7 +1191,7 @@ export default function Accueil({
                               >
                                 <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
                                   <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
-                                    <strong style={{ fontSize: '1rem', color: 'var(--texte)' }}>{m.nom}</strong>
+                                    <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>{m.nom}</strong>
                                     {creneauxJours.map((j) => (
                                       <span key={j} className={'badge-jour' + (j === jour ? ' aujourdhui' : '')}>
                                         {['', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][j]}
@@ -1211,22 +1211,22 @@ export default function Accueil({
                                       {m.sousTitre}
                                     </div>
                                   )}
-                                  <div className="faible" style={{ marginTop: 4, fontSize: '0.8rem' }}>
+                                  <div className="faible" style={{ marginTop: 4, fontSize: 'var(--t-legende)' }}>
                                     {dureeTexte(m, terminees)}
                                   </div>
                                 </div>
 
                                 <div className="ligne" style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
                                   {faiteSemaine ? (
-                                    <span className="pastille ok" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                    <span className="pastille ok" style={{ fontSize: 'var(--t-legende)', fontWeight: 600 }}>
                                       ✓ Faite
                                     </span>
                                   ) : estAujourdhui ? (
-                                    <span className="pastille accent" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                                    <span className="pastille accent" style={{ fontSize: 'var(--t-legende)', fontWeight: 600 }}>
                                       Aujourd'hui
                                     </span>
                                   ) : null}
-                                  <span className="muted" style={{ fontSize: '1.1rem', marginLeft: 2 }}>›</span>
+                                  <span className="muted" style={{ fontSize: 'var(--t-texte)', marginLeft: 2 }}>›</span>
                                 </div>
                               </button>
                             )
@@ -1253,12 +1253,12 @@ export default function Accueil({
                 onClick={() => lancer()}
               >
                 <div style={{ textAlign: 'left' }}>
-                  <strong style={{ fontSize: '0.98rem' }}>⚡ Séance libre</strong>
-                  <div className="faible" style={{ marginTop: 2, fontSize: '0.8rem' }}>
+                  <strong style={{ fontSize: 'var(--t-texte)' }}>⚡ Séance libre</strong>
+                  <div className="faible" style={{ marginTop: 2, fontSize: 'var(--t-legende)' }}>
                     Exercices ajoutés au fur et à mesure sans modèle
                   </div>
                 </div>
-                <span className="pastille accent" style={{ fontSize: '1rem', padding: '2px 8px' }}>+</span>
+                <span className="pastille accent" style={{ fontSize: 'var(--t-texte)', padding: '2px 8px' }}>+</span>
               </button>
             </div>
 
@@ -1289,12 +1289,12 @@ export default function Accueil({
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="ligne entre" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--ok-voile-15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--ok-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Check size={18} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
                   </div>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{s.nom}</h2>
-                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                    <h2 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 800 }}>{s.nom}</h2>
+                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
                       {dateFormatee}
                     </div>
                   </div>
@@ -1312,19 +1312,19 @@ export default function Accueil({
 
               {/* Badges récapitulatifs */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte)' }}>
                   ⏱️ {t}
                 </span>
                 {dures > 0 && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--accent-voile-12)', border: '1px solid var(--accent-voile-25)', fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 600 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--accent-voile)', border: '1px solid var(--accent-bord)', fontSize: 'var(--t-legende)', color: 'var(--accent)', fontWeight: 600 }}>
                     💪 {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
                   </span>
                 )}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
                   🎯 {exosMap.size} exercice{exosMap.size > 1 ? 's' : ''}
                 </span>
                 {s.poidsCorps && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
                     ⚖️ {kg(s.poidsCorps)} kg
                   </span>
                 )}
@@ -1339,16 +1339,16 @@ export default function Accueil({
                       key={exoId}
                       style={{
                         padding: '10px 12px',
-                        borderRadius: 12,
-                        background: 'var(--voile-3)',
-                        border: '1px solid var(--voile-6)',
+                        borderRadius: 'var(--rayon-2)',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--voile)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--texte)' }}>
+                        <span style={{ fontWeight: 600, fontSize: 'var(--t-petit)', color: 'var(--texte)' }}>
                           {exo.nom}
                         </span>
-                        <span className="faible" style={{ fontSize: '0.78rem' }}>
+                        <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>
                           {series.length} série{series.length > 1 ? 's' : ''}
                         </span>
                       </div>
@@ -1363,16 +1363,16 @@ export default function Accueil({
                                 alignItems: 'center',
                                 gap: 4,
                                 padding: '3px 8px',
-                                borderRadius: 6,
-                                background: dure ? 'var(--accent-voile-12)' : 'var(--surface-2)',
-                                border: '1px solid ' + (dure ? 'var(--accent-voile-25)' : 'var(--bord)'),
-                                fontSize: '0.8rem',
+                                borderRadius: 'var(--rayon-2)',
+                                background: dure ? 'var(--accent-voile)' : 'var(--surface-2)',
+                                border: '1px solid ' + (dure ? 'var(--accent-bord)' : 'var(--bord)'),
+                                fontSize: 'var(--t-legende)',
                                 color: dure ? 'var(--accent)' : 'var(--texte)',
                                 fontWeight: dure ? 600 : 400,
                               }}
                             >
                               {chargeQte(exo, serie.charge, serie.reps)}
-                              {serie.rpe ? <span style={{ opacity: 0.65, fontSize: '0.75rem' }}>@{serie.rpe}</span> : null}
+                              {serie.rpe ? <span style={{ opacity: 0.65, fontSize: 'var(--t-legende)' }}>@{serie.rpe}</span> : null}
                             </span>
                           )
                         })}
@@ -1394,8 +1394,8 @@ export default function Accueil({
                   }}
                   style={{
                     height: 44,
-                    borderRadius: 12,
-                    fontSize: '0.9rem',
+                    borderRadius: 'var(--rayon-2)',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -1408,7 +1408,7 @@ export default function Accueil({
                   type="button"
                   className="btn discret plein"
                   onClick={() => setSeanceFaiteModal(null)}
-                  style={{ height: 40, borderRadius: 12 }}
+                  style={{ height: 40, borderRadius: 'var(--rayon-2)' }}
                 >
                   Fermer
                 </button>
@@ -1434,8 +1434,8 @@ export default function Accueil({
                     <Dumbbell size={18} strokeWidth={2} style={{ color: 'var(--accent)' }} />
                   </div>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{modele.nom}</h2>
-                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                    <h2 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 800 }}>{modele.nom}</h2>
+                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
                       {sousTitre}
                     </div>
                   </div>
@@ -1453,11 +1453,11 @@ export default function Accueil({
 
               {/* Badges d'estimation */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte)' }}>
                   <Clock size={13} strokeWidth={2} style={{ color: 'var(--accent)' }} /> ~{dureeEstimee}
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
-                  <Target size={13} strokeWidth={2} style={{ color: 'var(--bleu-vif)' }} /> {modele.exercices.length} exercices au programme
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
+                  <Target size={13} strokeWidth={2} style={{ color: 'var(--info)' }} /> {modele.exercices.length} exercices au programme
                 </span>
               </div>
 
@@ -1475,22 +1475,22 @@ export default function Accueil({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: '10px 12px',
-                        borderRadius: 10,
-                        background: 'var(--voile-3)',
-                        border: '1px solid var(--voile-6)',
+                        borderRadius: 'var(--rayon-2)',
+                        background: 'var(--surface-2)',
+                        border: '1px solid var(--voile)',
                       }}
                     >
                       <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--texte)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 600, fontSize: 'var(--t-petit)', color: 'var(--texte)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {exo.nom}
                         </div>
                         {exo.muscle && (
-                          <div className="faible" style={{ fontSize: '0.75rem', marginTop: 1 }}>
+                          <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
                             {exo.muscle}
                           </div>
                         )}
                       </div>
-                      <span className="faible" style={{ fontSize: '0.82rem', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                      <span className="faible" style={{ fontSize: 'var(--t-petit)', whiteSpace: 'nowrap', fontWeight: 500 }}>
                         {p.series.length} séries · {rMin === rMax ? rMin : `${rMin}–${rMax}`} reps
                       </span>
                     </div>
@@ -1500,7 +1500,7 @@ export default function Accueil({
 
               {/* Actions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div className="faible" style={{ fontSize: '0.78rem', textAlign: 'center', marginBottom: -2 }}>
+                <div className="faible" style={{ fontSize: 'var(--t-legende)', textAlign: 'center', marginBottom: -2 }}>
                   Lancer ce modèle pour aujourd’hui
                 </div>
                 <button
@@ -1513,8 +1513,8 @@ export default function Accueil({
                   style={{
                     height: 44,
                     minHeight: 44,
-                    borderRadius: 12,
-                    fontSize: '0.95rem',
+                    borderRadius: 'var(--rayon-2)',
+                    fontSize: 'var(--t-texte)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -1532,8 +1532,8 @@ export default function Accueil({
                   }}
                   style={{
                     height: 40,
-                    borderRadius: 12,
-                    fontSize: '0.88rem',
+                    borderRadius: 'var(--rayon-2)',
+                    fontSize: 'var(--t-petit)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1545,7 +1545,7 @@ export default function Accueil({
                   type="button"
                   className="btn discret plein"
                   onClick={() => setSeancePrevueModal(null)}
-                  style={{ height: 38, borderRadius: 12 }}
+                  style={{ height: 38, borderRadius: 'var(--rayon-2)' }}
                 >
                   Fermer
                 </button>
@@ -1568,7 +1568,7 @@ export default function Accueil({
               style={{
                 maxWidth: 380,
                 padding: '22px 18px',
-                borderRadius: 20,
+                borderRadius: 'var(--rayon)',
                 textAlign: 'center',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1581,22 +1581,22 @@ export default function Accueil({
                   width: 48,
                   height: 48,
                   borderRadius: '50%',
-                  background: 'var(--info-bleu-voile-15)',
-                  border: '1px solid var(--info-bleu-voile-30)',
+                  background: 'var(--info-voile)',
+                  border: '1px solid var(--info-bord)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--info-bleu)',
+                  color: 'var(--info)',
                 }}
               >
                 <Moon size={24} strokeWidth={2} />
               </div>
 
               <div>
-                <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+                <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
                   {jourNom} · Repos
                 </h3>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                <p style={{ margin: 0, fontSize: 'var(--t-petit)', color: 'var(--texte-2)', lineHeight: 1.45 }}>
                   C’est un jour de repos. Profite de cette journée pour récupérer et reconstruire tes fibres musculaires !
                 </p>
               </div>
@@ -1612,8 +1612,8 @@ export default function Accueil({
                   style={{
                     height: 44,
                     minHeight: 44,
-                    borderRadius: 12,
-                    fontSize: '0.92rem',
+                    borderRadius: 'var(--rayon-2)',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: 600,
                     width: '100%',
                     display: 'flex',
@@ -1629,7 +1629,7 @@ export default function Accueil({
                   type="button"
                   className="btn discret"
                   onClick={() => setJourReposModal(null)}
-                  style={{ height: 38, minHeight: 38, borderRadius: 12, fontSize: '0.85rem', width: '100%' }}
+                  style={{ height: 38, minHeight: 38, borderRadius: 'var(--rayon-2)', fontSize: 'var(--t-petit)', width: '100%' }}
                 >
                   Fermer
                 </button>

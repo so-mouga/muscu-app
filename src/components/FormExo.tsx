@@ -103,9 +103,9 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
 
       <div className="ligne" style={{ alignItems: 'center', gap: 12 }}>
         {image ? (
-          <img src={image} alt="" style={{ width: 88, height: 88, objectFit: 'cover', borderRadius: 14 }} />
+          <img src={image} alt="" style={{ width: 88, height: 88, objectFit: 'cover', borderRadius: 'var(--rayon-2)' }} />
         ) : (
-          <span className="vignette vide" style={{ width: 88, height: 88, borderRadius: 14, fontSize: 28 }}>
+          <span className="vignette vide" style={{ width: 88, height: 88, borderRadius: 'var(--rayon-2)', fontSize: 28 }}>
             📷
           </span>
         )}

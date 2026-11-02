@@ -344,7 +344,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const memeCharge = avant.filter((x) => x.charge === s.charge)
     const e = e1rm(exo, s, seance.poidsCorps)
     const meilleur = Math.max(0, ...avant.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
-    if (e && meilleur && e > meilleur) setToast(`🏆 Nouveau record e1RM : ${kg(e)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}`)
+    if (e && meilleur && e > meilleur) setToast(`🏆 Nouveau record : 1RM estimé à ${kg(e)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}`)
     // Sans 1RM (pas de poids noté, isolation…) : une charge jamais soulevée est aussi un record.
     else if (!enTemps(exo) && s.reps > 0 && s.charge > Math.max(...avant.map((x) => x.charge)))
       setToast(`🏆 Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
@@ -552,8 +552,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </button>
       </div>
       {maintenant - seance.debut > 4 * 3600000 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 10, marginTop: 8 }}>
-          <span className="faible" style={{ color: 'var(--texte-1)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 'var(--rayon-2)', marginTop: 8 }}>
+          <span className="faible" style={{ color: 'var(--texte)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
           <button className="btn primaire petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
             Terminer
           </button>
@@ -663,7 +663,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {enSuperset && (
             <div className="ligne wrap" style={{ gap: 6, marginBottom: 4, alignItems: 'center' }}>
               <span className="badge-superset">🔗 Superset</span>
-              <span className="faible" style={{ fontSize: '0.85rem' }}>
+              <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
                 {groupe.map((gIdx, k) => (
                   <span key={plans[gIdx].exoId}>
                     {k > 0 ? ' ⇄ ' : ''}
@@ -700,7 +700,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                 const estActif = gIdx === enCours
                 return (
                   <div key={gPlan.exoId} className="ligne entre" style={{ opacity: estActif ? 1 : 0.75 }}>
-                    <span className="faible" style={{ fontSize: '0.8rem', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {estActif ? '▶ ' : ''}{gExo.nom.slice(0, 12)} :
                     </span>
                     <LigneSeries
@@ -785,7 +785,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                 {enSuperset && (
                   <div className="ligne wrap" style={{ gap: 6, marginBottom: 2, alignItems: 'center' }}>
                     <span className="badge-superset">🔗 Superset</span>
-                    <span className="faible" style={{ fontSize: '0.85rem' }}>
+                    <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
                       {groupe.map((gIdx, k) => (
                         <span key={plans[gIdx].exoId}>
                           {k > 0 ? ' ⇄ ' : ''}
@@ -814,7 +814,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                       const estActif = gIdx === enCours
                       return (
                         <div key={gPlan.exoId} className="ligne entre" style={{ opacity: estActif ? 1 : 0.75 }}>
-                          <span className="faible" style={{ fontSize: '0.8rem', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {estActif ? '▶ ' : ''}{gExo.nom.slice(0, 12)} :
                           </span>
                           <LigneSeries
@@ -917,8 +917,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </button>
         </div>
         {maintenant - seance.debut > 4 * 3600000 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 10, margin: '8px 0' }}>
-            <span className="faible" style={{ color: 'var(--texte-1)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 'var(--rayon-2)', margin: '8px 0' }}>
+            <span className="faible" style={{ color: 'var(--texte)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
             <button className="btn primaire petit" onClick={() => ouvrirFin(true)}>
               Terminer
             </button>
@@ -1091,9 +1091,9 @@ function MachinePrise({
 }
 
 const OPTIONS_FORME = [
-  { val: 1, label: 'Difficile', Icon: Frown, couleur: 'var(--forme-difficile)' },
-  { val: 3, label: 'Bien', Icon: Smile, couleur: 'var(--forme-bien)' },
-  { val: 5, label: 'Au top', Icon: Flame, couleur: 'var(--forme-top)' },
+  { val: 1, label: 'Difficile', Icon: Frown, couleur: 'var(--danger)' },
+  { val: 3, label: 'Bien', Icon: Smile, couleur: 'var(--ok)' },
+  { val: 5, label: 'Au top', Icon: Flame, couleur: 'var(--accent)' },
 ] as const
 
 function FinSeance({
@@ -1232,7 +1232,7 @@ function FinSeance({
           ].filter(Boolean)
           return (
             <div className="mieux-titre" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {r.records > 0 && <Trophy size={14} style={{ color: 'var(--forme-top)' }} />}
+              {r.records > 0 && <Trophy size={14} style={{ color: 'var(--accent)' }} />}
               <span>↑ {morceaux.join(', ')}</span>
             </div>
           )
@@ -1344,7 +1344,7 @@ function FinSeance({
 
       {seance.series.length > 0 && (
         <div className="carte pile" style={{ gap: 8, marginTop: 16 }}>
-          <div className="faible" style={{ fontSize: '0.85rem' }}>
+          <div className="faible" style={{ fontSize: 'var(--t-petit)' }}>
             Sensations générales · facultatif
           </div>
           <div className="ligne" style={{ gap: 8 }}>
@@ -1362,7 +1362,7 @@ function FinSeance({
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: 6,
-                    fontSize: '0.85rem',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: actif ? 700 : 500,
                   }}
                   onClick={() => choisirForme(o.val)}
@@ -1485,7 +1485,7 @@ function SuiteSeance({
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="ligne entre" style={{ alignItems: 'baseline', marginBottom: 6 }}>
           <h2 style={{ margin: 0 }}>Suite de la séance</h2>
-          <span className="faible" style={{ fontSize: '0.82rem' }}>
+          <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
             {exos.length} exercice{exos.length > 1 ? 's' : ''}
           </span>
         </div>
@@ -1514,7 +1514,7 @@ function SuiteSeance({
                 >
                   <div style={{ minWidth: 0, paddingRight: 8 }}>
                     <strong>{x.j + 1}. {x.nom}</strong>
-                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
                       {x.faites.length ? `${x.faites.length}/${x.total} faites` : `${x.total} série${x.total > 1 ? 's' : ''}`}
                     </div>
                   </div>
@@ -1541,7 +1541,7 @@ function SuiteSeance({
                         })}
                       </div>
                       {x.chauffes && x.chauffes.length > 0 && (
-                        <div className="faible" style={{ fontSize: '0.8rem' }}>
+                        <div className="faible" style={{ fontSize: 'var(--t-legende)' }}>
                           Échauffement : {x.chauffes.map((c) => {
                             const l = lireChauffe(c)
                             return l ? chargeQte(x.exo, l.charge, l.reps) : c
@@ -1549,12 +1549,12 @@ function SuiteSeance({
                         </div>
                       )}
                       {x.derniereFois && x.derniereFois.length > 0 && (
-                        <div className="faible" style={{ fontSize: '0.8rem' }}>
+                        <div className="faible" style={{ fontSize: 'var(--t-legende)' }}>
                           Dernière fois : {x.derniereFois.map((s) => serieTexte(x.exo, s)).join(' · ')}
                         </div>
                       )}
                       {x.note && (
-                        <div className="faible" style={{ fontSize: '0.8rem' }}>
+                        <div className="faible" style={{ fontSize: 'var(--t-legende)' }}>
                           📝 {x.note}
                         </div>
                       )}

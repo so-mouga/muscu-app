@@ -8,7 +8,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Si `git status` montre des modifications non commitées **qui ne sont pas les tiennes**, une autre IA est en train de travailler : ne touche pas à ses fichiers, ne commite que les tiens (`git add <tes fichiers>`), et ne publie pas d'APK construit avant ses commits Android.
 - En finissant : tout commiter et pousser. Messages de commit en français, qui disent ce que l'utilisateur voit changer.
 - Ajouter ici toute nouvelle décision ou convention importante, pour l'IA suivante.
-- **Design** : la skill Impeccable (`.claude/skills/impeccable`, agents dans `.claude/agents`) sert à refaire la charte graphique, écran par écran (`/impeccable init`, `document`, `critique`, `audit`…). Installée sans le hook automatique. Ces règles restent prioritaires.
+- **Design** : la skill Impeccable (`.claude/skills/impeccable`, agents dans `.claude/agents`) sert à refaire la charte graphique, écran par écran (`/impeccable critique`, `audit`…) ; contexte produit dans `PRODUCT.md`. Installée sans le hook automatique. Ces règles restent prioritaires.
 
 ## Stack et commandes
 
@@ -58,7 +58,15 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Réordonner une liste : poignée ⠿ avec appui maintenu, via `useGlisser` (`lib/glisser.ts`). Pas de flèches ↑↓.
 - Exercices de base : « Masquer » (réversible), jamais supprimés. Exercices créés : « Supprimer » (effacés pour de bon s'ils n'ont jamais servi).
 - **Jamais `overflow-x: hidden` sur `html`, `body` ou `#root`** : la page ne défile plus au doigt et les en-têtes collants ne tiennent plus (arrivé le 2 nov. 2026). Un débordement en largeur se corrige sur l'élément fautif ; filet de sécurité : `overflow-x: clip` sur `#root` (déjà en place).
-- **Pas de couleur écrite en dur dans les `.tsx`** (`#22c55e`, `#f97316`, `#fff`, `rgba(…)`…) : utiliser `var(--ok)`, `var(--accent)`, `var(--texte)`, etc. ; une couleur nouvelle = une variable dans `:root`. Nettoyage fait le 2 nov. 2026 (330 occurrences remplacées). Variables créées dans `:root` :
+- **Pas de couleur écrite en dur dans les `.tsx`** (`#22c55e`, `#f97316`, `#fff`, `rgba(…)`…) : utiliser `var(--ok)`, `var(--accent)`, `var(--texte)`, etc. ; une couleur nouvelle = une variable dans `:root`.
+- **Système de design** (`:root` de `styles.css`, refonte écran par écran en cours, validé le 2 nov. 2026) :
+  - **Sens des couleurs** : orange = action principale et position courante ; vert = réussi ; bleu = information ; ambre = alerte ; rouge = danger ; violet = déload et finisseurs. Une sélection simple (filtre, onglet, période) prend un fond neutre, jamais d'orange.
+  - **Texte** : `--t-legende` 12, `--t-petit` 14, `--t-texte` 16, `--t-titre` 20, `--t-page` 26 ; en séance `--t-chiffre` 40 et `--t-chrono` 64, `--texte-salle` pour le secondaire. Pas d'autre taille.
+  - **Formes** : rayons `--rayon` 18 (cartes), `--rayon-2` 14 (sous-cartes, boutons), 999px (pastilles). Espacements `--e1` à `--e6` (4 à 32 px). Cibles : `--cible-salle` 48 px en séance, `--cible` 44 px ailleurs. Jamais plus de deux niveaux de cartes.
+  - **Boutons** : le primaire est plein et plat, texte `--accent-texte`, sans dégradé ni halo.
+  - **Flou** : seulement `.onglets` et `.modal-fond`. N'écrire que `backdrop-filter` : avec la version `-webkit-` à côté, la compilation retirait la version standard et le flou disparaissait sur Android.
+  - **Icônes** : Lucide (20 et 24 px), pas d'émojis décoratifs ; les pictogrammes maison restent.
+  - **Mouvement** : `--duree-courte` / `--duree` / `--duree-longue` et `--sortie`, sans rebond. Le liseré vertical du superset reste (décision plus bas).
   - Blanc & voiles neutres : `--blanc` (`#ffffff`), `--voile-2` à `--voile-35` (`rgba(255, 255, 255, alpha)`).
   - Accent orange : `--flamme` (`#ff6b00`), `--accent-chaud` (`#ea580c`), `--accent-voile-8` à `--accent-voile-60`, `--accent-ombre`.
   - Succès & vert : `--succes-ios` (`#34c759`), `--succes-ios-voile`, `--ok-voile-10` à `--ok-voile-30`.

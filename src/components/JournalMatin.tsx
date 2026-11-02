@@ -98,8 +98,8 @@ export default function JournalMatin({
   }
 
   return (
-    <div className="carte pile journal-matin" style={{ padding: '16px', borderRadius: 16, gap: 12 }}>
-      <h3 style={{ margin: '0 0 2px', fontSize: '1.15rem', fontWeight: 700 }}>Aujourd’hui</h3>
+    <div className="carte pile journal-matin" style={{ padding: '16px', borderRadius: 'var(--rayon-2)', gap: 12 }}>
+      <h3 style={{ margin: '0 0 2px', fontSize: 'var(--t-titre)', fontWeight: 700 }}>Aujourd’hui</h3>
 
       {/* Grille Poids & Sommeil (2 colonnes) */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -113,16 +113,16 @@ export default function JournalMatin({
             justifyContent: 'space-between',
             alignItems: 'flex-start',
             padding: '14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid var(--voile-6)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid var(--voile)',
             cursor: 'pointer',
             textAlign: 'left',
             width: '100%',
             minHeight: 88,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: 'var(--texte-faible)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: 'var(--texte-3)' }}>
             <svg
               width="18"
               height="18"
@@ -139,10 +139,10 @@ export default function JournalMatin({
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
-              {pesee ? `${kg(pesee.poids)} kg` : <span className="faible" style={{ fontSize: '0.95rem' }}>—</span>}
+            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
+              {pesee ? `${kg(pesee.poids)} kg` : <span className="faible" style={{ fontSize: 'var(--t-texte)' }}>—</span>}
             </div>
-            <div className="faible" style={{ fontSize: '0.82rem', marginTop: 1 }}>Poids</div>
+            <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 1 }}>Poids</div>
           </div>
         </button>
 
@@ -156,9 +156,9 @@ export default function JournalMatin({
             justifyContent: 'space-between',
             alignItems: 'flex-start',
             padding: '14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid var(--voile-6)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid var(--voile)',
             cursor: 'pointer',
             textAlign: 'left',
             width: '100%',
@@ -166,13 +166,13 @@ export default function JournalMatin({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <span style={{ color: 'var(--sommeil-violet)', display: 'flex', alignItems: 'center' }}><Moon size={18} strokeWidth={1.75} /></span>
+            <span style={{ color: 'var(--info)', display: 'flex', alignItems: 'center' }}><Moon size={18} strokeWidth={1.75} /></span>
           </div>
           <div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
-              {duJour?.sommeil !== undefined ? heures(duJour.sommeil) : <span className="faible" style={{ fontSize: '0.95rem' }}>—</span>}
+            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
+              {duJour?.sommeil !== undefined ? heures(duJour.sommeil) : <span className="faible" style={{ fontSize: 'var(--t-texte)' }}>—</span>}
             </div>
-            <div className="faible" style={{ fontSize: '0.82rem', marginTop: 1 }}>Sommeil</div>
+            <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 1 }}>Sommeil</div>
           </div>
         </button>
       </div>
@@ -180,8 +180,8 @@ export default function JournalMatin({
       {/* Saisie Poids dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--bord)' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Poids du jour</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
+            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>Poids du jour</span>
             <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
               <span className="mini-stepper compact">
                 <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
@@ -207,7 +207,7 @@ export default function JournalMatin({
               <button
                 type="button"
                 className="btn primaire petit"
-                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--rayon-2)' }}
                 onClick={() => void enregistrerPoids()}
                 aria-label="Valider"
               >
@@ -216,7 +216,7 @@ export default function JournalMatin({
               <button
                 type="button"
                 className="btn discret petit"
-                style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+                style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--rayon-2)' }}
                 onClick={() => setSaisiePoids(false)}
                 aria-label="Fermer"
               >
@@ -230,8 +230,8 @@ export default function JournalMatin({
       {/* Saisie Sommeil dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--bord)' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Sommeil cette nuit</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
+            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>Sommeil cette nuit</span>
             <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
               {HEURES.map(([h, txt]) => (
                 <button
@@ -252,16 +252,16 @@ export default function JournalMatin({
         style={{
           marginTop: 6,
           padding: '14px 16px',
-          borderRadius: 14,
-          background: 'var(--subcard-gradient)',
-          border: '1px solid var(--voile-6)',
+          borderRadius: 'var(--rayon-2)',
+          background: 'var(--sous-carte)',
+          border: '1px solid var(--voile)',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.88rem', color: 'var(--texte-faible)' }}>
+          <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>
             Hier : <strong style={{ color: 'var(--texte)' }}>Calories</strong>
           </span>
           <div style={{ display: 'inline-flex', gap: 6 }}>
@@ -273,12 +273,12 @@ export default function JournalMatin({
                   type="button"
                   style={{
                     padding: '4px 10px',
-                    fontSize: '0.78rem',
+                    fontSize: 'var(--t-legende)',
                     fontWeight: actif ? 600 : 400,
-                    color: actif ? 'var(--texte)' : 'var(--texte-faible)',
-                    background: actif ? 'var(--voile-15)' : 'var(--voile-3)',
-                    border: '1px solid ' + (actif ? 'var(--voile-20)' : 'var(--voile-6)'),
-                    borderRadius: 20,
+                    color: actif ? 'var(--texte)' : 'var(--texte-3)',
+                    background: actif ? 'var(--voile-fort)' : 'var(--surface-2)',
+                    border: '1px solid ' + (actif ? 'var(--voile-bord)' : 'var(--voile)'),
+                    borderRadius: 'var(--rayon)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
@@ -292,11 +292,11 @@ export default function JournalMatin({
         </div>
 
         {objectif && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 8, borderTop: '1px solid var(--voile-6)' }}>
-            <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 8, borderTop: '1px solid var(--voile)' }}>
+            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>
               Cible : <strong style={{ color: 'var(--texte)' }}>{objectif.kcal.toLocaleString('fr-FR')} kcal</strong>
             </span>
-            <Flame size={16} strokeWidth={1.75} style={{ color: 'var(--flamme)' }} />
+            <Flame size={16} strokeWidth={1.75} style={{ color: 'var(--accent)' }} />
           </div>
         )}
       </div>

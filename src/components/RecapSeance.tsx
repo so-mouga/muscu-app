@@ -74,14 +74,14 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
         return (
           <div key={exo.id} className="carte pile recap">
             <div className="ligne entre" style={{ alignItems: 'center' }}>
-              <strong style={{ fontSize: '1.05rem' }}>{exo.nom}</strong>
+              <strong style={{ fontSize: 'var(--t-texte)' }}>{exo.nom}</strong>
               <button
                 type="button"
                 className={'btn discret petit' + (ouvert ? ' actif' : '')}
                 style={{
                   padding: '2px 8px',
                   borderRadius: 999,
-                  fontSize: '0.82rem',
+                  fontSize: 'var(--t-petit)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
@@ -96,7 +96,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
 
             <div className={'accordeon-tiroir' + (ouvert ? ' ouvert' : '')}>
               <div className="accordeon-contenu">
-                <div className="pile" style={{ gap: 6, padding: '8px 0 4px', borderTop: '1px solid var(--bord)', fontSize: '0.86rem' }}>
+                <div className="pile" style={{ gap: 6, padding: '8px 0 4px', borderTop: '1px solid var(--bord)', fontSize: 'var(--t-petit)' }}>
                   {seance.notes[exo.id] && (
                     <div>
                       📝 <strong>Réglage / note :</strong> {seance.notes[exo.id]}
@@ -140,11 +140,11 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                       {onSerie && <span className="faible"> ✎</span>}
                     </span>
                     {e ? (
-                      <span className={'avant ' + e.sens} style={{ display: 'inline', textAlign: 'right', whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+                      <span className={'avant ' + e.sens} style={{ display: 'inline', textAlign: 'right', whiteSpace: 'nowrap', fontSize: 'var(--t-petit)' }}>
                         {e.sens === 'mieux' ? '↑ ' : e.sens === 'egal' ? '= ' : '↓ '}{e.texte}
                       </span>
                     ) : (
-                      <span className="faible" style={{ fontSize: '0.82rem' }}>{precedente.length ? '' : '1re fois'}</span>
+                      <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>{precedente.length ? '' : '1re fois'}</span>
                     )}
                   </div>
                 )

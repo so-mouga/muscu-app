@@ -35,7 +35,7 @@ function CaloriesVisees({ catalogue }: { catalogue: Catalogue }) {
       className="carte"
       style={{
         padding: '16px',
-        borderRadius: 18,
+        borderRadius: 'var(--rayon)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -49,13 +49,13 @@ function CaloriesVisees({ catalogue }: { catalogue: Catalogue }) {
           style={{
             width: 40,
             height: 40,
-            borderRadius: 12,
+            borderRadius: 'var(--rayon-2)',
             background: actif ? 'var(--accent-voile)' : 'var(--surface-2)',
-            border: '1px solid ' + (actif ? 'var(--accent-ombre)' : 'var(--bord)'),
+            border: '1px solid ' + (actif ? 'var(--accent-bord)' : 'var(--bord)'),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: actif ? 'var(--accent-orange)' : 'var(--text-secondary)',
+            color: actif ? 'var(--accent)' : 'var(--texte-2)',
             flexShrink: 0,
             transition: 'all 0.2s ease',
           }}
@@ -64,13 +64,13 @@ function CaloriesVisees({ catalogue }: { catalogue: Catalogue }) {
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--texte)' }}>Calories visées</span>
+            <span style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>Calories visées</span>
             <Aide
               titre="Calories visées"
               texte="Objectif quotidien indicatif pour cadrer ton apport énergétique selon ta phase (sèche, maintien ou prise). Totalement optionnel : si désactivé, tu peux quand même noter tes ressentis chaque matin."
             />
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+          <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 2 }}>
             {actif ? 'Objectif quotidien de référence' : 'Désactivé (optionnel)'}
           </div>
         </div>
@@ -85,7 +85,7 @@ function CaloriesVisees({ catalogue }: { catalogue: Catalogue }) {
               largeur={75}
               onChange={(v) => void changerObjectifs(catalogue, { calories: v ? Math.round(v) : undefined })}
             />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>kcal</span>
+            <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte-2)' }}>kcal</span>
           </div>
         )}
         <button
@@ -98,9 +98,9 @@ function CaloriesVisees({ catalogue }: { catalogue: Catalogue }) {
             position: 'relative',
             width: 42,
             height: 24,
-            borderRadius: 12,
-            background: actif ? 'var(--accent-orange)' : 'var(--border-top-highlight)',
-            border: '1px solid ' + (actif ? 'var(--accent-voile-60)' : 'var(--voile-10)'),
+            borderRadius: 'var(--rayon-2)',
+            background: actif ? 'var(--accent)' : 'var(--bord-haut)',
+            border: '1px solid ' + (actif ? 'var(--accent-bord)' : 'var(--voile-fort)'),
             cursor: 'pointer',
             padding: 2,
             display: 'inline-flex',

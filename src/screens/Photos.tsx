@@ -76,14 +76,13 @@ export default function Photos() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-chaud) 100%)',
+            background: 'var(--accent)',
             border: 'none',
-            borderRadius: 12,
-            color: 'var(--blanc)',
-            fontSize: '0.9rem',
+            borderRadius: 'var(--rayon-2)',
+            color: 'var(--accent-texte)',
+            fontSize: 'var(--t-petit)',
             fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: '0 4px 16px var(--accent-voile-25)',
             whiteSpace: 'nowrap',
           }}
         >
@@ -101,11 +100,11 @@ export default function Photos() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 7,
-            background: 'var(--voile-5)',
-            border: '1px solid var(--voile-10)',
-            borderRadius: 12,
+            background: 'var(--voile)',
+            border: '1px solid var(--voile-fort)',
+            borderRadius: 'var(--rayon-2)',
             color: 'var(--texte)',
-            fontSize: '0.88rem',
+            fontSize: 'var(--t-petit)',
             fontWeight: 500,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -117,7 +116,7 @@ export default function Photos() {
       </div>
 
       {/* Ligne discrète de confidentialité avec Aide */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--texte-2)', marginBottom: 14 }}>
         <ShieldCheck size={14} strokeWidth={2} style={{ color: 'var(--ok)', flexShrink: 0 }} />
         <span>Stockées uniquement sur cet appareil</span>
         <Aide
@@ -134,12 +133,12 @@ export default function Photos() {
         const pPoids = avant(pesees, date)
         const aPoids = pPoids && Math.abs((Date.parse(date) - Date.parse(pPoids.date)) / 86400000) <= 2
         return (
-          <div key={date} className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+          <div key={date} className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
             <div className="ligne entre" style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <strong style={{ fontSize: '1rem', color: 'var(--texte)' }}>{dateCourte(date)}</strong>
+                <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>{dateCourte(date)}</strong>
                 {aPoids && (
-                  <span className="faible" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                  <span className="faible" style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>
                     · {kg(pPoids.poids)} kg
                   </span>
                 )}
@@ -148,7 +147,7 @@ export default function Photos() {
                 type="button"
                 className="btn discret petit"
                 onClick={() => setGerer(date)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: '0.8rem' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: 'var(--t-legende)' }}
               >
                 <Pencil size={12} strokeWidth={2} />
                 <span>Modifier</span>
@@ -159,7 +158,7 @@ export default function Photos() {
                 poses[p.id] ? (
                   <button key={p.id} type="button" onClick={() => setVue(poses[p.id]!)}>
                     <img src={poses[p.id]!.image} alt={`${p.nom}, ${dateCourte(date)}`} />
-                    <span className="faible" style={{ fontSize: '0.8rem', marginTop: 4 }}>{p.nom}</span>
+                    <span className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 4 }}>{p.nom}</span>
                   </button>
                 ) : (
                   <button
@@ -173,15 +172,15 @@ export default function Photos() {
                       justifyContent: 'center',
                       gap: 4,
                       aspectRatio: '3 / 4',
-                      borderRadius: 12,
-                      border: '1px dashed var(--voile-15)',
-                      background: 'var(--voile-2)',
+                      borderRadius: 'var(--rayon-2)',
+                      border: '1px dashed var(--voile-fort)',
+                      background: 'var(--surface-2)',
                       cursor: 'pointer',
-                      color: 'var(--text-secondary)',
+                      color: 'var(--texte-2)',
                     }}
                   >
                     <Plus size={16} strokeWidth={2} style={{ opacity: 0.7 }} />
-                    <span className="faible" style={{ fontSize: '0.78rem' }}>{p.nom}</span>
+                    <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>{p.nom}</span>
                   </button>
                 )
               )}
@@ -192,14 +191,14 @@ export default function Photos() {
 
       {anciennes.length > 0 &&
         (!toutes ? (
-          <button className="btn plein" style={{ borderRadius: 12, height: 42, marginBottom: 12 }} onClick={() => setToutes(true)}>
+          <button className="btn plein" style={{ borderRadius: 'var(--rayon-2)', height: 42, marginBottom: 12 }} onClick={() => setToutes(true)}>
             Voir les photos plus anciennes ({anciennes.length} date{anciennes.length > 1 ? 's' : ''})
           </button>
         ) : (
-          <div className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+          <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
             {parMois.map(([mois, l]) => (
               <div key={mois} className="pile" style={{ gap: 4 }}>
-                <span className="faible" style={{ textTransform: 'capitalize', fontSize: '0.82rem', fontWeight: 600 }}>
+                <span className="faible" style={{ textTransform: 'capitalize', fontSize: 'var(--t-petit)', fontWeight: 600 }}>
                   {mois}
                 </span>
                 {l.map(([date, poses]) => (
@@ -430,11 +429,11 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
       style={{
         width: '100%',
         padding: '8px 10px',
-        background: 'var(--voile-5)',
-        border: '1px solid var(--voile-10)',
-        borderRadius: 10,
+        background: 'var(--voile)',
+        border: '1px solid var(--voile-fort)',
+        borderRadius: 'var(--rayon-2)',
         color: 'var(--texte)',
-        fontSize: '0.85rem',
+        fontSize: 'var(--t-petit)',
         cursor: 'pointer',
       }}
     >
@@ -447,8 +446,8 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
   )
 
   return (
-    <div className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
-      <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', fontWeight: 700 }}>Comparer</h3>
+    <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
+      <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>Comparer</h3>
 
       {/* Sélecteurs de dates avec bouton d'inversion au centre */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -463,9 +462,9 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
           style={{
             width: 34,
             height: 34,
-            borderRadius: 10,
-            background: 'var(--voile-5)',
-            border: '1px solid var(--voile-10)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--voile)',
+            border: '1px solid var(--voile-fort)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -482,7 +481,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
 
       {/* Barre d'outils unique : Poses à gauche, Vue (Superposer/Côte à côte + Plein écran) à droite */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 8, border: '1px solid var(--voile-6)' }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 'var(--rayon-2)', border: '1px solid var(--voile)' }}>
           {POSES.map((p) => {
             const actifPose = pose === p.id
             return (
@@ -491,12 +490,12 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
                 type="button"
                 style={{
                   padding: '4px 10px',
-                  fontSize: '0.78rem',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: actifPose ? 600 : 400,
-                  color: actifPose ? 'var(--texte)' : 'var(--text-secondary)',
-                  background: actifPose ? 'var(--voile-12)' : 'transparent',
+                  color: actifPose ? 'var(--texte)' : 'var(--texte-2)',
+                  background: actifPose ? 'var(--voile-fort)' : 'transparent',
                   border: 'none',
-                  borderRadius: 6,
+                  borderRadius: 'var(--rayon-2)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -517,12 +516,12 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               alignItems: 'center',
               gap: 5,
               padding: '5px 10px',
-              borderRadius: 8,
-              fontSize: '0.78rem',
+              borderRadius: 'var(--rayon-2)',
+              fontSize: 'var(--t-legende)',
               fontWeight: 500,
-              background: curseur !== null ? 'var(--accent-voile)' : 'var(--voile-5)',
-              border: '1px solid ' + (curseur !== null ? 'var(--accent-orange)' : 'var(--voile-10)'),
-              color: curseur !== null ? 'var(--accent-orange)' : 'var(--texte)',
+              background: curseur !== null ? 'var(--accent-voile)' : 'var(--voile)',
+              border: '1px solid ' + (curseur !== null ? 'var(--accent)' : 'var(--voile-fort)'),
+              color: curseur !== null ? 'var(--accent)' : 'var(--texte)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
@@ -538,9 +537,9 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
             style={{
               width: 32,
               height: 32,
-              borderRadius: 8,
-              background: 'var(--voile-5)',
-              border: '1px solid var(--voile-10)',
+              borderRadius: 'var(--rayon-2)',
+              background: 'var(--voile)',
+              border: '1px solid var(--voile-fort)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -564,11 +563,11 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               {p ? (
                 <img src={(p as PhotoCorps).image} alt="" onClick={() => setPleinEcran(true)} style={{ cursor: 'zoom-in' }} />
               ) : (
-                <div className="vide faible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '3 / 4', border: '1px dashed var(--voile-15)', borderRadius: 12 }}>
+                <div className="vide faible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '3 / 4', border: '1px dashed var(--voile-fort)', borderRadius: 'var(--rayon-2)' }}>
                   Pas de photo
                 </div>
               )}
-              <figcaption className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: 4 }}>
+              <figcaption className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', textAlign: 'center', marginTop: 4 }}>
                 {dateCourte(d as string)}
                 {w ? ` · ${kg((w as { poids: number }).poids)} kg` : ''}
               </figcaption>
@@ -576,7 +575,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
           ))}
         </div>
       ) : pa && pb ? (
-        <div className="superposition" style={{ position: 'relative', aspectRatio: '3 / 4', borderRadius: 14, overflow: 'hidden' }}>
+        <div className="superposition" style={{ position: 'relative', aspectRatio: '3 / 4', borderRadius: 'var(--rayon-2)', overflow: 'hidden' }}>
           <img src={pa.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
           <img src={pb.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 0 0 ${curseur}%)` }} />
           {/* Ligne blanche verticale */}
@@ -591,9 +590,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: 'var(--bulle-fond-88)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              background: 'var(--barre-fond)',
               border: '2px solid var(--blanc)',
               boxShadow: '0 2px 12px var(--ombre-forte)',
               display: 'flex',
@@ -631,8 +628,8 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
       {pleinEcran && <PlanchePhotos photos={dates.flatMap(([, p]) => Object.values(p))} dates={[a, b]} pose={pose} onFermer={() => setPleinEcran(false)} />}
 
       {((poidsA && poidsB && poidsA.date !== poidsB.date) || ecarts.length > 0) && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--voile-6)' }}>
-          <div className="faible" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--voile)' }}>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', marginBottom: 6 }}>
             Entre ces deux dates
           </div>
           {poidsA && poidsB && poidsA.date !== poidsB.date && (
@@ -671,7 +668,7 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
       }}
     >
       <div className="ligne entre" style={{ padding: '0 4px' }}>
-        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--bord)', padding: 3, borderRadius: 8 }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--bord)', padding: 3, borderRadius: 'var(--rayon-2)' }}>
           {POSES.filter((p) => dates.some((d) => photos.some((x) => x.date === d && x.pose === p.id))).map((p) => {
             const actifPose = pose === p.id
             return (
@@ -680,12 +677,12 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
                 type="button"
                 style={{
                   padding: '3px 8px',
-                  fontSize: '0.78rem',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: actifPose ? 600 : 400,
-                  color: actifPose ? 'var(--blanc)' : 'var(--text-secondary)',
-                  background: actifPose ? 'var(--voile-20)' : 'transparent',
+                  color: actifPose ? 'var(--blanc)' : 'var(--texte-2)',
+                  background: actifPose ? 'var(--voile-bord)' : 'transparent',
                   border: 'none',
-                  borderRadius: 6,
+                  borderRadius: 'var(--rayon-2)',
                   cursor: 'pointer',
                 }}
                 onClick={() => setPose(p.id)}
@@ -699,12 +696,12 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
           type="button"
           onClick={onFermer}
           style={{
-            background: 'var(--voile-10)',
+            background: 'var(--voile-fort)',
             border: 'none',
-            borderRadius: 8,
+            borderRadius: 'var(--rayon-2)',
             padding: '4px 10px',
             color: 'var(--blanc)',
-            fontSize: '0.8rem',
+            fontSize: 'var(--t-legende)',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
@@ -724,7 +721,7 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
         <button
           type="button"
           className="btn plein"
-          style={{ height: 38, fontSize: '0.82rem', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          style={{ height: 38, fontSize: 'var(--t-petit)', borderRadius: 'var(--rayon-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           onClick={() => setDates(comparerAvec < dates[0] ? [comparerAvec, dates[0]] : [dates[0], comparerAvec])}
         >
           <ArrowLeftRight size={13} strokeWidth={2} />
@@ -1001,8 +998,8 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
             style={{
               flex: 1,
               height: 48,
-              borderRadius: 12,
-              fontSize: '0.92rem',
+              borderRadius: 'var(--rayon-2)',
+              fontSize: 'var(--t-petit)',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
@@ -1018,8 +1015,8 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
             style={{
               flex: 1.6,
               height: 48,
-              borderRadius: 12,
-              fontSize: '0.92rem',
+              borderRadius: 'var(--rayon-2)',
+              fontSize: 'var(--t-petit)',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
@@ -1053,10 +1050,10 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                   gap: 3,
                   background: 'var(--bord)',
                   padding: 3,
-                  borderRadius: 10,
+                  borderRadius: 'var(--rayon-2)',
                 }}
               >
-                <Timer size={13} strokeWidth={2} style={{ color: 'var(--text-secondary)', marginLeft: 4, marginRight: 2 }} />
+                <Timer size={13} strokeWidth={2} style={{ color: 'var(--texte-2)', marginLeft: 4, marginRight: 2 }} />
                 {[0, 3, 10].map((d) => {
                   const actifDelai = delai === d
                   return (
@@ -1065,12 +1062,12 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                       type="button"
                       style={{
                         padding: '4px 8px',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--t-legende)',
                         fontWeight: actifDelai ? 600 : 400,
-                        color: actifDelai ? 'var(--blanc)' : 'var(--text-secondary)',
-                        background: actifDelai ? 'var(--accent-orange)' : 'transparent',
+                        color: actifDelai ? 'var(--blanc)' : 'var(--texte-2)',
+                        background: actifDelai ? 'var(--accent)' : 'transparent',
                         border: 'none',
-                        borderRadius: 6,
+                        borderRadius: 'var(--rayon-2)',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
                       }}
@@ -1093,12 +1090,12 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                       alignItems: 'center',
                       gap: 4,
                       padding: '5px 10px',
-                      borderRadius: 10,
-                      fontSize: '0.78rem',
+                      borderRadius: 'var(--rayon-2)',
+                      fontSize: 'var(--t-legende)',
                       fontWeight: fantome ? 600 : 400,
-                      color: fantome ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                      color: fantome ? 'var(--accent)' : 'var(--texte-2)',
                       background: fantome ? 'var(--accent-voile)' : 'var(--bord)',
-                      border: '1px solid ' + (fantome ? 'var(--accent-orange)' : 'var(--voile-10)'),
+                      border: '1px solid ' + (fantome ? 'var(--accent)' : 'var(--voile-fort)'),
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
@@ -1115,9 +1112,9 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                   style={{
                     width: 32,
                     height: 32,
-                    borderRadius: 10,
+                    borderRadius: 'var(--rayon-2)',
                     background: 'var(--bord)',
-                    border: '1px solid var(--voile-10)',
+                    border: '1px solid var(--voile-fort)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1140,12 +1137,12 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
               className="btn primaire grand plein"
               style={{
                 height: 48,
-                borderRadius: 12,
+                borderRadius: 'var(--rayon-2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                fontSize: '0.95rem',
+                fontSize: 'var(--t-texte)',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -1160,12 +1157,12 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
               className="btn primaire grand plein"
               style={{
                 height: 48,
-                borderRadius: 12,
+                borderRadius: 'var(--rayon-2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                fontSize: '0.95rem',
+                fontSize: 'var(--t-texte)',
                 fontWeight: 600,
               }}
               onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}
@@ -1180,12 +1177,12 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
             className="btn plein"
             style={{
               height: 44,
-              borderRadius: 12,
+              borderRadius: 'var(--rayon-2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              fontSize: '0.88rem',
+              fontSize: 'var(--t-petit)',
               fontWeight: 500,
               cursor: 'pointer',
             }}
@@ -1197,7 +1194,7 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
           </label>
 
           {precedente && fantome && (
-            <div className="faible" style={{ fontSize: '0.8rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <div className="faible" style={{ fontSize: 'var(--t-legende)', textAlign: 'center', color: 'var(--texte-2)' }}>
               En transparence, ta photo {precedente.date === date ? 'prise plus tôt aujourd’hui' : `du ${dateCourte(precedente.date)}`} : cale-toi dessus.
             </div>
           )}

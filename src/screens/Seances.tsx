@@ -208,7 +208,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
                     onClick={() => setDeplies((d) => ({ ...d, [p.id]: !ouvert }))}
                   >
                     <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
-                      <strong style={{ fontSize: '1.05rem' }}>{p.nom}</strong>
+                      <strong style={{ fontSize: 'var(--t-texte)' }}>{p.nom}</strong>
                       {estActif && <span className="pastille accent">actif</span>}
                     </div>
                     <div className="faible" style={{ marginTop: 2 }}>
@@ -258,8 +258,8 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
                                 ) : (
                                   <span className="badge-jour libre">Libre</span>
                                 )}
-                                <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m!.nom}</strong>
-                                {m!.sousTitre && <span className="muted petit">— {m!.sousTitre}</span>}
+                                <strong style={{ flex: '0 0 auto', maxWidth: '60%', overflowWrap: 'anywhere' }}>{m!.nom}</strong>
+                                {m!.sousTitre && <span className="muted petit" style={{ minWidth: 0 }}>— {m!.sousTitre}</span>}
                               </div>
                               <div className="faible" style={{ marginTop: 3, paddingLeft: 46 }}>
                                 {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)}

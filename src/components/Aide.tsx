@@ -22,7 +22,7 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
           padding: 2,
           margin: '0 2px',
           cursor: 'pointer',
-          color: 'var(--text-secondary)',
+          color: 'var(--texte-2)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -35,7 +35,7 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
           e.currentTarget.style.opacity = '1'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--text-secondary)'
+          e.currentTarget.style.color = 'var(--texte-2)'
           e.currentTarget.style.opacity = '0.8'
         }}
       >
@@ -66,14 +66,12 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
               width: 250,
               maxWidth: '80vw',
               padding: '12px 14px',
-              borderRadius: 14,
-              background: 'var(--bulle-fond-97)',
-              border: '1px solid var(--border-top-highlight)',
+              borderRadius: 'var(--rayon-2)',
+              background: 'var(--barre-fond)',
+              border: '1px solid var(--bord-haut)',
               boxShadow: '0 8px 30px var(--ombre-forte), inset 0 1px 0 var(--bord)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
               color: 'var(--texte)',
-              fontSize: '0.8rem',
+              fontSize: 'var(--t-legende)',
               lineHeight: 1.45,
               zIndex: 999,
               textAlign: 'left',
@@ -81,7 +79,7 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
               {titre ? (
-                <strong style={{ fontSize: '0.82rem', color: 'var(--accent-orange)' }}>{titre}</strong>
+                <strong style={{ fontSize: 'var(--t-petit)', color: 'var(--accent)' }}>{titre}</strong>
               ) : (
                 <span />
               )}
@@ -92,7 +90,7 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
                   background: 'none',
                   border: 'none',
                   padding: 2,
-                  color: 'var(--text-secondary)',
+                  color: 'var(--texte-2)',
                   cursor: 'pointer',
                   display: 'flex',
                 }}
@@ -101,7 +99,7 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
                 <X size={14} />
               </button>
             </div>
-            <div style={{ color: 'var(--aide-texte)' }}>{texte}</div>
+            <div style={{ color: 'var(--texte-salle)' }}>{texte}</div>
           </div>
         </>
       )}

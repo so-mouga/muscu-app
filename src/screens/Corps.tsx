@@ -165,14 +165,13 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-chaud) 100%)',
+          background: 'var(--accent)',
           border: 'none',
-          borderRadius: 12,
-          color: 'var(--blanc)',
-          fontSize: '0.92rem',
+          borderRadius: 'var(--rayon-2)',
+          color: 'var(--accent-texte)',
+          fontSize: 'var(--t-petit)',
           fontWeight: 600,
           cursor: 'pointer',
-          boxShadow: '0 4px 16px var(--accent-voile-25)',
           marginBottom: 14,
           transition: 'transform 0.1s ease, box-shadow 0.15s ease',
         }}
@@ -184,17 +183,17 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
       <Tendances mesures={mesures} />
 
       {/* Carte silhouette & courbe de détail sans doublon */}
-      <div className="carte" ref={carte} style={{ padding: '16px', borderRadius: 18, scrollMarginTop: 12, marginBottom: 12, overflow: 'hidden' }}>
+      <div className="carte" ref={carte} style={{ padding: '16px', borderRadius: 'var(--rayon)', scrollMarginTop: 12, marginBottom: 12, overflow: 'hidden' }}>
         <div className="mesures-haut">
           <div style={{ width: '100%', maxWidth: 115, margin: '0 auto' }}>
             <SilhouetteMesures active={active} onChoix={(id) => setActive(id)} remplies={remplies} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span className="faible" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+              <span className="faible" style={{ fontSize: 'var(--t-petit)', fontWeight: 600 }}>
                 {MESURES.indexOf(def) + 1} ·
               </span>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
                 {def.nom}
               </h3>
               <Aide titre={def.nom} texte={def.consigne} />
@@ -215,12 +214,12 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
                       type="button"
                       style={{
                         padding: '3px 10px',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--t-legende)',
                         fontWeight: actifCote ? 600 : 400,
-                        color: actifCote ? 'var(--texte)' : 'var(--text-secondary)',
-                        background: actifCote ? 'var(--voile-12)' : 'var(--voile-3)',
-                        border: '1px solid ' + (actifCote ? 'var(--voile-20)' : 'var(--voile-6)'),
-                        borderRadius: 6,
+                        color: actifCote ? 'var(--texte)' : 'var(--texte-2)',
+                        background: actifCote ? 'var(--voile-fort)' : 'var(--surface-2)',
+                        border: '1px solid ' + (actifCote ? 'var(--voile-bord)' : 'var(--voile)'),
+                        borderRadius: 'var(--rayon-2)',
                         cursor: 'pointer',
                       }}
                       onClick={() => setCote(c)}
@@ -237,8 +236,8 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
       </div>
 
       {mesures.length > 0 && (
-        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', fontWeight: 700 }}>Depuis le début</h3>
+        <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>Depuis le début</h3>
           {cles.filter((c) => PRINCIPALES.includes(c)).map(ligne)}
           {cles.some((c) => !PRINCIPALES.includes(c)) && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>
@@ -251,7 +250,7 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
       )}
 
       {mesures.length > 0 && (
-        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+        <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
           <button type="button" className="groupe-repli" onClick={() => setVoirPrises(!voirPrises)} aria-expanded={voirPrises}>
             <span style={{ fontWeight: 600 }}>
               Prises <span className="faible">({mesures.length})</span>
@@ -271,7 +270,7 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}
               >
                 <span style={{ fontWeight: 500 }}>{dateCourte(m.date)}</span>
-                <span className="faible" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
+                <span className="faible" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--t-petit)' }}>
                   <span>{apercu}</span>
                   <Pencil size={13} strokeWidth={1.75} style={{ opacity: 0.7 }} />
                 </span>
@@ -281,8 +280,8 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'var(--voile-3)', border: '1px solid var(--voile-6)', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
-        <Info size={15} strokeWidth={2} style={{ color: 'var(--accent-orange)', flexShrink: 0, marginTop: 1 }} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 'var(--rayon-2)', background: 'var(--surface-2)', border: '1px solid var(--voile)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginBottom: 20 }}>
+        <Info size={15} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
         <span>{CONSEILS_MESURE}</span>
       </div>
     </>
@@ -294,7 +293,7 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
   const lignes = clesDe(def)
     .map((c) => ({ c, s: serie(mesures, c) }))
     .filter((x) => x.s.length)
-  if (!lignes.length) return <div className="faible" style={{ fontSize: '0.85rem' }}>Pas encore mesuré.</div>
+  if (!lignes.length) return <div className="faible" style={{ fontSize: 'var(--t-petit)' }}>Pas encore mesuré.</div>
   const memeJour = new Set(lignes.map((l) => l.s[l.s.length - 1].date)).size === 1
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -304,8 +303,8 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
         return (
           <div key={c}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-              {def.cotes && <span className="faible" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{c.endsWith('_g') ? 'G ' : 'D '}</span>}
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--texte)', letterSpacing: '-0.3px' }}>
+              {def.cotes && <span className="faible" style={{ fontSize: 'var(--t-petit)', fontWeight: 600 }}>{c.endsWith('_g') ? 'G ' : 'D '}</span>}
+              <span style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)', letterSpacing: '-0.3px' }}>
                 {cm(der.valeur)}
               </span>
               {d !== null && (
@@ -313,10 +312,10 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
                   style={{
                     padding: '2px 7px',
                     borderRadius: 999,
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--t-legende)',
                     fontWeight: 600,
-                    color: d > 0 ? 'var(--ok)' : d < 0 ? 'var(--forme-difficile)' : 'var(--text-secondary)',
-                    background: d > 0 ? 'var(--ok-voile-12)' : d < 0 ? 'var(--forme-difficile-voile)' : 'var(--voile-5)',
+                    color: d > 0 ? 'var(--ok)' : d < 0 ? 'var(--danger)' : 'var(--texte-2)',
+                    background: d > 0 ? 'var(--ok-voile)' : d < 0 ? 'var(--danger-voile)' : 'var(--voile)',
                   }}
                 >
                   {signe(d)}
@@ -324,7 +323,7 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
               )}
             </div>
             {!memeJour && (
-              <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 1 }}>
+              <div className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 1 }}>
                 le {dateCourte(der.date)}
               </div>
             )}
@@ -332,7 +331,7 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
         )
       })}
       {memeJour && (
-        <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 1 }}>
+        <div className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 1 }}>
           le {dateCourte(lignes[0].s[lignes[0].s.length - 1].date)}
         </div>
       )}
@@ -382,15 +381,15 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
 
   const champ = (cle: string, label?: string) => (
     <div key={cle} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      {label && <span className="faible" style={{ fontSize: '0.8rem', minWidth: 14 }}>{label}</span>}
+      {label && <span className="faible" style={{ fontSize: 'var(--t-legende)', minWidth: 14 }}>{label}</span>}
       <div
         style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: 4,
           background: 'var(--surface-2)',
-          border: '1px solid var(--voile-10)',
-          borderRadius: 8,
+          border: '1px solid var(--voile-fort)',
+          borderRadius: 'var(--rayon-2)',
           padding: '4px 8px',
         }}
       >
@@ -406,13 +405,13 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
             border: 'none',
             outline: 'none',
             color: 'var(--texte)',
-            fontSize: '0.92rem',
+            fontSize: 'var(--t-petit)',
             fontWeight: 600,
             textAlign: 'right',
             fontFamily: 'inherit',
           }}
         />
-        <span className="faible" style={{ fontSize: '0.8rem' }}>cm</span>
+        <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>cm</span>
       </div>
     </div>
   )
@@ -432,10 +431,10 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
         onClick={() => setActive(m.id)}
         style={{
           padding: '10px 14px',
-          borderRadius: 14,
+          borderRadius: 'var(--rayon-2)',
           marginBottom: 8,
-          background: estActif ? 'var(--accent-voile-8)' : 'var(--subcard-gradient)',
-          border: '1px solid ' + (estActif ? 'var(--accent-orange)' : 'var(--voile-6)'),
+          background: estActif ? 'var(--accent-voile)' : 'var(--sous-carte)',
+          border: '1px solid ' + (estActif ? 'var(--accent)' : 'var(--voile)'),
           transition: 'all 0.15s ease',
           cursor: 'pointer',
         }}
@@ -447,9 +446,9 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
                 width: 22,
                 height: 22,
                 borderRadius: '50%',
-                background: estActif ? 'var(--accent-orange)' : 'var(--voile-6)',
-                color: estActif ? 'var(--blanc)' : 'var(--text-secondary)',
-                fontSize: '0.75rem',
+                background: estActif ? 'var(--accent)' : 'var(--voile)',
+                color: estActif ? 'var(--blanc)' : 'var(--texte-2)',
+                fontSize: 'var(--t-legende)',
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -459,7 +458,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
             >
               {MESURES.indexOf(m) + 1}
             </span>
-            <strong style={{ fontSize: '0.92rem', color: 'var(--texte)' }}>
+            <strong style={{ fontSize: 'var(--t-petit)', color: 'var(--texte)' }}>
               {mono ? nomCle(cles[0]) : m.nom}
             </strong>
           </div>
@@ -478,11 +477,11 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
           <div
             className="faible"
             style={{
-              fontSize: '0.78rem',
-              color: 'var(--text-secondary)',
+              fontSize: 'var(--t-legende)',
+              color: 'var(--texte-2)',
               marginTop: 6,
               paddingTop: 6,
-              borderTop: '1px solid var(--voile-6)',
+              borderTop: '1px solid var(--voile)',
               lineHeight: 1.4,
             }}
           >
@@ -511,7 +510,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
         >
           <ArrowLeft size={20} strokeWidth={2} />
         </button>
-        <h2 style={{ flex: 1, margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+        <h2 style={{ flex: 1, margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700 }}>
           {initial ? 'Modifier la prise' : 'Mensurations'}
         </h2>
       </div>
@@ -520,26 +519,26 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
         className="carte"
         style={{
           padding: '12px 14px',
-          borderRadius: 14,
+          borderRadius: 'var(--rayon-2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: 10,
         }}
       >
-        <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--texte)' }}>Date de la prise</span>
+        <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>Date de la prise</span>
         <input
           type="date"
           value={date}
           max={dateISO()}
           onChange={(e) => e.target.value && setDate(e.target.value)}
           style={{
-            background: 'var(--voile-5)',
-            border: '1px solid var(--voile-10)',
-            borderRadius: 8,
+            background: 'var(--voile)',
+            border: '1px solid var(--voile-fort)',
+            borderRadius: 'var(--rayon-2)',
             color: 'var(--texte)',
             padding: '5px 10px',
-            fontSize: '0.85rem',
+            fontSize: 'var(--t-petit)',
             fontFamily: 'inherit',
           }}
         />
@@ -548,12 +547,12 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
       {/* Bannière conseil repliable */}
       <div
         style={{
-          borderRadius: 12,
-          background: 'var(--voile-3)',
-          border: '1px solid var(--voile-6)',
+          borderRadius: 'var(--rayon-2)',
+          background: 'var(--surface-2)',
+          border: '1px solid var(--voile)',
           padding: '8px 12px',
           marginBottom: 14,
-          fontSize: '0.8rem',
+          fontSize: 'var(--t-legende)',
         }}
       >
         <button
@@ -568,20 +567,20 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
             border: 'none',
             padding: 0,
             cursor: 'pointer',
-            color: 'var(--text-secondary)',
+            color: 'var(--texte-2)',
             textAlign: 'left',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Info size={14} strokeWidth={2} style={{ color: 'var(--accent-orange)' }} />
+            <Info size={14} strokeWidth={2} style={{ color: 'var(--accent)' }} />
             <span>Conseil : le matin à jeun</span>
           </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
             {conseilOuvert ? 'Masquer' : 'Voir plus ›'}
           </span>
         </button>
         {conseilOuvert && (
-          <div style={{ marginTop: 6, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+          <div style={{ marginTop: 6, color: 'var(--texte-2)', lineHeight: 1.4 }}>
             {CONSEILS_MESURE} Remplis seulement ce que tu mesures ; en gris clair, ta dernière valeur de référence.
           </div>
         )}
@@ -635,9 +634,9 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
     <>
       <Poids key={date} pesees={pesees} aujourdhui={date} onDate={setDate} />
       {pesees.length >= 2 && (
-        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginTop: 12 }}>
+        <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginTop: 12 }}>
           <div className="ligne entre" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--texte)' }}>Évolution</h3>
+            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>Évolution</h3>
             {ecart !== null && (
               <span
                 style={{
@@ -645,10 +644,10 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                   alignItems: 'center',
                   padding: '3px 10px',
                   borderRadius: 999,
-                  background: ecart > 0 ? 'var(--ok-voile-10)' : ecart < 0 ? 'var(--accent-blue-voile-10)' : 'var(--voile-5)',
-                  border: '1px solid ' + (ecart > 0 ? 'var(--ok-voile-25)' : ecart < 0 ? 'var(--accent-blue-voile-25)' : 'var(--bord)'),
-                  color: ecart > 0 ? 'var(--ok)' : ecart < 0 ? 'var(--accent-blue)' : 'var(--texte)',
-                  fontSize: '0.8rem',
+                  background: ecart > 0 ? 'var(--ok-voile)' : ecart < 0 ? 'var(--info-voile)' : 'var(--voile)',
+                  border: '1px solid ' + (ecart > 0 ? 'var(--ok-bord)' : ecart < 0 ? 'var(--info-bord)' : 'var(--bord)'),
+                  color: ecart > 0 ? 'var(--ok)' : ecart < 0 ? 'var(--info)' : 'var(--texte)',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: 700,
                 }}
               >
@@ -674,12 +673,12 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                   style={{
                     flex: 1,
                     padding: '6px 0',
-                    fontSize: '0.82rem',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: actif ? 600 : 400,
-                    color: actif ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                    color: actif ? 'var(--accent)' : 'var(--texte-2)',
                     background: actif ? 'var(--accent-voile)' : 'transparent',
-                    border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'var(--bord)'),
-                    borderRadius: 8,
+                    border: '1px solid ' + (actif ? 'var(--accent)' : 'var(--bord)'),
+                    borderRadius: 'var(--rayon-2)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
@@ -698,10 +697,10 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
         </div>
       )}
       {pesees.length > 0 && (
-        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginTop: 12 }}>
+        <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginTop: 12 }}>
           <div className="ligne entre" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--texte)' }}>
-              Pesées <span className="faible" style={{ fontSize: '0.85rem' }}>({pesees.length})</span>
+            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
+              Pesées <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>({pesees.length})</span>
             </h3>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -715,9 +714,9 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '10px 12px',
-                    borderRadius: 12,
-                    background: estActive ? 'var(--accent-voile-12)' : 'var(--subcard-gradient)',
-                    border: '1px solid ' + (estActive ? 'var(--accent-ombre)' : 'var(--voile-6)'),
+                    borderRadius: 'var(--rayon-2)',
+                    background: estActive ? 'var(--accent-voile)' : 'var(--sous-carte)',
+                    border: '1px solid ' + (estActive ? 'var(--accent-bord)' : 'var(--voile)'),
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -730,7 +729,7 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                       border: 'none',
                       padding: 0,
                       color: 'var(--texte)',
-                      fontSize: '0.9rem',
+                      fontSize: 'var(--t-petit)',
                       fontWeight: estActive ? 700 : 500,
                       cursor: 'pointer',
                     }}
@@ -742,24 +741,24 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                     {dateCourte(p.date)}
                   </button>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <strong style={{ fontSize: '0.95rem', color: 'var(--texte)' }}>{kg(p.poids)} kg</strong>
+                    <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>{kg(p.poids)} kg</strong>
                     <button
                       type="button"
                       aria-label={`Supprimer la pesée du ${dateCourte(p.date)}`}
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: 'var(--text-secondary)',
+                        color: 'var(--texte-2)',
                         padding: '4px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
-                        borderRadius: 6,
+                        borderRadius: 'var(--rayon-2)',
                         transition: 'color 0.15s ease',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger-vif)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--texte-2)')}
                       onClick={async () => {
                         const suppr = await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })
                         if (suppr) await db.pesees.delete(p.date)
@@ -779,11 +778,11 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                 width: '100%',
                 marginTop: 10,
                 padding: '8px 0',
-                background: 'var(--voile-3)',
-                border: '1px solid var(--voile-6)',
-                borderRadius: 10,
-                color: 'var(--text-secondary)',
-                fontSize: '0.82rem',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--voile)',
+                borderRadius: 'var(--rayon-2)',
+                color: 'var(--texte-2)',
+                fontSize: 'var(--t-petit)',
                 fontWeight: 600,
                 cursor: 'pointer',
                 textAlign: 'center',

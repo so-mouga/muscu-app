@@ -103,12 +103,12 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
                 flex: 1,
                 minWidth: 'fit-content',
                 padding: '6px 12px',
-                fontSize: '0.82rem',
+                fontSize: 'var(--t-petit)',
                 fontWeight: actif ? 600 : 400,
-                color: actif ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                color: actif ? 'var(--accent)' : 'var(--texte-2)',
                 background: actif ? 'var(--accent-voile)' : 'transparent',
-                border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'var(--bord)'),
-                borderRadius: 8,
+                border: '1px solid ' + (actif ? 'var(--accent)' : 'var(--bord)'),
+                borderRadius: 'var(--rayon-2)',
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.15s ease',
@@ -120,7 +120,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
           )
         })}
       </div>
-      <div className="faible" style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 12 }}>
+      <div className="faible" style={{ fontSize: 12, color: 'var(--texte-2)', marginBottom: 12 }}>
         Du {jour(a.debut)} au {jour(fin)}
         {comparable ? ` · comparé au ${jour(debutAvant)} – ${jour(finAvant)}` : ''}
       </div>
@@ -134,15 +134,15 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
               alignItems: 'center',
               gap: 8,
               padding: '8px 12px',
-              fontSize: '12px',
-              color: 'var(--text-secondary)',
-              background: 'var(--voile-3)',
-              borderRadius: 12,
-              border: '1px solid var(--voile-6)',
+              fontSize: 'var(--t-legende)',
+              color: 'var(--texte-2)',
+              background: 'var(--surface-2)',
+              borderRadius: 'var(--rayon-2)',
+              border: '1px solid var(--voile)',
               marginBottom: 12,
             }}
           >
-            <Sparkles size={14} strokeWidth={2} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
+            <Sparkles size={14} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
             <span>{retenir[0]}</span>
           </div>
         ) : (
@@ -150,18 +150,18 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
             className="carte pile a-retenir"
             style={{
               padding: '14px 16px',
-              borderRadius: 16,
-              background: 'linear-gradient(145deg, var(--accent-voile-8) 0%, var(--banniere-fond-fin) 100%)',
-              border: '1px solid var(--accent-ombre)',
-              boxShadow: '0 4px 20px var(--accent-voile-8)',
+              borderRadius: 'var(--rayon-2)',
+              background: 'linear-gradient(145deg, var(--accent-voile) 0%, var(--surface-2) 100%)',
+              border: '1px solid var(--accent-bord)',
+              boxShadow: '0 4px 20px var(--accent-voile)',
               marginBottom: 12,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent-orange)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent)' }}>
               <Sparkles size={16} strokeWidth={2} />
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--texte)' }}>À retenir</h3>
+              <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>À retenir</h3>
             </div>
-            <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+            <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--texte-2)', fontSize: 'var(--t-petit)' }}>
               {retenir.map((t) => (
                 <li key={t} style={{ marginTop: 4 }}>
                   {t}
@@ -173,9 +173,9 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
       )}
 
       {/* Carte Assiduité et travail en grille 2x2 symétrique */}
-      <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
+      <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Assiduité et travail</h3>
+          <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700 }}>Assiduité et travail</h3>
           <Aide titre="Assiduité & séries dures" texte="Une série dure est une série effective (RPE 7 ou plus, proche de l'échec). C'est ce travail de qualité qui stimule le muscle et déclenche la progression." />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
@@ -185,7 +185,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
           <Tuile valeur={kg(Math.round(a.tonnage)) + ' kg'} label="soulevés" n={a.tonnage} m={avant.tonnage} comparable={comparable} texteAvant={kg(Math.round(avant.tonnage)) + ' kg'} />
         </div>
         {(a.enchainees > 1 || a.deloads > 0) && (
-          <div className="faible" style={{ marginTop: 10, fontSize: '0.82rem', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div className="faible" style={{ marginTop: 10, fontSize: 'var(--t-petit)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {a.enchainees > 1 && <span>🔥 {a.enchainees} semaines d’affilée</span>}
             {a.deloads > 0 && <span>🧘 {a.deloads} séance(s) de déload</span>}
           </div>
@@ -195,23 +195,23 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
       {a.semaines.length > 1 && <SemaineParSemaine semaines={a.semaines} seances={seances} records={records} catalogue={catalogue} />}
 
       {/* Carte Volume musculaire */}
-      <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
+      <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Volume musculaire</h3>
+            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700 }}>Volume musculaire</h3>
             <Aide titre="Volume musculaire" texte="Nombre de séries effectives (dures) par groupe musculaire sur la période. L'idéal se situe généralement entre 10 et 20 séries par semaine selon le groupe." />
           </div>
-          <div style={{ display: 'inline-flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 8, border: '1px solid var(--voile-6)' }}>
+          <div style={{ display: 'inline-flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 'var(--rayon-2)', border: '1px solid var(--voile)' }}>
             <button
               type="button"
               style={{
                 padding: '3px 10px',
-                fontSize: '0.75rem',
+                fontSize: 'var(--t-legende)',
                 fontWeight: vueMuscles === 'fait' ? 600 : 400,
-                color: vueMuscles === 'fait' ? 'var(--texte)' : 'var(--text-secondary)',
-                background: vueMuscles === 'fait' ? 'var(--voile-12)' : 'transparent',
+                color: vueMuscles === 'fait' ? 'var(--texte)' : 'var(--texte-2)',
+                background: vueMuscles === 'fait' ? 'var(--voile-fort)' : 'transparent',
                 border: 'none',
-                borderRadius: 6,
+                borderRadius: 'var(--rayon-2)',
                 cursor: 'pointer',
               }}
               onClick={() => setVueMuscles('fait')}
@@ -222,12 +222,12 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
               type="button"
               style={{
                 padding: '3px 10px',
-                fontSize: '0.75rem',
+                fontSize: 'var(--t-legende)',
                 fontWeight: vueMuscles === 'prevu' ? 600 : 400,
-                color: vueMuscles === 'prevu' ? 'var(--texte)' : 'var(--text-secondary)',
-                background: vueMuscles === 'prevu' ? 'var(--voile-12)' : 'transparent',
+                color: vueMuscles === 'prevu' ? 'var(--texte)' : 'var(--texte-2)',
+                background: vueMuscles === 'prevu' ? 'var(--voile-fort)' : 'transparent',
                 border: 'none',
-                borderRadius: 6,
+                borderRadius: 'var(--rayon-2)',
                 cursor: 'pointer',
               }}
               onClick={() => setVueMuscles('prevu')}
@@ -251,8 +251,8 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
             background: 'none',
             border: 'none',
             padding: '10px 0 2px',
-            color: 'var(--accent-orange)',
-            fontSize: '0.85rem',
+            color: 'var(--accent)',
+            fontSize: 'var(--t-petit)',
             fontWeight: 500,
             cursor: 'pointer',
           }}
@@ -414,16 +414,16 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
   const progres = a.progressions.filter((p) => p.pct > 0).slice(0, 3)
   if (!a.records.length && !progres.length && !a.stagnations.length) return null
   return (
-    <div className="carte pile" style={{ padding: '16px', borderRadius: 18 }}>
+    <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <TrendingUp size={18} strokeWidth={2} style={{ color: 'var(--accent-orange)' }} />
-        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Progression</h3>
+        <TrendingUp size={18} strokeWidth={2} style={{ color: 'var(--accent)' }} />
+        <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700 }}>Progression</h3>
         <Aide titre="Progression & 1RM" texte="Le 1RM estimé (charge théorique maximale sur 1 répétition) est calculé d'après tes séries pour mesurer tes gains réels même si tes répétitions changent." />
       </div>
 
       {a.records.length > 0 && (
         <div style={{ marginTop: 8 }}>
-          <div className="faible" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
             <Award size={14} style={{ color: 'var(--alerte)' }} />
             <span>Records battus</span>
           </div>
@@ -444,20 +444,20 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '10px 12px',
-                      borderRadius: 12,
-                      background: 'var(--subcard-gradient)',
-                      border: '1px solid var(--voile-6)',
+                      borderRadius: 'var(--rayon-2)',
+                      background: 'var(--sous-carte)',
+                      border: '1px solid var(--voile)',
                       cursor: onExo ? 'pointer' : 'default',
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>{r.exo.nom}</div>
-                      <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1 }}>
+                      <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>{r.exo.nom}</div>
+                      <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
                         {l.length > 1 ? `${l.length} records · ${jour(r.date)}` : jour(r.date)}
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <strong style={{ color: 'var(--ok)', fontSize: '0.95rem' }}>{r.perf}</strong>
+                      <strong style={{ color: 'var(--ok)', fontSize: 'var(--t-texte)' }}>{r.perf}</strong>
                       {onExo && <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
                     </div>
                   </div>
@@ -469,7 +469,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
 
       {progres.length > 0 && (
         <div style={{ marginTop: 8 }}>
-          <div className="faible" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
             Plus fortes progressions
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -484,20 +484,20 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '10px 12px',
-                  borderRadius: 12,
-                  background: 'var(--subcard-gradient)',
-                  border: '1px solid var(--voile-6)',
+                  borderRadius: 'var(--rayon-2)',
+                  background: 'var(--sous-carte)',
+                  border: '1px solid var(--voile)',
                   cursor: onExo ? 'pointer' : 'default',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>{p.exo.nom}</div>
-                  <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1 }}>
+                  <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>{p.exo.nom}</div>
+                  <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
                     {p.detail ?? `1RM estimé : ${kg(arrondi(p.avant))} → ${kg(arrondi(p.apres))} kg`}
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <strong style={{ color: 'var(--ok)', fontSize: '0.95rem' }}>+{kg(arrondi(p.pct))} %</strong>
+                  <strong style={{ color: 'var(--ok)', fontSize: 'var(--t-texte)' }}>+{kg(arrondi(p.pct))} %</strong>
                   {onExo && <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
                 </div>
               </div>
@@ -508,7 +508,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
 
       {a.stagnations.length > 0 && (
         <div style={{ marginTop: 8 }}>
-          <div className="faible" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
             Stagnations
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -523,15 +523,15 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '10px 12px',
-                  borderRadius: 12,
-                  background: 'var(--subcard-gradient)',
-                  border: '1px solid var(--voile-6)',
+                  borderRadius: 'var(--rayon-2)',
+                  background: 'var(--sous-carte)',
+                  border: '1px solid var(--voile)',
                   cursor: onExo ? 'pointer' : 'default',
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>{s.exo.nom}</div>
-                  <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1 }}>
+                  <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>{s.exo.nom}</div>
+                  <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
                     sans progrès depuis {s.semaines} sem.{s.pistes.length ? ` · ${s.pistes.join(', ')}` : ''}
                   </div>
                 </div>
@@ -555,23 +555,23 @@ function Tuile({ valeur, label, n, m, comparable = false, texteAvant, neutre = f
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: '12px 14px',
-        borderRadius: 14,
-        background: 'var(--subcard-gradient)',
-        border: '1px solid var(--voile-6)',
+        borderRadius: 'var(--rayon-2)',
+        background: 'var(--sous-carte)',
+        border: '1px solid var(--voile)',
         minHeight: 74,
       }}
     >
       <div>
-        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--texte)', letterSpacing: '-0.3px' }}>{valeur}</div>
-        <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1, color: 'var(--text-secondary)' }}>{label}</div>
+        <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)', letterSpacing: '-0.3px' }}>{valeur}</div>
+        <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>{label}</div>
       </div>
       {montre && (
         <span
           style={{
-            fontSize: '0.75rem',
+            fontSize: 'var(--t-legende)',
             marginTop: 4,
             fontWeight: 600,
-            color: neutre ? 'var(--text-secondary)' : n! > m! ? 'var(--ok)' : n! < m! ? 'var(--forme-difficile)' : 'var(--text-secondary)',
+            color: neutre ? 'var(--texte-2)' : n! > m! ? 'var(--ok)' : n! < m! ? 'var(--danger)' : 'var(--texte-2)',
           }}
         >
           {n! > m! ? '↑' : n! < m! ? '↓' : '='} vs {texteAvant ?? kg(arrondi(m!))}

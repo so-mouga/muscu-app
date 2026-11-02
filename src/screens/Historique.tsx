@@ -195,14 +195,14 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
   const phaseMois = phases.find((p) => p.debut <= dateISO(mois) && dateISO(mois) <= finAffichee(p, dateISO()))?.phase ?? phases.find((p) => p.debut <= aujourdhui && aujourdhui <= finAffichee(p, dateISO()))?.phase
 
   return (
-    <div className="carte calendrier" style={{ padding: '16px', borderRadius: 18 }} {...glisse}>
+    <div className="carte calendrier" style={{ padding: '16px', borderRadius: 'var(--rayon)' }} {...glisse}>
       <div className="ligne entre" style={{ marginBottom: 6 }}>
-        <button className="icone" onClick={() => aller(-1)} aria-label="Mois précédent" style={{ color: 'var(--text-secondary)' }}>
+        <button className="icone" onClick={() => aller(-1)} aria-label="Mois précédent" style={{ color: 'var(--texte-2)' }}>
           <ChevronLeft size={22} strokeWidth={2} />
         </button>
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <strong style={{ textTransform: 'capitalize', fontSize: '1.1rem', color: 'var(--texte)' }}>
+            <strong style={{ textTransform: 'capitalize', fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>
               {mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
             </strong>
             {pasAujourdhui && (
@@ -218,12 +218,12 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
                   display: 'inline-flex',
                   alignItems: 'center',
                   padding: '3px 9px',
-                  borderRadius: 20,
-                  background: 'var(--voile-5)',
-                  border: '1px solid var(--voile-12)',
-                  fontSize: '0.72rem',
+                  borderRadius: 'var(--rayon)',
+                  background: 'var(--voile)',
+                  border: '1px solid var(--voile-fort)',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: 600,
-                  color: 'var(--accent-orange)',
+                  color: 'var(--accent)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   lineHeight: 1.2,
@@ -234,7 +234,7 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-            <span className="faible" style={{ fontSize: '0.8rem' }}>
+            <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>
               {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
               {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
             </span>
@@ -245,10 +245,10 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
                   alignItems: 'center',
                   gap: 5,
                   padding: '2px 8px',
-                  borderRadius: 6,
-                  background: 'var(--ok-voile-10)',
-                  border: '1px solid var(--ok-voile-25)',
-                  fontSize: '0.72rem',
+                  borderRadius: 'var(--rayon-2)',
+                  background: 'var(--ok-voile)',
+                  border: '1px solid var(--ok-bord)',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: 600,
                   color: 'var(--ok)',
                 }}
@@ -259,7 +259,7 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
             )}
           </div>
         </div>
-        <button className="icone" onClick={() => aller(1)} disabled={dernierMois} aria-label="Mois suivant" style={{ color: 'var(--text-secondary)' }}>
+        <button className="icone" onClick={() => aller(1)} disabled={dernierMois} aria-label="Mois suivant" style={{ color: 'var(--texte-2)' }}>
           <ChevronRight size={22} strokeWidth={2} />
         </button>
       </div>
@@ -338,17 +338,17 @@ function FenetreMesures({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--accent-orange)',
+                color: 'var(--accent)',
                 flexShrink: 0,
               }}
             >
               <Ruler size={19} strokeWidth={2} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
                 Mensurations
               </h3>
-              <div className="faible" style={{ fontSize: '0.82rem', marginTop: 1, color: 'var(--text-secondary)' }}>
+              <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 1, color: 'var(--texte-2)' }}>
                 {dateTexte}
               </div>
             </div>
@@ -367,7 +367,7 @@ function FenetreMesures({
         {vide ? (
           /* État vide : aucune prise enregistrée pour ce jour */
           <div style={{ textAlign: 'center', padding: '16px 8px 8px' }}>
-            <div className="faible" style={{ fontSize: '0.9rem', marginBottom: 20, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            <div className="faible" style={{ fontSize: 'var(--t-petit)', marginBottom: 20, color: 'var(--texte-2)', lineHeight: 1.4 }}>
               Aucune mensuration enregistrée pour ce jour.
             </div>
 
@@ -379,8 +379,8 @@ function FenetreMesures({
                 style={{
                   height: 44,
                   minHeight: 44,
-                  borderRadius: 12,
-                  fontSize: '0.92rem',
+                  borderRadius: 'var(--rayon-2)',
+                  fontSize: 'var(--t-petit)',
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
@@ -406,10 +406,10 @@ function FenetreMesures({
                 }}
                 style={{
                   height: 40,
-                  borderRadius: 12,
-                  fontSize: '0.85rem',
+                  borderRadius: 'var(--rayon-2)',
+                  fontSize: 'var(--t-petit)',
                   fontWeight: 600,
-                  color: 'var(--text-secondary)',
+                  color: 'var(--texte-2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -425,7 +425,7 @@ function FenetreMesures({
               type="button"
               className="btn discret plein"
               onClick={onFermer}
-              style={{ height: 38, borderRadius: 12, fontSize: '0.85rem' }}
+              style={{ height: 38, borderRadius: 'var(--rayon-2)', fontSize: 'var(--t-petit)' }}
             >
               Fermer
             </button>
@@ -434,7 +434,7 @@ function FenetreMesures({
           /* Prise existante */
           <>
             {depuis.length === 1 && (
-              <div className="faible" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
+              <div className="faible" style={{ fontSize: 'var(--t-legende)', marginBottom: 6 }}>
                 Écart avec la prise du {jourCourt(depuis[0]!)}
               </div>
             )}
@@ -450,20 +450,20 @@ function FenetreMesures({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '9px 12px',
-                      borderRadius: 10,
-                      background: 'var(--voile-3)',
-                      border: '1px solid var(--voile-6)',
+                      borderRadius: 'var(--rayon-2)',
+                      background: 'var(--surface-2)',
+                      border: '1px solid var(--voile)',
                     }}
                   >
-                    <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--texte)' }}>{nomCle(c)}</span>
+                    <span style={{ fontSize: 'var(--t-petit)', fontWeight: 500, color: 'var(--texte)' }}>{nomCle(c)}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <strong style={{ fontSize: '0.92rem', color: 'var(--texte)' }}>{kg(valeurs[c])} cm</strong>
+                      <strong style={{ fontSize: 'var(--t-petit)', color: 'var(--texte)' }}>{kg(valeurs[c])} cm</strong>
                       {e && (
                         <span
                           style={{
-                            fontSize: '0.78rem',
+                            fontSize: 'var(--t-legende)',
                             fontWeight: 600,
-                            color: e.texte.startsWith('+') ? 'var(--ok)' : e.texte.startsWith('−') ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                            color: e.texte.startsWith('+') ? 'var(--ok)' : e.texte.startsWith('−') ? 'var(--info)' : 'var(--texte-2)',
                           }}
                         >
                           ({e.texte})
@@ -484,8 +484,8 @@ function FenetreMesures({
                   onClick={onAjouterOuModifier}
                   style={{
                     height: 40,
-                    borderRadius: 12,
-                    fontSize: '0.88rem',
+                    borderRadius: 'var(--rayon-2)',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -511,10 +511,10 @@ function FenetreMesures({
                   }}
                   style={{
                     height: 40,
-                    borderRadius: 12,
-                    fontSize: '0.85rem',
+                    borderRadius: 'var(--rayon-2)',
+                    fontSize: 'var(--t-petit)',
                     fontWeight: 600,
-                    color: 'var(--text-secondary)',
+                    color: 'var(--texte-2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -529,7 +529,7 @@ function FenetreMesures({
                 type="button"
                 className="btn discret plein"
                 onClick={onFermer}
-                style={{ height: 38, borderRadius: 12, fontSize: '0.85rem' }}
+                style={{ height: 38, borderRadius: 'var(--rayon-2)', fontSize: 'var(--t-petit)' }}
               >
                 Fermer
               </button>
@@ -655,11 +655,11 @@ function JourChoisi({
   const noter = (c: Partial<JourJournal>) => noterJournal(date, c)
 
   return (
-    <div className="carte jour-choisi" style={{ padding: '16px', borderRadius: 18 }}>
-      <div className="faible" style={{ fontSize: '0.78rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 2 }}>
+    <div className="carte jour-choisi" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
+      <div className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 2 }}>
         Détail du jour
       </div>
-      <strong style={{ textTransform: 'capitalize', fontSize: '1.25rem', fontWeight: 800, color: 'var(--texte)', display: 'block', marginBottom: 12 }}>
+      <strong style={{ textTransform: 'capitalize', fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)', display: 'block', marginBottom: 12 }}>
         {date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
       </strong>
 
@@ -678,23 +678,23 @@ function JourChoisi({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid var(--voile-6)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid var(--voile)',
             marginBottom: 10,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ color: 'var(--text-secondary)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
+            <span style={{ color: 'var(--texte-2)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
             <div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>{m.nom}</div>
-              <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>{m.nom}</div>
+              <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
                 Prévu{prevu.semaine ? ` · Semaine ${prevu.semaine}/${prevu.total}` : ''}
               </div>
             </div>
           </div>
           {prevu.deload && (
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--finisseur)', background: 'var(--finisseur-voile)', padding: '2px 8px', borderRadius: 6 }}>
+            <span style={{ fontSize: 'var(--t-legende)', fontWeight: 600, color: 'var(--finisseur)', background: 'var(--finisseur-voile)', padding: '2px 8px', borderRadius: 'var(--rayon-2)' }}>
               Déload
             </span>
           )}
@@ -702,7 +702,7 @@ function JourChoisi({
       ))}
 
       {vide && !prevu?.seances.length && !prevu?.pause && (
-        <div className="faible" style={{ padding: '8px 0 12px', fontSize: '0.9rem' }}>
+        <div className="faible" style={{ padding: '8px 0 12px', fontSize: 'var(--t-petit)' }}>
           {date > dateISO() ? 'Repos · Rien de prévu ce jour-là.' : date === dateISO() ? 'Repos · Pas encore d’entraînement aujourd’hui.' : 'Repos ce jour-là.'}
         </div>
       )}
@@ -719,15 +719,15 @@ function JourChoisi({
             flexDirection: 'column',
             justifyContent: 'space-between',
             padding: '12px 14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid ' + (saisiePoids ? 'var(--accent)' : 'var(--voile-6)'),
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid ' + (saisiePoids ? 'var(--accent)' : 'var(--voile)'),
             minHeight: 74,
             cursor: 'pointer',
             transition: 'border 0.15s ease',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--texte-2)' }}>
             <svg
               width="18"
               height="18"
@@ -742,13 +742,13 @@ function JourChoisi({
               <path d="M8 7h8" />
               <path d="M12 7v3" />
             </svg>
-            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
+            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>✎</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
+            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
               {pesee !== undefined ? `${kg(pesee)} kg` : <span className="faible">—</span>}
             </div>
-            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>Poids</div>
+            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>Poids</div>
           </div>
         </div>
 
@@ -762,25 +762,25 @@ function JourChoisi({
             flexDirection: 'column',
             justifyContent: 'space-between',
             padding: '12px 14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid var(--voile-6)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid var(--voile)',
             minHeight: 74,
             cursor: 'pointer',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--texte-2)' }}>
             <Ruler size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>
+            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>
               {clesMesure.length > 0 ? '›' : '+'}
             </span>
           </div>
           <div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
+            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
               {cleUne && mesure ? `${kg(mesure.valeurs[cleUne])} cm` : <span className="faible">—</span>}
-              {ecartUne && <span className="faible" style={{ fontSize: '0.78rem', fontWeight: 500, marginLeft: 4 }}>({ecartUne.texte})</span>}
+              {ecartUne && <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: 500, marginLeft: 4 }}>({ecartUne.texte})</span>}
             </div>
-            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>
+            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>
               {cleUne ? nomCle(cleUne) : 'Mensurations'}
             </div>
           </div>
@@ -796,23 +796,23 @@ function JourChoisi({
             flexDirection: 'column',
             justifyContent: 'space-between',
             padding: '12px 14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid ' + (saisieSommeil ? 'var(--sommeil-violet)' : 'var(--voile-6)'),
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid ' + (saisieSommeil ? 'var(--info)' : 'var(--voile)'),
             minHeight: 74,
             cursor: 'pointer',
             transition: 'border 0.15s ease',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--sommeil-violet)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--info)' }}>
             <Moon size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
+            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>✎</span>
           </div>
           <div>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
+            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
               {journal?.sommeil !== undefined ? heures(journal.sommeil) : <span className="faible">—</span>}
             </div>
-            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>Sommeil</div>
+            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>Sommeil</div>
           </div>
         </div>
 
@@ -826,9 +826,9 @@ function JourChoisi({
             flexDirection: 'column',
             justifyContent: 'space-between',
             padding: '12px 14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid ' + (saisieCalories ? 'var(--accent)' : 'var(--voile-6)'),
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid ' + (saisieCalories ? 'var(--accent)' : 'var(--voile)'),
             minHeight: 74,
             cursor: 'pointer',
             transition: 'border 0.15s ease',
@@ -836,10 +836,10 @@ function JourChoisi({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--accent)' }}>
             <Flame size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
+            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>✎</span>
           </div>
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>
+            <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
               {journal?.calories ? (
                 CALORIES.find(([id]) => id === journal.calories)?.[1]
               ) : objectif?.kcal ? (
@@ -848,7 +848,7 @@ function JourChoisi({
                 <span className="faible">—</span>
               )}
             </div>
-            <div className="faible" style={{ fontSize: '0.78rem', marginTop: 1, color: 'var(--text-secondary)' }}>Calories</div>
+            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>Calories</div>
           </div>
         </div>
       </div>
@@ -856,15 +856,15 @@ function JourChoisi({
       {/* Saisie Poids dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--bord)' }}>
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
             <div className="ligne entre" style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>
                 Pesée ({date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})
               </span>
               <button
                 type="button"
                 className="btn discret petit"
-                style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }}
+                style={{ padding: '0 4px', height: 24, fontSize: 'var(--t-legende)' }}
                 onClick={() => setSaisiePoids(false)}
               >
                 Fermer
@@ -896,7 +896,7 @@ function JourChoisi({
               <button
                 type="button"
                 className="btn primaire petit"
-                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--rayon-2)' }}
                 onClick={() => void enregistrerPoids()}
                 aria-label="Valider le poids"
               >
@@ -906,7 +906,7 @@ function JourChoisi({
                 <button
                   type="button"
                   className="btn discret petit"
-                  style={{ height: 34, minHeight: 34, padding: '0 8px', fontSize: '0.75rem', color: 'var(--danger)', borderRadius: 8 }}
+                  style={{ height: 34, minHeight: 34, padding: '0 8px', fontSize: 'var(--t-legende)', color: 'var(--danger)', borderRadius: 'var(--rayon-2)' }}
                   onClick={() => void supprimerPoids()}
                   aria-label="Effacer la pesée"
                 >
@@ -923,10 +923,10 @@ function JourChoisi({
                   type="button"
                   style={{
                     padding: '5px 0',
-                    borderRadius: 8,
-                    fontSize: '0.78rem',
+                    borderRadius: 'var(--rayon-2)',
+                    fontSize: 'var(--t-legende)',
                     fontWeight: 600,
-                    background: 'var(--voile-5)',
+                    background: 'var(--voile)',
                     border: '1px solid var(--bord)',
                     color: 'var(--texte)',
                     cursor: 'pointer',
@@ -945,10 +945,10 @@ function JourChoisi({
       {/* Saisie Sommeil dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--bord)' }}>
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
             <div className="ligne entre" style={{ marginBottom: 6 }}>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Sommeil cette nuit</span>
-              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieSommeil(false)}>
+              <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Sommeil cette nuit</span>
+              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: 'var(--t-legende)' }} onClick={() => setSaisieSommeil(false)}>
                 Fermer
               </button>
             </div>
@@ -966,10 +966,10 @@ function JourChoisi({
       {/* Saisie Calories dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisieCalories ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--bord)' }}>
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
             <div className="ligne entre" style={{ marginBottom: 6 }}>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calories ce jour-là</span>
-              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieCalories(false)}>
+              <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Calories ce jour-là</span>
+              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: 'var(--t-legende)' }} onClick={() => setSaisieCalories(false)}>
                 Fermer
               </button>
             </div>
@@ -980,12 +980,12 @@ function JourChoisi({
                 type="button"
                 style={{
                   padding: '5px 12px',
-                  borderRadius: 20,
-                  fontSize: '0.8rem',
+                  borderRadius: 'var(--rayon)',
+                  fontSize: 'var(--t-legende)',
                   fontWeight: journal?.calories === id ? 600 : 400,
-                  background: journal?.calories === id ? 'var(--accent-voile-18)' : 'var(--voile-5)',
-                  border: '1px solid ' + (journal?.calories === id ? 'var(--accent-orange)' : 'var(--bord)'),
-                  color: journal?.calories === id ? 'var(--accent-orange)' : 'var(--texte)',
+                  background: journal?.calories === id ? 'var(--accent-voile)' : 'var(--voile)',
+                  border: '1px solid ' + (journal?.calories === id ? 'var(--accent)' : 'var(--bord)'),
+                  color: journal?.calories === id ? 'var(--accent)' : 'var(--texte)',
                   cursor: 'pointer',
                 }}
                 onClick={() => void noter({ calories: journal?.calories === id ? undefined : id }).then(() => setSaisieCalories(false))}
@@ -1009,21 +1009,21 @@ function JourChoisi({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 14px',
-            borderRadius: 14,
-            background: 'var(--subcard-gradient)',
-            border: '1px solid var(--voile-6)',
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--sous-carte)',
+            border: '1px solid var(--voile)',
             marginTop: 10,
             cursor: 'pointer',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ color: 'var(--text-secondary)' }}><Camera size={18} strokeWidth={1.75} /></span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--texte)' }}>Photos du jour</span>
+            <span style={{ color: 'var(--texte-2)' }}><Camera size={18} strokeWidth={1.75} /></span>
+            <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>Photos du jour</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', gap: 4 }}>
               {poses.map((p) => (
-                <img key={p.id} src={p.image} alt={p.pose} style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }} />
+                <img key={p.id} src={p.image} alt={p.pose} style={{ width: 28, height: 28, borderRadius: 'var(--rayon-2)', objectFit: 'cover' }} />
               ))}
             </div>
             <ChevronRight size={16} strokeWidth={1.75} className="muted" />
@@ -1070,25 +1070,25 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '12px 14px',
-        borderRadius: 14,
-        background: 'var(--subcard-gradient)',
-        border: '1px solid var(--voile-6)',
+        borderRadius: 'var(--rayon-2)',
+        background: 'var(--sous-carte)',
+        border: '1px solid var(--voile)',
         marginBottom: 10,
         cursor: 'pointer',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ color: 'var(--accent-orange)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
+        <span style={{ color: 'var(--accent)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
         <div>
-          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--texte)' }}>{seance.nom}</div>
-          <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+          <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>{seance.nom}</div>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
             {duree(dureeReelle(seance))} · {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
           </div>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {(records > 0 || mieux > 0) && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ok)', background: 'var(--ok-voile-10)', padding: '2px 8px', borderRadius: 6 }}>
+          <span style={{ fontSize: 'var(--t-legende)', fontWeight: 600, color: 'var(--ok)', background: 'var(--ok-voile)', padding: '2px 8px', borderRadius: 'var(--rayon-2)' }}>
             {records > 0 ? `${records} record${records > 1 ? 's' : ''}` : `${mieux} mieux`}
           </span>
         )}
@@ -1151,9 +1151,9 @@ function DetailSeance({
           {(() => {
             const sens = sensationSeance(seance)
             if (!sens) return null
-            const couleur = sens.label === 'Au top' ? 'var(--accent-voile)' : sens.label === 'Difficile' ? 'var(--danger-voile-12)' : 'var(--ok-voile-12)'
-            const bord = sens.label === 'Au top' ? 'var(--accent-voile-35)' : sens.label === 'Difficile' ? 'var(--danger-voile-30)' : 'var(--ok-voile-30)'
-            const texte = sens.label === 'Au top' ? 'var(--forme-top)' : sens.label === 'Difficile' ? 'var(--forme-difficile)' : 'var(--forme-bien)'
+            const couleur = sens.label === 'Au top' ? 'var(--accent-voile)' : sens.label === 'Difficile' ? 'var(--danger-voile)' : 'var(--ok-voile)'
+            const bord = sens.label === 'Au top' ? 'var(--accent-bord)' : sens.label === 'Difficile' ? 'var(--danger-bord)' : 'var(--ok-bord)'
+            const texte = sens.label === 'Au top' ? 'var(--accent)' : sens.label === 'Difficile' ? 'var(--danger)' : 'var(--ok)'
             const Icone = sens.label === 'Au top' ? Flame : sens.label === 'Difficile' ? Frown : Smile
             return (
               <span

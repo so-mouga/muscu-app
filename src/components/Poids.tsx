@@ -72,12 +72,12 @@ export default function Poids({
   const estEnregistre = duJour && !touched && duJour.poids === parseFloat(valeurAffichee.replace(',', '.'))
 
   return (
-    <div className="carte" style={{ padding: '16px', borderRadius: 18 }}>
+    <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
       {/* En-tête : Titre & Date cliquable à gauche, Moyenne 7j à droite */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--texte)' }}>
+            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
               {estAujourdhui ? 'Poids du jour' : 'Pesée'}
             </h3>
             <Aide titre="Poids de corps (PDC)" texte="Le poids fluctue naturellement au jour le jour avec l'eau et les repas. La moyenne sur 7 jours donne la vraie tendance de ton poids de corps (PDC) et sert aussi à calibrer tes exercices au poids du corps et l'estimation de ta force." />
@@ -106,8 +106,8 @@ export default function Poids({
                 background: 'transparent',
                 border: 'none',
                 padding: 0,
-                color: 'var(--text-secondary)',
-                fontSize: '0.82rem',
+                color: 'var(--texte-2)',
+                fontSize: 'var(--t-petit)',
                 cursor: 'pointer',
                 textAlign: 'left',
               }}
@@ -135,7 +135,7 @@ export default function Poids({
               />
             </button>
           ) : (
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: 3 }}>
+            <div style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)', marginTop: 3 }}>
               {dateFormatee}
             </div>
           )}
@@ -148,8 +148,8 @@ export default function Poids({
               borderRadius: 999,
               background: 'var(--surface-2)',
               border: '1px solid var(--bord)',
-              fontSize: '0.78rem',
-              color: 'var(--text-secondary)',
+              fontSize: 'var(--t-legende)',
+              color: 'var(--texte-2)',
               whiteSpace: 'nowrap',
             }}
           >
@@ -167,9 +167,9 @@ export default function Poids({
             minWidth: 0,
             display: 'flex',
             alignItems: 'center',
-            background: 'var(--subcard-gradient)',
+            background: 'var(--sous-carte)',
             border: '1px solid var(--bord)',
-            borderRadius: 12,
+            borderRadius: 'var(--rayon-2)',
             padding: '2px',
             boxSizing: 'border-box',
           }}
@@ -185,9 +185,9 @@ export default function Poids({
               alignItems: 'center',
               justifyContent: 'center',
               background: 'var(--surface-2)',
-              border: '1px solid var(--voile-6)',
-              borderRadius: 8,
-              fontSize: '1.1rem',
+              border: '1px solid var(--voile)',
+              borderRadius: 'var(--rayon-2)',
+              fontSize: 'var(--t-texte)',
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
@@ -207,7 +207,7 @@ export default function Poids({
                 maxWidth: 46,
                 minWidth: 30,
                 textAlign: 'center',
-                fontSize: '1.12rem',
+                fontSize: 'var(--t-texte)',
                 fontWeight: 800,
                 color: 'var(--texte)',
                 background: 'transparent',
@@ -228,7 +228,7 @@ export default function Poids({
               }}
               onKeyDown={(e) => e.key === 'Enter' && void enregistrer()}
             />
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>kg</span>
+            <span style={{ fontSize: 'var(--t-legende)', fontWeight: 600, color: 'var(--texte-2)', flexShrink: 0 }}>kg</span>
           </div>
           <button
             type="button"
@@ -241,9 +241,9 @@ export default function Poids({
               alignItems: 'center',
               justifyContent: 'center',
               background: 'var(--surface-2)',
-              border: '1px solid var(--voile-6)',
-              borderRadius: 8,
-              fontSize: '1.1rem',
+              border: '1px solid var(--voile)',
+              borderRadius: 'var(--rayon-2)',
+              fontSize: 'var(--t-texte)',
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
@@ -261,25 +261,22 @@ export default function Poids({
           style={{
             height: 38,
             padding: '0 10px',
-            borderRadius: 11,
+            borderRadius: 'var(--rayon-2)',
             background: estEnregistre && !enregistreAnim
-              ? 'var(--ok-voile-12)'
-              : 'var(--accent-orange)',
+              ? 'var(--ok-voile)'
+              : 'var(--accent)',
             border: estEnregistre && !enregistreAnim
-              ? '1px solid var(--ok-voile-25)'
+              ? '1px solid var(--ok-bord)'
               : 'none',
-            color: estEnregistre && !enregistreAnim ? 'var(--ok)' : 'var(--blanc)',
+            color: estEnregistre && !enregistreAnim ? 'var(--ok)' : 'var(--accent-texte)',
             fontWeight: 700,
-            fontSize: '0.80rem',
+            fontSize: 'var(--t-legende)',
             letterSpacing: '0.01em',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 4,
-            boxShadow: estEnregistre && !enregistreAnim
-              ? 'none'
-              : '0 3px 12px var(--accent-ombre)',
             transition: 'all 0.15s ease',
             whiteSpace: 'nowrap',
             flexShrink: 0,

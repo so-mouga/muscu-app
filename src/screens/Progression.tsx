@@ -200,7 +200,7 @@ export function Detail({
           </div>
           {exo.suivreE1rm && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-              <span className="faible" style={{ fontSize: '0.82rem' }}>1RM estimé</span>
+              <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>1RM estimé</span>
               <Aide titre="1RM estimé" texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
             </div>
           )}

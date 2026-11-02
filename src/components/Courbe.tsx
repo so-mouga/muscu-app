@@ -37,10 +37,10 @@ export default function Courbe({
       {/* Valeur du point actif au survol / clic (optionnellement masquée si affichée à côté) */}
       {!sansEnTete && (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6, padding: '0 2px' }}>
-          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--texte)' }}>
+          <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
             {format(p.valeur)}
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
             {dateCourte(p.date)}
           </div>
         </div>
@@ -62,7 +62,7 @@ export default function Courbe({
             x2={L - m.d}
             y1={y(v)}
             y2={y(v)}
-            stroke="var(--voile-6)"
+            stroke="var(--voile)"
             strokeWidth="1"
           />
         ))}
@@ -71,7 +71,7 @@ export default function Courbe({
         <text
           x={L - m.d + 6}
           y={y(max) + 3}
-          fill="var(--text-secondary)"
+          fill="var(--texte-2)"
           fontSize="10"
           fontWeight="500"
           textAnchor="start"
@@ -81,7 +81,7 @@ export default function Courbe({
         <text
           x={L - m.d + 6}
           y={y(min) + 3}
-          fill="var(--text-secondary)"
+          fill="var(--texte-2)"
           fontSize="10"
           fontWeight="500"
           textAnchor="start"
@@ -108,7 +108,7 @@ export default function Courbe({
           x2={x(actif)}
           y1={m.h}
           y2={H - m.b}
-          stroke="var(--voile-25)"
+          stroke="var(--voile-bord)"
           strokeWidth="1"
           strokeDasharray="3 3"
         />
@@ -119,7 +119,7 @@ export default function Courbe({
           cy={y(p.valeur)}
           r={5}
           fill="var(--accent)"
-          stroke="var(--bg-app)"
+          stroke="var(--bg)"
           strokeWidth="2.5"
         />
 
@@ -139,10 +139,10 @@ export default function Courbe({
         ))}
 
         {/* Dates début et fin sur l'axe X */}
-        <text x={m.g} y={H - 6} fill="var(--text-secondary)" fontSize="10" textAnchor="start">
+        <text x={m.g} y={H - 6} fill="var(--texte-2)" fontSize="10" textAnchor="start">
           {dateCourte(points[0].date)}
         </text>
-        <text x={L - m.d} y={H - 6} fill="var(--text-secondary)" fontSize="10" textAnchor="end">
+        <text x={L - m.d} y={H - 6} fill="var(--texte-2)" fontSize="10" textAnchor="end">
           {dateCourte(points[points.length - 1].date)}
         </text>
       </svg>

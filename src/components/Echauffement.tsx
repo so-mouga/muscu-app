@@ -130,10 +130,10 @@ export function ReglageEchauffement({
         />
         {actif && (
           <div className="ligne entre" style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--bord)', alignItems: 'center' }}>
-            <span className="faible" style={{ fontSize: '0.85rem' }}>
+            <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
               {ids.length ? `${ids.length} mouvement${ids.length > 1 ? 's' : ''} : ${ids.map((id) => mouvement(id, liste)!.nom).slice(0, 2).join(', ')}${ids.length > 2 ? '…' : ''}` : 'Aucun mouvement sélectionné'}
             </span>
-            <button type="button" className="btn discret petit lien-action" style={{ padding: '2px 6px', fontSize: '0.85rem' }} onClick={() => setChoix(true)}>
+            <button type="button" className="btn discret petit lien-action" style={{ padding: '2px 6px', fontSize: 'var(--t-petit)' }} onClick={() => setChoix(true)}>
               Modifier ›
             </button>
           </div>

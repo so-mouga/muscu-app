@@ -109,7 +109,7 @@ export default function CalculateurDisques({ exo, charge, onFermer }: Props) {
                     alignItems: 'center',
                     gap: 6,
                     padding: '6px 10px',
-                    borderRadius: 10,
+                    borderRadius: 'var(--rayon-2)',
                     background: 'var(--surface-2)',
                     border: '1px solid var(--bord)',
                   }}
@@ -140,7 +140,7 @@ export default function CalculateurDisques({ exo, charge, onFermer }: Props) {
             </div>
 
             {rep.reste > 0 && (
-              <div className="faible" style={{ color: 'var(--attention)' }}>
+              <div className="faible" style={{ color: 'var(--alerte)' }}>
                 ⚠️ Reste non décomposable avec les disques standards : {kg(rep.reste)} kg par côté.
               </div>
             )}
@@ -186,7 +186,7 @@ export function PuceDisques({ exo, charge, unite = 'kg' }: { exo: Exercice; char
           alignSelf: 'center',
           fontSize: 12,
           padding: '4px 10px',
-          borderRadius: 8,
+          borderRadius: 'var(--rayon-2)',
           background: 'var(--surface-2)',
           border: '1px solid var(--bord)',
           color: 'var(--texte-2)',

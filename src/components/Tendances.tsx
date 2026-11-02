@@ -7,7 +7,7 @@ import { dateCourte, dateISO, kg } from '../lib/calc'
 import type { Mesure, Pesee } from '../types'
 
 /** Couleurs des lignes, dans un ordre fixe (lisibles pour les daltoniens), et forme du point de chacune. */
-const COULEURS = ['var(--info-bleu)', 'var(--tendance-2)', 'var(--tendance-3)', 'var(--tendance-4)']
+const COULEURS = ['var(--info)', 'var(--tendance-2)', 'var(--tendance-3)', 'var(--tendance-4)']
 const FORMES = ['rond', 'carre', 'triangle', 'losange'] as const
 const MAX = 4
 
@@ -105,11 +105,11 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
   const toutesDates = [...new Set(traces.flatMap((s) => s.pts.map((p) => p.date)))].sort()
 
   return (
-    <div className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+    <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
       <div className="ligne entre" style={{ marginBottom: 10 }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--texte)' }}>Tendances</h3>
-          <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>Tendances</h3>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 2 }}>
             {epinglees.length} mesure{epinglees.length > 1 ? 's' : ''} suivie{epinglees.length > 1 ? 's' : ''}
           </div>
         </div>
@@ -121,12 +121,12 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
             alignItems: 'center',
             gap: 5,
             padding: '4px 10px',
-            borderRadius: 8,
-            fontSize: '0.8rem',
+            borderRadius: 'var(--rayon-2)',
+            fontSize: 'var(--t-legende)',
             fontWeight: 500,
-            background: choix ? 'var(--accent-voile)' : 'var(--voile-5)',
-            border: '1px solid ' + (choix ? 'var(--accent-orange)' : 'var(--bord)'),
-            color: choix ? 'var(--accent-orange)' : 'var(--text-secondary)',
+            background: choix ? 'var(--accent-voile)' : 'var(--voile)',
+            border: '1px solid ' + (choix ? 'var(--accent)' : 'var(--bord)'),
+            color: choix ? 'var(--accent)' : 'var(--texte-2)',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
@@ -147,7 +147,7 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
 
       {choix ? (
         <div style={{ marginTop: 4 }}>
-          <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
+          <div className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginBottom: 8 }}>
             Jusqu’à {MAX} mesures sur le graphique :
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -163,12 +163,12 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
                     padding: '4px 10px',
                     fontSize: 12,
                     fontWeight: on ? 600 : 400,
-                    borderRadius: 20,
+                    borderRadius: 'var(--rayon)',
                     cursor: !on && epinglees.length >= MAX ? 'not-allowed' : 'pointer',
                     opacity: !on && epinglees.length >= MAX ? 0.4 : 1,
-                    background: on ? 'var(--accent-voile)' : 'var(--voile-3)',
-                    border: '1px solid ' + (on ? 'var(--accent-orange)' : 'var(--bord)'),
-                    color: on ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                    background: on ? 'var(--accent-voile)' : 'var(--surface-2)',
+                    border: '1px solid ' + (on ? 'var(--accent)' : 'var(--bord)'),
+                    color: on ? 'var(--accent)' : 'var(--texte-2)',
                     transition: 'all 0.15s ease',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -195,12 +195,12 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
                     flex: 1,
                     minWidth: 'fit-content',
                     padding: '5px 10px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--t-legende)',
                     fontWeight: actifTab ? 600 : 400,
-                    color: actifTab ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                    color: actifTab ? 'var(--accent)' : 'var(--texte-2)',
                     background: actifTab ? 'var(--accent-voile)' : 'transparent',
-                    border: '1px solid ' + (actifTab ? 'var(--accent-orange)' : 'var(--bord)'),
-                    borderRadius: 8,
+                    border: '1px solid ' + (actifTab ? 'var(--accent)' : 'var(--bord)'),
+                    borderRadius: 'var(--rayon-2)',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                     transition: 'all 0.15s ease',
