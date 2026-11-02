@@ -111,7 +111,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               <div
                 style={{
                   background: 'var(--subcard-gradient)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  border: '1px solid var(--bord)',
                   borderRadius: 14,
                   padding: '14px 16px',
                   marginBottom: aVenir.length || peutAjouter ? 16 : 8,
@@ -132,10 +132,10 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                         fontSize: '0.75rem',
                         fontWeight: 600,
                         color: `var(--phase-${enCours.phase})`,
-                        background: 'rgba(255, 255, 255, 0.05)',
+                        background: 'var(--voile-5)',
                         padding: '2px 8px',
                         borderRadius: 6,
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        border: '1px solid var(--bord)',
                       }}
                     >
                       Sem. {enCours.semaine}{totalEnCours ? `/${totalEnCours}` : ''}
@@ -180,7 +180,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   <div
                     style={{
                       height: 6,
-                      background: 'rgba(255, 255, 255, 0.06)',
+                      background: 'var(--voile-6)',
                       borderRadius: 3,
                       overflow: 'hidden',
                       marginTop: 12,
@@ -207,9 +207,9 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                       marginTop: 10,
                       padding: '6px 10px',
                       borderRadius: 8,
-                      background: 'rgba(245, 158, 11, 0.1)',
-                      border: '1px solid rgba(245, 158, 11, 0.25)',
-                      color: '#f59e0b',
+                      background: 'var(--ambre-voile-10)',
+                      border: '1px solid var(--ambre-voile-25)',
+                      color: 'var(--ambre)',
                       fontSize: '0.78rem',
                       fontWeight: 500,
                     }}
@@ -224,7 +224,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               <div
                 style={{
                   background: 'var(--subcard-gradient)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  border: '1px solid var(--voile-10)',
                   borderRadius: 14,
                   padding: '14px 16px',
                   marginBottom: 16,
@@ -285,8 +285,8 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   style={{
                     padding: '6px 14px',
                     borderRadius: 8,
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--voile-5)',
+                    border: '1px solid var(--bord)',
                     color: 'var(--texte)',
                     fontSize: '0.85rem',
                     fontWeight: 600,
@@ -326,7 +326,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   bottom: 14,
                   left: 4,
                   width: 2,
-                  background: 'rgba(255, 255, 255, 0.1)',
+                  background: 'var(--voile-10)',
                   borderRadius: 1,
                 }}
               />
@@ -362,8 +362,8 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                           justifyContent: 'space-between',
                           padding: '10px 14px',
                           borderRadius: 12,
-                          background: 'rgba(255, 255, 255, 0.03)',
-                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          background: 'var(--voile-3)',
+                          border: '1px solid var(--voile-6)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
@@ -388,8 +388,8 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                         style={{
                           padding: '12px 14px',
                           borderRadius: 12,
-                          background: 'rgba(255, 255, 255, 0.04)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          background: 'var(--surface-2)',
+                          border: '1px solid var(--voile-10)',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -434,7 +434,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               alignItems: 'center',
               gap: 8,
               paddingTop: 8,
-              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+              borderTop: '1px solid var(--voile-6)',
               marginTop: 6,
               flexWrap: 'wrap',
             }}
@@ -450,8 +450,8 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   style={{
                     padding: '4px 10px',
                     borderRadius: 999,
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--bord)',
                     color: 'var(--texte)',
                     fontSize: '0.78rem',
                     fontWeight: 600,
@@ -475,7 +475,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
 
         {/* --- PHASES PRÉCÉDENTES --- */}
         {passees.length > 0 && (
-          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--voile-6)' }}>
             <button
               type="button"
               className="groupe-repli"
@@ -598,8 +598,8 @@ function EditeurPhase({
                   fontSize: '0.8rem',
                   fontWeight: actif ? 600 : 400,
                   borderRadius: 8,
-                  border: '1px solid ' + (actif ? `var(--phase-${p.phase})` : 'rgba(255, 255, 255, 0.08)'),
-                  background: actif ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                  border: '1px solid ' + (actif ? `var(--phase-${p.phase})` : 'var(--bord)'),
+                  background: actif ? 'var(--bord)' : 'transparent',
                   color: actif ? 'var(--texte)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   textAlign: 'center',
@@ -620,8 +620,8 @@ function EditeurPhase({
                 fontSize: '0.8rem',
                 fontWeight: !p.finPrevue ? 600 : 400,
                 borderRadius: 8,
-                border: '1px solid ' + (!p.finPrevue ? `var(--phase-${p.phase})` : 'rgba(255, 255, 255, 0.08)'),
-                background: !p.finPrevue ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+                border: '1px solid ' + (!p.finPrevue ? `var(--phase-${p.phase})` : 'var(--bord)'),
+                background: !p.finPrevue ? 'var(--bord)' : 'transparent',
                 color: !p.finPrevue ? 'var(--texte)' : 'var(--text-secondary)',
                 cursor: 'pointer',
                 textAlign: 'center',
@@ -687,8 +687,8 @@ function EditeurPhase({
                     borderRadius: 999,
                     fontSize: '0.78rem',
                     fontWeight: actif ? 600 : 400,
-                    background: actif ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
-                    border: '1px solid ' + (actif ? `var(--phase-${p.phase})` : 'rgba(255, 255, 255, 0.08)'),
+                    background: actif ? 'var(--bord)' : 'transparent',
+                    border: '1px solid ' + (actif ? `var(--phase-${p.phase})` : 'var(--bord)'),
                     color: actif ? 'var(--texte)' : 'var(--text-secondary)',
                     cursor: 'pointer',
                   }}
@@ -710,7 +710,7 @@ function EditeurPhase({
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--voile-6)' }}>
         {enCours ? (
           <button
             type="button"
@@ -724,7 +724,7 @@ function EditeurPhase({
           <button
             type="button"
             className="btn discret petit"
-            style={{ color: '#ef4444', fontSize: '0.8rem' }}
+            style={{ color: 'var(--danger-vif)', fontSize: '0.8rem' }}
             onClick={supprimer}
           >
             Supprimer cette phase
@@ -759,8 +759,8 @@ function LignePassee({ p, pesees }: { p: PeriodePhase; pesees: Pesees }) {
         justifyContent: 'space-between',
         padding: '8px 12px',
         borderRadius: 10,
-        background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.05)',
+        background: 'var(--voile-2)',
+        border: '1px solid var(--voile-5)',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

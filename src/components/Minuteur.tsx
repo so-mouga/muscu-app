@@ -136,7 +136,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
     <div className={'minuteur' + (bandeau ? ' bandeau' : '') + (fini ? ' fini flash' : '') + (enPause ? ' en-pause' : '')}>
       <div className="contenu">
         <button className="temps" onClick={onAgrandir} disabled={!onAgrandir} aria-label={onAgrandir ? `${libelle}, ${temps}. Plein écran` : undefined}>
-          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? '#04140c' : 'var(--accent)'} fluide={!enPause && !fini}>
+          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? 'var(--minuteur-fini)' : 'var(--accent)'} fluide={!enPause && !fini}>
             <span className="temps-petit">{temps}</span>
           </Anneau>
           {onAgrandir && <span className="indice-plein-ecran">⤢ Plein écran</span>}

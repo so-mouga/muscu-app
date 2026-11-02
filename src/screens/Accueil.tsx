@@ -308,14 +308,14 @@ export default function Accueil({
                   fontSize: '0.8rem',
                   fontWeight: 500,
                   borderRadius: 20,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'var(--voile-5)',
+                  border: '1px solid var(--voile-10)',
                   color: 'var(--texte)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34c759', flexShrink: 0 }} />
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--succes-ios)', flexShrink: 0 }} />
                 <span>{textePhase}</span>
               </button>
             ) : (
@@ -331,8 +331,8 @@ export default function Accueil({
                     padding: '5px 12px',
                     fontSize: '0.8rem',
                     borderRadius: 20,
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--surface-2)',
+                    border: '1px solid var(--bord)',
                     color: 'var(--texte-faible)',
                     cursor: 'pointer',
                   }}
@@ -354,8 +354,8 @@ export default function Accueil({
                   fontSize: '0.8rem',
                   fontWeight: 500,
                   borderRadius: 20,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'var(--voile-5)',
+                  border: '1px solid var(--voile-10)',
                   color: 'var(--texte)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
@@ -381,8 +381,8 @@ export default function Accueil({
             justifyContent: 'space-between',
             whiteSpace: 'nowrap',
             padding: '10px 14px',
-            border: '1px solid rgba(86, 180, 233, 0.3)',
-            background: 'rgba(86, 180, 233, 0.08)',
+            border: '1px solid var(--info-bleu-voile-30)',
+            background: 'var(--info-bleu-voile-08)',
           }}
         >
           {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
@@ -399,7 +399,7 @@ export default function Accueil({
               whiteSpace: 'nowrap',
             }}
           >
-            <Download size={16} strokeWidth={2} style={{ color: '#56b4e9', flexShrink: 0 }} />
+            <Download size={16} strokeWidth={2} style={{ color: 'var(--info-bleu)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Nouvelle version ({majAndroid.version}) : installer
               <span className="faible"> · données gardées</span>
@@ -424,8 +424,8 @@ export default function Accueil({
             justifyContent: 'space-between',
             whiteSpace: 'nowrap',
             padding: '10px 14px',
-            border: '1px solid rgba(249, 115, 22, 0.3)',
-            background: 'rgba(249, 115, 22, 0.08)',
+            border: '1px solid var(--accent-ombre)',
+            background: 'var(--accent-voile-8)',
           }}
         >
           <button
@@ -449,7 +449,7 @@ export default function Accueil({
               minWidth: 0,
             }}
           >
-            <CloudUpload size={16} strokeWidth={2} style={{ color: '#f97316', flexShrink: 0 }} />
+            <CloudUpload size={16} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Sauvegarder (Drive, mail…)
               <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span>
@@ -513,15 +513,15 @@ export default function Accueil({
                   return (
                     <div
                       style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
+                        background: 'var(--voile-3)',
                         borderRadius: 10,
                         padding: '8px 12px',
                         margin: '10px 0',
-                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        border: '1px solid var(--voile-6)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#f97316' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--accent)' }}>
                           À battre aujourd’hui
                         </span>
                         {l.length > 3 && (
@@ -547,7 +547,7 @@ export default function Accueil({
                             </span>
                             <span style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                               <strong style={{ color: 'var(--texte)' }}>{x.cible}</strong>{' '}
-                              <span style={{ color: '#f97316', fontWeight: 600, fontSize: '0.82rem' }}>({x.plus})</span>
+                              <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '0.82rem' }}>({x.plus})</span>
                             </span>
                           </div>
                         ))}
@@ -600,8 +600,8 @@ export default function Accueil({
         ) : duJour && faite(duJour) ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(52, 199, 89, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={14} strokeWidth={2.5} style={{ color: '#34c759' }} />
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--succes-ios-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Check size={14} strokeWidth={2.5} style={{ color: 'var(--succes-ios)' }} />
               </div>
               <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
                 {duJour.modele.nom} faite aujourd’hui
@@ -619,8 +619,8 @@ export default function Accueil({
                   justifyContent: 'space-between',
                   padding: '14px 16px',
                   borderRadius: 12,
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.07)',
+                  background: 'var(--voile-3)',
+                  border: '1px solid var(--voile-7)',
                   cursor: 'pointer',
                   marginTop: 8,
                 }}
@@ -643,8 +643,8 @@ export default function Accueil({
           /* Jour de repos (comme dans la maquette) */
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(86, 180, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Moon size={16} strokeWidth={2.2} style={{ color: '#56b4e9' }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--info-bleu-voile-15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Moon size={16} strokeWidth={2.2} style={{ color: 'var(--info-bleu)' }} />
               </div>
               <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--texte)' }}>
                 Repos aujourd’hui
@@ -663,7 +663,7 @@ export default function Accueil({
                   padding: '14px 16px',
                   borderRadius: 14,
                   background: 'var(--subcard-gradient)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--voile-6)',
                   cursor: 'pointer',
                   marginTop: 4,
                 }}
@@ -735,8 +735,8 @@ export default function Accueil({
             justifyContent: 'space-between',
             padding: '8px 12px',
             borderRadius: 10,
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--voile-3)',
+            border: '1px solid var(--bord)',
             marginBottom: 10,
             gap: 8,
             whiteSpace: 'nowrap',
@@ -763,7 +763,7 @@ export default function Accueil({
               fontSize: '0.85rem',
             }}
           >
-            <Info size={15} strokeWidth={2} style={{ color: '#56b4e9', flexShrink: 0 }} />
+            <Info size={15} strokeWidth={2} style={{ color: 'var(--info-bleu)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               Force en baisse sur {deloadPlusTot.baisses.length} exercices : déload conseillé ?
               <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span>
@@ -801,8 +801,8 @@ export default function Accueil({
             justifyContent: 'space-between',
             padding: '8px 12px',
             borderRadius: 10,
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--voile-3)',
+            border: '1px solid var(--bord)',
             marginBottom: 10,
             gap: 8,
             whiteSpace: 'nowrap',
@@ -829,7 +829,7 @@ export default function Accueil({
               fontSize: '0.85rem',
             }}
           >
-            <Ruler size={15} strokeWidth={2} style={{ color: '#38bdf8', flexShrink: 0 }} />
+            <Ruler size={15} strokeWidth={2} style={{ color: 'var(--bleu-vif)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
               {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>}
@@ -946,27 +946,27 @@ export default function Accueil({
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     background: estFait
-                      ? 'rgba(34, 197, 94, 0.12)'
+                      ? 'var(--ok-voile-12)'
                       : ent
                       ? estAujourdhui
-                        ? 'rgba(249, 115, 22, 0.12)'
-                        : 'rgba(255, 255, 255, 0.05)'
-                      : 'rgba(255, 255, 255, 0.02)',
+                        ? 'var(--accent-voile-12)'
+                        : 'var(--voile-5)'
+                      : 'var(--voile-2)',
                     border: estFait
-                      ? '1.5px solid #22c55e'
+                      ? '1.5px solid var(--ok)'
                       : ent
                       ? estAujourdhui
                         ? '2px solid var(--accent)'
-                        : '1.5px solid rgba(255, 255, 255, 0.25)'
-                      : '1px solid rgba(255, 255, 255, 0.08)',
+                        : '1.5px solid var(--voile-25)'
+                      : '1px solid var(--bord)',
                     boxShadow: estFait
-                      ? '0 0 10px rgba(34, 197, 94, 0.3)'
+                      ? '0 0 10px var(--ok-voile-30)'
                       : ent
                       ? estAujourdhui
-                        ? '0 0 12px rgba(249, 115, 22, 0.35)'
-                        : '0 0 8px rgba(255, 255, 255, 0.1)'
+                        ? '0 0 12px var(--accent-voile-35)'
+                        : '0 0 8px var(--voile-10)'
                       : 'none',
-                    color: estFait ? '#22c55e' : ent ? 'var(--texte)' : 'var(--texte-faible)',
+                    color: estFait ? 'var(--ok)' : ent ? 'var(--texte)' : 'var(--texte-faible)',
                   }}
                 >
                   {d.lettre}
@@ -974,19 +974,19 @@ export default function Accueil({
 
                 <div style={{ height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {estFait ? (
-                    <Check size={14} strokeWidth={2.5} style={{ color: '#22c55e' }} />
+                    <Check size={14} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
                   ) : ent ? (
                     <span
                       style={{
                         width: 4,
                         height: 4,
                         borderRadius: '50%',
-                        background: estAujourdhui ? 'var(--accent)' : 'rgba(255, 255, 255, 0.35)',
+                        background: estAujourdhui ? 'var(--accent)' : 'var(--voile-35)',
                         boxShadow: estAujourdhui ? '0 0 4px var(--accent)' : 'none',
                       }}
                     />
                   ) : (
-                    <span style={{ color: 'rgba(255, 255, 255, 0.15)', fontSize: '0.8rem' }}>—</span>
+                    <span style={{ color: 'var(--voile-15)', fontSize: '0.8rem' }}>—</span>
                   )}
                 </div>
               </button>
@@ -996,7 +996,7 @@ export default function Accueil({
 
         {/* Ligne bilan en bas avec accordéon des séances de la semaine */}
         {semaine.length > 0 && (
-          <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--voile-6)' }}>
             <button
               type="button"
               onClick={() => setSemaineDepliee(!estSemaineDepliee)}
@@ -1043,8 +1043,8 @@ export default function Accueil({
                             justifyContent: 'space-between',
                             padding: '10px 12px',
                             borderRadius: 10,
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            background: 'var(--voile-3)',
+                            border: '1px solid var(--voile-6)',
                             cursor: 'pointer',
                           }}
                         >
@@ -1289,8 +1289,8 @@ export default function Accueil({
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="ligne entre" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Check size={18} strokeWidth={2.5} style={{ color: '#22c55e' }} />
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--ok-voile-15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Check size={18} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
                   </div>
                   <div>
                     <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{s.nom}</h2>
@@ -1312,19 +1312,19 @@ export default function Accueil({
 
               {/* Badges récapitulatifs */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte)' }}>
                   ⏱️ {t}
                 </span>
                 {dures > 0 && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(249, 115, 22, 0.12)', border: '1px solid rgba(249, 115, 22, 0.25)', fontSize: '0.8rem', color: '#f97316', fontWeight: 600 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--accent-voile-12)', border: '1px solid var(--accent-voile-25)', fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 600 }}>
                     💪 {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
                   </span>
                 )}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
                   🎯 {exosMap.size} exercice{exosMap.size > 1 ? 's' : ''}
                 </span>
                 {s.poidsCorps && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
                     ⚖️ {kg(s.poidsCorps)} kg
                   </span>
                 )}
@@ -1340,8 +1340,8 @@ export default function Accueil({
                       style={{
                         padding: '10px 12px',
                         borderRadius: 12,
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        background: 'var(--voile-3)',
+                        border: '1px solid var(--voile-6)',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -1364,10 +1364,10 @@ export default function Accueil({
                                 gap: 4,
                                 padding: '3px 8px',
                                 borderRadius: 6,
-                                background: dure ? 'rgba(249, 115, 22, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                                border: '1px solid ' + (dure ? 'rgba(249, 115, 22, 0.25)' : 'rgba(255, 255, 255, 0.08)'),
+                                background: dure ? 'var(--accent-voile-12)' : 'var(--surface-2)',
+                                border: '1px solid ' + (dure ? 'var(--accent-voile-25)' : 'var(--bord)'),
                                 fontSize: '0.8rem',
-                                color: dure ? '#f97316' : 'var(--texte)',
+                                color: dure ? 'var(--accent)' : 'var(--texte)',
                                 fontWeight: dure ? 600 : 400,
                               }}
                             >
@@ -1430,8 +1430,8 @@ export default function Accueil({
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="ligne entre" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(249, 115, 22, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Dumbbell size={18} strokeWidth={2} style={{ color: '#f97316' }} />
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--accent-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Dumbbell size={18} strokeWidth={2} style={{ color: 'var(--accent)' }} />
                   </div>
                   <div>
                     <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{modele.nom}</h2>
@@ -1453,11 +1453,11 @@ export default function Accueil({
 
               {/* Badges d'estimation */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte)' }}>
                   <Clock size={13} strokeWidth={2} style={{ color: 'var(--accent)' }} /> ~{dureeEstimee}
                 </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
-                  <Target size={13} strokeWidth={2} style={{ color: '#38bdf8' }} /> {modele.exercices.length} exercices au programme
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--voile-5)', border: '1px solid var(--bord)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                  <Target size={13} strokeWidth={2} style={{ color: 'var(--bleu-vif)' }} /> {modele.exercices.length} exercices au programme
                 </span>
               </div>
 
@@ -1476,8 +1476,8 @@ export default function Accueil({
                         justifyContent: 'space-between',
                         padding: '10px 12px',
                         borderRadius: 10,
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        background: 'var(--voile-3)',
+                        border: '1px solid var(--voile-6)',
                       }}
                     >
                       <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
@@ -1581,12 +1581,12 @@ export default function Accueil({
                   width: 48,
                   height: 48,
                   borderRadius: '50%',
-                  background: 'rgba(86, 180, 233, 0.15)',
-                  border: '1px solid rgba(86, 180, 233, 0.3)',
+                  background: 'var(--info-bleu-voile-15)',
+                  border: '1px solid var(--info-bleu-voile-30)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#56b4e9',
+                  color: 'var(--info-bleu)',
                 }}
               >
                 <Moon size={24} strokeWidth={2} />

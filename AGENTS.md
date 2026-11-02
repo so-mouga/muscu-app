@@ -57,7 +57,16 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Réordonner une liste : poignée ⠿ avec appui maintenu, via `useGlisser` (`lib/glisser.ts`). Pas de flèches ↑↓.
 - Exercices de base : « Masquer » (réversible), jamais supprimés. Exercices créés : « Supprimer » (effacés pour de bon s'ils n'ont jamais servi).
 - **Jamais `overflow-x: hidden` sur `html`, `body` ou `#root`** : la page ne défile plus au doigt et les en-têtes collants ne tiennent plus (arrivé le 2 nov. 2026). Un débordement en largeur se corrige sur l'élément fautif ; filet de sécurité : `overflow-x: clip` sur `#root` (déjà en place).
-- **Pas de couleur écrite en dur dans les `.tsx`** (`#22c55e`, `#f97316`, `#fff`, `rgba(…)`…) : utiliser `var(--ok)`, `var(--accent)`, `var(--texte)`, etc. ; une couleur nouvelle = une variable dans `:root`. Environ 300 couleurs en dur ont été ajoutées pendant la refonte « Dark Glassmorphism » : nettoyage prévu en une passe à la fin de la refonte, ne pas en ajouter d'autres.
+- **Pas de couleur écrite en dur dans les `.tsx`** (`#22c55e`, `#f97316`, `#fff`, `rgba(…)`…) : utiliser `var(--ok)`, `var(--accent)`, `var(--texte)`, etc. ; une couleur nouvelle = une variable dans `:root`. Nettoyage fait le 2 nov. 2026 (330 occurrences remplacées). Variables créées dans `:root` :
+  - Blanc & voiles neutres : `--blanc` (`#ffffff`), `--voile-2` à `--voile-35` (`rgba(255, 255, 255, alpha)`).
+  - Accent orange : `--flamme` (`#ff6b00`), `--accent-chaud` (`#ea580c`), `--accent-voile-8` à `--accent-voile-60`, `--accent-ombre`.
+  - Succès & vert : `--succes-ios` (`#34c759`), `--succes-ios-voile`, `--ok-voile-10` à `--ok-voile-30`.
+  - États & sensations : `--forme-difficile` (`#f87171`), `--forme-difficile-voile`, `--forme-bien` (`#4ade80`), `--forme-top` (`#fb923c`).
+  - Alertes & danger : `--danger-vif` (`#ef4444`), `--danger-voile-12`, `--danger-voile-30`.
+  - Info, bleu & sommeil : `--info-bleu` (`#56b4e9`), voiles `--info-bleu-voile-*`, `--bleu-vif` (`#38bdf8`), `--sommeil-violet` (`#8e8eff`), `--finisseur-voile`.
+  - Disques de fonte : `--disque-bleu` (`#2563eb`), `--disque-vert` (`#16a34a`), `--disque-jaune` (`#eab308`), `--disque-rouge` (`#dc2626`), `--disque-gris` (`#64748b`).
+  - Ambre & tendances : `--ambre` (`#f59e0b`), `--ambre-voile-*`, `--tendance-1` à `--tendance-4`.
+  - Voiles sombres & ombres : `--silhouette-bord`, `--ombre-legere`, `--ombre-forte`, `--fond-masque`, `--bulle-fond-88`, `--bulle-fond-97`, `--banniere-fond-fin`, `--minuteur-fini`, `--aide-texte`.
 - Couleurs uniquement via les variables CSS de `:root` (`--bg`, `--surface`, `--accent`, `--texte-2`…). Thème sombre.
 - Pas d'illustrations copiées d'autres applis : icônes et pictogrammes maison en SVG.
 

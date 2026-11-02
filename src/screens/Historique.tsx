@@ -219,8 +219,8 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
                   alignItems: 'center',
                   padding: '3px 9px',
                   borderRadius: 20,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  background: 'var(--voile-5)',
+                  border: '1px solid var(--voile-12)',
                   fontSize: '0.72rem',
                   fontWeight: 600,
                   color: 'var(--accent-orange)',
@@ -246,14 +246,14 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
                   gap: 5,
                   padding: '2px 8px',
                   borderRadius: 6,
-                  background: 'rgba(34, 197, 94, 0.1)',
-                  border: '1px solid rgba(34, 197, 94, 0.25)',
+                  background: 'var(--ok-voile-10)',
+                  border: '1px solid var(--ok-voile-25)',
                   fontSize: '0.72rem',
                   fontWeight: 600,
-                  color: '#22c55e',
+                  color: 'var(--ok)',
                 }}
               >
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e' }} />
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--ok)' }} />
                 <span>{nomPhase(phaseMois)}</span>
               </span>
             )}
@@ -334,7 +334,7 @@ function FenetreMesures({
                 width: 36,
                 height: 36,
                 borderRadius: '50%',
-                background: 'rgba(249, 115, 22, 0.15)',
+                background: 'var(--accent-voile)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -451,8 +451,8 @@ function FenetreMesures({
                       justifyContent: 'space-between',
                       padding: '9px 12px',
                       borderRadius: 10,
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: 'var(--voile-3)',
+                      border: '1px solid var(--voile-6)',
                     }}
                   >
                     <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--texte)' }}>{nomCle(c)}</span>
@@ -463,7 +463,7 @@ function FenetreMesures({
                           style={{
                             fontSize: '0.78rem',
                             fontWeight: 600,
-                            color: e.texte.startsWith('+') ? '#22c55e' : e.texte.startsWith('−') ? '#3b82f6' : 'var(--text-secondary)',
+                            color: e.texte.startsWith('+') ? 'var(--ok)' : e.texte.startsWith('−') ? 'var(--accent-blue)' : 'var(--text-secondary)',
                           }}
                         >
                           ({e.texte})
@@ -680,7 +680,7 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--voile-6)',
             marginBottom: 10,
           }}
         >
@@ -694,7 +694,7 @@ function JourChoisi({
             </div>
           </div>
           {prevu.deload && (
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--finisseur)', background: 'rgba(197, 139, 255, 0.12)', padding: '2px 8px', borderRadius: 6 }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--finisseur)', background: 'var(--finisseur-voile)', padding: '2px 8px', borderRadius: 6 }}>
               Déload
             </span>
           )}
@@ -721,7 +721,7 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid ' + (saisiePoids ? 'var(--accent)' : 'rgba(255, 255, 255, 0.06)'),
+            border: '1px solid ' + (saisiePoids ? 'var(--accent)' : 'var(--voile-6)'),
             minHeight: 74,
             cursor: 'pointer',
             transition: 'border 0.15s ease',
@@ -764,7 +764,7 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--voile-6)',
             minHeight: 74,
             cursor: 'pointer',
           }}
@@ -798,13 +798,13 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid ' + (saisieSommeil ? '#8e8eff' : 'rgba(255, 255, 255, 0.06)'),
+            border: '1px solid ' + (saisieSommeil ? 'var(--sommeil-violet)' : 'var(--voile-6)'),
             minHeight: 74,
             cursor: 'pointer',
             transition: 'border 0.15s ease',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#8e8eff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--sommeil-violet)' }}>
             <Moon size={18} strokeWidth={1.75} />
             <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
           </div>
@@ -828,13 +828,13 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid ' + (saisieCalories ? '#f97316' : 'rgba(255, 255, 255, 0.06)'),
+            border: '1px solid ' + (saisieCalories ? 'var(--accent)' : 'var(--voile-6)'),
             minHeight: 74,
             cursor: 'pointer',
             transition: 'border 0.15s ease',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#f97316' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--accent)' }}>
             <Flame size={18} strokeWidth={1.75} />
             <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
           </div>
@@ -856,7 +856,7 @@ function JourChoisi({
       {/* Saisie Poids dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--bord)' }}>
             <div className="ligne entre" style={{ marginBottom: 8 }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
                 Pesée ({date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})
@@ -926,8 +926,8 @@ function JourChoisi({
                     borderRadius: 8,
                     fontSize: '0.78rem',
                     fontWeight: 600,
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    background: 'var(--voile-5)',
+                    border: '1px solid var(--bord)',
                     color: 'var(--texte)',
                     cursor: 'pointer',
                     textAlign: 'center',
@@ -945,7 +945,7 @@ function JourChoisi({
       {/* Saisie Sommeil dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--bord)' }}>
             <div className="ligne entre" style={{ marginBottom: 6 }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Sommeil cette nuit</span>
               <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieSommeil(false)}>
@@ -966,7 +966,7 @@ function JourChoisi({
       {/* Saisie Calories dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisieCalories ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--bord)' }}>
             <div className="ligne entre" style={{ marginBottom: 6 }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Calories ce jour-là</span>
               <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }} onClick={() => setSaisieCalories(false)}>
@@ -983,8 +983,8 @@ function JourChoisi({
                   borderRadius: 20,
                   fontSize: '0.8rem',
                   fontWeight: journal?.calories === id ? 600 : 400,
-                  background: journal?.calories === id ? 'rgba(249, 115, 22, 0.18)' : 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid ' + (journal?.calories === id ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                  background: journal?.calories === id ? 'var(--accent-voile-18)' : 'var(--voile-5)',
+                  border: '1px solid ' + (journal?.calories === id ? 'var(--accent-orange)' : 'var(--bord)'),
                   color: journal?.calories === id ? 'var(--accent-orange)' : 'var(--texte)',
                   cursor: 'pointer',
                 }}
@@ -1011,7 +1011,7 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--voile-6)',
             marginTop: 10,
             cursor: 'pointer',
           }}
@@ -1072,7 +1072,7 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
         padding: '12px 14px',
         borderRadius: 14,
         background: 'var(--subcard-gradient)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
+        border: '1px solid var(--voile-6)',
         marginBottom: 10,
         cursor: 'pointer',
       }}
@@ -1088,7 +1088,7 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {(records > 0 || mieux > 0) && (
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '2px 8px', borderRadius: 6 }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ok)', background: 'var(--ok-voile-10)', padding: '2px 8px', borderRadius: 6 }}>
             {records > 0 ? `${records} record${records > 1 ? 's' : ''}` : `${mieux} mieux`}
           </span>
         )}
@@ -1151,9 +1151,9 @@ function DetailSeance({
           {(() => {
             const sens = sensationSeance(seance)
             if (!sens) return null
-            const couleur = sens.label === 'Au top' ? 'rgba(249, 115, 22, 0.15)' : sens.label === 'Difficile' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)'
-            const bord = sens.label === 'Au top' ? 'rgba(249, 115, 22, 0.35)' : sens.label === 'Difficile' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'
-            const texte = sens.label === 'Au top' ? '#fb923c' : sens.label === 'Difficile' ? '#f87171' : '#4ade80'
+            const couleur = sens.label === 'Au top' ? 'var(--accent-voile)' : sens.label === 'Difficile' ? 'var(--danger-voile-12)' : 'var(--ok-voile-12)'
+            const bord = sens.label === 'Au top' ? 'var(--accent-voile-35)' : sens.label === 'Difficile' ? 'var(--danger-voile-30)' : 'var(--ok-voile-30)'
+            const texte = sens.label === 'Au top' ? 'var(--forme-top)' : sens.label === 'Difficile' ? 'var(--forme-difficile)' : 'var(--forme-bien)'
             const Icone = sens.label === 'Au top' ? Flame : sens.label === 'Difficile' ? Frown : Smile
             return (
               <span

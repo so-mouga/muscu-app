@@ -115,7 +115,7 @@ export default function JournalMatin({
             padding: '14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--voile-6)',
             cursor: 'pointer',
             textAlign: 'left',
             width: '100%',
@@ -158,7 +158,7 @@ export default function JournalMatin({
             padding: '14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--voile-6)',
             cursor: 'pointer',
             textAlign: 'left',
             width: '100%',
@@ -166,7 +166,7 @@ export default function JournalMatin({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <span style={{ color: '#8e8eff', display: 'flex', alignItems: 'center' }}><Moon size={18} strokeWidth={1.75} /></span>
+            <span style={{ color: 'var(--sommeil-violet)', display: 'flex', alignItems: 'center' }}><Moon size={18} strokeWidth={1.75} /></span>
           </div>
           <div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
@@ -180,7 +180,7 @@ export default function JournalMatin({
       {/* Saisie Poids dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--bord)' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Poids du jour</span>
             <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
               <span className="mini-stepper compact">
@@ -230,7 +230,7 @@ export default function JournalMatin({
       {/* Saisie Sommeil dépliée avec transition fluide */}
       <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
         <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--bord)' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>Sommeil cette nuit</span>
             <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
               {HEURES.map(([h, txt]) => (
@@ -254,7 +254,7 @@ export default function JournalMatin({
           padding: '14px 16px',
           borderRadius: 14,
           background: 'var(--subcard-gradient)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
+          border: '1px solid var(--voile-6)',
           display: 'flex',
           flexDirection: 'column',
           gap: 12,
@@ -276,8 +276,8 @@ export default function JournalMatin({
                     fontSize: '0.78rem',
                     fontWeight: actif ? 600 : 400,
                     color: actif ? 'var(--texte)' : 'var(--texte-faible)',
-                    background: actif ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid ' + (actif ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.06)'),
+                    background: actif ? 'var(--voile-15)' : 'var(--voile-3)',
+                    border: '1px solid ' + (actif ? 'var(--voile-20)' : 'var(--voile-6)'),
                     borderRadius: 20,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
@@ -292,11 +292,11 @@ export default function JournalMatin({
         </div>
 
         {objectif && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 8, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 8, borderTop: '1px solid var(--voile-6)' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--texte-faible)' }}>
               Cible : <strong style={{ color: 'var(--texte)' }}>{objectif.kcal.toLocaleString('fr-FR')} kcal</strong>
             </span>
-            <Flame size={16} strokeWidth={1.75} style={{ color: '#ff6b00' }} />
+            <Flame size={16} strokeWidth={1.75} style={{ color: 'var(--flamme)' }} />
           </div>
         )}
       </div>

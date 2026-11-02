@@ -165,14 +165,14 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+          background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-chaud) 100%)',
           border: 'none',
           borderRadius: 12,
-          color: '#ffffff',
+          color: 'var(--blanc)',
           fontSize: '0.92rem',
           fontWeight: 600,
           cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(249, 115, 22, 0.25)',
+          boxShadow: '0 4px 16px var(--accent-voile-25)',
           marginBottom: 14,
           transition: 'transform 0.1s ease, box-shadow 0.15s ease',
         }}
@@ -218,8 +218,8 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
                         fontSize: '0.75rem',
                         fontWeight: actifCote ? 600 : 400,
                         color: actifCote ? 'var(--texte)' : 'var(--text-secondary)',
-                        background: actifCote ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid ' + (actifCote ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.06)'),
+                        background: actifCote ? 'var(--voile-12)' : 'var(--voile-3)',
+                        border: '1px solid ' + (actifCote ? 'var(--voile-20)' : 'var(--voile-6)'),
                         borderRadius: 6,
                         cursor: 'pointer',
                       }}
@@ -281,7 +281,7 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'var(--voile-3)', border: '1px solid var(--voile-6)', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
         <Info size={15} strokeWidth={2} style={{ color: 'var(--accent-orange)', flexShrink: 0, marginTop: 1 }} />
         <span>{CONSEILS_MESURE}</span>
       </div>
@@ -315,8 +315,8 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
                     borderRadius: 999,
                     fontSize: '0.75rem',
                     fontWeight: 600,
-                    color: d > 0 ? '#22c55e' : d < 0 ? '#f87171' : 'var(--text-secondary)',
-                    background: d > 0 ? 'rgba(34, 197, 94, 0.12)' : d < 0 ? 'rgba(248, 113, 113, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                    color: d > 0 ? 'var(--ok)' : d < 0 ? 'var(--forme-difficile)' : 'var(--text-secondary)',
+                    background: d > 0 ? 'var(--ok-voile-12)' : d < 0 ? 'var(--forme-difficile-voile)' : 'var(--voile-5)',
                   }}
                 >
                   {signe(d)}
@@ -388,8 +388,8 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
           display: 'inline-flex',
           alignItems: 'center',
           gap: 4,
-          background: 'rgba(255, 255, 255, 0.04)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'var(--surface-2)',
+          border: '1px solid var(--voile-10)',
           borderRadius: 8,
           padding: '4px 8px',
         }}
@@ -434,8 +434,8 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
           padding: '10px 14px',
           borderRadius: 14,
           marginBottom: 8,
-          background: estActif ? 'rgba(249, 115, 22, 0.08)' : 'var(--subcard-gradient)',
-          border: '1px solid ' + (estActif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.06)'),
+          background: estActif ? 'var(--accent-voile-8)' : 'var(--subcard-gradient)',
+          border: '1px solid ' + (estActif ? 'var(--accent-orange)' : 'var(--voile-6)'),
           transition: 'all 0.15s ease',
           cursor: 'pointer',
         }}
@@ -447,8 +447,8 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
                 width: 22,
                 height: 22,
                 borderRadius: '50%',
-                background: estActif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.06)',
-                color: estActif ? '#fff' : 'var(--text-secondary)',
+                background: estActif ? 'var(--accent-orange)' : 'var(--voile-6)',
+                color: estActif ? 'var(--blanc)' : 'var(--text-secondary)',
                 fontSize: '0.75rem',
                 fontWeight: 700,
                 display: 'inline-flex',
@@ -482,7 +482,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
               color: 'var(--text-secondary)',
               marginTop: 6,
               paddingTop: 6,
-              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+              borderTop: '1px solid var(--voile-6)',
               lineHeight: 1.4,
             }}
           >
@@ -534,8 +534,8 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
           max={dateISO()}
           onChange={(e) => e.target.value && setDate(e.target.value)}
           style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--voile-5)',
+            border: '1px solid var(--voile-10)',
             borderRadius: 8,
             color: 'var(--texte)',
             padding: '5px 10px',
@@ -549,8 +549,8 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
       <div
         style={{
           borderRadius: 12,
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.06)',
+          background: 'var(--voile-3)',
+          border: '1px solid var(--voile-6)',
           padding: '8px 12px',
           marginBottom: 14,
           fontSize: '0.8rem',
@@ -645,9 +645,9 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                   alignItems: 'center',
                   padding: '3px 10px',
                   borderRadius: 999,
-                  background: ecart > 0 ? 'rgba(34, 197, 94, 0.1)' : ecart < 0 ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid ' + (ecart > 0 ? 'rgba(34, 197, 94, 0.25)' : ecart < 0 ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.08)'),
-                  color: ecart > 0 ? '#22c55e' : ecart < 0 ? '#3b82f6' : 'var(--texte)',
+                  background: ecart > 0 ? 'var(--ok-voile-10)' : ecart < 0 ? 'var(--accent-blue-voile-10)' : 'var(--voile-5)',
+                  border: '1px solid ' + (ecart > 0 ? 'var(--ok-voile-25)' : ecart < 0 ? 'var(--accent-blue-voile-25)' : 'var(--bord)'),
+                  color: ecart > 0 ? 'var(--ok)' : ecart < 0 ? 'var(--accent-blue)' : 'var(--texte)',
                   fontSize: '0.8rem',
                   fontWeight: 700,
                 }}
@@ -677,8 +677,8 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                     fontSize: '0.82rem',
                     fontWeight: actif ? 600 : 400,
                     color: actif ? 'var(--accent-orange)' : 'var(--text-secondary)',
-                    background: actif ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
-                    border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                    background: actif ? 'var(--accent-voile)' : 'transparent',
+                    border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'var(--bord)'),
                     borderRadius: 8,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
@@ -716,8 +716,8 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                     justifyContent: 'space-between',
                     padding: '10px 12px',
                     borderRadius: 12,
-                    background: estActive ? 'rgba(249, 115, 22, 0.12)' : 'var(--subcard-gradient)',
-                    border: '1px solid ' + (estActive ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.06)'),
+                    background: estActive ? 'var(--accent-voile-12)' : 'var(--subcard-gradient)',
+                    border: '1px solid ' + (estActive ? 'var(--accent-ombre)' : 'var(--voile-6)'),
                     transition: 'all 0.15s ease',
                   }}
                 >
@@ -758,7 +758,7 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                         borderRadius: 6,
                         transition: 'color 0.15s ease',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger-vif)')}
                       onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
                       onClick={async () => {
                         const suppr = await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })
@@ -779,8 +779,8 @@ function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
                 width: '100%',
                 marginTop: 10,
                 padding: '8px 0',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                background: 'var(--voile-3)',
+                border: '1px solid var(--voile-6)',
                 borderRadius: 10,
                 color: 'var(--text-secondary)',
                 fontSize: '0.82rem',

@@ -121,14 +121,14 @@ export default function CalculateurDisques({ exo, charge, onFermer }: Props) {
                       borderRadius: '50%',
                       background:
                         d.poids === 20
-                          ? '#2563eb'
+                          ? 'var(--disque-bleu)'
                           : d.poids === 10
-                            ? '#16a34a'
+                            ? 'var(--disque-vert)'
                             : d.poids === 5
-                              ? '#eab308'
+                              ? 'var(--disque-jaune)'
                               : d.poids === 2.5
-                                ? '#dc2626'
-                                : '#64748b',
+                                ? 'var(--disque-rouge)'
+                                : 'var(--disque-gris)',
                       display: 'inline-block',
                     }}
                   />

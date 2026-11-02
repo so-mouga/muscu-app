@@ -1091,9 +1091,9 @@ function MachinePrise({
 }
 
 const OPTIONS_FORME = [
-  { val: 1, label: 'Difficile', Icon: Frown, couleur: '#f87171' },
-  { val: 3, label: 'Bien', Icon: Smile, couleur: '#4ade80' },
-  { val: 5, label: 'Au top', Icon: Flame, couleur: '#fb923c' },
+  { val: 1, label: 'Difficile', Icon: Frown, couleur: 'var(--forme-difficile)' },
+  { val: 3, label: 'Bien', Icon: Smile, couleur: 'var(--forme-bien)' },
+  { val: 5, label: 'Au top', Icon: Flame, couleur: 'var(--forme-top)' },
 ] as const
 
 function FinSeance({
@@ -1232,7 +1232,7 @@ function FinSeance({
           ].filter(Boolean)
           return (
             <div className="mieux-titre" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {r.records > 0 && <Trophy size={14} style={{ color: '#fb923c' }} />}
+              {r.records > 0 && <Trophy size={14} style={{ color: 'var(--forme-top)' }} />}
               <span>↑ {morceaux.join(', ')}</span>
             </div>
           )
@@ -1367,7 +1367,7 @@ function FinSeance({
                   }}
                   onClick={() => choisirForme(o.val)}
                 >
-                  <o.Icon size={20} strokeWidth={actif ? 2.5 : 2} style={{ color: actif ? '#fff' : o.couleur }} />
+                  <o.Icon size={20} strokeWidth={actif ? 2.5 : 2} style={{ color: actif ? 'var(--blanc)' : o.couleur }} />
                   <span>{o.label}</span>
                 </button>
               )

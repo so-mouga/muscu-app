@@ -53,7 +53,7 @@ export default function SilhouetteVolume({ volume, cibles, choisi: choisiExterne
           const estActif = f.m && f.m === choisi
           const props = {
             fill,
-            stroke: estActif ? 'var(--texte)' : 'rgba(0,0,0,0.25)',
+            stroke: estActif ? 'var(--texte)' : 'var(--silhouette-bord)',
             strokeWidth: estActif ? 1.5 : 0.6,
             onClick: f.m ? () => setChoisi(f.m === choisi ? null : f.m!) : undefined,
             style: f.m ? { cursor: 'pointer', transition: 'fill 0.15s, stroke 0.15s' } : undefined,

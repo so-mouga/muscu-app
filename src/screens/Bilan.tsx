@@ -106,8 +106,8 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
                 fontSize: '0.82rem',
                 fontWeight: actif ? 600 : 400,
                 color: actif ? 'var(--accent-orange)' : 'var(--text-secondary)',
-                background: actif ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
-                border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                background: actif ? 'var(--accent-voile)' : 'transparent',
+                border: '1px solid ' + (actif ? 'var(--accent-orange)' : 'var(--bord)'),
                 borderRadius: 8,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
@@ -136,9 +136,9 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
               padding: '8px 12px',
               fontSize: '12px',
               color: 'var(--text-secondary)',
-              background: 'rgba(255, 255, 255, 0.03)',
+              background: 'var(--voile-3)',
               borderRadius: 12,
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              border: '1px solid var(--voile-6)',
               marginBottom: 12,
             }}
           >
@@ -151,9 +151,9 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
             style={{
               padding: '14px 16px',
               borderRadius: 16,
-              background: 'linear-gradient(145deg, rgba(249, 115, 22, 0.08) 0%, rgba(30, 41, 59, 0.5) 100%)',
-              border: '1px solid rgba(249, 115, 22, 0.3)',
-              boxShadow: '0 4px 20px rgba(249, 115, 22, 0.08)',
+              background: 'linear-gradient(145deg, var(--accent-voile-8) 0%, var(--banniere-fond-fin) 100%)',
+              border: '1px solid var(--accent-ombre)',
+              boxShadow: '0 4px 20px var(--accent-voile-8)',
               marginBottom: 12,
             }}
           >
@@ -201,7 +201,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Volume musculaire</h3>
             <Aide titre="Volume musculaire" texte="Nombre de séries effectives (dures) par groupe musculaire sur la période. L'idéal se situe généralement entre 10 et 20 séries par semaine selon le groupe." />
           </div>
-          <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(255, 255, 255, 0.04)', padding: 3, borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ display: 'inline-flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 8, border: '1px solid var(--voile-6)' }}>
             <button
               type="button"
               style={{
@@ -209,7 +209,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
                 fontSize: '0.75rem',
                 fontWeight: vueMuscles === 'fait' ? 600 : 400,
                 color: vueMuscles === 'fait' ? 'var(--texte)' : 'var(--text-secondary)',
-                background: vueMuscles === 'fait' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                background: vueMuscles === 'fait' ? 'var(--voile-12)' : 'transparent',
                 border: 'none',
                 borderRadius: 6,
                 cursor: 'pointer',
@@ -225,7 +225,7 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
                 fontSize: '0.75rem',
                 fontWeight: vueMuscles === 'prevu' ? 600 : 400,
                 color: vueMuscles === 'prevu' ? 'var(--texte)' : 'var(--text-secondary)',
-                background: vueMuscles === 'prevu' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                background: vueMuscles === 'prevu' ? 'var(--voile-12)' : 'transparent',
                 border: 'none',
                 borderRadius: 6,
                 cursor: 'pointer',
@@ -424,7 +424,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
       {a.records.length > 0 && (
         <div style={{ marginTop: 8 }}>
           <div className="faible" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Award size={14} style={{ color: '#f5c04a' }} />
+            <Award size={14} style={{ color: 'var(--alerte)' }} />
             <span>Records battus</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -446,7 +446,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                       padding: '10px 12px',
                       borderRadius: 12,
                       background: 'var(--subcard-gradient)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      border: '1px solid var(--voile-6)',
                       cursor: onExo ? 'pointer' : 'default',
                     }}
                   >
@@ -457,7 +457,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <strong style={{ color: '#22c55e', fontSize: '0.95rem' }}>{r.perf}</strong>
+                      <strong style={{ color: 'var(--ok)', fontSize: '0.95rem' }}>{r.perf}</strong>
                       {onExo && <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
                     </div>
                   </div>
@@ -486,7 +486,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                   padding: '10px 12px',
                   borderRadius: 12,
                   background: 'var(--subcard-gradient)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--voile-6)',
                   cursor: onExo ? 'pointer' : 'default',
                 }}
               >
@@ -497,7 +497,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <strong style={{ color: '#22c55e', fontSize: '0.95rem' }}>+{kg(arrondi(p.pct))} %</strong>
+                  <strong style={{ color: 'var(--ok)', fontSize: '0.95rem' }}>+{kg(arrondi(p.pct))} %</strong>
                   {onExo && <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
                 </div>
               </div>
@@ -525,7 +525,7 @@ function Progression({ a, onExo }: { a: Analyse; onExo?: (id: string) => void })
                   padding: '10px 12px',
                   borderRadius: 12,
                   background: 'var(--subcard-gradient)',
-                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  border: '1px solid var(--voile-6)',
                   cursor: onExo ? 'pointer' : 'default',
                 }}
               >
@@ -557,7 +557,7 @@ function Tuile({ valeur, label, n, m, comparable = false, texteAvant, neutre = f
         padding: '12px 14px',
         borderRadius: 14,
         background: 'var(--subcard-gradient)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
+        border: '1px solid var(--voile-6)',
         minHeight: 74,
       }}
     >
@@ -571,7 +571,7 @@ function Tuile({ valeur, label, n, m, comparable = false, texteAvant, neutre = f
             fontSize: '0.75rem',
             marginTop: 4,
             fontWeight: 600,
-            color: neutre ? 'var(--text-secondary)' : n! > m! ? '#22c55e' : n! < m! ? '#f87171' : 'var(--text-secondary)',
+            color: neutre ? 'var(--text-secondary)' : n! > m! ? 'var(--ok)' : n! < m! ? 'var(--forme-difficile)' : 'var(--text-secondary)',
           }}
         >
           {n! > m! ? '↑' : n! < m! ? '↓' : '='} vs {texteAvant ?? kg(arrondi(m!))}

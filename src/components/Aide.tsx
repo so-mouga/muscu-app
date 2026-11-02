@@ -67,9 +67,9 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
               maxWidth: '80vw',
               padding: '12px 14px',
               borderRadius: 14,
-              background: 'rgba(22, 27, 34, 0.97)',
-              border: '1px solid rgba(255, 255, 255, 0.14)',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+              background: 'var(--bulle-fond-97)',
+              border: '1px solid var(--border-top-highlight)',
+              boxShadow: '0 8px 30px var(--ombre-forte), inset 0 1px 0 var(--bord)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
               color: 'var(--texte)',
@@ -101,7 +101,7 @@ export function Aide({ texte, titre }: { texte: string; titre?: string }) {
                 <X size={14} />
               </button>
             </div>
-            <div style={{ color: '#d1d5db' }}>{texte}</div>
+            <div style={{ color: 'var(--aide-texte)' }}>{texte}</div>
           </div>
         </>
       )}

@@ -146,8 +146,8 @@ export default function Poids({
             style={{
               padding: '4px 10px',
               borderRadius: 999,
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--bord)',
               fontSize: '0.78rem',
               color: 'var(--text-secondary)',
               whiteSpace: 'nowrap',
@@ -168,7 +168,7 @@ export default function Poids({
             display: 'flex',
             alignItems: 'center',
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            border: '1px solid var(--bord)',
             borderRadius: 12,
             padding: '2px',
             boxSizing: 'border-box',
@@ -184,8 +184,8 @@ export default function Poids({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--voile-6)',
               borderRadius: 8,
               fontSize: '1.1rem',
               color: 'var(--texte)',
@@ -240,8 +240,8 @@ export default function Poids({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid rgba(255, 255, 255, 0.06)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--voile-6)',
               borderRadius: 8,
               fontSize: '1.1rem',
               color: 'var(--texte)',
@@ -263,12 +263,12 @@ export default function Poids({
             padding: '0 10px',
             borderRadius: 11,
             background: estEnregistre && !enregistreAnim
-              ? 'rgba(34, 197, 94, 0.12)'
+              ? 'var(--ok-voile-12)'
               : 'var(--accent-orange)',
             border: estEnregistre && !enregistreAnim
-              ? '1px solid rgba(34, 197, 94, 0.25)'
+              ? '1px solid var(--ok-voile-25)'
               : 'none',
-            color: estEnregistre && !enregistreAnim ? '#22c55e' : '#fff',
+            color: estEnregistre && !enregistreAnim ? 'var(--ok)' : 'var(--blanc)',
             fontWeight: 700,
             fontSize: '0.80rem',
             letterSpacing: '0.01em',
@@ -279,7 +279,7 @@ export default function Poids({
             gap: 4,
             boxShadow: estEnregistre && !enregistreAnim
               ? 'none'
-              : '0 3px 12px rgba(249, 115, 22, 0.3)',
+              : '0 3px 12px var(--accent-ombre)',
             transition: 'all 0.15s ease',
             whiteSpace: 'nowrap',
             flexShrink: 0,

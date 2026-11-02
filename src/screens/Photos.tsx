@@ -76,14 +76,14 @@ export default function Photos() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+            background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-chaud) 100%)',
             border: 'none',
             borderRadius: 12,
-            color: '#fff',
+            color: 'var(--blanc)',
             fontSize: '0.9rem',
             fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(249, 115, 22, 0.25)',
+            boxShadow: '0 4px 16px var(--accent-voile-25)',
             whiteSpace: 'nowrap',
           }}
         >
@@ -101,8 +101,8 @@ export default function Photos() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 7,
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--voile-5)',
+            border: '1px solid var(--voile-10)',
             borderRadius: 12,
             color: 'var(--texte)',
             fontSize: '0.88rem',
@@ -118,7 +118,7 @@ export default function Photos() {
 
       {/* Ligne discrète de confidentialité avec Aide */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
-        <ShieldCheck size={14} strokeWidth={2} style={{ color: '#22c55e', flexShrink: 0 }} />
+        <ShieldCheck size={14} strokeWidth={2} style={{ color: 'var(--ok)', flexShrink: 0 }} />
         <span>Stockées uniquement sur cet appareil</span>
         <Aide
           titre="Conseils photo de progression"
@@ -174,8 +174,8 @@ export default function Photos() {
                       gap: 4,
                       aspectRatio: '3 / 4',
                       borderRadius: 12,
-                      border: '1px dashed rgba(255, 255, 255, 0.15)',
-                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px dashed var(--voile-15)',
+                      background: 'var(--voile-2)',
                       cursor: 'pointer',
                       color: 'var(--text-secondary)',
                     }}
@@ -430,8 +430,8 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
       style={{
         width: '100%',
         padding: '8px 10px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
+        background: 'var(--voile-5)',
+        border: '1px solid var(--voile-10)',
         borderRadius: 10,
         color: 'var(--texte)',
         fontSize: '0.85rem',
@@ -464,8 +464,8 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
             width: 34,
             height: 34,
             borderRadius: 10,
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            background: 'var(--voile-5)',
+            border: '1px solid var(--voile-10)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -482,7 +482,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
 
       {/* Barre d'outils unique : Poses à gauche, Vue (Superposer/Côte à côte + Plein écran) à droite */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-        <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(255, 255, 255, 0.04)', padding: 3, borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 8, border: '1px solid var(--voile-6)' }}>
           {POSES.map((p) => {
             const actifPose = pose === p.id
             return (
@@ -494,7 +494,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
                   fontSize: '0.78rem',
                   fontWeight: actifPose ? 600 : 400,
                   color: actifPose ? 'var(--texte)' : 'var(--text-secondary)',
-                  background: actifPose ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                  background: actifPose ? 'var(--voile-12)' : 'transparent',
                   border: 'none',
                   borderRadius: 6,
                   cursor: 'pointer',
@@ -520,8 +520,8 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               borderRadius: 8,
               fontSize: '0.78rem',
               fontWeight: 500,
-              background: curseur !== null ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid ' + (curseur !== null ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.1)'),
+              background: curseur !== null ? 'var(--accent-voile)' : 'var(--voile-5)',
+              border: '1px solid ' + (curseur !== null ? 'var(--accent-orange)' : 'var(--voile-10)'),
               color: curseur !== null ? 'var(--accent-orange)' : 'var(--texte)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
@@ -539,8 +539,8 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               width: 32,
               height: 32,
               borderRadius: 8,
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--voile-5)',
+              border: '1px solid var(--voile-10)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -564,7 +564,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               {p ? (
                 <img src={(p as PhotoCorps).image} alt="" onClick={() => setPleinEcran(true)} style={{ cursor: 'zoom-in' }} />
               ) : (
-                <div className="vide faible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '3 / 4', border: '1px dashed rgba(255, 255, 255, 0.15)', borderRadius: 12 }}>
+                <div className="vide faible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '3 / 4', border: '1px dashed var(--voile-15)', borderRadius: 12 }}>
                   Pas de photo
                 </div>
               )}
@@ -580,7 +580,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
           <img src={pa.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
           <img src={pb.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 0 0 ${curseur}%)` }} />
           {/* Ligne blanche verticale */}
-          <div className="trait-curseur" style={{ position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, background: '#fff', left: `${curseur}%`, zIndex: 1, pointerEvents: 'none' }} />
+          <div className="trait-curseur" style={{ position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, background: 'var(--blanc)', left: `${curseur}%`, zIndex: 1, pointerEvents: 'none' }} />
           {/* Poignée ronde centrale bien visible */}
           <div
             style={{
@@ -591,15 +591,15 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               width: 32,
               height: 32,
               borderRadius: '50%',
-              background: 'rgba(22, 27, 34, 0.88)',
+              background: 'var(--bulle-fond-88)',
               backdropFilter: 'blur(10px)',
               WebkitBackdropFilter: 'blur(10px)',
-              border: '2px solid #ffffff',
-              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.6)',
+              border: '2px solid var(--blanc)',
+              boxShadow: '0 2px 12px var(--ombre-forte)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#ffffff',
+              color: 'var(--blanc)',
               pointerEvents: 'none',
               zIndex: 2,
             }}
@@ -615,10 +615,10 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
             aria-label="Curseur de comparaison avant/après"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, margin: 0, cursor: 'ew-resize', zIndex: 3 }}
           />
-          <span className="etiquette g" style={{ position: 'absolute', bottom: 8, left: 8, padding: '3px 8px', borderRadius: 999, background: 'rgba(0, 0, 0, 0.65)', color: '#fff', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
+          <span className="etiquette g" style={{ position: 'absolute', bottom: 8, left: 8, padding: '3px 8px', borderRadius: 999, background: 'var(--fond-masque)', color: 'var(--blanc)', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
             {dateCourte(a)}{poidsA ? ` · ${kg(poidsA.poids)} kg` : ''}
           </span>
-          <span className="etiquette d" style={{ position: 'absolute', bottom: 8, right: 8, padding: '3px 8px', borderRadius: 999, background: 'rgba(0, 0, 0, 0.65)', color: '#fff', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
+          <span className="etiquette d" style={{ position: 'absolute', bottom: 8, right: 8, padding: '3px 8px', borderRadius: 999, background: 'var(--fond-masque)', color: 'var(--blanc)', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
             {dateCourte(b)}{poidsB ? ` · ${kg(poidsB.poids)} kg` : ''}
           </span>
         </div>
@@ -631,7 +631,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
       {pleinEcran && <PlanchePhotos photos={dates.flatMap(([, p]) => Object.values(p))} dates={[a, b]} pose={pose} onFermer={() => setPleinEcran(false)} />}
 
       {((poidsA && poidsB && poidsA.date !== poidsB.date) || ecarts.length > 0) && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--voile-6)' }}>
           <div className="faible" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
             Entre ces deux dates
           </div>
@@ -671,7 +671,7 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
       }}
     >
       <div className="ligne entre" style={{ padding: '0 4px' }}>
-        <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(255, 255, 255, 0.08)', padding: 3, borderRadius: 8 }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--bord)', padding: 3, borderRadius: 8 }}>
           {POSES.filter((p) => dates.some((d) => photos.some((x) => x.date === d && x.pose === p.id))).map((p) => {
             const actifPose = pose === p.id
             return (
@@ -682,8 +682,8 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
                   padding: '3px 8px',
                   fontSize: '0.78rem',
                   fontWeight: actifPose ? 600 : 400,
-                  color: actifPose ? '#fff' : 'var(--text-secondary)',
-                  background: actifPose ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                  color: actifPose ? 'var(--blanc)' : 'var(--text-secondary)',
+                  background: actifPose ? 'var(--voile-20)' : 'transparent',
                   border: 'none',
                   borderRadius: 6,
                   cursor: 'pointer',
@@ -699,11 +699,11 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
           type="button"
           onClick={onFermer}
           style={{
-            background: 'rgba(255, 255, 255, 0.1)',
+            background: 'var(--voile-10)',
             border: 'none',
             borderRadius: 8,
             padding: '4px 10px',
-            color: '#fff',
+            color: 'var(--blanc)',
             fontSize: '0.8rem',
             cursor: 'pointer',
             display: 'inline-flex',
@@ -731,7 +731,7 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
           <span>Comparer avec le {dateCourte(comparerAvec)}</span>
         </button>
       )}
-      <div style={{ textAlign: 'center', fontSize: 11, opacity: 0.6, color: '#8b949e', padding: '2px 0' }}>
+      <div style={{ textAlign: 'center', fontSize: 11, opacity: 0.6, color: 'var(--texte-2)', padding: '2px 0' }}>
         Écarte deux doigts pour zoomer · glisse pour te déplacer · touche deux fois pour réinitialiser
       </div>
     </div>,
@@ -1051,7 +1051,7 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 3,
-                  background: 'rgba(255, 255, 255, 0.08)',
+                  background: 'var(--bord)',
                   padding: 3,
                   borderRadius: 10,
                 }}
@@ -1067,7 +1067,7 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                         padding: '4px 8px',
                         fontSize: '0.75rem',
                         fontWeight: actifDelai ? 600 : 400,
-                        color: actifDelai ? '#fff' : 'var(--text-secondary)',
+                        color: actifDelai ? 'var(--blanc)' : 'var(--text-secondary)',
                         background: actifDelai ? 'var(--accent-orange)' : 'transparent',
                         border: 'none',
                         borderRadius: 6,
@@ -1097,8 +1097,8 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                       fontSize: '0.78rem',
                       fontWeight: fantome ? 600 : 400,
                       color: fantome ? 'var(--accent-orange)' : 'var(--text-secondary)',
-                      background: fantome ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid ' + (fantome ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.1)'),
+                      background: fantome ? 'var(--accent-voile)' : 'var(--bord)',
+                      border: '1px solid ' + (fantome ? 'var(--accent-orange)' : 'var(--voile-10)'),
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
@@ -1116,12 +1116,12 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
                     width: 32,
                     height: 32,
                     borderRadius: 10,
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'var(--bord)',
+                    border: '1px solid var(--voile-10)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#fff',
+                    color: 'var(--blanc)',
                     cursor: 'pointer',
                     flexShrink: 0,
                   }}

@@ -29,6 +29,97 @@
   --finisseur: #c58bff;
   --silhouette: #3b4150;
   --rayon: 18px;
+
+  /* Blanc pur pour textes et icônes sur fond sombre ou coloré */
+  --blanc: #ffffff;
+
+  /* Voiles blancs neutres (surfaces et bordures semi-transparentes) */
+  --voile-2: rgba(255, 255, 255, 0.02);
+  --voile-3: rgba(255, 255, 255, 0.03);
+  --voile-4: var(--surface-2);
+  --voile-5: rgba(255, 255, 255, 0.05);
+  --voile-6: rgba(255, 255, 255, 0.06);
+  --voile-7: rgba(255, 255, 255, 0.07);
+  --voile-8: var(--bord);
+  --voile-10: rgba(255, 255, 255, 0.1);
+  --voile-12: rgba(255, 255, 255, 0.12);
+  --voile-14: var(--border-top-highlight);
+  --voile-15: rgba(255, 255, 255, 0.15);
+  --voile-20: rgba(255, 255, 255, 0.2);
+  --voile-25: rgba(255, 255, 255, 0.25);
+  --voile-35: rgba(255, 255, 255, 0.35);
+
+  /* Variantes et voiles d'accent orange */
+  --flamme: #ff6b00;
+  --accent-chaud: #ea580c;
+  --accent-voile-8: rgba(249, 115, 22, 0.08);
+  --accent-voile-12: rgba(249, 115, 22, 0.12);
+  --accent-voile: rgba(249, 115, 22, 0.15);
+  --accent-voile-18: rgba(249, 115, 22, 0.18);
+  --accent-voile-25: rgba(249, 115, 22, 0.25);
+  --accent-ombre: rgba(249, 115, 22, 0.3);
+  --accent-voile-35: rgba(249, 115, 22, 0.35);
+  --accent-voile-60: rgba(249, 115, 22, 0.6);
+
+  /* Succès et vert */
+  --ok-voile-10: rgba(34, 197, 94, 0.1);
+  --ok-voile-12: rgba(34, 197, 94, 0.12);
+  --ok-voile-15: rgba(34, 197, 94, 0.15);
+  --ok-voile-25: rgba(34, 197, 94, 0.25);
+  --ok-voile-30: rgba(34, 197, 94, 0.3);
+  --succes-ios: #34c759;
+  --succes-ios-voile: rgba(52, 199, 89, 0.15);
+
+  /* Sensations et états d'effort */
+  --forme-difficile: #f87171;
+  --forme-difficile-voile: rgba(248, 113, 113, 0.12);
+  --forme-bien: #4ade80;
+  --forme-top: #fb923c;
+
+  /* Alertes et danger */
+  --danger-vif: #ef4444;
+  --danger-voile-12: rgba(239, 68, 68, 0.12);
+  --danger-voile-30: rgba(239, 68, 68, 0.3);
+
+  /* Informations, bleu et sommeil */
+  --accent-blue-voile-10: rgba(59, 130, 246, 0.1);
+  --accent-blue-voile-25: rgba(59, 130, 246, 0.25);
+  --info-bleu: #56b4e9;
+  --info-bleu-voile-08: rgba(86, 180, 233, 0.08);
+  --info-bleu-voile-15: rgba(86, 180, 233, 0.15);
+  --info-bleu-voile-30: rgba(86, 180, 233, 0.3);
+  --bleu-vif: #38bdf8;
+  --sommeil-violet: #8e8eff;
+  --finisseur-voile: rgba(197, 139, 255, 0.12);
+
+  /* Poids et disques de fonte */
+  --disque-bleu: #2563eb;
+  --disque-vert: #16a34a;
+  --disque-jaune: #eab308;
+  --disque-rouge: #dc2626;
+  --disque-gris: #64748b;
+
+  /* Ambre */
+  --ambre: #f59e0b;
+  --ambre-voile-10: rgba(245, 158, 11, 0.1);
+  --ambre-voile-25: rgba(245, 158, 11, 0.25);
+
+  /* Palette de courbes de tendances */
+  --tendance-1: #56b4e9;
+  --tendance-2: #e69f00;
+  --tendance-3: #2bb58c;
+  --tendance-4: #d483b3;
+
+  /* Voiles sombres, ombres et bulles */
+  --silhouette-bord: rgba(0, 0, 0, 0.25);
+  --ombre-legere: rgba(0, 0, 0, 0.4);
+  --ombre-forte: rgba(0, 0, 0, 0.6);
+  --fond-masque: rgba(0, 0, 0, 0.65);
+  --bulle-fond-88: rgba(22, 27, 34, 0.88);
+  --bulle-fond-97: rgba(22, 27, 34, 0.97);
+  --banniere-fond-fin: rgba(30, 41, 59, 0.5);
+  --minuteur-fini: #04140c;
+  --aide-texte: #d1d5db;
   color-scheme: dark;
 }
 

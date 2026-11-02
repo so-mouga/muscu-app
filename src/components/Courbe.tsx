@@ -49,8 +49,8 @@ export default function Courbe({
       <svg className="graph" viewBox={`0 0 ${L} ${H}`} width="100%" role="img" aria-label={label} style={{ overflow: 'visible' }}>
         <defs>
           <linearGradient id="orangeGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f97316" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -62,7 +62,7 @@ export default function Courbe({
             x2={L - m.d}
             y1={y(v)}
             y2={y(v)}
-            stroke="rgba(255, 255, 255, 0.06)"
+            stroke="var(--voile-6)"
             strokeWidth="1"
           />
         ))}
@@ -95,7 +95,7 @@ export default function Courbe({
         {/* Courbe lisse */}
         <polyline
           fill="none"
-          stroke="#f97316"
+          stroke="var(--accent)"
           strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -108,7 +108,7 @@ export default function Courbe({
           x2={x(actif)}
           y1={m.h}
           y2={H - m.b}
-          stroke="rgba(255, 255, 255, 0.25)"
+          stroke="var(--voile-25)"
           strokeWidth="1"
           strokeDasharray="3 3"
         />
@@ -118,7 +118,7 @@ export default function Courbe({
           cx={x(actif)}
           cy={y(p.valeur)}
           r={5}
-          fill="#f97316"
+          fill="var(--accent)"
           stroke="var(--bg-app)"
           strokeWidth="2.5"
         />

@@ -7,7 +7,7 @@ import { dateCourte, dateISO, kg } from '../lib/calc'
 import type { Mesure, Pesee } from '../types'
 
 /** Couleurs des lignes, dans un ordre fixe (lisibles pour les daltoniens), et forme du point de chacune. */
-const COULEURS = ['#56b4e9', '#e69f00', '#2bb58c', '#d483b3']
+const COULEURS = ['var(--info-bleu)', 'var(--tendance-2)', 'var(--tendance-3)', 'var(--tendance-4)']
 const FORMES = ['rond', 'carre', 'triangle', 'losange'] as const
 const MAX = 4
 
@@ -124,8 +124,8 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
             borderRadius: 8,
             fontSize: '0.8rem',
             fontWeight: 500,
-            background: choix ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid ' + (choix ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+            background: choix ? 'var(--accent-voile)' : 'var(--voile-5)',
+            border: '1px solid ' + (choix ? 'var(--accent-orange)' : 'var(--bord)'),
             color: choix ? 'var(--accent-orange)' : 'var(--text-secondary)',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
@@ -166,8 +166,8 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
                     borderRadius: 20,
                     cursor: !on && epinglees.length >= MAX ? 'not-allowed' : 'pointer',
                     opacity: !on && epinglees.length >= MAX ? 0.4 : 1,
-                    background: on ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid ' + (on ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                    background: on ? 'var(--accent-voile)' : 'var(--voile-3)',
+                    border: '1px solid ' + (on ? 'var(--accent-orange)' : 'var(--bord)'),
                     color: on ? 'var(--accent-orange)' : 'var(--text-secondary)',
                     transition: 'all 0.15s ease',
                     display: 'inline-flex',
@@ -198,8 +198,8 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
                     fontSize: '0.8rem',
                     fontWeight: actifTab ? 600 : 400,
                     color: actifTab ? 'var(--accent-orange)' : 'var(--text-secondary)',
-                    background: actifTab ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
-                    border: '1px solid ' + (actifTab ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                    background: actifTab ? 'var(--accent-voile)' : 'transparent',
+                    border: '1px solid ' + (actifTab ? 'var(--accent-orange)' : 'var(--bord)'),
                     borderRadius: 8,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
