@@ -28,7 +28,7 @@ Cran est un carnet d'entraînement pensé pour la salle : tu suis ton programme,
 <b>Tes objectifs</b>
 • Sèche, maintien ou prise de masse, sur une période et avec un objectif de poids.
 • Bilan de la période : assiduité, charges, poids, sommeil. L'appli te dit si ta sèche ou ta prise se passe bien, et quoi ajuster.
-• Journal avec calendrier : séances faites, séances prévues, activités (course, vélo, sport…).
+• Journal avec calendrier : séances faites, séances prévues, sommeil, calories, poids et mensurations du jour.
 
 <b>Tes données t'appartiennent</b>
 • Aucun compte, aucune donnée envoyée sur Internet : tout est enregistré sur ton téléphone.

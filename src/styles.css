@@ -17,6 +17,8 @@
   --texte: var(--text-primary);
   --texte-2: var(--text-secondary);
   --texte-3: #9098a8;
+  /* Alias utilisé à plusieurs endroits : même gris discret que --texte-3. */
+  --texte-faible: var(--texte-3);
   --accent: var(--accent-orange);
   --accent-texte: #1a0d03;
   --ok: var(--accent-green);

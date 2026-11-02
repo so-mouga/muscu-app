@@ -19,7 +19,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 ### 1. Première ouverture
 - L'accueil montre seulement « Pour commencer, choisis ton programme ».
 - Choisir un programme tout prêt (Full body 3 jours, Haut / Bas 4 jours, Recompo) : il devient actif, ses séances apparaissent.
-- Réglages (bouton en haut à droite de l'accueil, pas dans la barre du bas) → Mon profil : taille, naissance, sexe, activité.
+- Réglages : bouton en haut à droite de l'accueil, pas dans la barre du bas. (Pas de profil ni d'activités hors muscu : retirés volontairement.)
 
 ### 2. Accueil (journal du matin)
 - Date, puis la **phase toujours sous la date** (même quand le bandeau du cycle est affiché ; un appui ouvre Corps → Objectifs ; sans phase jamais réglée : « Pas de phase · Choisir › »), séance du jour, bouton Démarrer **visible sans défiler**. « 🔥 À battre » (3 lignes max) n'apparaît que si un objectif plus haut que la dernière fois a été fixé (conseil 💡 appliqué ou ✎ en fin de séance) : par défaut on refait pareil, il n'y a donc rien à battre.
@@ -56,9 +56,9 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 
 ### 6. Progression (Bilan et Journal) et Corps (onglet à part)
 - **Bilan** : périodes, « À retenir », assiduité, muscles, intensité, corps, semaine par semaine, « Partager ce bilan » (texte copié). Avec historique : exercices bloqués et leurs pistes chiffrées, lecture de la phase (sèche / prise).
-- **Journal** : calendrier (glisser à gauche / à droite change de mois, un an en avant), jours prévus en pointillé orange, déload en violet, phase en trait de couleur. Toucher un jour : séances (détail, corriger une série, série oubliée), activités (+ Ajouter une activité), poids, mensurations (taille + écart, fenêtre de toutes les valeurs), photos (vignettes → plein écran, « Comparer avec »), sommeil et calories (un appui ouvre le choix, choisir enregistre et referme, Annuler / Effacer).
+- **Journal** : calendrier (glisser à gauche / à droite change de mois, un an en avant), jours prévus en pointillé orange, déload en violet, phase en trait de couleur. Toucher un jour : séances (détail, corriger une série, série oubliée), poids, mensurations (taille + écart, fenêtre de toutes les valeurs), photos (vignettes → plein écran, « Comparer avec »), sommeil et calories (un appui ouvre le choix, choisir enregistre et referme, Annuler / Effacer).
 - **Corps** : poids (moyenne 7 jours), mensurations (silhouette, consignes), photos (séance photo guidée : une seule pose puis « Terminer » doit la garder ; Galerie ; « ✎ Modifier » une date : changer la date, remplacer ou supprimer une pose ; dates anciennes repliées ; « Importer des photos déjà prises » avec date modifiable, comparer deux dates côte à côte / superposées, plein écran avec zoom à deux doigts **indépendant sur chaque photo**, double appui).
-- **Objectifs** (onglet Corps → Poids, sous la pesée) : phases sèche / maintien / prise / aucune, en cours / à venir / passées, « + Ajouter une phase après », allonger, raccourcir, supprimer (les phases suivantes se décalent), objectif de poids en ± kg, calories visées.
+- **Objectifs** (onglet Corps → sous-onglet Objectifs) : phases sèche / maintien / prise / aucune, en cours / à venir / passées, « + Ajouter une phase après », allonger, raccourcir, supprimer (les phases suivantes se décalent), objectif de poids en ± kg, calories visées (fixées à la main ; pas de calcul automatique, voulu).
 
 ### 7. Réglages (bouton en haut à droite de l'accueil ; ← et le retour reviennent à l'accueil)
 - « 💬 Donner mon avis » en haut (mail pré-rempli).
