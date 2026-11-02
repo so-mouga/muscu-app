@@ -64,6 +64,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 - **Teinte et boutons, pour toute l'appli** : `af79a66`, validé par l'utilisateur. Remplace le relief de `75ead3c`, jugé vieillot.
 - **Test du parcours de séance fiable** : `b0fc9aa`.
 - **Écran « Voir » et fenêtre Échauffement** : plus d'exercices visibles, ligne à la place de l'interrupteur, fenêtres qui montent vraiment du bas (toutes les fenêtres du bas en profitent). Fluidité à confirmer sur le téléphone.
+- **Vue liste de la séance** : toute la séance en une liste, plus de saisie ; plein écran = faire, liste = voir et organiser. À essayer sur le téléphone.
 
 ### Décisions validées, absentes d'`AGENTS.md`
 
@@ -73,14 +74,13 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ### Reste à faire, dans l'ordre
 
-1. **Vue liste de la séance** : l'utilisateur a annoncé des retours, pas encore donnés. Ne pas la refaire avant.
-2. **Fin de séance.**
-3. **Accueil.**
-4. **Progression** (Bilan, Journal).
-5. **Corps.**
-6. **Programmes.**
-7. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
-8. **Réglages.**
+1. **Fin de séance.**
+2. **Accueil.**
+3. **Progression** (Bilan, Journal).
+4. **Corps.**
+5. **Programmes.**
+6. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
+7. **Réglages.**
 
 À traiter en refaisant ces écrans :
 
@@ -93,7 +93,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ### Choix en attente de l'avis de l'utilisateur
 
-- **Vue liste** : ses retours.
+- **« Voir la suite de la séance › »** (plein écran, au repos) : fait double emploi avec la nouvelle liste. À retirer si l'utilisateur est d'accord.
 - **Halo du cercle de repos** : en ligne, mais aucun avis donné sur ce point précis. Sa fluidité sur le téléphone n'est pas confirmée non plus.
 - **Lueur de réussite** (record, série battue) : proposée, pas décidée.
 - **Lueur très légère en haut de l'écran** : proposée, pas essayée.

@@ -36,7 +36,7 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
   const ids = e.ids.filter((id) => mouvement(id, liste))
   const nbFaits = ids.filter((id) => e.faits.includes(id)).length
   const tousFaits = nbFaits === ids.length
-  // Revenu par la pastille 🤸 une fois la séance commencée : on consulte, on ne recommence pas.
+  // Revenu par sa ligne dans la liste une fois la séance commencée : on consulte, on ne recommence pas.
   const revoir = !echauffementActif(seance)
   const cocher = (id: string) =>
     void majSeance(seance.id, (s) => {

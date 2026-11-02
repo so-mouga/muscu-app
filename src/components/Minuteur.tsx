@@ -27,17 +27,13 @@ export const BIPS_DEFAUT = 5
 interface Props {
   etat: EtatMinuteur
   onChange: (e: EtatMinuteur | null) => void
-  /** Ce qui vient après le repos, ex. « Butterfly · série 3/4 » (affiché quand on regarde un autre exercice). */
-  ensuite?: string
-  /** Présent quand l'écran affiché n'est pas l'exercice en cours : y revenir en un appui. */
-  onAller?: () => void
   /** `barre` : en bas de l'écran ; `grand` : cercle du mode plein écran ; `bandeau` : en haut du mode plein écran. */
   variante?: 'barre' | 'grand' | 'bandeau'
   /** Barre : appui sur le temps → mode plein écran. */
   onAgrandir?: () => void
 }
 
-export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 'barre', onAgrandir }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -152,14 +148,6 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
         <span className="espace" />
         {boutons}
       </div>
-      {ensuite && !bandeau && onAller && (
-        <button className={'ensuite cliquable' + (fini ? ' reprendre' : '')} onClick={onAller}>
-          <span>
-            <span className="label">{fini ? 'À toi' : 'Ensuite'}</span> {ensuite}
-          </span>
-          <span className="aller">{fini ? 'Reprendre ›' : 'Y aller ›'}</span>
-        </button>
-      )}
     </div>
   )
 }

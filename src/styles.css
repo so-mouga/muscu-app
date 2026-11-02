@@ -238,9 +238,6 @@ select {
   display: block;
   padding-bottom: 8px;
 }
-.entete.colle .pills {
-  margin-bottom: 0;
-}
 
 .carte {
   background: var(--surface);
@@ -274,12 +271,10 @@ button,
 [role="button"],
 .btn,
 .liste-btn,
-.serie-faite,
 .stepper button,
 .rpe button,
 .chips button,
 .chauffes button,
-.pills button,
 .pastille-jour,
 .frise-jour-rond,
 .sous-seance-item,
@@ -294,12 +289,10 @@ button:active:not(:disabled),
 [role="button"]:active,
 .btn:active:not(:disabled),
 .liste-btn:active,
-.serie-faite:active,
 .stepper button:active,
 .rpe button:active,
 .chips button:active,
 .chauffes button:active,
-.pills button:active,
 .pastille-jour:active,
 .frise-jour-rond:active,
 .sous-seance-item:active,
@@ -434,34 +427,6 @@ button:active:not(:disabled),
 }
 
 /* Séance */
-.pills {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  margin: 0 -16px 12px;
-  padding-left: 16px;
-  padding-right: 16px;
-  scrollbar-width: none;
-}
-.pills button {
-  flex: 0 0 auto;
-  min-width: var(--cible);
-  height: var(--cible);
-  border-radius: var(--rayon-2);
-  background: var(--controle);
-  border: 1px solid transparent;
-  color: var(--texte-salle);
-  font-weight: 700;
-}
-.pills button.actif {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.pills button.fait {
-  background: var(--surface-2);
-  color: var(--ok);
-}
 
 .stepper {
   display: grid;
@@ -566,21 +531,6 @@ button:active:not(:disabled),
   border-color: var(--ok);
 }
 
-.serie-faite {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: var(--rayon-2);
-  background: var(--surface-2);
-  margin-bottom: 6px;
-  font-variant-numeric: tabular-nums;
-}
-.serie-faite.edition {
-  outline: 2px solid var(--accent);
-}
 
 .bandeau-fin {
   border: 1px solid var(--finisseur);
@@ -1016,44 +966,6 @@ html[data-sens='arriere']::view-transition-new(root) {
   background: var(--blanc);
 }
 
-/* Minuteur : ce qui vient ensuite */
-.minuteur .ensuite {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  max-width: 528px;
-  margin: 8px auto 0;
-  padding: 8px 12px;
-  border-radius: var(--rayon-2);
-  background: var(--surface-2);
-  text-align: left;
-  font-size: var(--t-petit);
-  font-weight: 600;
-  opacity: 1;
-}
-.minuteur .ensuite .label {
-  font-size: var(--t-legende);
-  font-weight: 600;
-  opacity: 0.65;
-  margin-right: 4px;
-}
-.minuteur .ensuite.cliquable {
-  background: var(--accent);
-  color: var(--accent-texte);
-}
-.minuteur .ensuite .aller {
-  flex: 0 0 auto;
-  font-weight: 800;
-}
-.minuteur.fini .ensuite {
-  background: var(--silhouette-bord);
-}
-.minuteur.fini .ensuite.cliquable {
-  background: var(--minuteur-fini);
-  color: var(--ok);
-}
 
 /* Durée libre */
 .mini-stepper .duree {
@@ -1108,68 +1020,14 @@ html[data-sens='arriere']::view-transition-new(root) {
 }
 
 /* Exercice en cours dans la barre (distinct de l'exercice affiché, entouré) */
-.pills button {
-  position: relative;
-}
-.pills button.en-cours {
-  background: var(--accent-voile);
-  color: var(--accent);
-  border-color: var(--accent-bord);
-}
-.pills button.en-cours.actif {
-  border-color: var(--accent);
-}
-.pills button.en-cours::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--texte);
-  border: 2px solid var(--bg);
-  animation: pouls 1.6s ease-in-out infinite;
-}
-.pills {
-  padding-top: 4px;
-}
 @keyframes pouls {
   50% {
     transform: scale(0.6);
     opacity: 0.5;
   }
 }
-.legende-pills {
-  display: flex;
-  gap: 14px;
-  font-size: var(--t-legende);
-  color: var(--texte-3);
-  margin-top: 6px;
-}
-.legende-pills i {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  margin-right: 5px;
-  vertical-align: -1px;
-}
 
 /* Exercice consulté (pas en cours) */
-.consultation {
-  border: 1px dashed var(--bord);
-  border-radius: var(--rayon-2);
-  padding: 12px;
-}
-.serie-prevue {
-  padding: 8px 10px;
-  border-radius: var(--rayon-2);
-  background: var(--surface-2);
-  margin-bottom: 4px;
-  font-size: var(--t-petit);
-  font-variant-numeric: tabular-nums;
-}
 
 /* Bouton Démarrer collé en bas de l'aperçu, au-dessus des onglets */
 .barre-demarrer {
@@ -1183,36 +1041,6 @@ html[data-sens='arriere']::view-transition-new(root) {
 /* Séries de l'exercice : faites, en cours (saisie collée dessous), à venir */
 .ok-texte {
   color: var(--ok);
-}
-.serie-prevue {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-.serie-prevue.a-venir {
-  opacity: 0.5;
-}
-.serie-prevue.en-cours {
-  color: var(--accent);
-  font-weight: 700;
-  background: transparent;
-  padding: 2px 0 8px;
-}
-.serie-bloc {
-  border: 2px solid var(--accent);
-  border-radius: var(--rayon-2);
-  padding: 10px 12px 12px;
-  margin-bottom: 6px;
-  scroll-margin: 140px;
-}
-.serie-bloc > .serie-faite.edition {
-  outline: none;
-  background: transparent;
-  padding: 0 0 8px;
-}
-.minuteur .ensuite.reprendre {
-  padding: 14px 14px;
-  font-size: var(--t-texte);
 }
 
 /* Échauffement : lignes cochables avant les séries */
@@ -1266,9 +1094,6 @@ html[data-sens='arriere']::view-transition-new(root) {
 }
 .avant.moins {
   color: var(--alerte);
-}
-.serie-prevue .avant {
-  opacity: 1;
 }
 
 /* Accordéon par groupe musculaire */
@@ -1388,21 +1213,6 @@ html[data-sens^='carte']::view-transition-old(root),
 html[data-sens^='carte']::view-transition-new(root) {
   animation: none;
 }
-html[data-sens^='carte'] .carte-exo {
-  view-transition-name: carte-exo;
-}
-html[data-sens='carte-avant']::view-transition-old(carte-exo) {
-  animation: sortie-gauche 0.2s ease-in both;
-}
-html[data-sens='carte-avant']::view-transition-new(carte-exo) {
-  animation: entree-droite 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-html[data-sens='carte-arriere']::view-transition-old(carte-exo) {
-  animation: sortie-droite 0.2s ease-in both;
-}
-html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
-  animation: entree-gauche 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
 .minuteur.en-pause .temps {
   opacity: 0.55;
 }
@@ -1411,13 +1221,6 @@ html[data-sens='carte-arriere']::view-transition-new(carte-exo) {
   font-weight: 700;
 }
 
-.pills button.passe {
-  opacity: 0.45;
-  text-decoration: line-through;
-}
-.exo-passe h2 {
-  color: var(--texte-3);
-}
 
 .recap-serie {
   display: block;
@@ -1492,12 +1295,6 @@ body:has(.focus) {
   border-radius: var(--rayon);
   box-shadow: 0 8px 24px var(--ombre-legere);
   padding: 14px 16px;
-}
-.focus .carte-exo {
-  margin-bottom: 0;
-}
-.focus .serie-bloc {
-  scroll-margin-top: 100px;
 }
 .minuteur.grand,
 .minuteur.bandeau {
@@ -2418,18 +2215,7 @@ body:has(.focus) {
 .ligne-semaine.pause {
   padding: 6px 0;
 }
-.ajuster-series {
-  gap: 8px;
-}
-.ajuster-series .btn {
-  flex: 1;
-  min-height: 44px;
-}
 /* Barre des exercices en séance : un dégradé signale qu'elle défile. */
-.pills.deborde {
-  -webkit-mask-image: linear-gradient(to right, #000 85%, transparent);
-  mask-image: linear-gradient(to right, #000 85%, transparent);
-}
 /* En-tête du plein écran : infos sur une ligne, actions sur la suivante. */
 .focus-haut {
   display: flex;
@@ -2545,15 +2331,6 @@ button.pastille.cliquable {
   border-radius: var(--rayon-2);
   border: 1px solid var(--ok);
   margin-bottom: 4px;
-}
-.chauffes-repliees {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  padding: 10px 0;
-  color: var(--texte-3);
-  font-size: var(--t-petit);
 }
 /* Lien d'action dans le texte : discret, mais une zone d'appui de 44 px pour le pouce. */
 .btn.lien-action {
@@ -3170,13 +2947,6 @@ button.semaine-bilan.cliquable {
 }
 
 /* Accueil, journal du matin */
-.pills-accueil {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-top: 6px;
-}
 .pill-accueil,
 .phase-accueil,
 button.pill-accueil,
@@ -3343,7 +3113,7 @@ button.phase-accueil:active {
 .indice-plein-ecran {
   font-size: var(--t-legende);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--texte-2);
   white-space: nowrap;
 }
 .minuteur.fini .indice-plein-ecran {
@@ -3430,10 +3200,6 @@ a.btn {
 }
 
 /* Échauffement fini : sa pastille passe en gris, on peut encore y revenir pour revoir un mouvement. */
-.pills button.echauffement-fini {
-  opacity: 0.45;
-  filter: grayscale(1);
-}
 /* Choix des mouvements (réglage de la séance) : choisi = case cochée, sans barrer le nom. */
 .mouvement.choisi .case {
   border-color: var(--accent);
@@ -3854,9 +3620,6 @@ button.phase-accueil {
 .focus .toast {
   top: calc(var(--e1) + env(safe-area-inset-top));
 }
-.serie-bloc.en-saisie {
-  scroll-margin-top: 150px;
-}
 /* Petits écrans : on resserre les écarts plutôt que de faire défiler. */
 @media (max-height: 700px) {
   :root {
@@ -4040,4 +3803,118 @@ html[data-sens='fondu']::view-transition-new(root) {
   flex: 0 0 auto;
   font-size: var(--t-petit);
   color: var(--texte-2);
+}
+
+/* Vue liste de la séance : toute la séance d'un coup d'œil ; la saisie se fait en plein écran. */
+.liste-seance {
+  margin-bottom: 110px;
+}
+.liste-terminer {
+  margin-bottom: var(--e3);
+}
+.ligne-seance {
+  padding: 0;
+  margin-bottom: var(--e2);
+}
+.ligne-seance.en-cours {
+  background: var(--accent-voile);
+}
+.ligne-seance-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  width: 100%;
+  min-height: var(--cible);
+  padding: var(--e3);
+  background: none;
+  text-align: left;
+  color: var(--texte);
+}
+.ligne-seance-etat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: var(--t-petit);
+  font-weight: 700;
+  color: var(--texte-2);
+}
+.ligne-seance.en-cours .ligne-seance-etat {
+  color: var(--accent);
+}
+.ligne-seance.fait .ligne-seance-etat {
+  color: var(--ok);
+}
+.ligne-seance.fait .ligne-seance-texte strong,
+.ligne-seance.passe .ligne-seance-texte strong {
+  color: var(--texte-2);
+}
+.ligne-seance-texte {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.ligne-seance-chevron {
+  flex: 0 0 auto;
+  color: var(--texte-3);
+  transition: transform var(--duree-courte) var(--sortie);
+}
+.ligne-seance-chevron.ouvert {
+  transform: rotate(180deg);
+}
+.ligne-seance-continuer {
+  padding: 0 var(--e3) var(--e3);
+}
+.ligne-seance-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  padding: 0 var(--e3) var(--e3);
+}
+.ligne-serie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  width: 100%;
+  min-height: var(--cible);
+  padding: var(--e1) 0;
+  background: none;
+  border-top: 1px solid var(--bord);
+  text-align: left;
+  color: var(--texte);
+  font-size: var(--t-petit);
+}
+.ligne-serie.a-venir {
+  color: var(--texte-2);
+}
+.ligne-seance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+}
+.ligne-seance-actions .btn {
+  min-height: var(--cible);
+}
+.carte.ligne-seance.en-superset {
+  padding-left: 0;
+}
+.btn.sans-coupure {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+/* Écrans étroits : tous les boutons du repos restent dans l'écran. */
+@media (max-width: 380px) {
+  .minuteur .contenu {
+    gap: var(--e1);
+  }
+  .minuteur .btn {
+    padding: 0 var(--e2);
+  }
 }

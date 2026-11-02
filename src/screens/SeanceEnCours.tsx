@@ -1,20 +1,21 @@
 import { createPortal } from 'react-dom'
-import { Check, Flame, Frown, Info, Link2, Maximize2, Pencil, Play, Smile, Square, StickyNote, Timer, TriangleAlert, Trophy, Wind, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Smile, Square, StickyNote, Timer, TriangleAlert, Trophy, Wind, X } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import Anneau from '../components/Anneau'
-import CarteExo, { cibleSerie, Editeur, majSeance } from '../components/CarteExo'
+import { cibleSerie, Editeur, majSeance, Photo } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif, { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
+import Vignette from '../components/Vignette'
 import Minuteur, { BIPS_DEFAUT, resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { chrono, ecartSerie, lireChauffe, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
+import { chrono, ecartSerie, lireChauffe, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -133,18 +134,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const sonValidation = reglageSon?.valeur !== false
   /** Fiche d'exécution ouverte depuis le plein écran. */
   const [infos, setInfos] = useState<string | null>(null)
-  // Barre des exercices : dégradé à droite tant qu'il reste des exercices cachés.
-  const pills = useRef<HTMLDivElement>(null)
-  const marquerDebord = () => {
-    const el = pills.current
-    if (el) el.classList.toggle('deborde', el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
-  }
-  useEffect(marquerDebord)
   /** Objectif réglé sur place (index de l'exercice dans la séance). */
   const [objectifDe, setObjectifDe] = useState<number | null>(null)
   const [fin, setFin] = useState(false)
   const [choix, setChoix] = useState<Choix | null>(null)
-  const [machinePrise, setMachinePrise] = useState(false)
+  /** Machine prise : index de l'exercice concerné. */
+  const [machineDe, setMachineDe] = useState<number | null>(null)
+  /** Vue liste : exercice déplié (un seul à la fois). */
+  const [ouvert, setOuvert] = useState<number | null>(null)
   /** Après un remplacement : proposer de relier les deux exercices. */
   const [lien, setLien] = useState<{ a: string; b: string } | null>(null)
   const [verrou, setVerrou] = useState(false)
@@ -154,13 +151,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const reposTraite = useRef<number | null>(null)
 
   const plans = seance.exercices
-  // Échauffement passé sans rien cocher : plus de pastille 🤸, il n'y a rien à revoir.
+  // Échauffement passé sans rien cocher : plus de ligne dans la liste, il n'y a rien à revoir.
   const avecEchauffement = !!seance.echauffement?.ids.length && !(seance.echauffement.fini && !seance.echauffement.faits.length)
   const idx = idxBrut === -1 && avecEchauffement ? -1 : Math.max(0, Math.min(idxBrut, plans.length - 1))
   const surEchauffement = idx === -1 || echauffementActif(seance)
 
   // Quand l'échauffement se termine (tout coché, « Passer », 1re série), aller au 1er exercice. Une fois
-  // fini, on peut toujours y revenir par la pastille 🤸 : seul le passage actif → fini fait avancer.
+  // fini, on peut toujours y revenir par sa ligne dans la liste : seul le passage actif → fini fait avancer.
   const echauffementAvant = useRef(echauffementActif(seance))
   useEffect(() => {
     const actif = echauffementActif(seance)
@@ -182,7 +179,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     range(`idx:${seance.id}`, i)
     window.scrollTo({ top: 0 })
   }
-  // Navigation faite par l'utilisateur (pastilles, Précédent/Suivant, Y aller, plein écran ↔ liste) :
+  // Navigation faite par l'utilisateur (plein écran ↔ liste, Continuer, Faire maintenant) :
   // gardée dans l'ordre pour que le retour la défasse. Les déplacements automatiques n'y entrent pas.
   const pileNav = useRef<{ idx: number; focus: boolean }[]>([])
   const naviguer = (fn: () => void) => {
@@ -244,6 +241,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     else setSortie(true)
     return 'rester'
   })
+
+  // Retour Android dans la liste : un exercice déplié se replie d'abord.
+  useRetour(!focus && !fin && ouvert !== null, () => setOuvert(null))
 
   useEffect(() => {
     ecranAllume(true)
@@ -403,7 +403,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   /** Machine prise : un autre exercice prend sa place, celui-ci se fera à la place de l'autre. */
   const echanger = async (i: number, j: number) => {
-    setMachinePrise(false)
+    setMachineDe(null)
     await majSeance(seance.id, (s) => {
       const a = s.exercices[i]
       s.exercices[i] = s.exercices[j]
@@ -419,11 +419,15 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       s.courant = plans[i].exoId
     })
   }
-  const allerEnCours = () => (enCours >= 0 ? naviguer(() => setIdx(enCours)) : ouvrirFin(true))
+  /** Depuis la liste : on passe en plein écran, là où se fait la saisie (i = -1 : l'échauffement). */
+  const allerSaisir = (i: number) => {
+    setOuvert(null)
+    naviguer(() => (setIdx(i), setFocus(true)))
+  }
 
   /** Passer : l'exercice reste dans la séance, grisé ; le modèle ne change pas. */
   const passer = async (i: number) => {
-    setMachinePrise(false)
+    setMachineDe(null)
     const id = plans[i].exoId
     await majSeance(seance.id, (s) => {
       s.passes = [...new Set([...(s.passes ?? []), id])]
@@ -442,7 +446,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const estPasse = (i: number) => !!seance.passes?.includes(plans[i].exoId)
 
   const delierSuperset = async (i: number) => {
-    setMachinePrise(false)
+    setMachineDe(null)
     const g = groupeSuperset(plans, i)
     await majSeance(seance.id, (s) => {
       for (const k of g) {
@@ -481,76 +485,43 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const reposRestant = minuteur ? Math.max(0, Math.ceil(resteRepos(minuteur, maintenant))) : 0
 
   // Fin du repos : sans geste pendant le repos (téléphone posé), retour sur la série à faire.
-  // Si l'utilisateur regardait autre chose, on ne le déplace pas : le minuteur propose « Reprendre ».
+  // Si l'utilisateur regardait autre chose, on ne le déplace pas : « Continuer » reste sur la liste.
   repriseAuto.current = (finR) => {
     if (!minuteur || fin || enCours < 0 || Date.now() - finR > 60000) return
     const debut = minuteur.debut ?? finR - minuteur.duree * 1000
     if (derniereTouche.current > debut + 500) return
     if (enCours !== idx) setIdx(enCours)
-    setTimeout(() => document.querySelector('.serie-bloc')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
   }
 
   if (fin) return <FinSeance seance={seance} terminees={terminees} reglages={reglages} catalogue={catalogue} onRetour={() => ouvrirFin(false)} />
 
-  const plan = plans[idx]
-
   // Mode plein écran : le repos en grand, puis la carte de l'exercice en cours pour saisir la série.
   const reposEnCours = !!minuteur && !(minuteur.pause === undefined && minuteur.fin <= maintenant)
   const vueRepos = reposEnCours && !saisie
-  const pastilles = (
-    <div className="pills" ref={pills} onScroll={marquerDebord}>
-      {avecEchauffement && (
-        <button
-          className={(surEchauffement ? 'actif ' : '') + (!echauffementActif(seance) ? 'fait echauffement-fini' : 'en-cours')}
-          onClick={() => naviguer(() => setIdx(-1))}
-          aria-label="Échauffement (terminé, le revoir)"
-        >
-          🤸
-        </button>
-      )}
-      {plans.map((p, i) => {
-        const passe = estPasse(i)
-        const fait = !passe && nbFaites(p.exoId) >= totalDe(i)
-        const enCoursExo = !echauffementActif(seance) && i === enCours
-        return (
-          <button
-            key={p.exoId + i}
-            className={(!surEchauffement && i === idx ? 'actif ' : '') + (fait ? 'fait ' : '') + (passe ? 'passe ' : '') + (enCoursExo ? 'en-cours' : '')}
-            onClick={() => naviguer(() => setIdx(i))}
-            aria-label={enCoursExo ? `Exercice ${i + 1}, en cours` : undefined}
-          >
-            {fait ? '✓' : passe ? '–' : i + 1}
-          </button>
-        )
-      })}
-      <button onClick={() => setChoix({ mode: 'ajouter' })} aria-label="Ajouter un exercice">
-        +
-      </button>
+  const resumeAvancement = (
+    <div className="ligne focus-avancement">
+      <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait`}>
+        <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
+      </Anneau>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait'}</strong>
+        <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
+          <Timer size={14} /> {chronoSeance(maintenant - seance.debut)}
+          {resteSec > 0 && <> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</>}
+        </div>
+      </div>
     </div>
   )
   const avancementCompact = (
     <div className="focus-haut">
-      <div className="ligne focus-avancement">
-        <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait`}>
-          <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
-        </Anneau>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div>
-            <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait'}</strong>
-            {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
-          </div>
-          <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
-            <Timer size={14} /> {chronoSeance(maintenant - seance.debut)}
-          </div>
-        </div>
-      </div>
+      {resumeAvancement}
       <div className="focus-boutons">
         {/* Pendant l'échauffement : on y reste (pas de saut vers un exercice, pas de « Machine prise »). */}
         <button className="btn petit" onClick={() => naviguer(() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false)))}>
           Voir la séance
         </button>
         {enCours >= 0 && !echauffementActif(seance) && restantes > 0 && (
-          <button className="btn petit" onClick={() => (setIdx(enCours), setMachinePrise(true))}>
+          <button className="btn petit" onClick={() => setMachineDe(enCours)}>
             Machine prise
           </button>
         )}
@@ -582,19 +553,19 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           }}
         />
       )}
-      {machinePrise && plan && (
+      {machineDe !== null && plans[machineDe] && (
         <MachinePrise
-          nom={exos[idx].nom}
-          entame={nbFaites(plan.exoId) > 0}
+          nom={exos[machineDe].nom}
+          entame={nbFaites(plans[machineDe].exoId) > 0}
           autres={plans
             .map((_, j) => j)
-            .filter((j) => j !== idx && !estPasse(j) && nbFaites(plans[j].exoId) < totalDe(j))
+            .filter((j) => j !== machineDe && !estPasse(j) && nbFaites(plans[j].exoId) < totalDe(j))
             .map((j) => ({ i: j, nom: exos[j].nom, entame: nbFaites(plans[j].exoId) > 0 }))}
-          onEchanger={(j) => echanger(idx, j)}
-          onRemplacer={() => (setMachinePrise(false), setChoix({ mode: 'remplacer', i: idx }))}
-          onPasser={() => passer(idx)}
-          onDelierSuperset={estDansSuperset(plans, idx) ? () => delierSuperset(idx) : undefined}
-          onFermer={() => setMachinePrise(false)}
+          onEchanger={(j) => echanger(machineDe, j)}
+          onRemplacer={() => (setMachineDe(null), setChoix({ mode: 'remplacer', i: machineDe }))}
+          onPasser={() => passer(machineDe)}
+          onDelierSuperset={estDansSuperset(plans, machineDe) ? () => delierSuperset(machineDe) : undefined}
+          onFermer={() => setMachineDe(null)}
         />
       )}
       {choix && (
@@ -636,6 +607,28 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       )}
     </>
   )
+
+  // Correction : une fenêtre par-dessus l'écran, le repos continue derrière.
+  const correction = (() => {
+    const serie = corrige ? seance.series.find((x) => x.id === corrige) : undefined
+    const i = serie ? plans.findIndex((p) => p.exoId === serie.exoId) : -1
+    if (!serie || i < 0) return null
+    const reste = minuteur ? resteRepos(minuteur, maintenant) : 0
+    const repos = !minuteur ? null : minuteur.pause !== undefined ? `Repos en pause · ${chrono(Math.ceil(reste))}` : reste > 0 ? `Repos ${chrono(Math.ceil(reste))}` : 'Repos terminé'
+    return (
+      <FenetreCorrection
+        key={serie.id}
+        seance={seance}
+        plan={plans[i]}
+        exo={exos[i]}
+        sugg={suggestions[i]}
+        serie={serie}
+        total={totalDe(i)}
+        repos={repos}
+        onFermer={() => setCorrige(null)}
+      />
+    )
+  })()
 
   if (focus) {
     // La série qu'on vient de faire : battue (on le fête), et de quel exercice (pour la corriger s'il est fini).
@@ -738,28 +731,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )
     })()
-    // Correction : une fenêtre par-dessus le plein écran, le repos continue derrière.
-    const correction = (() => {
-      const serie = corrige ? seance.series.find((x) => x.id === corrige) : undefined
-      const i = serie ? plans.findIndex((p) => p.exoId === serie.exoId) : -1
-      if (!serie || i < 0) return null
-      const reste = minuteur ? resteRepos(minuteur, maintenant) : 0
-      const repos = !minuteur ? null : minuteur.pause !== undefined ? `Repos en pause · ${chrono(Math.ceil(reste))}` : reste > 0 ? `Repos ${chrono(Math.ceil(reste))}` : 'Repos terminé'
-      return (
-        <FenetreCorrection
-          key={serie.id}
-          seance={seance}
-          plan={plans[i]}
-          exo={exos[i]}
-          sugg={suggestions[i]}
-          serie={serie}
-          total={totalDe(i)}
-          repos={repos}
-          onFermer={() => setCorrige(null)}
-        />
-      )
-    })()
-
     return (
       <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
@@ -903,24 +874,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     )
   }
 
+  // La liste : toute la séance d'un coup d'œil, on y organise ; la saisie se fait en plein écran.
+  const enEchauffement = echauffementActif(seance)
   return (
     <div>
       <div className="entete colle">
-        <div className="ligne entre" style={{ marginBottom: 10 }}>
-          {/* Avancement et chrono ; un appui ouvre le plein écran. */}
-          <button className="resume-seance" onClick={() => naviguer(() => setFocus(true))} aria-label="Plein écran">
-            <Anneau valeur={avancement} taille={40} label={`${Math.round(avancement * 100)} % de la séance fait`}>
-              <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
-            </Anneau>
-            <span>
-              <strong className="chrono-seance">{chronoSeance(maintenant - seance.debut)}</strong>
-              <span className="faible">
-                {totalSeries > 0 && (restantes > 0 ? `reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'tout est fait')}
-              </span>
-              <span className="indice-plein-ecran"><Maximize2 size={12} className="ico-texte" /> Plein écran</span>
-            </span>
-          </button>
-          <button className="btn" onClick={() => ouvrirFin(true)}>
+        <div className="ligne entre">
+          {resumeAvancement}
+          <button className="btn petit sans-coupure" onClick={() => ouvrirFin(true)}>
             Fin de séance
           </button>
         </div>
@@ -933,87 +894,285 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </div>
         )}
         {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
-        {!echauffementActif(seance) && pastilles}
-        {!surEchauffement && enCours >= 0 && enCours !== idx && (
-          <div className="legende-pills">
-            <span>
-              <i style={{ background: 'var(--accent)' }} />
-              en cours : {exos[enCours]?.nom}
-            </span>
-            <span>
-              <i style={{ border: '2px solid var(--accent)' }} />
-              affiché
-            </span>
-          </div>
-        )}
       </div>
 
-      {surEchauffement ? (
-        <Echauffement seance={seance} onPasser={() => setIdx(Math.max(0, enCours))} />
-      ) : plan ? (
-        <CarteExo
-          key={plan.exoId + idx}
-          seance={seance}
-          plan={plan}
-          exo={exos[idx]}
-          sugg={suggestions[idx]}
-          derniere={historiqueDe(terminees, plan.exoId)[0]}
-          onValide={valider}
-          onMachinePrise={() => setMachinePrise(true)}
-          reposRestant={reposRestant}
-          verrou={verrou}
-          consultation={idx !== enCours}
-          enCoursNom={enCours >= 0 ? exos[enCours]?.nom : undefined}
-          onFaireMaintenant={() => faireMaintenant(idx)}
-          passe={estPasse(idx)}
-          onAnnulerPasser={() => annulerPasser(idx)}
-          onAllerEnCours={allerEnCours}
-          repere={repereDe(plan.exoId)}
-          onObjectif={!seance.deload && historiqueDe(terminees, plan.exoId).length ? () => setObjectifDe(idx) : undefined}
-          noteAvant={noteAvant(plan.exoId)}
-          bloque={seance.deload || phaseA(catalogue.objectifs, seance.date)?.phase === 'seche' ? 0 : (blocage(exos[idx], terminees ?? [], seance.date)?.semaines ?? 0)}
-        />
-      ) : (
-        <div className="carte pile">
-          <h2>Séance libre</h2>
-          <div className="muted">Ajoute tes exercices au fur et à mesure.</div>
-          <button className="btn primaire grand" onClick={() => setChoix({ mode: 'ajouter' })}>
-            + Ajouter un exercice
+      <div className="liste-seance">
+        {enCours < 0 && !enEchauffement && plans.length > 0 && (
+          <button className="btn primaire grand plein liste-terminer" onClick={() => ouvrirFin(true)}>
+            Terminer la séance
           </button>
-        </div>
-      )}
-
-      {!surEchauffement && plan && (
-        <div className="ligne entre" style={{ marginBottom: 110 }}>
-          <button className="btn" disabled={idx === 0 && !avecEchauffement} onClick={() => naviguer(() => setIdx(idx - 1))}>
-            ← Précédent
-          </button>
-          {idx < plans.length - 1 ? (
-            <button className="btn primaire" onClick={() => naviguer(() => setIdx(idx + 1))}>
-              Suivant →
+        )}
+        {avecEchauffement && (
+          <div className={'carte ligne-seance' + (enEchauffement ? ' en-cours' : ' fait')}>
+            <button className="ligne-seance-tete" onClick={() => allerSaisir(-1)}>
+              <span className="ligne-seance-etat">{enEchauffement ? <Play size={14} fill="currentColor" /> : <Check size={16} />}</span>
+              <span className="ligne-seance-texte">
+                <strong>Échauffement</strong>
+              </span>
+              <span className="faible">{seance.echauffement!.faits.length}/{seance.echauffement!.ids.length}</span>
+              <ChevronRight size={20} className="ligne-seance-chevron" />
             </button>
-          ) : (
-            <button className="btn primaire" onClick={() => ouvrirFin(true)}>
-              Terminer la séance
-            </button>
-          )}
-        </div>
-      )}
+            {enEchauffement && (
+              <div className="ligne-seance-continuer">
+                <button className="btn primaire plein" onClick={() => allerSaisir(-1)}>
+                  Continuer
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
+        {plans.map((p, i) => {
+          const enchaine = !!p.enchaine
+          const precEnchaine = i > 0 && !!plans[i - 1]?.enchaine
+          const groupe = groupeSuperset(plans, i)
+          const histo = historiqueDe(terminees, p.exoId)
+          return (
+            <LigneExoSeance
+              key={p.exoId + i}
+              seance={seance}
+              plan={p}
+              exo={exos[i]}
+              sugg={suggestions[i]}
+              numero={i + 1}
+              total={totalDe(i)}
+              enCours={!enEchauffement && i === enCours}
+              passe={estPasse(i)}
+              superset={groupe.length > 1 ? { position: groupe.indexOf(i) + 1, taille: groupe.length } : undefined}
+              classeSuperset={(groupe.length > 1 ? ' en-superset' : '') + (enchaine ? ' enchaine-vers-suivant' : '') + (precEnchaine && !enchaine ? ' suite-superset' : '')}
+              derniere={histo[0]}
+              repere={repereDe(p.exoId)}
+              noteAvant={noteAvant(p.exoId)}
+              bloque={seance.deload || phaseA(catalogue.objectifs, seance.date)?.phase === 'seche' ? 0 : (blocage(exos[i], terminees, seance.date)?.semaines ?? 0)}
+              ouvert={ouvert === i}
+              onBasculer={() => setOuvert(ouvert === i ? null : i)}
+              onContinuer={() => allerSaisir(i)}
+              onFaireMaintenant={() => void faireMaintenant(i).then(() => allerSaisir(i))}
+              onAnnulerPasser={() => void annulerPasser(i)}
+              onCorriger={(id) => setCorrige(id)}
+              onMachinePrise={() => setMachineDe(i)}
+              onInfos={() => setInfos(p.exoId)}
+              onObjectif={!seance.deload && histo.length ? () => setObjectifDe(i) : undefined}
+            />
+          )
+        })}
+
+        {plans.length === 0 && <div className="muted">Séance libre : ajoute tes exercices au fur et à mesure.</div>}
+        <button className="btn discret plein" onClick={() => setChoix({ mode: 'ajouter' })}>
+          <Plus size={20} /> Ajouter un exercice
+        </button>
+      </div>
+
+      {correction}
       {fenetres}
       {toast && <div className="toast">{toast}</div>}
       {objectifDe !== null && plans[objectifDe] && (
         <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />
       )}
-      {minuteur && (
-        <Minuteur
-          etat={minuteur}
-          onChange={setMinuteur}
-          ensuite={ensuite}
-          onAller={enCours >= 0 && enCours !== idx ? () => naviguer(() => setIdx(enCours)) : enCours < 0 ? () => ouvrirFin(true) : undefined}
-          onAgrandir={() => naviguer(() => setFocus(true))}
-        />
+      {infos && <InfosExo exo={exoAvecReglages(catalogue.exo(infos), reglages)} onFermer={() => setInfos(null)} />}
+      {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} onAgrandir={() => naviguer(() => setFocus(true))} />}
+    </div>
+  )
+}
+
+/** Une ligne de la liste : un résumé ; un appui déplie le détail et les actions rares. */
+function LigneExoSeance({
+  seance,
+  plan,
+  exo,
+  sugg,
+  numero,
+  total,
+  enCours,
+  passe,
+  superset,
+  classeSuperset,
+  derniere,
+  repere,
+  noteAvant,
+  bloque,
+  ouvert,
+  onBasculer,
+  onContinuer,
+  onFaireMaintenant,
+  onAnnulerPasser,
+  onCorriger,
+  onMachinePrise,
+  onInfos,
+  onObjectif,
+}: {
+  seance: Seance
+  plan: ExoPlan
+  exo: Exercice
+  sugg: Suggestion
+  numero: number
+  total: number
+  enCours: boolean
+  passe: boolean
+  superset?: { position: number; taille: number }
+  classeSuperset: string
+  derniere?: Serie[]
+  repere?: string
+  noteAvant?: string
+  bloque: number
+  ouvert: boolean
+  onBasculer: () => void
+  onContinuer: () => void
+  onFaireMaintenant: () => void
+  onAnnulerPasser: () => void
+  onCorriger: (id: string) => void
+  onMachinePrise: () => void
+  onInfos: () => void
+  onObjectif?: () => void
+}) {
+  const [voirNote, setVoirNote] = useState(!!seance.notes[exo.id])
+  const [photo, setPhoto] = useState(false)
+  const faites = seance.series.filter((x) => x.exoId === exo.id)
+  const termine = !passe && faites.length >= total
+  const hausses = sugg.charges.map((_, n) => hausse(exo, sugg, derniere, n))
+  const battre = hausses.some(Boolean)
+  const ajuster = (delta: number) =>
+    majSeance(seance.id, (s) => {
+      s.ajustSeries[exo.id] = (s.ajustSeries[exo.id] ?? 0) + delta
+    })
+  // Fait : ce qui a été fait ; sinon ce qui est visé.
+  const resume = passe && !faites.length ? 'Passé aujourd’hui' : faites.length >= total ? cibleTexte(exo, faites.map((x) => x.charge), faites.map((x) => x.reps)) : cibleTexte(exo, sugg.charges, sugg.reps)
+  const efforts = [...new Set(plan.series.map((x) => kg(x.rpe)))]
+  return (
+    <div className={'carte ligne-seance' + classeSuperset + (enCours ? ' en-cours' : '') + (termine ? ' fait' : '') + (passe ? ' passe' : '')}>
+      <button className="ligne-seance-tete" onClick={onBasculer} aria-expanded={ouvert}>
+        <span className="ligne-seance-etat">{termine ? <Check size={16} /> : passe ? <Minus size={16} /> : enCours ? <Play size={14} fill="currentColor" /> : numero}</span>
+        <span className="ligne-seance-texte">
+          <strong>{exo.nom}</strong>
+          {superset && (
+            <span>
+              <span className="badge-superset">
+                <Link2 size={12} /> Superset {superset.position}/{superset.taille}
+              </span>
+            </span>
+          )}
+          <span className="faible">
+            {resume}
+            {plan.optionnel ? ' · optionnel' : ''}
+          </span>
+        </span>
+        <span className="faible">{faites.length}/{total}</span>
+        <ChevronDown size={20} className={'ligne-seance-chevron' + (ouvert ? ' ouvert' : '')} />
+      </button>
+      {enCours && (
+        <div className="ligne-seance-continuer">
+          <button className="btn primaire plein" onClick={onContinuer}>
+            Continuer
+          </button>
+        </div>
       )}
+      {ouvert && (
+        <div className="ligne-seance-detail">
+          <div className="faible">
+            {schemaPlan(exo, plan)} · effort {efforts.join(', ')}/10 · repos {reposTexte(plan)}
+            {plan.finisseur && <span className="texte-finisseur"> · {FINISSEURS[typeFinisseur(plan)].nom.toLowerCase()}</span>}
+          </div>
+          {battre ? (
+            <div className="muted">
+              <span className="badge-hausse grand"><Flame size={14} className="ico-texte" /> À battre</span> {hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
+            </div>
+          ) : bloque >= 3 ? (
+            <div className="muted">Pas de progrès depuis {bloque} semaines : tente +1 rep ou un cran de charge, et regarde ton sommeil et tes repas.</div>
+          ) : (
+            /* « Comme la dernière fois » n'apprend rien : les séries le montrent. */
+            sugg.decision !== 'pareil' && <div className="muted">{sugg.message}</div>
+          )}
+          {repere && <div className="faible">Repère, sur l’équivalent : <strong>{repere}</strong>. Les charges ne se comparent pas d’une machine à l’autre : ajuste au ressenti.</div>}
+          {(plan.note || exo.notes) && <div className="faible"><Info size={14} className="ico-texte" /> {plan.note ?? exo.notes}</div>}
+          {noteAvant && !seance.notes[exo.id] && <div className="faible"><StickyNote size={14} className="ico-texte" /> La dernière fois : {noteAvant}</div>}
+          <ChauffesCochables seance={seance} plan={plan} exo={exo} />
+
+          <div className="ligne-seance-series">
+            {Array.from({ length: total }, (_, n) => {
+              const f = faites[n]
+              if (!f) {
+                return (
+                  <div key={n} className="ligne-serie a-venir">
+                    <span>
+                      <span className="faible">S{n + 1}</span> {cibleSerie(exo, plan, sugg, n, faites).replace(/ · RPE .*/, '')}
+                    </span>
+                  </div>
+                )
+              }
+              const e = derniere?.[n] && ecartSerie(f, derniere[n], exo)
+              return (
+                <button key={f.id} className="ligne-serie" onClick={() => onCorriger(f.id)} aria-label={`Corriger la série ${n + 1}`}>
+                  <span>
+                    <Check size={14} className="ok-texte ico-texte" /> <span className="faible">S{n + 1}</span> {serieTexte(exo, f, true)} <span className="faible">· effort {kg(f.rpe)}/10</span>
+                    {f.douleur && <TriangleAlert size={14} className="ico-texte" />}
+                    {e && e.sens !== 'egal' && <span className={'avant ' + e.sens}> {e.sens === 'mieux' ? '↑' : '↓'} {e.texte}</span>}
+                  </span>
+                  <Pencil size={16} className="ligne-seance-chevron" />
+                </button>
+              )
+            })}
+          </div>
+          {derniere && sugg.decision !== 'pareil' && <div className="faible">Dernière fois : {cibleTexte(exo, derniere.map((x) => x.charge), derniere.map((x) => x.reps))}</div>}
+
+          {voirNote && (
+            <textarea
+              rows={2}
+              autoFocus={!seance.notes[exo.id]}
+              placeholder="Note (réglage machine, sensation, douleur…)"
+              defaultValue={seance.notes[exo.id] ?? ''}
+              onBlur={(e) => {
+                const v = e.target.value
+                void majSeance(seance.id, (s) => {
+                  s.notes[exo.id] = v
+                })
+              }}
+            />
+          )}
+
+          <div className="ligne-seance-actions">
+            {!enCours && !termine && !passe && (
+              <button className="btn petit" onClick={onFaireMaintenant}>
+                Faire maintenant
+              </button>
+            )}
+            {passe && (
+              <button className="btn petit" onClick={onAnnulerPasser}>
+                Le faire quand même
+              </button>
+            )}
+            {!termine && !passe && (
+              <button className="btn petit" onClick={onMachinePrise}>
+                Machine prise
+              </button>
+            )}
+            {onObjectif && (
+              <button className="btn petit" onClick={onObjectif}>
+                <Pencil size={16} /> Objectif
+              </button>
+            )}
+            {!passe && (
+              <button className="btn petit" onClick={() => void ajuster(+1).then(() => termine && onFaireMaintenant())}>
+                + série
+              </button>
+            )}
+            {!passe && total > faites.length && (
+              <button className="btn petit" onClick={() => void ajuster(-1)}>
+                − série
+              </button>
+            )}
+            {!voirNote && (
+              <button className="btn petit" onClick={() => setVoirNote(true)}>
+                <StickyNote size={16} /> Note
+              </button>
+            )}
+            <button className="btn petit" onClick={onInfos}>
+              <Info size={16} /> Fiche
+            </button>
+            {exo.image && <Vignette exo={exo} taille={44} onClick={() => setPhoto(true)} />}
+          </div>
+        </div>
+      )}
+      {photo && exo.image && <Photo src={exo.image} titre={exo.nom} onFermer={() => setPhoto(false)} />}
     </div>
   )
 }
