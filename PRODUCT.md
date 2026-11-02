@@ -93,7 +93,6 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ### Choix en attente de l'avis de l'utilisateur
 
-- **« Voir la suite de la séance › »** (plein écran, au repos) : fait double emploi avec la nouvelle liste. À retirer si l'utilisateur est d'accord.
 - **Halo du cercle de repos** : en ligne, mais aucun avis donné sur ce point précis. Sa fluidité sur le téléphone n'est pas confirmée non plus.
 - **Lueur de réussite** (record, série battue) : proposée, pas décidée.
 - **Lueur très légère en haut de l'écran** : proposée, pas essayée.

@@ -129,8 +129,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   /** Plein écran : série en cours de correction. */
   const [corrige, setCorrige] = useState<string | null>(null)
   const reglageSon = useLiveQuery(() => db.reglages.get('sonValidation'), [])
-  /** Fenêtre « suite de la séance » en plein écran. */
-  const [suite, setSuite] = useState(false)
   const sonValidation = reglageSon?.valeur !== false
   /** Fiche d'exécution ouverte depuis le plein écran. */
   const [infos, setInfos] = useState<string | null>(null)
@@ -737,14 +735,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
         {correction}
         {vueRepos ? (
-          <>
-            {prochaine}
-            {plans.some((pl, j) => j !== enCours && !estPasse(j) && nbFaites(pl.exoId) < totalDe(j)) && (
-              <button className="btn discret plein" onClick={() => setSuite(true)}>
-                Voir la suite de la séance ›
-              </button>
-            )}
-          </>
+          prochaine
         ) : surEchauffement ? (
           <Echauffement seance={seance} onPasser={() => setIdx(Math.max(0, enCours))} />
         ) : enCours >= 0 ? (
@@ -845,26 +836,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           </div>
         )}
         {fenetres}
-        {suite && (
-          <SuiteSeance
-            exos={plans
-              .map((pl, j) => ({
-                j,
-                nom: exos[j].nom,
-                exo: exos[j],
-                plan: pl,
-                sugg: suggestions[j],
-                faites: seance.series.filter((x) => x.exoId === pl.exoId),
-                total: totalDe(j),
-                passe: estPasse(j),
-                derniereFois: historiqueDe(terminees, pl.exoId)[0],
-                note: pl.note || exos[j].notes || noteAvant(pl.exoId),
-                chauffes: pl.chauffes,
-              }))
-              .filter((x) => x.j !== enCours && !x.passe && x.faites.length < x.total)}
-            onFermer={() => setSuite(false)}
-          />
-        )}
         {toast && <div className="toast">{toast}</div>}
         {objectifDe !== null && plans[objectifDe] && (
           <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />
@@ -1655,121 +1626,6 @@ function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPla
           </button>
         )
       })}
-    </div>
-  )
-}
-
-/** Les exercices qui restent, en plein écran, en accordéon de consultation. */
-function SuiteSeance({
-  exos,
-  onFermer,
-}: {
-  exos: {
-    j: number
-    nom: string
-    exo: Exercice
-    plan: ExoPlan
-    sugg: Suggestion
-    faites: Serie[]
-    total: number
-    derniereFois?: Serie[]
-    note?: string
-    chauffes: string[]
-  }[]
-  onFermer: () => void
-}) {
-  useRetour(true, onFermer)
-  const [ouvert, setOuvert] = useState<number | null>(exos[0]?.j ?? null)
-
-  return (
-    <div className="modal-fond" onClick={onFermer}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-        <div className="ligne entre" style={{ alignItems: 'baseline', marginBottom: 6 }}>
-          <h2 style={{ margin: 0 }}>Suite de la séance</h2>
-          <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-            {exos.length} exercice{exos.length > 1 ? 's' : ''}
-          </span>
-        </div>
-        <div className="pile" style={{ gap: 0 }}>
-          {exos.map((x) => {
-            const estOuvert = ouvert === x.j
-            return (
-              <div key={x.j} style={{ borderBottom: '1px solid var(--bord)' }}>
-                <button
-                  type="button"
-                  className="ligne-mesure"
-                  style={{
-                    width: '100%',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    padding: '12px 4px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'inherit',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                  onClick={() => setOuvert(estOuvert ? null : x.j)}
-                  aria-expanded={estOuvert}
-                >
-                  <div style={{ minWidth: 0, paddingRight: 8 }}>
-                    <strong>{x.j + 1}. {x.nom}</strong>
-                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
-                      {x.faites.length ? `${x.faites.length}/${x.total} faites` : `${x.total} série${x.total > 1 ? 's' : ''}`}
-                    </div>
-                  </div>
-                  <span className={'muted chevron-accordeon' + (estOuvert ? ' ouvert' : '')} style={{ fontSize: 16 }}>▸</span>
-                </button>
-                <div className={'accordeon-tiroir' + (estOuvert ? ' ouvert' : '')}>
-                  <div className="accordeon-contenu">
-                    <div className="pile" style={{ gap: 8, padding: '4px 4px 14px' }}>
-                      <div className="ligne-series">
-                        {Array.from({ length: x.total }, (_, k) => {
-                          const f = x.faites[k]
-                          if (f) {
-                            return (
-                              <span key={k} className="faite">
-                                S{k + 1} {chargeQte(x.exo, f.charge, f.reps)} ✓
-                              </span>
-                            )
-                          }
-                          return (
-                            <span key={k}>
-                              S{k + 1} {x.sugg ? cibleSerie(x.exo, x.plan, x.sugg, k, x.faites).split(' · ')[0] : ''}
-                            </span>
-                          )
-                        })}
-                      </div>
-                      {x.chauffes && x.chauffes.length > 0 && (
-                        <div className="faible" style={{ fontSize: 'var(--t-legende)' }}>
-                          Échauffement : {x.chauffes.map((c) => {
-                            const l = lireChauffe(c)
-                            return l ? chargeQte(x.exo, l.charge, l.reps) : c
-                          }).join(' · ')}
-                        </div>
-                      )}
-                      {x.derniereFois && x.derniereFois.length > 0 && (
-                        <div className="faible" style={{ fontSize: 'var(--t-legende)' }}>
-                          Dernière fois : {x.derniereFois.map((s) => serieTexte(x.exo, s)).join(' · ')}
-                        </div>
-                      )}
-                      {x.note && (
-                        <div className="faible" style={{ fontSize: 'var(--t-legende)' }}>
-                          📝 {x.note}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <button className="btn discret plein" style={{ marginTop: 8 }} onClick={onFermer}>
-          Fermer
-        </button>
-      </div>
     </div>
   )
 }
