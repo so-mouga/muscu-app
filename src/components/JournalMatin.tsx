@@ -28,15 +28,24 @@ export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
 export const noterJournal = (date: string, c: Partial<JourJournal>) =>
   db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
 
-const TEXTE_CALORIES: Record<NonNullable<JourJournal['calories']>, string> = { ok: 'calories tenues', trop: 'trop de calories', pasAssez: 'pas assez de calories' }
+const TEXTE_CALORIES: Record<NonNullable<JourJournal['calories']>, string> = { ok: 'Tenu', trop: 'Trop', pasAssez: 'Pas assez' }
 
 type Saisie = 'poids' | 'sommeil' | 'calories'
 
 /**
- * Journal du matin sur l'accueil : ce qu'il reste à noter (poids, sommeil, calories d'hier si un objectif
- * est fixé), puis ce qui est noté, en une ligne discrète. Un appui ouvre la saisie dans une fenêtre,
- * rien ne bouge dans l'écran et rien n'est jamais pré-rempli pour le sommeil ou les calories.
+ * Journal du matin sur l'accueil : poids, sommeil et calories d'hier (si un objectif est fixé), toujours
+ * au même endroit, la valeur en grand ou « Noter ». Un appui ouvre la saisie dans une fenêtre, rien ne
+ * bouge dans l'écran et rien n'est jamais pré-rempli pour le sommeil ou les calories.
  */
+function CaseJour({ valeur, nom, onClick }: { valeur?: string; nom: string; onClick: () => void }) {
+  return (
+    <button type="button" className="case-jour" onClick={onClick}>
+      <span className={valeur ? 'case-jour-valeur' : 'case-jour-valeur a-noter'}>{valeur ?? 'Noter ›'}</span>
+      <span className="case-jour-nom">{nom}</span>
+    </button>
+  )
+}
+
 export default function JournalMatin({ catalogue }: { catalogue: Catalogue }) {
   const aujourdhui = dateISO()
   const hier = dateISO(new Date(Date.now() - JOUR))
@@ -81,39 +90,11 @@ export default function JournalMatin({ catalogue }: { catalogue: Catalogue }) {
   useRetour(saisie !== null, fermer)
 
   const avecCalories = !!objectif
-  const rienDeNote = !peseeDuJour && duJour?.sommeil === undefined && (!avecCalories || !dHier?.calories)
-
   return (
     <div className="journal-matin">
-      {rienDeNote && <span className="journal-titre">À noter</span>}
-      {peseeDuJour ? (
-        <button type="button" className="journal-note" onClick={ouvrirPoids}>
-          {kg(peseeDuJour.poids)} kg
-        </button>
-      ) : (
-        <button type="button" className="journal-puce" onClick={ouvrirPoids}>
-          Poids
-        </button>
-      )}
-      {duJour?.sommeil !== undefined ? (
-        <button type="button" className="journal-note" onClick={() => setSaisie('sommeil')}>
-          {heures(duJour.sommeil)} de sommeil
-        </button>
-      ) : (
-        <button type="button" className="journal-puce" onClick={() => setSaisie('sommeil')}>
-          Sommeil
-        </button>
-      )}
-      {avecCalories &&
-        (dHier?.calories ? (
-          <button type="button" className="journal-note" onClick={() => setSaisie('calories')}>
-            {TEXTE_CALORIES[dHier.calories]}
-          </button>
-        ) : (
-          <button type="button" className="journal-puce" onClick={() => setSaisie('calories')}>
-            Calories
-          </button>
-        ))}
+      <CaseJour nom="Poids" valeur={peseeDuJour && `${kg(peseeDuJour.poids)} kg`} onClick={ouvrirPoids} />
+      <CaseJour nom="Sommeil" valeur={duJour?.sommeil !== undefined ? heures(duJour.sommeil) : undefined} onClick={() => setSaisie('sommeil')} />
+      {avecCalories && <CaseJour nom="Calories d’hier" valeur={dHier?.calories && TEXTE_CALORIES[dHier.calories]} onClick={() => setSaisie('calories')} />}
 
       {saisie &&
         createPortal(

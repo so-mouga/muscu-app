@@ -23,11 +23,11 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 
 ### 2. Accueil (la séance du jour)
 - Tout tient sur un écran, sans défiler. Date, puis la **phase toujours sous la date**, à côté du cycle (un appui sur la phase ouvre Corps → Objectifs ; sans phase jamais réglée : « + Phase »).
-- « À noter » et les pastilles Poids, Sommeil, Calories (Calories seulement si un objectif est fixé ; absent à la toute première ouverture). Un appui ouvre une fenêtre, le sommeil et les calories se notent en 2 appuis, **jamais pré-remplis**. Une fois notés : une ligne discrète (« 70 kg · 7 h de sommeil · calories tenues »), un appui corrige. Poids réglé puis appui à côté ou retour : il est gardé ; ouvrir et fermer sans rien changer : rien n'est noté.
-- Ligne « Cette semaine » : un point par séance prévue, vert quand elle est faite ; un appui ouvre le Journal. « n-ième semaine tenue » à partir de 2. Une phrase de progrès (« … : +2,5 kg sur ce bloc ») seulement s'il y en a un.
-- Carte de séance : nom, durée, liste des exercices, **« Démarrer » toujours en bas de la carte, au même endroit, visible sans défiler**. Un gain en orange à côté d'un exercice n'apparaît que si un objectif plus haut que la dernière fois a été fixé (conseil appliqué ou crayon en fin de séance) : par défaut on refait pareil. Repos ou séance faite : pas de bouton orange, la séance suivante et « Voir la séance ».
+- Carte du matin : cases Poids, Sommeil, Calories d'hier (Calories seulement si un objectif est fixé ; absent à la toute première ouverture), la valeur en gras ou « Noter › ». Un appui ouvre une fenêtre, le sommeil et les calories se notent en 2 appuis, **jamais pré-remplis**. Poids réglé puis appui à côté ou retour : il est gardé ; ouvrir et fermer sans rien changer : rien n'est noté.
+- Dans la même carte, ligne « Cette semaine » : un point par séance prévue, vert quand elle est faite ; un appui ouvre le Journal. « n-ième semaine tenue » en vert à partir de 2. Une ligne de progrès (« … +2,5 kg sur ce bloc ») seulement s'il y en a un.
+- Carte de séance : nom, durée, liste des exercices, **« Démarrer » toujours en bas de la carte, au même endroit, visible sans défiler**. Un gain en orange à côté d'un exercice n'apparaît que si un objectif plus haut que la dernière fois a été fixé (conseil appliqué ou crayon en fin de séance) : par défaut on refait pareil. Repos ou séance faite : pas de bouton orange, la séance suivante et « Voir la séance » ; séance faite : ce qui a été mieux que la dernière fois, en vert, s'il y en a.
 - « Autre séance › », séance libre.
-- Rappels en haut, sur une ligne, deux au plus à la fois : sauvegarde (après 7 jours sans export), mensurations…, masquables.
+- Rappels en haut, sur une ligne, deux au plus à la fois (un seul sur un petit écran) : sauvegarde (après 7 jours sans export), mensurations…, masquables.
 
 ### 3. Une séance complète
 - Démarrer. Elle s'ouvre **en plein écran** (grand chrono), **à chaque séance**, même si la vue liste avait été choisie la fois d'avant.

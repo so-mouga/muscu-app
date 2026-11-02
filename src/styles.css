@@ -4318,6 +4318,13 @@ html[data-sens='fondu']::view-transition-new(root) {
   border-radius: 50%;
   background: var(--ok);
 }
+.repere-point.a-venir {
+  background: var(--texte-3);
+}
+.repere-fort {
+  color: var(--texte);
+  font-weight: 600;
+}
 .rappel-texte {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4332,50 +4339,52 @@ html[data-sens='fondu']::view-transition-new(root) {
 .rappel-ico.ok {
   color: var(--ok);
 }
+.accueil-tableau {
+  padding: var(--e3) var(--e4);
+  border-radius: var(--rayon);
+  background: var(--surface);
+}
 .journal-matin {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--e2);
-  min-height: 36px;
-  margin-bottom: var(--e3);
+  padding-bottom: var(--e2);
+  border-bottom: 1px solid var(--voile);
 }
-.journal-titre {
-  color: var(--texte-3);
-  font-size: var(--t-petit);
-}
-.journal-puce {
-  position: relative;
-  height: 36px;
-  padding: 0 var(--e3);
+.case-jour {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--cible);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0 0 0 var(--e3);
   border: none;
-  border-radius: 999px;
-  background: var(--controle);
-  color: var(--texte);
-  font-size: var(--t-petit);
-  white-space: nowrap;
-  cursor: pointer;
-}
-/* Zone d'appui de 44 px pour une pastille de 36. */
-.journal-puce::after {
-  content: '';
-  position: absolute;
-  inset: -4px 0;
-}
-.journal-note {
-  height: 36px;
-  padding: 0;
-  border: none;
+  border-left: 1px solid var(--voile);
   background: none;
-  color: var(--texte-2);
-  font-size: var(--t-petit);
-  white-space: nowrap;
+  text-align: left;
   cursor: pointer;
 }
-.journal-note + .journal-note::before {
-  content: '·';
-  margin-right: var(--e2);
+.case-jour:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+.case-jour-valeur {
+  color: var(--texte);
+  font-size: var(--t-texte);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.case-jour-valeur.a-noter {
+  color: var(--texte-2);
+  font-weight: 500;
+}
+.case-jour-nom {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--texte-3);
+  font-size: var(--t-legende);
+  white-space: nowrap;
 }
 .accueil-semaine {
   display: flex;
@@ -4383,7 +4392,6 @@ html[data-sens='fondu']::view-transition-new(root) {
   gap: var(--e2);
   width: 100%;
   min-height: var(--cible);
-  margin-top: calc(-1 * var(--e2));
   padding: 0;
   border: none;
   background: none;
@@ -4401,8 +4409,8 @@ html[data-sens='fondu']::view-transition-new(root) {
   gap: var(--e1);
 }
 .semaine-points i {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--voile-fort);
 }
@@ -4411,13 +4419,17 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .semaine-texte {
   margin-left: auto;
-  color: var(--texte-3);
+  color: var(--texte-2);
   white-space: nowrap;
+}
+.semaine-texte.tenue {
+  color: var(--ok);
 }
 .accueil-progres {
   display: flex;
-  margin-top: calc(-1 * var(--e1));
-  margin-bottom: var(--e2);
+  justify-content: space-between;
+  gap: var(--e2);
+  padding-bottom: var(--e1);
   color: var(--texte-2);
   font-size: var(--t-petit);
   white-space: nowrap;
@@ -4428,6 +4440,8 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .accueil-progres-gain {
   flex-shrink: 0;
+  color: var(--ok);
+  font-weight: 600;
 }
 .seance-jour {
   flex: 1;
@@ -4437,6 +4451,9 @@ html[data-sens='fondu']::view-transition-new(root) {
   padding: var(--e4);
   border-radius: var(--rayon);
   background: var(--surface);
+}
+.seance-jour.sans-action {
+  flex: none;
 }
 .seance-jour-haut {
   display: flex;
@@ -4502,6 +4519,29 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-titre);
   font-weight: 800;
 }
+.seance-jour-ico {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.seance-jour-ico.ok {
+  background: var(--ok-voile);
+  color: var(--ok);
+}
+.seance-jour-ico.info {
+  background: var(--info-voile);
+  color: var(--info);
+}
+.seance-jour-mieux {
+  margin-top: var(--e2);
+  color: var(--ok);
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
 .seance-jour-stats {
   align-self: flex-start;
   padding: var(--e1) 0 0;
@@ -4519,7 +4559,9 @@ html[data-sens='fondu']::view-transition-new(root) {
   justify-content: space-between;
   align-items: baseline;
   gap: var(--e3);
-  margin-top: var(--e4);
+  margin-top: var(--e3);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--voile);
   font-size: var(--t-texte);
   font-weight: 600;
 }
@@ -4566,7 +4608,14 @@ html[data-sens='fondu']::view-transition-new(root) {
   gap: var(--e3);
   color: var(--texte);
 }
-.exos-jour.faibles .exo-jour {
+.exos-jour.entiere {
+  flex: none;
+  min-height: 0;
+}
+.exos-jour.entiere .exos-jour-lignes {
+  position: static;
+}
+.exos-jour.entiere .exo-jour {
   color: var(--texte-2);
 }
 .exo-jour-nom {

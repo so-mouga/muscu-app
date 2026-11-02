@@ -18,7 +18,7 @@ import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
-import { depuisDebut, joursSansSeance, semainesTenues } from '../lib/motivation'
+import { depuisDebut, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
@@ -278,7 +278,7 @@ export default function Accueil({
         : `Cycle · sem. ${etat.n}/${etat.total}`
       : ''
 
-  // Au plus deux rappels à la fois, par ordre d'importance : « Démarrer » doit rester à l'écran.
+  // Au plus deux rappels à la fois (un seul sur un écran peu haut), par ordre d'importance : « Démarrer » doit rester à l'écran.
   const rappels = [
     majAndroid && !masque('android') && (
       <div key="android" className="rappel-ligne">
@@ -347,7 +347,7 @@ export default function Accueil({
     ),
   ]
     .filter(Boolean)
-    .slice(0, 2)
+    .slice(0, window.innerHeight < 720 ? 1 : 2)
 
   const nbFaites = planning.filter(faite).length
   // Semaines tenues (les trois quarts des séances prévues) : affichées à partir de 2, déloads et pauses ne cassent rien.
@@ -373,6 +373,9 @@ export default function Accueil({
   const joursSans = terminees ? joursSansSeance(terminees, dateISO()) : null
   const etiquetteProchaine = (e: EntreePlanning) => (e.jour === (jour % 7) + 1 ? 'Demain' : `Prochaine (${JOURS[e.jour!]})`)
 
+  const aLancer = proposee && duJour && proposee === duJour && !faite(duJour)
+  const mieuxAuj = faiteAuj && !faiteAuj.deload && terminees ? resumeSeance(faiteAuj, terminees, catalogue.exo) : null
+
   /** La séance qui vient, quand il n'y a rien à lancer aujourd'hui : on la regarde, sans orange. */
   const blocProchaine = (e: EntreePlanning) => (
     <>
@@ -382,7 +385,7 @@ export default function Accueil({
         </span>
         <span className="seance-jour-duree">{dureeTexte(e.modele, terminees, true)}</span>
       </div>
-      <ListeExosJour lignes={lignesDe(e.modele, false)} faible />
+      <ListeExosJour lignes={lignesDe(e.modele, false)} entiere />
       <div className="seance-jour-actions">
         <button type="button" className="btn" onClick={() => voir(e.modele)}>
           Voir la séance
@@ -404,8 +407,15 @@ export default function Accueil({
         <div className="accueil-reperes">
           {phase ? (
             <button type="button" onClick={onObjectifs} aria-label={`Objectif de phase : ${textePhase}`}>
-              <span className="repere-point" />
-              {textePhase}
+              <span className={phase.aVenir ? 'repere-point a-venir' : 'repere-point'} />
+              {phase.aVenir ? (
+                textePhase
+              ) : (
+                <>
+                  <span className="repere-fort">{nomCourtPhase(phase.phase)}</span>
+                  {textePhase.slice(nomCourtPhase(phase.phase).length)}
+                </>
+              )}
             </button>
           ) : (
             !periodes(catalogue.objectifs).length && (
@@ -436,33 +446,34 @@ export default function Accueil({
 
       {!premiereFois && (
         <>
-          <JournalMatin catalogue={catalogue} />
-
-          <button type="button" className="accueil-semaine" onClick={onJournal} aria-label="Cette semaine : ouvrir le Journal">
-            <strong>Cette semaine</strong>
-            {planning.length > 0 && (
-              <span className="semaine-points" aria-hidden="true">
-                {planning.map((_, i) => (
-                  <i key={i} className={i < nbFaites ? 'fait' : ''} />
-                ))}
+          <div className="accueil-tableau">
+            <JournalMatin catalogue={catalogue} />
+            <button type="button" className="accueil-semaine" onClick={onJournal} aria-label="Cette semaine : ouvrir le Journal">
+              <strong>Cette semaine</strong>
+              {planning.length > 0 && (
+                <span className="semaine-points" aria-hidden="true">
+                  {planning.map((_, i) => (
+                    <i key={i} className={i < nbFaites ? 'fait' : ''} />
+                  ))}
+                </span>
+              )}
+              <span className={tenues >= 2 ? 'semaine-texte tenue' : 'semaine-texte'}>
+                {tenues >= 2 ? `${tenues}e semaine tenue` : planning.length ? `${nbFaites} sur ${planning.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`} ›
               </span>
+            </button>
+            {progres && gainBloc && (
+              <div className="accueil-progres">
+                <span className="accueil-progres-nom">{progres.exo.nom}</span>
+                <span className="accueil-progres-gain">
+                  {gainBloc} {blocEnCours ? 'sur ce bloc' : 'en 4 semaines'}
+                </span>
+              </div>
             )}
-            <span className="semaine-texte">
-              {tenues >= 2 ? `${tenues}e semaine tenue` : planning.length ? `${nbFaites} sur ${planning.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`} ›
-            </span>
-          </button>
-          {progres && gainBloc && (
-            <div className="accueil-progres">
-              <span className="accueil-progres-nom">{progres.exo.nom}</span>
-              <span className="accueil-progres-gain">
-                &nbsp;: {gainBloc} {blocEnCours ? 'sur ce bloc' : 'en 4 semaines'}
-              </span>
-            </div>
-          )}
+          </div>
 
           {/* La séance d'abord : elle prend la place qui reste, « Démarrer » reste au même endroit. */}
-          <div className="seance-jour">
-            {proposee && duJour && proposee === duJour && !faite(duJour) ? (
+          <div className={aLancer || !proposee ? 'seance-jour' : 'seance-jour sans-action'}>
+            {aLancer ? (
               <>
                 <div className="seance-jour-haut">
                   <span className={etat?.deload ? 'seance-jour-etiquette deload' : 'seance-jour-etiquette'}>{etat?.deload ? 'Déload · charges allégées' : 'Séance du jour'}</span>
@@ -494,13 +505,20 @@ export default function Accueil({
               <>
                 <div className="seance-jour-haut">
                   <span className="seance-jour-etat">
-                    <Check size={20} strokeWidth={2.5} className="rappel-ico ok" />
+                    <span className="seance-jour-ico ok">
+                      <Check size={18} strokeWidth={2.5} />
+                    </span>
                     {faiteAuj?.nom ?? duJour?.modele.nom} faite
                   </span>
                   <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>
                     Autre séance ›
                   </button>
                 </div>
+                {mieuxAuj && (mieuxAuj.mieux > 0 || mieuxAuj.records > 0) && (
+                  <div className="seance-jour-mieux">
+                    {[mieuxAuj.mieux > 0 && `${mieuxAuj.mieux} exercice${mieuxAuj.mieux > 1 ? 's' : ''} mieux que la dernière fois`, mieuxAuj.records > 0 && `${mieuxAuj.records} record${mieuxAuj.records > 1 ? 's' : ''}`].filter(Boolean).join(', ')}
+                  </div>
+                )}
                 {faiteAuj && (
                   <button type="button" className="seance-jour-stats" onClick={() => setSeanceFaiteModal(faiteAuj)}>
                     {duree(dureeSeanceEffective(faiteAuj))} · {faiteAuj.series.filter(estDure).length} séries dures ›
@@ -512,7 +530,9 @@ export default function Accueil({
               <>
                 <div className="seance-jour-haut">
                   <span className="seance-jour-etat">
-                    <Moon size={20} strokeWidth={2} className="rappel-ico info" />
+                    <span className="seance-jour-ico info">
+                      <Moon size={18} strokeWidth={2.5} />
+                    </span>
                     Repos
                   </span>
                   <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>

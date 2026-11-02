@@ -75,7 +75,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 - **Réglages de la machine, en-tête, vocabulaire** : `3a385b7`. Plus de formulaire complet en séance, « Reste 4 exercices », correction depuis la fin de séance, note à la saisie, finisseurs sans défiler, « effort 8/10 » dans toute la séance.
 - **Photo depuis l'appareil** : `cddf5ea`. « Prendre une photo » et « Galerie » dans les réglages de la machine.
 
-- **Accueil** : refait entièrement le 2 nov. 2026, version choisie par l'utilisateur après comparaison de maquettes (décrite dans `AGENTS.md`). Poids qui ne se perd plus, programme sans jours qui n'est plus une impasse, calories seulement avec un objectif, déload écrit sur la carte, onglets moins coupés.
+- **Accueil** : refait entièrement le 2 nov. 2026, version choisie par l'utilisateur après comparaison de maquettes (décrite dans `AGENTS.md`). Poids qui ne se perd plus, programme sans jours qui n'est plus une impasse, calories seulement avec un objectif, déload écrit sur la carte, onglets moins coupés. Puis le haut de l'écran, jugé fade tout en gris, regroupé dans une carte où les chiffres ressortent.
 
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
@@ -83,7 +83,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 Rien depuis `f591d41` n'a encore été confirmé sur le téléphone, sauf que la photo depuis la galerie fonctionne.
 
-- Accueil : la taille réelle de l'écran, les trois pastilles « À noter » sur une ligne, les onglets « Progression » et « Programme » entiers, la montée des fenêtres de saisie, l'envie ou non de retrouver la frise de la semaine.
+- Accueil : la taille réelle de l'écran, les trois cases du matin sans texte coupé, les onglets « Progression » et « Programme » entiers, la montée des fenêtres de saisie, l'envie ou non de retrouver la frise de la semaine.
 
 - Fenêtres : fluidité de la montée et du flou ; clavier dans « Ajouter un mouvement » et dans les réglages de la machine.
 - Bouton retour réel : liste (replier, puis revenir), réglages depuis la fiche, fenêtre de correction.
