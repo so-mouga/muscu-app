@@ -2359,6 +2359,21 @@ button.pastille.cliquable {
   font-size: 15px;
   cursor: pointer;
 }
+.frise-jour-rond {
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease, filter 0.15s ease;
+}
+.frise-jour-rond.interactif {
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .frise-jour-rond.interactif:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+  }
+}
+.frise-jour-rond.interactif:active {
+  transform: scale(0.92);
+}
 .carte .bandeau-cycle {
   margin: 0 0 4px;
   background: var(--surface-2);

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Check, ChevronDown, ChevronRight, ChevronUp, CloudUpload, Download, Dumbbell, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, X } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
+import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
 import { creneauxFaits } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
@@ -14,7 +14,7 @@ import { BandeauCycle, BilanCycle } from '../components/Cycle'
 import { etatCycle, planDeload } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
-import type { Programme, SeanceModele } from '../types'
+import type { Programme, Seance, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
 import { joursSansSeance } from '../lib/motivation'
@@ -84,6 +84,8 @@ export default function Accueil({
 }) {
   const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
+  const [seanceFaiteModal, setSeanceFaiteModal] = useState<Seance | null>(null)
+  const [seancePrevueModal, setSeancePrevueModal] = useState<{ jour: number; modele: SeanceModele } | null>(null)
   const [semaineDepliee, setSemaineDepliee] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
@@ -117,6 +119,8 @@ export default function Accueil({
     }
   }
   useRetour(choix, () => setChoix(false))
+  useRetour(!!seanceFaiteModal, () => setSeanceFaiteModal(null))
+  useRetour(!!seancePrevueModal, () => setSeancePrevueModal(null))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
     transition(() => setApercuEtat(m && catalogue.pourDemarrer(m)), m ? 'avant' : 'arriere')
@@ -879,19 +883,36 @@ export default function Accueil({
             const faiteSemaine = semaine.find((s) => jourSemaine(new Date(s.debut)) === d.id)
             const estFait = ent ? faite(ent) : !!faiteSemaine
             const estAujourdhui = d.id === jour
+            const interactif = !!(faiteSemaine || ent)
             return (
-              <div
+              <button
                 key={d.id}
+                type="button"
+                disabled={!interactif}
+                aria-label={
+                  faiteSemaine
+                    ? `${d.nomCourt} : ${faiteSemaine.nom} validée`
+                    : ent
+                    ? `${d.nomCourt} : ${ent.modele.nom} prévue`
+                    : `${d.nomCourt} : repos`
+                }
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: 6,
-                  cursor: faiteSemaine || ent ? 'pointer' : 'default',
+                  cursor: interactif ? 'pointer' : 'default',
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  color: 'inherit',
+                  font: 'inherit',
+                  outline: 'none',
+                  WebkitTapHighlightColor: 'transparent',
                 }}
                 onClick={() => {
-                  if (faiteSemaine) onVoirSeance(faiteSemaine.id)
-                  else if (ent) voir(ent.modele)
+                  if (faiteSemaine) setSeanceFaiteModal(faiteSemaine)
+                  else if (ent) setSeancePrevueModal({ jour: d.id, modele: ent.modele })
                 }}
               >
                 <span
@@ -905,6 +926,7 @@ export default function Accueil({
                 </span>
 
                 <div
+                  className={interactif ? 'frise-jour-rond interactif' : 'frise-jour-rond'}
                   style={{
                     width: 34,
                     height: 34,
@@ -915,18 +937,26 @@ export default function Accueil({
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     background: estFait
-                      ? 'rgba(34, 197, 94, 0.08)'
+                      ? 'rgba(34, 197, 94, 0.12)'
                       : ent
-                      ? 'rgba(255, 255, 255, 0.03)'
+                      ? estAujourdhui
+                        ? 'rgba(249, 115, 22, 0.12)'
+                        : 'rgba(255, 255, 255, 0.05)'
                       : 'rgba(255, 255, 255, 0.02)',
                     border: estFait
                       ? '1.5px solid #22c55e'
                       : ent
                       ? estAujourdhui
                         ? '2px solid var(--accent)'
-                        : '1.5px solid rgba(255, 255, 255, 0.2)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
-                    boxShadow: estFait ? '0 0 10px rgba(34, 197, 94, 0.25)' : 'none',
+                        : '1.5px solid rgba(255, 255, 255, 0.25)'
+                      : '1px solid rgba(255, 255, 255, 0.08)',
+                    boxShadow: estFait
+                      ? '0 0 10px rgba(34, 197, 94, 0.3)'
+                      : ent
+                      ? estAujourdhui
+                        ? '0 0 12px rgba(249, 115, 22, 0.35)'
+                        : '0 0 8px rgba(255, 255, 255, 0.1)'
+                      : 'none',
                     color: estFait ? '#22c55e' : ent ? 'var(--texte)' : 'var(--texte-faible)',
                   }}
                 >
@@ -937,12 +967,20 @@ export default function Accueil({
                   {estFait ? (
                     <Check size={14} strokeWidth={2.5} style={{ color: '#22c55e' }} />
                   ) : ent ? (
-                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.2)' }} />
+                    <span
+                      style={{
+                        width: 4,
+                        height: 4,
+                        borderRadius: '50%',
+                        background: estAujourdhui ? 'var(--accent)' : 'rgba(255, 255, 255, 0.35)',
+                        boxShadow: estAujourdhui ? '0 0 4px var(--accent)' : 'none',
+                      }}
+                    />
                   ) : (
-                    <span style={{ color: 'rgba(255, 255, 255, 0.2)', fontSize: '0.8rem' }}>—</span>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.15)', fontSize: '0.8rem' }}>—</span>
                   )}
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>
@@ -1219,6 +1257,288 @@ export default function Accueil({
           </div>
         </div>
       )}
+
+      {seanceFaiteModal && (() => {
+        const s = seanceFaiteModal
+        const dures = s.series.filter(estDure).length
+        const t = duree(dureeSeanceEffective(s))
+        const d = new Date(s.debut)
+        const dateTexte = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+        const dateFormatee = dateTexte.charAt(0).toUpperCase() + dateTexte.slice(1)
+
+        const exosMap = new Map<string, typeof s.series>()
+        for (const serie of s.series) {
+          const list = exosMap.get(serie.exoId) ?? []
+          list.push(serie)
+          exosMap.set(serie.exoId, list)
+        }
+
+        return (
+          <div className="modal-fond" onClick={() => setSeanceFaiteModal(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ligne entre" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Check size={18} strokeWidth={2.5} style={{ color: '#22c55e' }} />
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{s.nom}</h2>
+                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                      {dateFormatee}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="icone"
+                  onClick={() => setSeanceFaiteModal(null)}
+                  aria-label="Fermer"
+                  style={{ fontSize: 18, padding: 4 }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Badges récapitulatifs */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte)' }}>
+                  ⏱️ {t}
+                </span>
+                {dures > 0 && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(249, 115, 22, 0.12)', border: '1px solid rgba(249, 115, 22, 0.25)', fontSize: '0.8rem', color: '#f97316', fontWeight: 600 }}>
+                    💪 {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
+                  </span>
+                )}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                  🎯 {exosMap.size} exercice{exosMap.size > 1 ? 's' : ''}
+                </span>
+                {s.poidsCorps && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                    ⚖️ {kg(s.poidsCorps)} kg
+                  </span>
+                )}
+              </div>
+
+              {/* Liste des exercices et séries */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '46dvh', overflowY: 'auto', marginBottom: 16 }}>
+                {Array.from(exosMap.entries()).map(([exoId, series]) => {
+                  const exo = catalogue.exo(exoId)
+                  return (
+                    <div
+                      key={exoId}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--texte)' }}>
+                          {exo.nom}
+                        </span>
+                        <span className="faible" style={{ fontSize: '0.78rem' }}>
+                          {series.length} série{series.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {series.map((serie, idx) => {
+                          const dure = estDure(serie)
+                          return (
+                            <span
+                              key={serie.id || idx}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                background: dure ? 'rgba(249, 115, 22, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                                border: '1px solid ' + (dure ? 'rgba(249, 115, 22, 0.25)' : 'rgba(255, 255, 255, 0.08)'),
+                                fontSize: '0.8rem',
+                                color: dure ? '#f97316' : 'var(--texte)',
+                                fontWeight: dure ? 600 : 400,
+                              }}
+                            >
+                              {chargeQte(exo, serie.charge, serie.reps)}
+                              {serie.rpe ? <span style={{ opacity: 0.65, fontSize: '0.75rem' }}>@{serie.rpe}</span> : null}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn discret"
+                  onClick={() => {
+                    const id = s.id
+                    setSeanceFaiteModal(null)
+                    onVoirSeance(id)
+                  }}
+                  style={{
+                    height: 44,
+                    borderRadius: 12,
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  Ouvrir l'historique complet pour modifier ›
+                </button>
+                <button
+                  type="button"
+                  className="btn discret plein"
+                  onClick={() => setSeanceFaiteModal(null)}
+                  style={{ height: 40, borderRadius: 12 }}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {seancePrevueModal && (() => {
+        const { jour: jourId, modele } = seancePrevueModal
+        const estAuj = jourId === jour
+        const jourNom = estAuj ? "Aujourd'hui" : ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][jourId]
+        const dureeEstimee = dureeTexte(modele, terminees)
+
+        return (
+          <div className="modal-fond" onClick={() => setSeancePrevueModal(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ligne entre" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(249, 115, 22, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Dumbbell size={18} strokeWidth={2} style={{ color: '#f97316' }} />
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{modele.nom}</h2>
+                    <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
+                      {jourNom}{modele.sousTitre ? ` · ${modele.sousTitre}` : ''}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="icone"
+                  onClick={() => setSeancePrevueModal(null)}
+                  aria-label="Fermer"
+                  style={{ fontSize: 18, padding: 4 }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Badges d'estimation */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte)' }}>
+                  ⏱️ ~{dureeEstimee}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
+                  🎯 {modele.exercices.length} exercices au programme
+                </span>
+              </div>
+
+              {/* Exercices prévus */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '44dvh', overflowY: 'auto', marginBottom: 18 }}>
+                {modele.exercices.map((p, idx) => {
+                  const exo = catalogue.exo(p.exoId)
+                  const rMin = p.series[0]?.repsMin ?? 8
+                  const rMax = p.series[0]?.repsMax ?? 10
+                  return (
+                    <div
+                      key={p.exoId + idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--texte)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {exo.nom}
+                        </div>
+                        {exo.muscle && (
+                          <div className="faible" style={{ fontSize: '0.75rem', marginTop: 1 }}>
+                            {exo.muscle}
+                          </div>
+                        )}
+                      </div>
+                      <span className="faible" style={{ fontSize: '0.82rem', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                        {p.series.length} séries · {rMin === rMax ? rMin : `${rMin}–${rMax}`} reps
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn primaire"
+                  onClick={() => {
+                    setSeancePrevueModal(null)
+                    void lancer(modele)
+                  }}
+                  style={{
+                    height: 44,
+                    minHeight: 44,
+                    borderRadius: 12,
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  Démarrer cette séance
+                </button>
+                <button
+                  type="button"
+                  className="btn discret"
+                  onClick={() => {
+                    setSeancePrevueModal(null)
+                    voir(modele)
+                  }}
+                  style={{
+                    height: 40,
+                    borderRadius: 12,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  Consulter la fiche complète ›
+                </button>
+                <button
+                  type="button"
+                  className="btn discret plein"
+                  onClick={() => setSeancePrevueModal(null)}
+                  style={{ height: 38, borderRadius: 12 }}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
