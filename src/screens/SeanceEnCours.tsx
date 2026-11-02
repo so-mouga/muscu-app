@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Smile, Square, StickyNote, Timer, TriangleAlert, Trophy, Wind, X } from 'lucide-react'
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, SkipForward, Smile, Square, StickyNote, Timer, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -496,7 +496,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   // Mode plein écran : le repos en grand, puis la carte de l'exercice en cours pour saisir la série.
   const reposEnCours = !!minuteur && !(minuteur.pause === undefined && minuteur.fin <= maintenant)
   const vueRepos = reposEnCours && !saisie
-  const resumeAvancement = (
+  // Plein écran : la place de dire ce que sont les deux temps ; liste : forme courte, à côté de « Fin de séance ».
+  const resumeAvancement = (enClair: boolean) => (
     <div className="ligne focus-avancement">
       <Anneau valeur={avancement} taille={46} label={`${Math.round(avancement * 100)} % de la séance fait`}>
         <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
@@ -505,14 +506,15 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait'}</strong>
         <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
           <Timer size={14} /> {chronoSeance(maintenant - seance.debut)}
-          {resteSec > 0 && <> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</>}
+          {enClair && ' de séance'}
+          {resteSec > 0 && <> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}{enClair && ' restantes'}</>}
         </div>
       </div>
     </div>
   )
   const avancementCompact = (
     <div className="focus-haut">
-      {resumeAvancement}
+      {resumeAvancement(true)}
       <div className="focus-boutons">
         {/* Pendant l'échauffement : on y reste (pas de saut vers un exercice, pas de « Machine prise »). */}
         <button className="btn petit" onClick={() => naviguer(() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false)))}>
@@ -523,14 +525,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             Machine prise
           </button>
         )}
-        <button className="btn petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
+        <button className="btn petit" onClick={() => ouvrirFin(true)}>
           Fin de séance
         </button>
       </div>
       {maintenant - seance.debut > 4 * 3600000 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 'var(--rayon-2)', marginTop: 8 }}>
           <span className="faible" style={{ color: 'var(--texte)' }}><TriangleAlert size={14} className="ico-texte" /> Séance ouverte depuis plus de 4 h</span>
-          <button className="btn primaire petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
+          <button className="btn primaire petit" onClick={() => ouvrirFin(true)}>
             Terminer
           </button>
         </div>
@@ -545,7 +547,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         <SortieSeance
           series={seance.series.length}
           onContinuer={() => setSortie(false)}
-          onTerminer={() => (setSortie(false), setFocus(false), ouvrirFin(true))}
+          onTerminer={() => (setSortie(false), ouvrirFin(true))}
           onSupprimer={async () => {
             if (await confirmer('Les séries déjà faites seront effacées.', { titre: 'Supprimer cette séance ?', oui: 'Supprimer la séance', non: 'Garder', danger: true })) void annulerSeance(seance.id)
           }}
@@ -555,9 +557,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         <MachinePrise
           nom={exos[machineDe].nom}
           entame={nbFaites(plans[machineDe].exoId) > 0}
+          // Échanger ne vaut que pour l'exercice en cours : ailleurs, il ferait sauter sur un autre exercice.
           autres={plans
             .map((_, j) => j)
-            .filter((j) => j !== machineDe && !estPasse(j) && nbFaites(plans[j].exoId) < totalDe(j))
+            .filter((j) => machineDe === enCours && j !== machineDe && !estPasse(j) && nbFaites(plans[j].exoId) < totalDe(j))
             .map((j) => ({ i: j, nom: exos[j].nom, entame: nbFaites(plans[j].exoId) > 0 }))}
           onEchanger={(j) => echanger(machineDe, j)}
           onRemplacer={() => (setMachineDe(null), setChoix({ mode: 'remplacer', i: machineDe }))}
@@ -830,7 +833,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         ) : (
           <div className="focus-bloc pile">
             <h2>Toutes les séries sont faites</h2>
-            <button className="btn primaire grand" onClick={() => (setFocus(false), ouvrirFin(true))}>
+            <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
               Terminer la séance
             </button>
           </div>
@@ -851,7 +854,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     <div>
       <div className="entete colle">
         <div className="ligne entre">
-          {resumeAvancement}
+          {resumeAvancement(false)}
           <button className="btn petit sans-coupure" onClick={() => ouvrirFin(true)}>
             Fin de séance
           </button>
@@ -1169,14 +1172,15 @@ function MachinePrise({
 }) {
   const [echange, setEchange] = useState(false)
   useRetour(true, () => (echange ? (setEchange(false), 'rester') : onFermer()))
-  const option = (titre: string, detail: string, fn: () => void, actif = true) =>
+  const option = (Icone: LucideIcon, titre: string, detail: string, fn: () => void, actif = true) =>
     actif && (
-      <button className="liste-btn" onClick={fn}>
+      <button className="liste-btn option-machine" onClick={fn}>
+        <Icone size={20} />
         <span>
           <strong>{titre}</strong>
           <div className="faible">{detail}</div>
         </span>
-        <span className="muted">›</span>
+        <ChevronRight size={20} />
       </button>
     )
   return (
@@ -1185,11 +1189,9 @@ function MachinePrise({
         {echange ? (
           <>
             <h2>Échanger {nom}</h2>
-            <div className="faible" style={{ margin: '4px 0 14px' }}>
-              Quel exercice fais-tu maintenant ? {nom} prendra sa place dans la séance.
-            </div>
+            <div className="faible sous-titre-machine">Quel exercice fais-tu maintenant ? {nom} prendra sa place.</div>
             {autres.map((a) => (
-              <button key={a.i} className="liste-btn" onClick={() => onEchanger(a.i)}>
+              <button key={a.i} className="liste-btn option-machine" onClick={() => onEchanger(a.i)}>
                 <span>
                   <strong>{a.nom}</strong>
                   <div className="faible">
@@ -1197,7 +1199,7 @@ function MachinePrise({
                     {a.entame ? ' · déjà commencé' : ''}
                   </div>
                 </span>
-                <span className="muted">⇄</span>
+                <ChevronRight size={20} />
               </button>
             ))}
             <button className="btn discret plein" onClick={() => setEchange(false)}>
@@ -1207,17 +1209,11 @@ function MachinePrise({
         ) : (
           <>
             <h2>Machine prise</h2>
-            <div className="faible" style={{ margin: '4px 0 14px' }}>
-              {nom}
-            </div>
-            {option('⇄ Échanger', 'Faire un autre exercice de la séance maintenant ; celui-ci prend sa place.', () => setEchange(true), autres.length > 0)}
-            {option(
-              '🔁 Remplacer',
-              entame ? 'Les séries restantes passent sur un autre exercice.' : 'Par un exercice du même muscle, avec son propre historique.',
-              onRemplacer
-            )}
-            {onDelierSuperset && option('🔗 Délier le superset', 'Faire les exercices séparément sans alterner les séries aujourd’hui.', onDelierSuperset)}
-            {option('✕ Passer', 'Sauter cet exercice aujourd’hui. Il reste grisé dans la séance, tu peux y revenir.', onPasser)}
+            <div className="faible sous-titre-machine">{nom}</div>
+            {option(ArrowLeftRight, 'Échanger', 'Faire un autre exercice maintenant, celui-ci prend sa place.', () => setEchange(true), autres.length > 0)}
+            {option(Repeat, 'Remplacer', entame ? 'Les séries restantes passent sur un autre exercice.' : 'Un autre exercice du même muscle, avec son historique.', onRemplacer)}
+            {onDelierSuperset && option(Unlink, 'Délier le superset', 'Faire ces exercices séparément aujourd’hui.', onDelierSuperset)}
+            {option(SkipForward, 'Sauter cet exercice', 'Il reste grisé dans la séance, tu peux y revenir.', onPasser)}
             <button className="btn discret plein" onClick={onFermer}>
               Annuler
             </button>

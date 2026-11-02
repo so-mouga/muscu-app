@@ -67,8 +67,9 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 - **Fenêtre « Modifier l'objectif »** : `ab1303d`. Un appui à côté ou le retour la ferment en gardant ce qui a changé.
 - **Vue liste de la séance** : `f591d41`. Toute la séance en une liste, plus de saisie ; plein écran = faire, liste = voir et organiser.
 - **Écran de repos** : `f5c4968`. « Voir la suite de la séance » retiré, il faisait double emploi avec la liste.
+- **Machine prise, retour de Fin de séance, temps en clair** : voir le commit qui suit `9221251`. Icônes et lignes sans bordure, « Échanger » seulement sur l'exercice en cours, retour vers l'écran d'où on vient, « 0:04 de séance · ~55 min restantes » en plein écran.
 
-Rien de ces quatre derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
+Rien de ces cinq derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
 
 ### Décisions validées, absentes d'`AGENTS.md`
 
@@ -92,7 +93,7 @@ Rien de ces quatre derniers points n'a encore été essayé sur le téléphone. 
 
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
 - Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. Remplacer les émojis et symboles restants, dont ★ en séance et 🏆 dans la fenêtre d'objectif.
-- Revoir le contenu de la fenêtre « Machine prise » et l'échauffement général de la séance, pas encore repris.
+- Revoir l'échauffement général de la séance, pas encore repris.
 - Plein écran à 360 px de large : dans la rangée de séries, « S1 » est coupé à gauche, car la rangée se centre sur la série en cours. Déjà présent avant, à reprendre si ça gêne en salle.
 - Vérifier la séance sur le téléphone en mode finisseur, et le son à la fin du repos quand une fenêtre est ouverte.
 - Tester chaque écran de 667 à 832 px de haut et à 360 comme à 384 px de large. Les scripts de capture n'ont pas été gardés dans le dépôt : Playwright sur `npm run build` + `.claude/launch.json`, en remplissant la base avec un historique de séances, les noms d'exercices les plus longs (« Extension triceps poulie haute à la corde ») et un superset.

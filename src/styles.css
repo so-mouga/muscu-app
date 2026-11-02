@@ -3918,3 +3918,22 @@ html[data-sens='fondu']::view-transition-new(root) {
     padding: 0 var(--e2);
   }
 }
+
+/* Machine prise */
+.sous-titre-machine {
+  margin: var(--e1) 0 var(--e3);
+}
+.liste-btn.option-machine {
+  justify-content: flex-start;
+  gap: var(--e3);
+  background: var(--controle);
+  border: 0;
+}
+.option-machine > span {
+  flex: 1;
+  min-width: 0;
+}
+.option-machine > svg {
+  flex: 0 0 auto;
+  color: var(--texte-2);
+}
