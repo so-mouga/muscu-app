@@ -87,6 +87,7 @@ function oublierEtatLocal(seanceId: string, garderOrigine = false) {
   range('minuteur', null)
   void arreterSeanceNatif()
   range(`idx:${seanceId}`, null)
+  range(`brouillon:${seanceId}`, null)
 }
 
 type Choix = { mode: 'ajouter' } | { mode: 'remplacer'; i: number }
@@ -122,7 +123,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   // Mode plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
   // Plein écran par défaut : un nouveau découvre le grand chrono dès sa 1re série ; son choix est ensuite gardé.
   // Chaque séance démarre en plein écran (on y saisit tout sans défiler) ; la vue liste sert à regarder, à un appui.
-  const [focus, setFocusEtat] = useState(true)
+  // Séance libre : rien à saisir au départ, on commence par la liste, là où on ajoute ses exercices.
+  const [focus, setFocusEtat] = useState(seance.exercices.length > 0)
   const setFocus = (v: boolean) => (transition(() => setFocusEtat(v), 'fondu'), window.scrollTo({ top: 0 }))
   /** Plein écran pendant le repos : afficher quand même la saisie. */
   const [saisie, setSaisie] = useState(false)
@@ -295,12 +297,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     [plans, reglages, catalogue]
   )
   const suggestions = useMemo(() => {
-    if (!terminees) return [] as Suggestion[]
+    // `exos` n'est prêt qu'avec les réglages : ils peuvent arriver après les séances.
+    if (!terminees || !reglages) return [] as Suggestion[]
     return plans.map((p, i) => {
       const sugg = suggestionPour(exos[i], p, terminees)
       return seance.deload ? suggestionDeload(exos[i], sugg) : sugg
     })
-  }, [terminees, exos, plans, seance.deload])
+  }, [terminees, reglages, exos, plans, seance.deload])
 
   if (!terminees || !reglages) return null
 
@@ -324,12 +327,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const i = plans.findIndex((p) => p.exoId === s.exoId)
       const avantSerie = seance.deload ? undefined : historiqueDe(terminees, s.exoId)[0]?.[k]
       const fini = i >= 0 && k + 1 >= totalDe(i)
-      signalSerie(fini ? 'finExercice' : avantSerie && ecartSerie(s, avantSerie)?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation)
+      signalSerie(fini ? 'finExercice' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation)
     }
     // Verrou levé quand la série est écrite (voir plus haut), au pire après 8 s.
     setVerrou(true)
     setTimeout(() => setVerrou(false), 8000)
-    if (repos > 0) {
+    // Toute dernière série de la séance : plus rien à attendre, l'écran propose de terminer.
+    if (repos > 0 && restantes > 1) {
       setMinuteur({ debut: Date.now(), fin: Date.now() + repos * 1000, duree: repos })
     } else {
       setMinuteur(null)
@@ -337,8 +341,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     // Navigation / enchaînement superset : toast et bascule sur l'exercice suivant
     const curIdx = plans.findIndex((p) => p.exoId === s.exoId)
     if (curIdx >= 0 && plans[curIdx]?.enchaine && curIdx < plans.length - 1) {
-      const suivant = exos[curIdx + 1]?.nom
-      if (suivant) setToast(`⇄ Enchaîne : ${suivant}`)
+      // Sans repos, l'écran change d'un coup : on le dit. Avec un repos, « Prochaine série » suffit.
+      if (repos === 0 && nbFaites(plans[curIdx + 1].exoId) < totalDe(curIdx + 1)) setToast(`Enchaîne : ${exos[curIdx + 1].nom}`)
       if (idx === curIdx) setIdx(curIdx + 1)
     }
     // Records (seulement s'il existe un historique pour comparer ; jamais en déload)
@@ -351,7 +355,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const meilleur = Math.max(0, ...avant.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
     if (e && meilleur && e > meilleur) setToast(`Nouveau record : 1RM estimé à ${kg(e)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}`)
     // Sans 1RM (pas de poids noté, isolation…) : une charge jamais soulevée est aussi un record.
-    else if (!enTemps(exo) && s.reps > 0 && s.charge > Math.max(...avant.map((x) => x.charge)))
+    else if (exo.assistance && s.reps > 0 && s.charge < Math.min(...avant.map((x) => x.charge)))
+      setToast(`Nouveau record : ${chargeTexte(exo, s.charge, true)} × ${s.reps}`)
+    else if (!exo.assistance && !enTemps(exo) && s.reps > 0 && s.charge > Math.max(...avant.map((x) => x.charge)))
       setToast(`Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
     else if (memeCharge.length && s.reps > Math.max(...memeCharge.map((x) => x.reps)))
       setToast(enTemps(exo) ? `🏆 Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `🏆 Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
@@ -408,7 +414,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       s.exercices[j] = a
       s.courant = s.exercices[i].exoId
     })
-    setToast(`⇄ ${exos[j].nom} maintenant, ${exos[i].nom} à sa place`)
+    setToast(`Échangé : ${exos[j].nom} maintenant`)
   }
 
   /** Changer d'ordre volontairement : cet exercice devient l'exercice en cours. */
@@ -432,7 +438,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       if (s.courant === id) s.courant = undefined
     })
     if (i < plans.length - 1) setIdx(i + 1)
-    setToast(`${exos[i].nom} passé pour aujourd’hui`)
+    setToast(`${exos[i].nom} sauté pour aujourd’hui`)
   }
   const annulerPasser = async (i: number) => {
     const id = plans[i].exoId
@@ -503,7 +509,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         <span className="anneau-pct">{Math.round(avancement * 100)}%</span>
       </Anneau>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait'}</strong>
+        <strong>
+          {restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : plans.length ? 'Tout est fait' : 'Rien pour l’instant'}
+          {seance.deload && <span className="texte-finisseur"> · déload</span>}
+        </strong>
         <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
           <Timer size={14} /> {chronoSeance(maintenant - seance.debut)}
           {enClair && ' de séance'}
@@ -732,13 +741,24 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )
     })()
+    const blocTerminer = (
+      <div className="focus-bloc pile">
+        <h2>Toutes les séries sont faites</h2>
+        <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
+          Terminer la séance
+        </button>
+        <button className="btn discret plein" onClick={() => setChoix({ mode: 'ajouter' })}>
+          <Plus size={20} /> Ajouter un exercice
+        </button>
+      </div>
+    )
     return (
       <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
         {correction}
         {vueRepos ? (
-          prochaine
+          prochaine ?? blocTerminer
         ) : surEchauffement ? (
           <Echauffement seance={seance} onPasser={() => setIdx(Math.max(0, enCours))} />
         ) : enCours >= 0 ? (
@@ -824,19 +844,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   reposRestant={reposRestant}
                   verrou={verrou}
                   compact
-                  onFini={(s) => valider(s, reposApresSuperset(plans, enCours, n, t))}
+                  onFini={(s) => valider(s, reposApresSuperset(plans, enCours, n, t, Object.fromEntries(plans.map((x) => [x.exoId, nbFaites(x.exoId)])), totalDe))}
                   onAnnulerEdition={() => undefined}
                 />
               </div>
             )
           })()
         ) : (
-          <div className="focus-bloc pile">
-            <h2>Toutes les séries sont faites</h2>
-            <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
-              Terminer la séance
-            </button>
-          </div>
+          blocTerminer
         )}
         {fenetres}
         {toast && <div className="toast">{toast}</div>}
@@ -932,7 +947,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         })}
 
         {plans.length === 0 && <div className="muted">Séance libre : ajoute tes exercices au fur et à mesure.</div>}
-        <button className="btn discret plein" onClick={() => setChoix({ mode: 'ajouter' })}>
+        <button className={'btn plein ' + (plans.length === 0 ? 'primaire grand' : 'discret')} onClick={() => setChoix({ mode: 'ajouter' })}>
           <Plus size={20} /> Ajouter un exercice
         </button>
       </div>
@@ -1129,7 +1144,8 @@ function LigneExoSeance({
                 + série
               </button>
             )}
-            {!passe && total > faites.length && (
+            {/* Au moins une série : pour ne pas faire l'exercice aujourd'hui, c'est « Sauter » dans « Machine prise ». */}
+            {!passe && total > Math.max(faites.length, 1) && (
               <button className="btn petit" onClick={() => void ajuster(-1)}>
                 − série
               </button>

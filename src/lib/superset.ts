@@ -100,20 +100,10 @@ export function prochainExoDeSeance({
     }
   }
 
-  // 3. Sinon, on cherche le premier groupe incomplet dans l'ordre de la séance
+  // 3. Sinon, le premier groupe incomplet
   const groupes = tousLesGroupes(plans)
-  // On commence à chercher après le dernier groupe travaillé s'il y en a un
-  let debutGroupe = 0
-  if (derniereExoId) {
-    const i0 = plans.findIndex((p) => p.exoId === derniereExoId)
-    if (i0 >= 0) {
-      const gIndex = groupes.findIndex((g) => g.includes(i0))
-      if (gIndex >= 0) debutGroupe = gIndex + 1
-    }
-  }
-
-  const ordre = [...groupes.slice(debutGroupe), ...groupes.slice(0, debutGroupe)]
-  for (const g of ordre) {
+  // Dans l'ordre de la séance : un exercice commencé puis laissé (« Faire maintenant ») n'est pas oublié.
+  for (const g of groupes) {
     const p = prochainExoDuGroupe(g, plans, nbFaites, totalDe, estPasse)
     if (p !== null) return p
   }
@@ -130,32 +120,26 @@ export function reposApresSuperset(
   serieIndex: number,
   total: number,
   nbFaitesParExo?: Record<string, number>,
+  totalDe?: (index: number) => number,
 ): number {
   const p = plans[index]
   if (!p) return 0
+  const reposDe = (x: ExoPlan) => x.series[Math.min(serieIndex, x.series.length - 1)]?.repos ?? x.repos
 
-  // 1. Si cet exercice est enchaîné vers le suivant : c'est le temps de transition
-  if (p.enchaine) {
-    const serieRepos = p.series[Math.min(serieIndex, p.series.length - 1)]?.repos
-    return serieRepos ?? p.repos
-  }
-
-  // 2. Si cet exercice est le dernier d'un groupe superset
   const groupe = groupeSuperset(plans, index)
-  if (groupe.length > 1) {
-    // Si toutes les séries de tous les exercices du superset sont terminées
-    const toutFini = groupe.every((idx) => {
-      const plan = plans[idx]
-      const faites = (nbFaitesParExo?.[plan.exoId] ?? 0) + (idx === index ? 1 : 0)
-      const prevues = plan.series.length
-      return faites >= prevues
-    })
-    if (toutFini && p.reposApres !== undefined) {
-      return p.reposApres
-    }
-    return p.series[Math.min(serieIndex, p.series.length - 1)]?.repos ?? p.repos
-  }
+  if (groupe.length === 1) return reposApres(p, serieIndex, total)
+  const dernier = plans[groupe[groupe.length - 1]]
 
-  // 3. Exercice simple hors superset
-  return reposApres(p, serieIndex, total)
+  // Sans les comptes : le repos propre à l'exercice (transition s'il est enchaîné).
+  if (!nbFaitesParExo) return reposDe(p)
+
+  const faites = (i: number) => (nbFaitesParExo[plans[i].exoId] ?? 0) + (i === index ? 1 : 0)
+  const prevues = (i: number) => totalDe?.(i) ?? plans[i].series.length
+  const restants = groupe.filter((i) => faites(i) < prevues(i))
+  // Tout le groupe est fini : le repos avant l'exercice suivant.
+  if (!restants.length) return dernier.reposApres ?? p.reposApres ?? reposDe(dernier)
+  const moins = Math.min(...restants.map(faites))
+  const suivant = restants.find((i) => faites(i) === moins)!
+  // Le suivant est plus loin dans le groupe : transition. Sinon, le tour est fini : repos complet.
+  return suivant > index && p.enchaine ? reposDe(p) : reposDe(dernier)
 }

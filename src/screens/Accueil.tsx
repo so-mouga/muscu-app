@@ -40,24 +40,29 @@ async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycl
   debloquerSon()
   void seanceDuJourNatif(dateISO())
   const deload = !!(modele && cycle?.deload)
-  await db.seances.add({
-    ...(cycle && { cycleId: cycle.cycleId, semaine: cycle.semaine }),
-    ...(deload && { deload: true }),
-    ...(echauffement.length && { echauffement: { ids: echauffement, faits: [] } }),
-    id: uid(),
-    date: dateISO(),
-    modeleId: modele?.id,
-    nom: modele?.nom ?? 'Séance libre',
-    sousTitre: modele?.sousTitre ?? 'exercices au choix',
-    // Déload : plan allégé (moitié des séries, RPE 6-7, sans finisseur).
-    exercices: structuredClone(modele?.exercices ?? []).map((p) => (deload ? planDeload(p) : p)),
-    debut: Date.now(),
-    enCours: true,
-    poidsCorps: await dernierPoids(),
-    chauffes: {},
-    series: [],
-    notes: {},
-    ajustSeries: {},
+  const poidsCorps = await dernierPoids()
+  // Une seule séance en cours : un double appui sur « Démarrer » n'en crée pas une seconde, qui reviendrait plus tard.
+  await db.transaction('rw', db.seances, async () => {
+    if (await db.seances.filter((s) => s.enCours).first()) return
+    await db.seances.add({
+      ...(cycle && { cycleId: cycle.cycleId, semaine: cycle.semaine }),
+      ...(deload && { deload: true }),
+      ...(echauffement.length && { echauffement: { ids: echauffement, faits: [] } }),
+      id: uid(),
+      date: dateISO(),
+      modeleId: modele?.id,
+      nom: modele?.nom ?? 'Séance libre',
+      sousTitre: modele?.sousTitre ?? 'exercices au choix',
+      // Déload : plan allégé (moitié des séries, RPE 6-7, sans finisseur).
+      exercices: structuredClone(modele?.exercices ?? []).map((p) => (deload ? planDeload(p) : p)),
+      debut: Date.now(),
+      enCours: true,
+      poidsCorps,
+      chauffes: {},
+      series: [],
+      notes: {},
+      ajustSeries: {},
+    })
   })
 }
 

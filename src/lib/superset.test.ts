@@ -194,4 +194,28 @@ describe('reposApresSuperset', () => {
     // Dernière série de B avec A déjà fini à 2/2
     expect(reposApresSuperset(plans, 1, 1, 2, { a: 2, b: 1 })).toBe(180)
   })
+
+  it('groupe inégal : quand B est fini, A garde le repos complet, pas la transition', () => {
+    const plans = [makePlan('a', 5, 20, true), makePlan('b', 3, 90, false)]
+    // A1 : B reste à faire, transition.
+    expect(reposApresSuperset(plans, 0, 0, 5, { a: 0, b: 0 })).toBe(20)
+    // A4, B déjà à 3/3 : prochaine série = A, repos complet.
+    expect(reposApresSuperset(plans, 0, 3, 5, { a: 3, b: 3 })).toBe(90)
+  })
+
+  it('les séries ajoutées et les exercices sautés comptent', () => {
+    const pB = makePlan('b', 3, 90, false)
+    pB.reposApres = 180
+    const plans = [makePlan('a', 3, 0, true), pB]
+    expect(reposApresSuperset(plans, 1, 2, 3, { a: 3, b: 2 }, (i) => (i === 0 ? 4 : 3))).toBe(90)
+    expect(reposApresSuperset(plans, 1, 2, 3, { a: 0, b: 2 }, (i) => (i === 0 ? 0 : 3))).toBe(180)
+  })
+})
+
+describe('après « Faire maintenant »', () => {
+  it('on revient au premier exercice non terminé, pas à celui d’après', () => {
+    const plans = [makePlan('a'), makePlan('b'), makePlan('c'), makePlan('d')]
+    const nb: Record<string, number> = { a: 1, b: 0, c: 3, d: 0 }
+    expect(prochainExoDeSeance({ plans, nbFaites: (id) => nb[id], totalDe: () => 3, derniereExoId: 'c' })).toBe(0)
+  })
 })

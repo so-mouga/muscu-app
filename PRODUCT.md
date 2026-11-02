@@ -72,6 +72,18 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 Rien de ces six derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
 
+### Test complet du parcours de séance (2 nov. 2026)
+
+Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
+
+- **Écran superset en plein écran, à repenser avec une maquette** : noms coupés à 12 lettres, deux rangées de séries avec deux « S1 ▶ », séries faites coupées ; « Valider » hors écran en 360 × 667 avec 5 séries et un échauffement ; tri-set qui déborde en 384 × 832.
+- Corriger une série depuis Fin de séance : impossible, il faut revenir en arrière.
+- Note écrite dans la liste : pas reprise en plein écran.
+- Finisseurs drop et rest-pause à 667 px : il faut défiler pour atteindre « Je me suis arrêté à l'échec ».
+- « À calibrer… » répété sur chaque exercice dans l'écran « Voir » d'un nouveau programme.
+- Vocabulaire : « effort 8/10 », « RPE 8 » et « @8 » pour la même chose ; « 1RM estimé » dans un message ; ★, 🏆 et 💪 restants.
+- Pas essayé : son, vibrations, notification et alarme sur le téléphone ; déload depuis un vrai cycle ; « Créer un exercice » en séance ; « Modifier l'exercice » depuis la fiche.
+
 ### Décisions validées, absentes d'`AGENTS.md`
 
 - **Manière de travailler sur un retour** : ne pas coder tout de suite. Reformuler, dire franchement si on est d'accord et pourquoi, signaler ce qui contredit `AGENTS.md` ou ce fichier, proposer mieux si possible, puis attendre « go ». L'utilisateur préfère être contredit plutôt que voir appliquer un mauvais retour.

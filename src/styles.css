@@ -601,6 +601,12 @@ button:active:not(:disabled),
 }
 
 .toast {
+  /* Un message ne bloque jamais les boutons qu'il recouvre. */
+  pointer-events: none;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   position: fixed;
   top: calc(12px + env(safe-area-inset-top));
   left: 16px;

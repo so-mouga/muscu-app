@@ -1,8 +1,8 @@
 import { Check, ChevronRight, Info, Lightbulb, Pencil, Timer, TriangleAlert, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { db, modifierExercice, uid } from '../db'
-import { chargeQte, chargeTexte, enTemps, fourchette, kg, RIR } from '../lib/calc'
+import { chargeDecalee, chargeQte, chargeTexte, enTemps, fourchette, kg, RIR } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import ChronoTenue from './ChronoTenue'
@@ -91,6 +91,35 @@ interface EditeurProps {
   fermeture?: { current: (() => void) | null }
 }
 
+interface Brouillon {
+  exoId: string
+  index: number
+  charge: number
+  reps: number
+  rpe: number
+  type: TypeSerie
+  douleur: boolean
+  aRegler: boolean
+}
+
+function lireBrouillon(cle: string | null, exoId: string, index: number): Brouillon | null {
+  if (!cle) return null
+  try {
+    const b = JSON.parse(localStorage.getItem(cle) ?? 'null') as Brouillon | null
+    return b && b.exoId === exoId && b.index === index ? b : null
+  } catch {
+    return null
+  }
+}
+
+function oublierBrouillon(cle: string) {
+  try {
+    localStorage.removeItem(cle)
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
 /** Paliers courants : haltères 1 / 2 kg, disques 1,25 / 2,5, piles de machines 4,5 / 5 / 7 / 10 kg. */
 const PALIERS = [1, 1.25, 2, 2.5, 4.5, 5, 7, 10]
 
@@ -102,12 +131,30 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   // Charge proposée : la suggestion, décalée du même écart que l'utilisateur a appliqué à la série précédente.
   const chargeInitiale = () => chargeProposee(exo, sugg, faites, index)
 
-  const [charge, setCharge] = useState(edition?.charge ?? chargeInitiale())
+  // Plein écran : ce qui a été réglé sans valider revient après un passage par la liste ou une appli fermée.
+  const cleBrouillon = !edition && compact && !heure ? `brouillon:${seance.id}` : null
+  const [brouillon] = useState(() => lireBrouillon(cleBrouillon, exo.id, index))
+  const [charge, setCharge] = useState(edition?.charge ?? brouillon?.charge ?? chargeInitiale())
   const [chargeTxt, setChargeTxt] = useState<string | null>(null)
-  const [reps, setReps] = useState(edition?.reps ?? sugg.reps[i] ?? p.repsMin)
-  const [rpe, setRpe] = useState(edition?.rpe ?? (finisseur ? 10 : Math.round(p.rpe)))
-  const [type, setType] = useState<TypeSerie>(edition?.type ?? (finisseur ? 'echec' : 'normale'))
-  const [douleur, setDouleur] = useState(edition?.douleur ?? false)
+  const [reps, setReps] = useState(edition?.reps ?? brouillon?.reps ?? sugg.reps[i] ?? p.repsMin)
+  const [rpe, setRpe] = useState(edition?.rpe ?? brouillon?.rpe ?? (finisseur ? 10 : Math.round(p.rpe)))
+  const [type, setType] = useState<TypeSerie>(edition?.type ?? brouillon?.type ?? (finisseur ? 'echec' : 'normale'))
+  const [douleur, setDouleur] = useState(edition?.douleur ?? brouillon?.douleur ?? false)
+  // Charge jamais connue : champ vide, à remplir, plutôt qu'un « 0 » qu'on validerait sans s'en rendre compte.
+  const [aRegler, setARegler] = useState(() => brouillon?.aRegler ?? (!edition && !enTemps(exo) && exo.mode !== 'poids_corps' && exo.mode !== 'elastique' && sugg.charges[i] === null && !faites[index - 1]))
+  const premierRendu = useRef(true)
+  useEffect(() => {
+    if (premierRendu.current) {
+      premierRendu.current = false
+      return
+    }
+    if (!cleBrouillon) return
+    try {
+      localStorage.setItem(cleBrouillon, JSON.stringify({ exoId: exo.id, index, charge, reps, rpe, type, douleur, aRegler }))
+    } catch {
+      /* stockage indisponible */
+    }
+  }, [cleBrouillon, exo.id, index, charge, reps, rpe, type, douleur, aRegler])
   const [options, setOptions] = useState(false)
   const [panneau, setPanneau] = useState(false)
   const [demi, setDemi] = useState(edition?.demiReps ?? 6)
@@ -154,7 +201,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const chargeSuspecte = (c: number) => (reference > 0 ? c > reference * 1.5 && c - reference >= 20 : c > 300)
 
   const enregistrer = async (s: Serie) => {
-    if (s.reps <= 0 && !edition) return
+    if ((s.reps <= 0 || aRegler) && !edition) return
     if (
       chargeSuspecte(s.charge) &&
       !(await confirmer(`C’est bien plus que d’habitude (${chargeTexte(exo, reference)}). Faute de frappe ?`, { titre: `Valider ${chargeTexte(exo, s.charge)} ?`, oui: 'Valider quand même', non: 'Corriger' }))
@@ -163,6 +210,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     if (!edition) {
       if (performance.now() - derniereValidation < 1500) return
       derniereValidation = performance.now()
+      if (cleBrouillon) oublierBrouillon(cleBrouillon)
     }
     // Nouvelle série : le signal (son, vibration) est donné par la séance, qui sait si c'est mieux ou la fin de l'exercice.
     if (edition) vibrer(40)
@@ -263,16 +311,17 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   // Charge et reps : l'un sous l'autre, ou côte à côte en plein écran (compact) pour tout voir sans défiler.
   const stepperCharge = (
     <div className="stepper">
-      <button onClick={() => (setCharge(arr(charge - pas)), setChargeTxt(null))}>−</button>
+      <button onClick={() => !aRegler && (setCharge(chargeDecalee(exo, charge, -pas)), setChargeTxt(null))}>−</button>
       <div className="valeur">
         <input
           inputMode="decimal"
-          value={chargeTxt ?? kg(charge)}
+          placeholder="—"
+          value={chargeTxt ?? (aRegler ? '' : kg(charge))}
           onFocus={(e) => e.target.select()}
           onChange={(e) => {
             setChargeTxt(e.target.value)
             const v = parseFloat(e.target.value.replace(',', '.'))
-            if (!isNaN(v)) setCharge(v)
+            if (!isNaN(v)) (setCharge(v), setARegler(false))
           }}
           onBlur={() => setChargeTxt(null)}
         />
@@ -285,7 +334,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           </button>
         )}
       </div>
-      <button onClick={() => (setCharge(arr(charge + pas)), setChargeTxt(null))}>+</button>
+      <button onClick={() => (setCharge(chargeDecalee(exo, charge, pas)), setChargeTxt(null), setARegler(false))}>+</button>
     </div>
   )
   const stepperReps = (
@@ -423,7 +472,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         (() => {
           const prec = faites[index - 1]
           const c = monterMaintenant(exo, plan, prec, index)
-          if (c === null || charge >= c) return null
+          if (c === null || (exo.assistance ? charge <= c : charge >= c)) return null
           return (
             <div className="conseil-surcharge discret">
               <span className="faible">
@@ -482,16 +531,16 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           <Check size={22} /> Série enregistrée
         </button>
       ) : finisseur ? (
-        <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
+        <button className={'btn grand' + (enRepos ? '' : ' finisseur')} disabled={aRegler} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
           {tf === 'echec' ? 'Valider (échec)' : 'Échec atteint'}
         </button>
       ) : temps && !edition && !saisieManuelle ? null : (
         <button
           className={'btn grand' + (enRepos ? '' : ' primaire')}
-          disabled={reps <= 0}
+          disabled={reps <= 0 || aRegler}
           onClick={() => enregistrer(serieAffichee())}
         >
-          {reps <= 0 ? (temps ? 'Indique le temps tenu' : 'Indique au moins 1 rep') : edition ? 'Mettre à jour' : 'Valider la série'}
+          {aRegler ? 'Indique la charge' : reps <= 0 ? (temps ? 'Indique le temps tenu' : 'Indique au moins 1 rep') : edition ? 'Mettre à jour' : 'Valider la série'}
         </button>
       )}
       </div>
