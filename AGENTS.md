@@ -8,6 +8,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - Si `git status` montre des modifications non commitées **qui ne sont pas les tiennes**, une autre IA est en train de travailler : ne touche pas à ses fichiers, ne commite que les tiens (`git add <tes fichiers>`), et ne publie pas d'APK construit avant ses commits Android.
 - En finissant : tout commiter et pousser. Messages de commit en français, qui disent ce que l'utilisateur voit changer.
 - Ajouter ici toute nouvelle décision ou convention importante, pour l'IA suivante.
+- **Design** : la skill Impeccable (`.claude/skills/impeccable`, agents dans `.claude/agents`) sert à refaire la charte graphique, écran par écran (`/impeccable init`, `document`, `critique`, `audit`…). Installée sans le hook automatique. Ces règles restent prioritaires.
 
 ## Stack et commandes
 
