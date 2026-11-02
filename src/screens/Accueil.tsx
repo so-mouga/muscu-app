@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, ChevronRight, ChevronUp, CloudUpload, Download, Dumbbell, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, ChevronUp, Clock, CloudUpload, Download, Dumbbell, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, Target, X } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
@@ -85,8 +85,8 @@ export default function Accueil({
   const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
   const [seanceFaiteModal, setSeanceFaiteModal] = useState<Seance | null>(null)
-  const [seancePrevueModal, setSeancePrevueModal] = useState<{ jour: number; modele: SeanceModele } | null>(null)
-  const [semaineDepliee, setSemaineDepliee] = useState(false)
+  const [seancePrevueModal, setSeancePrevueModal] = useState<{ jour: number; modele: SeanceModele; repos?: boolean } | null>(null)
+  const [semaineDepliee, setSemaineDepliee] = useState<boolean | null>(null)
   const [ouvert, setOuvert] = useState<string | null>(null)
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(() => {
@@ -132,6 +132,7 @@ export default function Accueil({
     [debutSemaine],
     []
   )
+  const estSemaineDepliee = semaineDepliee !== null ? semaineDepliee : semaine.length > 0
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
@@ -880,18 +881,22 @@ export default function Accueil({
             { id: 7, nomCourt: 'dim', lettre: 'D' },
           ].map((d) => {
             const ent = planning.find((e) => e.jour === d.id)
-            const faiteSemaine = semaine.find((s) => jourSemaine(new Date(s.debut)) === d.id)
-            const estFait = ent ? faite(ent) : !!faiteSemaine
+            const seanceDuJour = semaine.find((s) => jourSemaine(new Date(s.debut)) === d.id)
+            // Séance ayant validé ce créneau de planning même si faite un autre jour :
+            const seanceSlot = ent && semaine.find((s) => s.modeleId === ent.modele.id || catalogue.modele(s.modeleId)?.varianteDe === ent.modele.id)
+            const seanceValidee = seanceDuJour ?? (ent && faite(ent) ? seanceSlot : undefined)
+            const estFait = !!seanceValidee
             const estAujourdhui = d.id === jour
-            const interactif = !!(faiteSemaine || ent)
+            const modelePrevu = ent?.modele ?? (proposee ? proposee.modele : prochaine ? prochaine.modele : planning[0]?.modele)
+            const interactif = !!(seanceValidee || modelePrevu)
             return (
               <button
                 key={d.id}
                 type="button"
                 disabled={!interactif}
                 aria-label={
-                  faiteSemaine
-                    ? `${d.nomCourt} : ${faiteSemaine.nom} validée`
+                  seanceValidee
+                    ? `${d.nomCourt} : ${seanceValidee.nom} validée`
                     : ent
                     ? `${d.nomCourt} : ${ent.modele.nom} prévue`
                     : `${d.nomCourt} : repos`
@@ -911,8 +916,11 @@ export default function Accueil({
                   WebkitTapHighlightColor: 'transparent',
                 }}
                 onClick={() => {
-                  if (faiteSemaine) setSeanceFaiteModal(faiteSemaine)
-                  else if (ent) setSeancePrevueModal({ jour: d.id, modele: ent.modele })
+                  if (seanceValidee) {
+                    setSeanceFaiteModal(seanceValidee)
+                  } else if (modelePrevu) {
+                    setSeancePrevueModal({ jour: d.id, modele: modelePrevu, repos: !ent })
+                  }
                 }}
               >
                 <span
@@ -990,7 +998,7 @@ export default function Accueil({
           <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
             <button
               type="button"
-              onClick={() => setSemaineDepliee(!semaineDepliee)}
+              onClick={() => setSemaineDepliee(!estSemaineDepliee)}
               style={{
                 width: '100%',
                 display: 'flex',
@@ -1004,15 +1012,15 @@ export default function Accueil({
               }}
             >
               <span className="faible" style={{ fontSize: '0.88rem' }}>
-                Bilan <strong style={{ color: 'var(--texte)' }}>{semaine.length} séance{semaine.length > 1 ? 's' : ''}</strong>
+                Séances de la semaine <strong style={{ color: 'var(--texte)' }}>({semaine.length}{planning.length ? `/${planning.length}` : ''})</strong>
                 {duresSemaine > 0 ? ` · ${duresSemaine} séries` : ''}
               </span>
               <span style={{ color: 'var(--texte-faible)', display: 'flex', alignItems: 'center' }}>
-                {semaineDepliee ? <ChevronUp size={18} strokeWidth={1.75} /> : <ChevronDown size={18} strokeWidth={1.75} />}
+                {estSemaineDepliee ? <ChevronUp size={18} strokeWidth={1.75} /> : <ChevronDown size={18} strokeWidth={1.75} />}
               </span>
             </button>
 
-            {semaineDepliee && (
+            {estSemaineDepliee && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, paddingTop: 4 }}>
                 {[...semaine]
                   .sort((a, b) => b.debut - a.debut)
@@ -1026,7 +1034,7 @@ export default function Accueil({
                         key={s.id}
                         role="button"
                         tabIndex={0}
-                        onClick={() => onVoirSeance(s.id)}
+                        onClick={() => setSeanceFaiteModal(s)}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1408,9 +1416,12 @@ export default function Accueil({
       })()}
 
       {seancePrevueModal && (() => {
-        const { jour: jourId, modele } = seancePrevueModal
+        const { jour: jourId, modele, repos } = seancePrevueModal
         const estAuj = jourId === jour
         const jourNom = estAuj ? "Aujourd'hui" : ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][jourId]
+        const sousTitre = repos
+          ? `${jourNom} (Repos) · Prochaine séance : ${modele.nom}`
+          : `${jourNom}${modele.sousTitre ? ` · ${modele.sousTitre}` : ''}`
         const dureeEstimee = dureeTexte(modele, terminees)
 
         return (
@@ -1424,7 +1435,7 @@ export default function Accueil({
                   <div>
                     <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{modele.nom}</h2>
                     <div className="faible" style={{ fontSize: '0.82rem', marginTop: 2 }}>
-                      {jourNom}{modele.sousTitre ? ` · ${modele.sousTitre}` : ''}
+                      {sousTitre}
                     </div>
                   </div>
                 </div>
@@ -1433,19 +1444,19 @@ export default function Accueil({
                   className="icone"
                   onClick={() => setSeancePrevueModal(null)}
                   aria-label="Fermer"
-                  style={{ fontSize: 18, padding: 4 }}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}
                 >
-                  ✕
+                  <X size={18} strokeWidth={2} />
                 </button>
               </div>
 
               {/* Badges d'estimation */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte)' }}>
-                  ⏱️ ~{dureeEstimee}
+                  <Clock size={13} strokeWidth={2} style={{ color: 'var(--accent)' }} /> ~{dureeEstimee}
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '0.8rem', color: 'var(--texte-2)' }}>
-                  🎯 {modele.exercices.length} exercices au programme
+                  <Target size={13} strokeWidth={2} style={{ color: '#38bdf8' }} /> {modele.exercices.length} exercices au programme
                 </span>
               </div>
 

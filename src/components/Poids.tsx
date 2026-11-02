@@ -159,7 +159,7 @@ export default function Poids({
       </div>
 
       {/* Contrôle de saisie sur une seule ligne harmonieuse : Stepper unifié + Bouton d'action */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 14 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 14, width: '100%', boxSizing: 'border-box' }}>
         {/* Stepper unifié */}
         <div
           style={{
@@ -169,8 +169,9 @@ export default function Poids({
             alignItems: 'center',
             background: 'var(--subcard-gradient)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 14,
-            padding: '3px',
+            borderRadius: 12,
+            padding: '2px',
+            boxSizing: 'border-box',
           }}
         >
           <button
@@ -178,15 +179,15 @@ export default function Poids({
             onClick={() => ajuster(-0.1)}
             aria-label="Diminuer de 0,1 kg"
             style={{
-              width: 38,
-              height: 38,
+              width: 34,
+              height: 34,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: 10,
-              fontSize: '1.25rem',
+              borderRadius: 9,
+              fontSize: '1.15rem',
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
@@ -195,22 +196,25 @@ export default function Poids({
           >
             −
           </button>
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: '0 2px' }}>
             <input
               type="text"
               inputMode="decimal"
               enterKeyHint="done"
               className="duree"
               style={{
-                width: 58,
+                width: 48,
+                maxWidth: 52,
+                minWidth: 36,
                 textAlign: 'center',
-                fontSize: '1.25rem',
+                fontSize: '1.18rem',
                 fontWeight: 800,
                 color: 'var(--texte)',
                 background: 'transparent',
                 border: 'none',
                 outline: 'none',
                 padding: 0,
+                boxSizing: 'border-box',
               }}
               placeholder={dernierPoids ? kg(dernierPoids) : '70'}
               value={valeurAffichee}
@@ -224,22 +228,22 @@ export default function Poids({
               }}
               onKeyDown={(e) => e.key === 'Enter' && void enregistrer()}
             />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>kg</span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>kg</span>
           </div>
           <button
             type="button"
             onClick={() => ajuster(0.1)}
             aria-label="Augmenter de 0,1 kg"
             style={{
-              width: 38,
-              height: 38,
+              width: 34,
+              height: 34,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: 10,
-              fontSize: '1.25rem',
+              borderRadius: 9,
+              fontSize: '1.15rem',
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
@@ -255,9 +259,9 @@ export default function Poids({
           type="button"
           onClick={enregistrer}
           style={{
-            height: 44,
-            padding: '0 14px',
-            borderRadius: 12,
+            height: 38,
+            padding: '0 12px',
+            borderRadius: 11,
             background: estEnregistre && !enregistreAnim
               ? 'rgba(34, 197, 94, 0.12)'
               : 'var(--accent-orange)',
@@ -266,20 +270,21 @@ export default function Poids({
               : 'none',
             color: estEnregistre && !enregistreAnim ? '#22c55e' : '#fff',
             fontWeight: 700,
-            fontSize: '0.88rem',
+            fontSize: '0.84rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 5,
             boxShadow: estEnregistre && !enregistreAnim
               ? 'none'
-              : '0 4px 14px rgba(249, 115, 22, 0.35)',
+              : '0 3px 12px rgba(249, 115, 22, 0.3)',
             transition: 'all 0.15s ease',
             whiteSpace: 'nowrap',
             flexShrink: 0,
+            boxSizing: 'border-box',
           }}
         >
-          <Check size={16} strokeWidth={2.5} />
+          <Check size={15} strokeWidth={2.5} />
           <span>{enregistreAnim ? 'Enregistré !' : estEnregistre ? 'Enregistré' : 'Enregistrer'}</span>
         </button>
       </div>

@@ -28,6 +28,7 @@ export default function App() {
   const [onglet, setOngletEtat] = useState<Onglet>('accueil')
   /** Séance ouverte dans l'historique. */
   const [detail, setDetailEtat] = useState<string | null>(null)
+  const [provenanceDetail, setProvenanceDetail] = useState<Onglet | null>(null)
   /** Réglages ouverts par ⚙ (page au-dessus de l'onglet). */
   const [reglages, setReglages] = useState(false)
   /** Exercice ouvert depuis le Bilan dans l'onglet Exercices. */
@@ -70,10 +71,19 @@ export default function App() {
     transition(() => setOngletEtat(o), sens)
     window.scrollTo({ top: 0 })
   }
-  const setDetail = (id: string | null) => {
+  const setDetail = (id: string | null, provenance?: Onglet) => {
     transition(() => {
       setDetailEtat(id)
-      if (id) (setOngletEtat('historique'), setVue('journal'))
+      if (id) {
+        if (provenance) setProvenanceDetail(provenance)
+        setOngletEtat('historique')
+        setVue('journal')
+      } else {
+        if (provenanceDetail) {
+          setOngletEtat(provenanceDetail)
+          setProvenanceDetail(null)
+        }
+      }
     }, id ? 'avant' : 'arriere')
     window.scrollTo({ top: 0 })
   }
@@ -92,7 +102,7 @@ export default function App() {
         {!reglages && onglet === 'accueil' && (
           <Accueil
             catalogue={catalogue}
-            onVoirSeance={setDetail}
+            onVoirSeance={(id) => setDetail(id, 'accueil')}
             onMesures={() => setOnglet('corps')}
             onObjectifs={() => {
               try {
@@ -130,7 +140,7 @@ export default function App() {
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
-          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setDetailEtat(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
+          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
             <IconeOnglet nom={id} />
             {nom}
           </button>
