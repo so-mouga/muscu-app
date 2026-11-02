@@ -85,7 +85,8 @@ export default function Accueil({
   const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
   const [seanceFaiteModal, setSeanceFaiteModal] = useState<Seance | null>(null)
-  const [seancePrevueModal, setSeancePrevueModal] = useState<{ jour: number; modele: SeanceModele; repos?: boolean } | null>(null)
+  const [seancePrevueModal, setSeancePrevueModal] = useState<{ jour: number; modele: SeanceModele } | null>(null)
+  const [jourReposModal, setJourReposModal] = useState<number | null>(null)
   const [semaineDepliee, setSemaineDepliee] = useState<boolean | null>(null)
   const [ouvert, setOuvert] = useState<string | null>(null)
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
@@ -121,6 +122,7 @@ export default function Accueil({
   useRetour(choix, () => setChoix(false))
   useRetour(!!seanceFaiteModal, () => setSeanceFaiteModal(null))
   useRetour(!!seancePrevueModal, () => setSeancePrevueModal(null))
+  useRetour(jourReposModal !== null, () => setJourReposModal(null))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
     transition(() => setApercuEtat(m && catalogue.pourDemarrer(m)), m ? 'avant' : 'arriere')
@@ -887,13 +889,10 @@ export default function Accueil({
             const seanceValidee = seanceDuJour ?? (ent && faite(ent) ? seanceSlot : undefined)
             const estFait = !!seanceValidee
             const estAujourdhui = d.id === jour
-            const modelePrevu = ent?.modele ?? (proposee ? proposee.modele : prochaine ? prochaine.modele : planning[0]?.modele)
-            const interactif = !!(seanceValidee || modelePrevu)
             return (
               <button
                 key={d.id}
                 type="button"
-                disabled={!interactif}
                 aria-label={
                   seanceValidee
                     ? `${d.nomCourt} : ${seanceValidee.nom} validée`
@@ -906,7 +905,7 @@ export default function Accueil({
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: 6,
-                  cursor: interactif ? 'pointer' : 'default',
+                  cursor: 'pointer',
                   background: 'none',
                   border: 'none',
                   padding: 0,
@@ -918,8 +917,10 @@ export default function Accueil({
                 onClick={() => {
                   if (seanceValidee) {
                     setSeanceFaiteModal(seanceValidee)
-                  } else if (modelePrevu) {
-                    setSeancePrevueModal({ jour: d.id, modele: modelePrevu, repos: !ent })
+                  } else if (ent) {
+                    setSeancePrevueModal({ jour: d.id, modele: ent.modele })
+                  } else {
+                    setJourReposModal(d.id)
                   }
                 }}
               >
@@ -934,7 +935,7 @@ export default function Accueil({
                 </span>
 
                 <div
-                  className={interactif ? 'frise-jour-rond interactif' : 'frise-jour-rond'}
+                  className="frise-jour-rond interactif"
                   style={{
                     width: 34,
                     height: 34,
@@ -1418,12 +1419,10 @@ export default function Accueil({
       })()}
 
       {seancePrevueModal && (() => {
-        const { jour: jourId, modele, repos } = seancePrevueModal
+        const { jour: jourId, modele } = seancePrevueModal
         const estAuj = jourId === jour
         const jourNom = estAuj ? "Aujourd'hui" : ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][jourId]
-        const sousTitre = repos
-          ? `${jourNom} (Repos) · Prochaine séance : ${modele.nom}`
-          : `${jourNom}${modele.sousTitre ? ` · ${modele.sousTitre}` : ''}`
+        const sousTitre = `${jourNom}${modele.sousTitre ? ` · ${modele.sousTitre}` : ''}`
         const dureeEstimee = dureeTexte(modele, terminees)
 
         return (
@@ -1501,6 +1500,9 @@ export default function Accueil({
 
               {/* Actions */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="faible" style={{ fontSize: '0.78rem', textAlign: 'center', marginBottom: -2 }}>
+                  Lancer ce modèle pour aujourd’hui
+                </div>
                 <button
                   type="button"
                   className="btn primaire"
@@ -1519,7 +1521,7 @@ export default function Accueil({
                     justifyContent: 'center',
                   }}
                 >
-                  Démarrer cette séance
+                  Faire cette séance
                 </button>
                 <button
                   type="button"
@@ -1544,6 +1546,90 @@ export default function Accueil({
                   className="btn discret plein"
                   onClick={() => setSeancePrevueModal(null)}
                   style={{ height: 38, borderRadius: 12 }}
+                >
+                  Fermer
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {jourReposModal !== null && (() => {
+        const jourId = jourReposModal
+        const estAuj = jourId === jour
+        const jourNom = estAuj ? "Aujourd'hui" : ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][jourId]
+
+        return (
+          <div className="modal-fond dialogue" onClick={() => setJourReposModal(null)}>
+            <div
+              className="modal pile"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: 380,
+                padding: '22px 18px',
+                borderRadius: 20,
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 14,
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  background: 'rgba(86, 180, 233, 0.15)',
+                  border: '1px solid rgba(86, 180, 233, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#56b4e9',
+                }}
+              >
+                <Moon size={24} strokeWidth={2} />
+              </div>
+
+              <div>
+                <h3 style={{ margin: '0 0 6px', fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+                  {jourNom} · Repos
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                  C’est un jour de repos. Profite de cette journée pour récupérer et reconstruire tes fibres musculaires !
+                </p>
+              </div>
+
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                <button
+                  type="button"
+                  className="btn primaire"
+                  onClick={() => {
+                    setJourReposModal(null)
+                    setChoix(true)
+                  }}
+                  style={{
+                    height: 44,
+                    minHeight: 44,
+                    borderRadius: 12,
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span>+ Choisir une séance</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn discret"
+                  onClick={() => setJourReposModal(null)}
+                  style={{ height: 38, minHeight: 38, borderRadius: 12, fontSize: '0.85rem', width: '100%' }}
                 >
                   Fermer
                 </button>
