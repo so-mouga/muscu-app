@@ -78,7 +78,7 @@ Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
 
 - Superset refait (règles dans `AGENTS.md`). Reste le cas 5 séries et échauffement sous 720 px : il défile, « Valider » collé en bas recouvre les efforts jusqu'à ce qu'on défile.
 - Dans les écrans pas encore refaits (Bilan, Programmes, lexique) : RPE et émojis restent, à reprendre avec chacun. « ⚡ Séance libre » reste sur l'Accueil.
-- Pas essayé : son, vibrations, notification et alarme sur le téléphone ; déload depuis un vrai cycle ; « Créer un exercice » en séance ; ajout d'une vraie photo dans les réglages de la machine.
+- Pas essayé : son, vibrations, notification et alarme sur le téléphone ; déload depuis un vrai cycle ; « Créer un exercice » en séance .
 
 ### Décisions validées, absentes d'`AGENTS.md`
 

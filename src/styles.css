@@ -3778,23 +3778,26 @@ button.phase-accueil {
   align-items: center;
   gap: var(--e3);
 }
-.reglage-photo img,
-.reglage-photo-vide {
+.reglage-photo img {
   flex: none;
-  width: var(--cible);
-  height: var(--cible);
+  width: 88px;
+  height: 88px;
   border-radius: var(--rayon-2);
   object-fit: cover;
 }
-.reglage-photo-vide {
+.reglage-photo-boutons {
   display: grid;
-  place-items: center;
-  background: var(--controle);
-  color: var(--texte-2);
+  grid-template-columns: 3fr 2fr;
+  gap: var(--e2);
 }
-.reglage-photo .btn {
-  flex: 1;
-  min-width: 0;
+.reglage-photo-boutons .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e1);
+  min-height: var(--cible);
+  padding: 0 var(--e1);
+  white-space: nowrap;
 }
 .fiche-reglages {
   width: 100%;

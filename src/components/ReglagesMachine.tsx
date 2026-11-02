@@ -1,4 +1,4 @@
-import { Camera, X } from 'lucide-react'
+import { Camera, Images, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { modifierExercice } from '../db'
@@ -116,17 +116,27 @@ export function ContenuReglages({ exo }: { exo: Exercice }) {
         <span className="petit">Note</span>
         <textarea rows={2} placeholder="Réglage du siège, prise…" value={note} onChange={(e) => setNote(e.target.value)} onBlur={garderTextes} />
       </label>
-      <div className="reglage-photo">
-        {image ? <img src={image} alt={exo.nom} /> : <span className="reglage-photo-vide"><Camera size={20} /></span>}
-        <label className="btn plein">
-          {chargement ? 'Chargement…' : image ? 'Changer la photo' : 'Ajouter une photo'}
-          <input type="file" accept="image/*" hidden onChange={(e) => void choisirPhoto(e.target.files?.[0])} />
-        </label>
+      <div className="reglage-machine">
+        <span className="petit">Photo</span>
         {image && (
-          <button type="button" className="btn discret petit" onClick={retirerPhoto}>
-            Retirer
-          </button>
+          <div className="reglage-photo">
+            <img src={image} alt={exo.nom} />
+            <button type="button" className="btn discret petit" onClick={retirerPhoto}>
+              Retirer
+            </button>
+          </div>
         )}
+        {/* Android peut fermer l'appli pendant la prise de vue : ce qui est saisi part dans la base avant. */}
+        <div className="reglage-photo-boutons">
+          <label className="btn" onClick={garderTextes}>
+            <Camera size={18} /> {chargement ? 'Chargement…' : image ? 'Reprendre' : 'Prendre une photo'}
+            <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void choisirPhoto(e.target.files?.[0])} />
+          </label>
+          <label className="btn" onClick={garderTextes}>
+            <Images size={18} /> Galerie
+            <input type="file" accept="image/*" hidden onChange={(e) => void choisirPhoto(e.target.files?.[0])} />
+          </label>
+        </div>
       </div>
     </>
   )
