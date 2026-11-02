@@ -76,7 +76,7 @@ Rien de ces six derniers points n'a encore été essayé sur le téléphone. À 
 
 Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
 
-- **Écran superset en plein écran, à repenser avec une maquette** : noms coupés à 12 lettres, deux rangées de séries avec deux « S1 ▶ », séries faites coupées ; « Valider » hors écran en 360 × 667 avec 5 séries et un échauffement ; tri-set qui déborde en 384 × 832.
+- Superset refait (règles dans `AGENTS.md`). Reste le cas 5 séries et échauffement sous 720 px : il défile, « Valider » collé en bas recouvre les efforts jusqu'à ce qu'on défile.
 - Corriger une série depuis Fin de séance : impossible, il faut revenir en arrière.
 - Note écrite dans la liste : pas reprise en plein écran.
 - Finisseurs drop et rest-pause à 667 px : il faut défiler pour atteindre « Je me suis arrêté à l'échec ».
@@ -122,5 +122,4 @@ Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
 - **Lueur très légère en haut de l'écran** : proposée, pas essayée.
 - **« EXPORTER », « AJOUTER », « REMPLACER »** : encore en majuscules dans la sauvegarde, parce que le test les cherche tels quels. Passer en minuscules demande de modifier le test.
 - **Écran de lancement Android** : il peut garder l'ancienne couleur. Le changer demanderait un nouvel APK.
-- **Superset** : le bouton ⓘ a disparu de l'écran de saisie, à remettre s'il sert.
 - **Exercices au poids du corps** : l'unité dit « kg de lest », sans la précision « − = assistance », à remettre si elle manque.

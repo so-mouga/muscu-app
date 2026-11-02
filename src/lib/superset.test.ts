@@ -7,6 +7,7 @@ import {
   prochainExoDeSeance,
   prochainExoDuGroupe,
   reposApresSuperset,
+  suivantDansGroupe,
   tousLesGroupes,
 } from './superset'
 
@@ -217,5 +218,15 @@ describe('après « Faire maintenant »', () => {
     const plans = [makePlan('a'), makePlan('b'), makePlan('c'), makePlan('d')]
     const nb: Record<string, number> = { a: 1, b: 0, c: 3, d: 0 }
     expect(prochainExoDeSeance({ plans, nbFaites: (id) => nb[id], totalDe: () => 3, derniereExoId: 'c' })).toBe(0)
+  })
+})
+
+describe('suivantDansGroupe', () => {
+  const plans = [makePlan('a', 3, 0, true), makePlan('b', 2, 90, false)]
+  it('alterne, puis reste sur celui qui a encore des séries, puis plus rien', () => {
+    expect(suivantDansGroupe(plans, 0, { a: 0, b: 0 })).toBe(1)
+    expect(suivantDansGroupe(plans, 1, { a: 1, b: 0 })).toBe(0)
+    expect(suivantDansGroupe(plans, 0, { a: 1, b: 2 })).toBe(0)
+    expect(suivantDansGroupe(plans, 0, { a: 2, b: 2 })).toBeNull()
   })
 })

@@ -3763,12 +3763,41 @@ button.phase-accueil {
 .editeur-compact.pile > .zone-effort {
   margin-top: auto;
 }
-.groupe-inactif {
-  opacity: 0.75;
+.ensuite-superset {
+  margin-top: 2px;
+  color: var(--texte);
 }
-.groupe-inactif .ligne-series > .courante {
-  background: var(--voile-fort);
-  color: var(--texte-salle);
+/* Petit écran : « Ensuite » dit déjà que c'est un superset ; le badge laisse sa place, le nom tient sur une ligne. */
+@media (max-height: 720px) {
+  .superset-badge-saisie {
+    display: none;
+  }
+  .saisie-focus .ensuite-superset {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+.prochaine-grand > .badge-superset {
+  align-self: flex-start;
+}
+.superset-avant > span {
+  color: var(--texte-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.superset-avant .btn {
+  flex: none;
+}
+/* Rare écran qui déborde (superset, 5 séries et échauffement, petit téléphone) : « Valider » reste à portée. */
+.focus:not(.tient):not(.fixe) .zone-valider {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding: var(--e2) 0;
+  background: var(--surface-uni);
 }
 .editeur-compact > .ligne-options {
   order: 8;

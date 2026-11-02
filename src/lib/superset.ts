@@ -112,6 +112,19 @@ export function prochainExoDeSeance({
 }
 
 /**
+ * Une fois la série en cours de l'exercice `index` faite : l'exercice du groupe qui vient ensuite
+ * (alternance), ou null si tout le groupe est fini.
+ */
+export function suivantDansGroupe(plans: ExoPlan[], index: number, nbFaitesParExo: Record<string, number>, totalDe?: (index: number) => number): number | null {
+  const faites = (i: number) => (nbFaitesParExo[plans[i].exoId] ?? 0) + (i === index ? 1 : 0)
+  const prevues = (i: number) => totalDe?.(i) ?? plans[i].series.length
+  const restants = groupeSuperset(plans, index).filter((i) => faites(i) < prevues(i))
+  if (!restants.length) return null
+  const moins = Math.min(...restants.map(faites))
+  return restants.find((i) => faites(i) === moins)!
+}
+
+/**
  * Calcule le repos à observer après une série dans un plan, en tenant compte des supersets.
  */
 export function reposApresSuperset(
@@ -133,13 +146,9 @@ export function reposApresSuperset(
   // Sans les comptes : le repos propre à l'exercice (transition s'il est enchaîné).
   if (!nbFaitesParExo) return reposDe(p)
 
-  const faites = (i: number) => (nbFaitesParExo[plans[i].exoId] ?? 0) + (i === index ? 1 : 0)
-  const prevues = (i: number) => totalDe?.(i) ?? plans[i].series.length
-  const restants = groupe.filter((i) => faites(i) < prevues(i))
+  const suivant = suivantDansGroupe(plans, index, nbFaitesParExo, totalDe)
   // Tout le groupe est fini : le repos avant l'exercice suivant.
-  if (!restants.length) return dernier.reposApres ?? p.reposApres ?? reposDe(dernier)
-  const moins = Math.min(...restants.map(faites))
-  const suivant = restants.find((i) => faites(i) === moins)!
+  if (suivant === null) return dernier.reposApres ?? p.reposApres ?? reposDe(dernier)
   // Le suivant est plus loin dans le groupe : transition. Sinon, le tour est fini : repos complet.
   return suivant > index && p.enchaine ? reposDe(p) : reposDe(dernier)
 }

@@ -22,7 +22,7 @@ import { suggestionDeload } from '../lib/cycle'
 import { arreterSeanceNatif, natif, pauseNatif, reposNatif, seanceNatif, suivreNatif } from '../lib/natif'
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
-import { estDansSuperset, groupeSuperset, prochainExoDeSeance, reposApresSuperset } from '../lib/superset'
+import { estDansSuperset, groupeSuperset, prochainExoDeSeance, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
@@ -641,6 +641,26 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   })()
 
   if (focus) {
+    const faitesParExo = () => Object.fromEntries(plans.map((x) => [x.exoId, nbFaites(x.exoId)]))
+    /** Superset : badge et ce qui vient après la série à faire, pour remplacer la liste du groupe. */
+    const enteteSuperset = (i: number) => {
+      const groupe = groupeSuperset(plans, i)
+      return (
+        <span className="badge-superset">
+          <Link2 size={14} /> Superset {groupe.indexOf(i) + 1}/{groupe.length}
+        </span>
+      )
+    }
+    const ensuiteSuperset = (i: number) => {
+      const n = nbFaites(plans[i].exoId)
+      const compte = faitesParExo()
+      const repos = reposApresSuperset(plans, i, n, totalDe(i), compte, totalDe)
+      const suivant = suivantDansGroupe(plans, i, compte, totalDe)
+      const nom = suivant !== null && suivant !== i ? exos[suivant].nom : null
+      // Le repos d'abord : si le nom est coupé sur un petit écran, l'essentiel reste lisible.
+      const texte = restantes <= 1 ? 'Ensuite : fin de la séance' : repos === 0 ? (nom ? `Ensuite, sans repos : ${nom}` : 'Ensuite : sans repos') : suivant !== null && suivant > i ? `Ensuite, repos ${chrono(repos)} : ${nom}` : `Ensuite : repos ${chrono(repos)}`
+      return <div className="petit ensuite-superset">{texte}</div>
+    }
     // La série qu'on vient de faire : battue (on le fête), et de quel exercice (pour la corriger s'il est fini).
     const derniere = (() => {
       if (!derniereSerie) return null
@@ -670,19 +690,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       return (
         <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
           {derniere?.mieux && <div className="mieux-titre">↑ {derniere.mieux} vs la dernière fois</div>}
-          {enSuperset && (
-            <div className="ligne wrap" style={{ gap: 6, marginBottom: 4, alignItems: 'center' }}>
-              <span className="badge-superset"><Link2 size={14} /> Superset</span>
-              <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-                {groupe.map((gIdx, k) => (
-                  <span key={plans[gIdx].exoId}>
-                    {k > 0 ? ' ⇄ ' : ''}
-                    <span style={{ fontWeight: gIdx === enCours ? '700' : '400', color: gIdx === enCours ? 'var(--texte)' : 'inherit' }}>
-                      {exos[gIdx].nom}
-                    </span>
-                  </span>
-                ))}
+          {enSuperset && enteteSuperset(enCours)}
+          {/* Superset : la série d'avant vient de l'autre exercice ; elle reste à portée pour la corriger. */}
+          {enSuperset && !exoFini && derniere && derniere.i !== enCours && (
+            <div className="ligne entre ligne-terminee superset-avant petit">
+              <span>
+                <Check size={14} className="ok-texte ico-texte" /> {chargeQte(exos[derniere.i], derniereSerie!.charge, derniereSerie!.reps)} · {exos[derniere.i].nom}
               </span>
+              <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)} aria-label={`Corriger la série ${derniere.k + 1}`}>
+                Corriger
+              </button>
             </div>
           )}
           {exoFini ? (
@@ -705,34 +722,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             <BoutonInfos onClick={() => setInfos(exo.id)} />
           </div>
           {p.finisseur && n === t - 1 && <span className="pastille fin">★ {FINISSEURS[typeFinisseur(p)].nom}</span>}
-          {enSuperset ? (
-            <div className="pile" style={{ gap: 6, margin: '6px 0' }}>
-              {groupe.map((gIdx) => {
-                const gPlan = plans[gIdx]
-                const gExo = exos[gIdx]
-                const gFaites = seance.series.filter((x) => x.exoId === gPlan.exoId)
-                const gTotal = totalDe(gIdx)
-                const estActif = gIdx === enCours
-                return (
-                  <div key={gPlan.exoId} className={'ligne entre' + (estActif ? '' : ' groupe-inactif')}>
-                    <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {estActif && <Play size={11} fill="currentColor" className="ico-texte" />} {gExo.nom.slice(0, 12)} :
-                    </span>
-                    <LigneSeries
-                      exo={gExo}
-                      faites={gFaites}
-                      total={gTotal}
-                      cible={(k) => cibleSerie(gExo, gPlan, suggestions[gIdx], k, gFaites)}
-                      onCorriger={(f) => setCorrige(f.id)}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            // Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger.
-            n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
-          )}
+          {enSuperset && ensuiteSuperset(enCours)}
+          {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
+          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />}
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
@@ -774,56 +766,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             const enSuperset = groupe.length > 1
             return (
               <div className="focus-bloc pile saisie-focus">
-                {enSuperset && (
-                  <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
-                    <span className="badge-superset"><Link2 size={14} /> Superset</span>
-                    <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-                      {groupe.map((gIdx, k) => (
-                        <span key={plans[gIdx].exoId}>
-                          {k > 0 ? ' ⇄ ' : ''}
-                          <span style={{ fontWeight: gIdx === enCours ? '700' : '400', color: gIdx === enCours ? 'var(--texte)' : 'inherit' }}>
-                            {exos[gIdx].nom}
-                          </span>
-                        </span>
-                      ))}
-                    </span>
-                  </div>
-                )}
-                {/* Superset : le nom de l'exercice est déjà dans la ligne au-dessus. */}
+                {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>
                     {p.finisseur && n === t - 1 && <div className="faible">★ {FINISSEURS[typeFinisseur(p)].nom}</div>}
-                    {!enSuperset && <h2>{exo.nom}</h2>}
+                    <h2>{exo.nom}</h2>
+                    {enSuperset && ensuiteSuperset(enCours)}
                   </div>
-                  {!enSuperset && <BoutonInfos onClick={() => setInfos(exo.id)} />}
+                  <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
-                {enSuperset ? (
-                  <div className="pile" style={{ gap: 6, margin: '6px 0' }}>
-                    {groupe.map((gIdx) => {
-                      const gPlan = plans[gIdx]
-                      const gExo = exos[gIdx]
-                      const gFaites = seance.series.filter((x) => x.exoId === gPlan.exoId)
-                      const gTotal = totalDe(gIdx)
-                      const estActif = gIdx === enCours
-                      return (
-                        <div key={gPlan.exoId} className={'ligne entre' + (estActif ? '' : ' groupe-inactif')}>
-                          <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {estActif && <Play size={11} fill="currentColor" className="ico-texte" />} {gExo.nom.slice(0, 12)} :
-                          </span>
-                          <LigneSeries
-                            exo={gExo}
-                            faites={gFaites}
-                            total={gTotal}
-                            cible={(k) => cibleSerie(gExo, gPlan, suggestions[gIdx], k, gFaites)}
-                            onCorriger={(f) => setCorrige(f.id)}
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
-                )}
+                <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
                 {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
                 {(derniereFois?.[n] || plus) && (
                   <div className="faible">
@@ -844,7 +796,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   reposRestant={reposRestant}
                   verrou={verrou}
                   compact
-                  onFini={(s) => valider(s, reposApresSuperset(plans, enCours, n, t, Object.fromEntries(plans.map((x) => [x.exoId, nbFaites(x.exoId)])), totalDe))}
+                  onFini={(s) => valider(s, reposApresSuperset(plans, enCours, n, t, faitesParExo(), totalDe))}
                   onAnnulerEdition={() => undefined}
                 />
               </div>
