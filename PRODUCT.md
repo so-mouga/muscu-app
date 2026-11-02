@@ -63,14 +63,20 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
   - `eea2d98` : halo du cercle de repos.
 - **Teinte et boutons, pour toute l'appli** : `af79a66`, validé par l'utilisateur. Remplace le relief de `75ead3c`, jugé vieillot.
 - **Test du parcours de séance fiable** : `b0fc9aa`.
-- **Écran « Voir » et fenêtre Échauffement** : plus d'exercices visibles, ligne à la place de l'interrupteur, fenêtres qui montent vraiment du bas (toutes les fenêtres du bas en profitent). Fluidité à confirmer sur le téléphone.
-- **Vue liste de la séance** : toute la séance en une liste, plus de saisie ; plein écran = faire, liste = voir et organiser. À essayer sur le téléphone.
+- **Écran « Voir »** (avant de démarrer) **et fenêtre Échauffement** : `eb7ec5d`. Plus d'exercices visibles, ligne à la place de l'interrupteur, fenêtres qui montent vraiment du bas (toutes les fenêtres du bas en profitent).
+- **Fenêtre « Modifier l'objectif »** : `ab1303d`. Un appui à côté ou le retour la ferment en gardant ce qui a changé.
+- **Vue liste de la séance** : `f591d41`. Toute la séance en une liste, plus de saisie ; plein écran = faire, liste = voir et organiser.
+- **Écran de repos** : `f5c4968`. « Voir la suite de la séance » retiré, il faisait double emploi avec la liste.
+
+Rien de ces quatre derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
 
 ### Décisions validées, absentes d'`AGENTS.md`
 
 - **Manière de travailler sur un retour** : ne pas coder tout de suite. Reformuler, dire franchement si on est d'accord et pourquoi, signaler ce qui contredit `AGENTS.md` ou ce fichier, proposer mieux si possible, puis attendre « go ». L'utilisateur préfère être contredit plutôt que voir appliquer un mauvais retour.
 - **Questions de goût** : montrer des captures comparées avant de mettre en ligne.
 - **Ordre de la refonte** : un écran à la fois, un commit par écran, avec des captures avant / après.
+- **L'utilisateur ne se dit pas expert en applis** et demande un avis franc : proposer une direction claire avec une recommandation, pas seulement appliquer son retour. Il préfère qu'on remonte à la cause (« à quoi sert cet écran ? ») plutôt qu'on retire des infos une à une.
+- **Principe « les explications restent visibles »** : il vaut pour les conseils. La méthode de calcul de la durée de séance peut rester derrière un ⓘ (écran « Voir »).
 
 ### Reste à faire, dans l'ordre
 
@@ -85,14 +91,17 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 À traiter en refaisant ces écrans :
 
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
-- Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. Remplacer les émojis et symboles restants, dont ★ et 👀 en séance.
-- Revoir le mode « Machine prise » et l'échauffement général de la séance, pas encore repris.
+- Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. Remplacer les émojis et symboles restants, dont ★ en séance et 🏆 dans la fenêtre d'objectif.
+- Revoir le contenu de la fenêtre « Machine prise » et l'échauffement général de la séance, pas encore repris.
+- Plein écran à 360 px de large : dans la rangée de séries, « S1 » est coupé à gauche, car la rangée se centre sur la série en cours. Déjà présent avant, à reprendre si ça gêne en salle.
 - Vérifier la séance sur le téléphone en mode finisseur, et le son à la fin du repos quand une fenêtre est ouverte.
-- Tester chaque écran de 667 à 832 px de haut. Les scripts de capture de cette conversation n'ont pas été gardés dans le dépôt.
+- Tester chaque écran de 667 à 832 px de haut et à 360 comme à 384 px de large. Les scripts de capture n'ont pas été gardés dans le dépôt : Playwright sur `npm run build` + `.claude/launch.json`, en remplissant la base avec un historique de séances, les noms d'exercices les plus longs (« Extension triceps poulie haute à la corde ») et un superset.
 - À la fin : `QA.md` et la fiche Play Store si des fonctions visibles ont changé, puis une vérification complète.
 
 ### Choix en attente de l'avis de l'utilisateur
 
+- **Décompte de 10 s avant de démarrer** (vu dans son ancienne appli) : déconseillé, rien ne court pendant qu'on s'installe et la durée se compte depuis la 1re série. Rien n'a été ajouté ; sa réponse n'est pas encore donnée. Il pourrait seulement avoir un sens pour les exercices en temps, où le décompte est de 3 s.
+- **Largeur réelle du S25** : `AGENTS.md` prend 384 px comme référence, mais le téléphone peut être à 360 selon son réglage d'affichage. À confirmer sur l'appareil.
 - **Halo du cercle de repos** : en ligne, mais aucun avis donné sur ce point précis. Sa fluidité sur le téléphone n'est pas confirmée non plus.
 - **Lueur de réussite** (record, série battue) : proposée, pas décidée.
 - **Lueur très légère en haut de l'écran** : proposée, pas essayée.
