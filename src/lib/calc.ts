@@ -75,8 +75,8 @@ export const ecartQte = (exo: Exercice | undefined, d: number) =>
   exo && enTemps(exo) ? `${d > 0 ? '+' : '−'}${Math.abs(d)} s` : `${d > 0 ? '+' : '−'}${Math.abs(d)} rep${Math.abs(d) > 1 ? 's' : ''}`
 
 /** « PDC +10 kg × 8 @8 » ; `long` : « poids du corps +10 kg × 8 », l'effort étant écrit à part. */
-export function serieTexte(exo: Exercice, s: Serie, long = false): string {
-  let t = long ? chargeQte(exo, s.charge, s.reps, true) : `${chargeQte(exo, s.charge, s.reps)} @${kg(s.rpe)}`
+export function serieTexte(exo: Exercice, s: Serie, long = false, avecEffort = true): string {
+  let t = long ? chargeQte(exo, s.charge, s.reps, true) : avecEffort ? `${chargeQte(exo, s.charge, s.reps)} @${kg(s.rpe)}` : chargeQte(exo, s.charge, s.reps)
   if (s.demiReps) t += ` + ${s.demiReps} demi-reps`
   if (s.suite?.length) t += s.type === 'drop' ? s.suite.map((x) => ` ↘ ${kg(x.charge)}×${x.reps}`).join('') : ` + ${s.suite.map((x) => x.reps).join(' + ')}`
   return t

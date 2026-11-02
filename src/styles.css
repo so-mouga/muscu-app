@@ -3763,12 +3763,64 @@ button.phase-accueil {
 .editeur-compact.pile > .zone-effort {
   margin-top: auto;
 }
+.note-saisie {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reglage-machine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.reglage-photo {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+}
+.reglage-photo img,
+.reglage-photo-vide {
+  flex: none;
+  width: var(--cible);
+  height: var(--cible);
+  border-radius: var(--rayon-2);
+  object-fit: cover;
+}
+.reglage-photo-vide {
+  display: grid;
+  place-items: center;
+  background: var(--controle);
+  color: var(--texte-2);
+}
+.reglage-photo .btn {
+  flex: 1;
+  min-width: 0;
+}
+.fiche-reglages {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  min-height: var(--cible);
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--bord);
+  background: none;
+  color: var(--texte-2);
+  font: inherit;
+  font-size: var(--t-petit);
+  text-align: left;
+}
 .ensuite-superset {
   margin-top: 2px;
   color: var(--texte);
 }
 /* Petit écran : « Ensuite » dit déjà que c'est un superset ; le badge laisse sa place, le nom tient sur une ligne. */
 @media (max-height: 720px) {
+  .panneau-prudence {
+    display: none;
+  }
   .superset-badge-saisie {
     display: none;
   }

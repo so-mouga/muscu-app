@@ -92,7 +92,7 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
         decision: 'calibrer',
         charges: Array(n).fill(null),
         reps: plan.series.map((p) => p.repsMin),
-        message: 'À calibrer : démarre léger et ajuste jusqu’au RPE visé dès la 1re série.',
+        message: 'À calibrer : démarre léger et ajuste jusqu’à l’effort visé dès la 1re série.',
       }
     }
     return {
@@ -251,7 +251,7 @@ export function suggestionPour(exo: Exercice, plan: ExoPlan, seances: Seance[], 
       decision: 'manuel',
       charges: ajuste(objectif.charges),
       reps: ajuste(objectif.reps),
-      message: '✎ Objectif fixé par toi à la fin de la dernière séance.',
+      message: 'Objectif fixé par toi à la fin de la dernière séance.',
     }
   }
   return (auto ? suggere : pareil)(

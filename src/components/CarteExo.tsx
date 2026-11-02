@@ -1,12 +1,13 @@
-import { Check, ChevronRight, Info, Lightbulb, Pencil, Timer, TriangleAlert, X } from 'lucide-react'
+import { Check, ChevronRight, Info, Lightbulb, Pencil, Sparkles, Timer, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { db, modifierExercice, uid } from '../db'
+import { db, uid } from '../db'
 import { chargeDecalee, chargeQte, chargeTexte, enTemps, fourchette, kg, RIR } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import ChronoTenue from './ChronoTenue'
 import { PuceDisques } from './CalculateurDisques'
+import ReglagesMachine from './ReglagesMachine'
 import { vibrer } from '../lib/appareil'
 import { monterMaintenant, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
@@ -39,7 +40,7 @@ export function chargeProposee(exo: Exercice, sugg: Suggestion, faites: Serie[],
   return prec && sPrec !== null && index > 0 ? Math.max(0, s + (prec.charge - sPrec)) : s
 }
 
-/** Objectif de la série `n` : « 60 kg × 10 · RPE 8 ». Avec `faites`, la charge suit l'écart pris aux séries d'avant. */
+/** Objectif de la série `n` : « 60 kg × 10 · effort 8/10 ». Avec `faites`, la charge suit l'écart pris aux séries d'avant. */
 export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number, faites?: Serie[]): string {
   const j = Math.min(n, sugg.charges.length - 1)
   const p = plan.series[Math.min(n, plan.series.length - 1)]
@@ -50,7 +51,7 @@ export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: nu
     const chargeTxt = charge !== null ? (charge > 0 ? `${kg(charge)} kg` : '') : 'à calibrer'
     return chargeTxt ? `${chargeTxt} · jusqu’à l’échec` : 'jusqu’à l’échec'
   }
-  return `${chargeQte(exo, charge, sugg.reps[j] ?? p.repsMin)} · RPE ${kg(p.rpe)}`
+  return `${chargeQte(exo, charge, sugg.reps[j] ?? p.repsMin)} · effort ${kg(p.rpe)}/10`
 }
 
 export function majSeance(id: string, fn: (s: Seance) => void) {
@@ -119,9 +120,6 @@ function oublierBrouillon(cle: string) {
     /* stockage indisponible */
   }
 }
-
-/** Paliers courants : haltères 1 / 2 kg, disques 1,25 / 2,5, piles de machines 4,5 / 5 / 7 / 10 kg. */
-const PALIERS = [1, 1.25, 2, 2.5, 4.5, 5, 7, 10]
 
 export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
@@ -257,7 +255,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     return (
       <div className="pile">
         <div className="bandeau-fin">
-          ★ {info.nom} · {tf === 'partielles' ? 'enchaîne sans reposer la charge' : tf === 'drop' ? 'baisse la charge et repars, sans repos' : 'pose la charge 15 s, puis repars'}
+          <Sparkles size={16} className="ico-texte" /> {info.nom} · {tf === 'partielles' ? 'enchaîne sans reposer la charge' : tf === 'drop' ? 'baisse la charge et repars, sans repos' : 'pose la charge 15 s, puis repars'}
         </div>
         {tf === 'partielles' && (
           <>
@@ -271,29 +269,34 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             </div>
           </>
         )}
-        {suite.map((x, k) => (
-          <div key={k} className="pile" style={{ gap: 6 }}>
-            <div className="faible">{tf === 'drop' ? 'Après la baisse' : `Après la pause ${k + 1}`}</div>
-            {tf === 'drop' && (
-              <div className="stepper">
-                <button onClick={() => majSuite(k, 'charge', x.charge - pas)}>−</button>
-                <div className="valeur">
-                  <strong>{kg(x.charge)}</strong>
-                  <span className="unite">{unite}</span>
+        {/* Plein écran : côte à côte, pour que « Valider » et « échec » restent à l'écran. */}
+        <div className={compact && tf === 'rest_pause' ? 'steppers-duo' : 'pile'}>
+          {suite.map((x, k) => (
+            <div key={k} className="pile" style={{ gap: 6 }}>
+              <div className="faible">{tf === 'drop' ? 'Après la baisse' : `Après la pause ${k + 1}`}</div>
+              <div className={compact && tf === 'drop' ? 'steppers-duo' : 'pile'}>
+                {tf === 'drop' && (
+                  <div className="stepper">
+                    <button onClick={() => majSuite(k, 'charge', x.charge - pas)}>−</button>
+                    <div className="valeur">
+                      <strong>{kg(x.charge)}</strong>
+                      <span className="unite">{unite}</span>
+                    </div>
+                    <button onClick={() => majSuite(k, 'charge', x.charge + pas)}>+</button>
+                  </div>
+                )}
+                <div className="stepper">
+                  <button onClick={() => majSuite(k, 'reps', x.reps - 1)}>−</button>
+                  <div className="valeur">
+                    <strong>{x.reps}</strong>
+                    <span className="unite">reps</span>
+                  </div>
+                  <button onClick={() => majSuite(k, 'reps', x.reps + 1)}>+</button>
                 </div>
-                <button onClick={() => majSuite(k, 'charge', x.charge + pas)}>+</button>
               </div>
-            )}
-            <div className="stepper">
-              <button onClick={() => majSuite(k, 'reps', x.reps - 1)}>−</button>
-              <div className="valeur">
-                <strong>{x.reps}</strong>
-                <span className="unite">reps</span>
-              </div>
-              <button onClick={() => majSuite(k, 'reps', x.reps + 1)}>+</button>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
         <button
           className="btn finisseur grand"
           onClick={() => enregistrer(construire(info.typeSerie, tf === 'partielles' ? { demiReps: demi, zone } : { suite, rpe: 10 }))}
@@ -303,7 +306,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         <button className="btn plein" onClick={() => enregistrer(construire('echec'))}>
           Je me suis arrêté à l’échec
         </button>
-        <div className="faible">Stoppe si douleur articulaire (une brûlure musculaire, c’est normal).</div>
+        <div className="faible panneau-prudence">Stoppe si douleur articulaire (une brûlure musculaire, c’est normal).</div>
       </div>
     )
   }
@@ -354,7 +357,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const ligneEffort = (
     <div className={'ligne entre faible ligne-effort' + (compact ? ' une-ligne' : '')}>
       <span className="texte-effort">
-        {compact && <strong>Effort </strong>}RPE {kg(rpe)} ·{' '}
+        {compact ? <strong>Effort </strong> : 'Effort '}{kg(rpe)}/10 ·{' '}
         {compact && plusDur ? (
           <span style={{ color: 'var(--alerte)' }}>plus dur que prévu ({kg(p.rpe)})</span>
         ) : (
@@ -378,11 +381,11 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           {edition && <h3>Modifier la série {index + 1}</h3>}
           <span className="faible">
             {finisseur && !edition ? (
-              '★ finisseur · jusqu’à l’échec'
+              'Finisseur · jusqu’à l’échec'
             ) : (
               <>
                 fourchette {fourchette(exo, p.repsMin, p.repsMax)}
-                {enTemps(exo) ? '' : ' reps'} · RPE {kg(p.rpe)}
+                {enTemps(exo) ? '' : ' reps'} · effort {kg(p.rpe)}/10
               </>
             )}
           </span>
@@ -391,7 +394,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
       {finisseur && (
         <div className="bandeau-fin">
-          ★ FINISSEUR · {info.nom} : {info.court}
+          <Sparkles size={16} className="ico-texte" /> Finisseur · {info.nom} : {info.court}
         </div>
       )}
 
@@ -447,23 +450,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           )}
         </>
       )}
-      {reglerPalier && (
-        <div className="pile" style={{ gap: 6 }}>
-          <span className="faible petit">Palier de cette machine (boutons −/+ et montée de charge) :</span>
-          <div className="chips">
-            {PALIERS.map((v) => (
-              <button
-                key={v}
-                type="button"
-                className={pas === v ? 'actif' : ''}
-                onClick={() => (void modifierExercice(exo.id, { pas: v }), setReglerPalier(false))}
-              >
-                {kg(v)} kg
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {reglerPalier && <ReglagesMachine exo={exo} onFermer={() => setReglerPalier(false)} />}
       <div className="ligne-disques">
         <PuceDisques exo={exo} charge={charge} unite={unite} />
       </div>

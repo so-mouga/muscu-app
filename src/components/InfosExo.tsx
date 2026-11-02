@@ -1,12 +1,13 @@
-import { Info, Pencil, StickyNote, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Info, StickyNote, X } from 'lucide-react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { consigne } from '../data/consignes'
 import { useRetour } from '../lib/nav'
+import { kg } from '../lib/calc'
 import type { Exercice } from '../types'
 import { nomMuscle } from './ChoixExo'
-import FormExo from './FormExo'
 import IconeMuscle from './IconeMuscle'
+import { ContenuReglages, titreReglages } from './ReglagesMachine'
 
 /** Consignes d'exécution : position de départ, étapes, erreurs fréquentes. */
 export function Consignes({ exo }: { exo: Exercice }) {
@@ -57,36 +58,61 @@ export function BoutonInfos({ onClick }: { onClick: () => void }) {
  * Rendue dans <body> : ouverte depuis une carte d'exercice, elle doit couvrir aussi l'en-tête de la séance.
  */
 export default function InfosExo({ exo, onFermer }: { exo: Exercice; onFermer: () => void }) {
-  const [modifier, setModifier] = useState(false)
+  const [reglages, setReglages] = useState(false)
   useRetour(true, onFermer)
-  useRetour(modifier, () => setModifier(false))
+  useRetour(reglages, () => setReglages(false))
   const avecConsignes = !!consigne(exo.id)
-  if (modifier) return createPortal(<FormExo fenetre initial={exo} onAnnuler={() => setModifier(false)} onEnregistre={() => setModifier(false)} />, document.body)
+  const resume =
+    exo.mode === 'elastique'
+      ? 'Note et photo'
+      : exo.mode === 'poids_corps' || exo.assistance
+        ? `Palier ${kg(exo.pas)} kg`
+        : `Palier ${kg(exo.pas)} kg · charge max : ${exo.chargeMax !== undefined ? `${kg(exo.chargeMax)} kg` : 'pas réglée'}`
   return createPortal(
     <div className="modal-fond" onClick={onFermer}>
+      {/* Toujours la même fenêtre : passer aux réglages change son contenu, sans la faire remonter une 2e fois. */}
       <div className="modal pile fiche-exo" onClick={(e) => e.stopPropagation()}>
-        <div className="ligne" style={{ gap: 12, alignItems: 'flex-start' }}>
-          <IconeMuscle muscle={exo.muscle} taille={44} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <h2>{exo.nom}</h2>
-            <div className="faible">
-              {nomMuscle(exo.muscle)}
-              {exo.secondaires?.length ? ` · aussi ${exo.secondaires.map((x) => nomMuscle(x.muscle).toLowerCase()).join(', ')}` : ''}
+        {reglages ? (
+          <>
+            <div className="ligne entre">
+              <button className="btn-fermer" aria-label="Retour à la fiche" onClick={() => setReglages(false)}>
+                <ArrowLeft size={22} />
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2>{titreReglages(exo)}</h2>
+                <div className="faible">{exo.nom}</div>
+              </div>
+              <button className="btn-fermer" aria-label="Fermer" onClick={onFermer}>
+                <X size={22} />
+              </button>
             </div>
-          </div>
-          <button className="btn-fermer" aria-label="Fermer" onClick={onFermer}>
-            <X size={22} />
-          </button>
-        </div>
-        {exo.image && <img src={exo.image} alt={exo.nom} className="photo-grande" />}
-        <Consignes exo={exo} />
-        {exo.notes && <div className="faible"><StickyNote size={14} className="ico-texte" /> {exo.notes}</div>}
-        {!avecConsignes && !exo.notes && (
-          <div className="faible">Pas encore de consignes pour cet exercice. Tu peux ajouter une note avec « Modifier l’exercice ».</div>
+            <ContenuReglages exo={exo} />
+          </>
+        ) : (
+          <>
+            <div className="ligne" style={{ gap: 12, alignItems: 'flex-start' }}>
+              <IconeMuscle muscle={exo.muscle} taille={44} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h2>{exo.nom}</h2>
+                <div className="faible">
+                  {nomMuscle(exo.muscle)}
+                  {exo.secondaires?.length ? ` · aussi ${exo.secondaires.map((x) => nomMuscle(x.muscle).toLowerCase()).join(', ')}` : ''}
+                </div>
+              </div>
+              <button className="btn-fermer" aria-label="Fermer" onClick={onFermer}>
+                <X size={22} />
+              </button>
+            </div>
+            {exo.image && <img src={exo.image} alt={exo.nom} className="photo-grande" />}
+            <Consignes exo={exo} />
+            {exo.notes && <div className="faible"><StickyNote size={14} className="ico-texte" /> {exo.notes}</div>}
+            {!avecConsignes && !exo.notes && <div className="faible">Pas encore de consignes pour cet exercice.</div>}
+            <button className="fiche-reglages" onClick={() => setReglages(true)}>
+              <span>{resume}</span>
+              <ChevronRight size={20} />
+            </button>
+          </>
         )}
-        <button className="btn discret plein" onClick={() => setModifier(true)}>
-          <Pencil size={16} /> Modifier l’exercice
-        </button>
       </div>
     </div>,
     document.body

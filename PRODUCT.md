@@ -77,12 +77,8 @@ Rien de ces six derniers points n'a encore été essayé sur le téléphone. À 
 Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
 
 - Superset refait (règles dans `AGENTS.md`). Reste le cas 5 séries et échauffement sous 720 px : il défile, « Valider » collé en bas recouvre les efforts jusqu'à ce qu'on défile.
-- Corriger une série depuis Fin de séance : impossible, il faut revenir en arrière.
-- Note écrite dans la liste : pas reprise en plein écran.
-- Finisseurs drop et rest-pause à 667 px : il faut défiler pour atteindre « Je me suis arrêté à l'échec ».
-- « À calibrer… » répété sur chaque exercice dans l'écran « Voir » d'un nouveau programme.
-- Vocabulaire : « effort 8/10 », « RPE 8 » et « @8 » pour la même chose ; « 1RM estimé » dans un message ; ★, 🏆 et 💪 restants.
-- Pas essayé : son, vibrations, notification et alarme sur le téléphone ; déload depuis un vrai cycle ; « Créer un exercice » en séance ; « Modifier l'exercice » depuis la fiche.
+- Dans les écrans pas encore refaits (Bilan, Programmes, lexique) : RPE et émojis restent, à reprendre avec chacun. « ⚡ Séance libre » reste sur l'Accueil.
+- Pas essayé : son, vibrations, notification et alarme sur le téléphone ; déload depuis un vrai cycle ; « Créer un exercice » en séance ; ajout d'une vraie photo dans les réglages de la machine.
 
 ### Décisions validées, absentes d'`AGENTS.md`
 

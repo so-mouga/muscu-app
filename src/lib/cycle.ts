@@ -126,7 +126,7 @@ export function suggestionDeload(exo: Exercice, s: Suggestion): Suggestion {
     const r = arrondiPas(c * 0.9, exo.pas)
     return r < c ? r : Math.max(0, arrondiPas(c - exo.pas, exo.pas))
   }
-  return { ...s, charges: s.charges.map(alleger), message: '🧘 Déload : environ −10 % de charge, RPE 6-7, sans aller à l’échec.' }
+  return { ...s, charges: s.charges.map(alleger), message: 'Déload : environ −10 % de charge, effort 6-7/10, sans aller à l’échec.' }
 }
 
 /** Ce qui est prévu un jour donné : séances du planning (1 = lundi), et pendant un cycle sa semaine, déload ou pause. */

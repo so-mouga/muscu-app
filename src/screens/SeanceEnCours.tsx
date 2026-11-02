@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, SkipForward, Smile, Square, StickyNote, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -316,7 +316,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const r = repere(exoId, equivalents, [seance, ...terminees])
     if (!r) return undefined
     const ref = catalogue.exo(r.exoId)
-    return `${ref.nom}, ${chargeQte(ref, r.charge, r.reps)} @${kg(r.rpe)} (${r.date})`
+    return `${ref.nom}, ${chargeQte(ref, r.charge, r.reps)}, effort ${kg(r.rpe)}/10 (${r.date})`
   }
 
   const valider = (s: Serie, repos: number) => {
@@ -353,14 +353,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const memeCharge = avant.filter((x) => x.charge === s.charge)
     const e = e1rm(exo, s, seance.poidsCorps)
     const meilleur = Math.max(0, ...avant.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
-    if (e && meilleur && e > meilleur) setToast(`Nouveau record : 1RM estimé à ${kg(e)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}`)
+    if (e && meilleur && e > meilleur) setToast(`Nouveau record : ${chargeQte(exo, s.charge, s.reps)}`)
     // Sans 1RM (pas de poids noté, isolation…) : une charge jamais soulevée est aussi un record.
     else if (exo.assistance && s.reps > 0 && s.charge < Math.min(...avant.map((x) => x.charge)))
       setToast(`Nouveau record : ${chargeTexte(exo, s.charge, true)} × ${s.reps}`)
     else if (!exo.assistance && !enTemps(exo) && s.reps > 0 && s.charge > Math.max(...avant.map((x) => x.charge)))
       setToast(`Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
     else if (memeCharge.length && s.reps > Math.max(...memeCharge.map((x) => x.reps)))
-      setToast(enTemps(exo) ? `🏆 Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `🏆 Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
+      setToast(enTemps(exo) ? `Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
   }
 
   const choisir = async (exoId: string, cree?: Parameters<typeof planParDefaut>[0]) => {
@@ -477,6 +477,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const seriesFaites = plans.reduce((a, p) => a + nbFaites(p.exoId), 0)
   const avancement = totalSeries ? seriesFaites / totalSeries : 0
   const restantes = totalSeries - seriesFaites
+  const exosRestants = plans.filter((p, i) => nbFaites(p.exoId) < totalDe(i)).length
   // Temps restant : ~1 min par série et le repos qui la suit.
   const resteSec = plans.reduce((a, p, i) => {
     const t = totalDe(i)
@@ -484,7 +485,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return a
   }, 0)
 
-  const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance 💪'
+  const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance'
   ensuiteRef.current = ensuite
   const reposRestant = minuteur ? Math.max(0, Math.ceil(resteRepos(minuteur, maintenant))) : 0
 
@@ -510,7 +511,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       </Anneau>
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong>
-          {restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : plans.length ? 'Tout est fait' : 'Rien pour l’instant'}
+          {exosRestants > 1 ? `Reste ${exosRestants} exercices` : exosRestants === 1 ? `Dernier exercice, ${restantes} série${restantes > 1 ? 's' : ''}` : plans.length ? 'Tout est fait' : 'Rien pour l’instant'}
           {seance.deload && <span className="texte-finisseur"> · déload</span>}
         </strong>
         <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
@@ -721,13 +722,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             <h2>{exo.nom}</h2>
             <BoutonInfos onClick={() => setInfos(exo.id)} />
           </div>
-          {p.finisseur && n === t - 1 && <span className="pastille fin">★ {FINISSEURS[typeFinisseur(p)].nom}</span>}
+          {p.finisseur && n === t - 1 && <span className="pastille fin"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</span>}
           {enSuperset && ensuiteSuperset(enCours)}
           {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
           {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />}
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
-          {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
+          {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
           {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
           {(p.note || exo.notes) && <div className="faible"><Info size={14} className="ico-texte" /> {p.note ?? exo.notes}</div>}
         </div>
@@ -769,7 +770,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                 {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>
-                    {p.finisseur && n === t - 1 && <div className="faible">★ {FINISSEURS[typeFinisseur(p)].nom}</div>}
+                    {p.finisseur && n === t - 1 && <div className="faible"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</div>}
                     <h2>{exo.nom}</h2>
                     {enSuperset && ensuiteSuperset(enCours)}
                   </div>
@@ -779,11 +780,15 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                 {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
                 {(derniereFois?.[n] || plus) && (
                   <div className="faible">
-                    {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n])}</>}
+                    {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n], false, false)} · effort {kg(derniereFois[n].rpe)}/10</>}
                     {plus && <span className="badge-hausse"> ↑ {plus}</span>}
                   </div>
                 )}
-                {noteAvant(p.exoId) && !seance.notes[p.exoId] && <div className="faible"><StickyNote size={14} className="ico-texte" /> La dernière fois : {noteAvant(p.exoId)}</div>}
+                {(() => {
+                  // La note du jour d'abord, sur une ligne : la saisie doit rester à l'écran.
+                  const note = seance.notes[p.exoId] || (noteAvant(p.exoId) ? `La dernière fois : ${noteAvant(p.exoId)}` : p.note ?? exo.notes)
+                  return note ? <div className="faible note-saisie"><StickyNote size={14} className="ico-texte" /> {note}</div> : null
+                })()}
                 <Editeur
                   key={`${p.exoId}-${n}-${suggestions[enCours].charges.join()}`}
                   seance={seance}
@@ -834,7 +839,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </button>
           </div>
         )}
-        {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
+        {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> Déload : charges −10 %, effort 6-7/10, sans échec. Récupère, ne force pas.</div>}
       </div>
 
       <div className="liste-seance">
@@ -1035,7 +1040,7 @@ function LigneExoSeance({
                 return (
                   <div key={n} className="ligne-serie a-venir">
                     <span>
-                      <span className="faible">S{n + 1}</span> {cibleSerie(exo, plan, sugg, n, faites).replace(/ · RPE .*/, '')}
+                      <span className="faible">S{n + 1}</span> {cibleSerie(exo, plan, sugg, n, faites).replace(/ · effort .*/, '')}
                     </span>
                   </div>
                 )
@@ -1220,6 +1225,8 @@ function FinSeance({
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
   const [ajuste, setAjuste] = useState<string | null>(null)
+  /** Série en cours de correction : même fenêtre que pendant la séance. */
+  const [corrige, setCorrige] = useState<string | null>(null)
   /** Exercices dont on a déplié les séries. */
   const [ouverts, setOuverts] = useState<Record<string, boolean>>({})
   const basculer = (id: string) => setOuverts((x) => ({ ...x, [id]: !x[id] }))
@@ -1299,15 +1306,16 @@ function FinSeance({
         {seriesDuJour(exo).map((x, k) => {
           const e = ecartSerie(x, avant[k], exo)
           return (
-            <div key={x.id} className="ligne entre" style={{ gap: 8 }}>
+            <button key={x.id} type="button" className="ligne-serie" onClick={() => setCorrige(x.id)} aria-label={`Corriger la série ${k + 1}, ${exo.nom}`}>
               <span>
                 <span className="faible">S{k + 1} </span>
                 {serieTexte(exo, x, true)}
                 <span className="faible"> · effort {kg(x.rpe)}/10</span>
-                {x.douleur ? ' ⚠️' : ''}
+                {x.douleur && <TriangleAlert size={14} className="ico-texte" />}
+                {e && e.sens !== 'egal' && <span className={'avant ' + e.sens}> {e.sens === 'mieux' ? '↑' : '↓'} {e.texte}</span>}
               </span>
-              {e && <span className={'avant ' + e.sens}>{e.sens === 'mieux' ? '↑ ' : e.sens === 'egal' ? '= ' : '↓ '}{e.texte}</span>}
-            </div>
+              <Pencil size={16} className="ligne-seance-chevron" />
+            </button>
           )
         })}
       </div>
@@ -1493,6 +1501,26 @@ function FinSeance({
           {garder && <input placeholder="Nom de la séance" value={nomModele} onChange={(e) => setNomModele(e.target.value)} />}
         </div>
       )}
+      {corrige &&
+        (() => {
+          const serie = seance.series.find((x) => x.id === corrige)
+          const plan = serie && seance.exercices.find((p) => p.exoId === serie.exoId)
+          if (!serie || !plan) return null
+          const exo = exoAvecReglages(catalogue.exo(plan.exoId), reglages)
+          return (
+            <FenetreCorrection
+              key={serie.id}
+              seance={seance}
+              plan={plan}
+              exo={exo}
+              sugg={suggestionPour(exo, plan, terminees)}
+              serie={serie}
+              total={Math.max(seriesDuJour(exo).length, plan.series.length + (seance.ajustSeries[plan.exoId] ?? 0))}
+              repos={null}
+              onFermer={() => setCorrige(null)}
+            />
+          )
+        })()}
       {ajuste &&
         (() => {
           const p = suggestionDe(ajuste)
@@ -1608,7 +1636,7 @@ function LigneSeries({ exo, faites, total, cible, onCorriger }: { exo: Exercice;
         if (f)
           return onCorriger ? (
             <button key={k} className="faite" onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
-              S{k + 1} {serieTexte(exo, f)} <Pencil size={13} />
+              S{k + 1} {serieTexte(exo, f, false, false)} <Pencil size={13} />
             </button>
           ) : (
             <span key={k} className="faite">
