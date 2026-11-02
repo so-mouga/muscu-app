@@ -67,7 +67,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 - **Fenêtre « Modifier l'objectif »** : `ab1303d`. Un appui à côté ou le retour la ferment en gardant ce qui a changé.
 - **Vue liste de la séance** : `f591d41`. Toute la séance en une liste, plus de saisie ; plein écran = faire, liste = voir et organiser.
 - **Écran de repos** : `f5c4968`. « Voir la suite de la séance » retiré, il faisait double emploi avec la liste.
-- **Machine prise, retour de Fin de séance, temps en clair** : voir le commit qui suit `9221251`. Icônes et lignes sans bordure, « Échanger » seulement sur l'exercice en cours, retour vers l'écran d'où on vient, « 0:04 de séance · ~55 min restantes » en plein écran.
+- **Machine prise, retour de Fin de séance, temps en clair** : `f9f2c5a`. Icônes et lignes sans bordure, « Échanger » seulement sur l'exercice en cours, retour vers l'écran d'où on vient, « 0:04 de séance · ~55 min restantes » en plein écran.
 
 Rien de ces cinq derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
 
