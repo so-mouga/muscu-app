@@ -48,7 +48,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ## Refonte : où on en est
 
-État au 2 nov. 2026. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
+État au 2 nov. 2026, dernier commit de fonction `cddf5ea`. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
 
 ### Fait et poussé
 
@@ -68,17 +68,32 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 - **Vue liste de la séance** : `f591d41`. Toute la séance en une liste, plus de saisie ; plein écran = faire, liste = voir et organiser.
 - **Écran de repos** : `f5c4968`. « Voir la suite de la séance » retiré, il faisait double emploi avec la liste.
 - **Machine prise, retour de Fin de séance, temps en clair** : `f9f2c5a`. Icônes et lignes sans bordure, « Échanger » seulement sur l'exercice en cours, retour vers l'écran d'où on vient, « 0:04 de séance · ~55 min restantes » en plein écran.
-- **Fin de séance** : `49ffc54` pour les corrections de fond (choix enregistrés tout de suite, exercice assisté, viser plus sans perdre de reps, pas de faux choix), puis nouvel affichage : sensations en haut, cartes réduites, chiffre qui change en orange, « suivre les conseils ». Fenêtre d'objectif refaite : « Fixer cet objectif » toujours visible, titres de colonnes, boutons de 44 px, chiffre qui change en orange, assistance négative qui ne saute plus à zéro.
+- **Fin de séance** : `49ffc54` pour le fond (choix et sensations enregistrés tout de suite, exercice assisté, « viser plus » sans perdre de reps, pas de faux choix), `cf15503` pour l'affichage (sensations en haut, cartes réduites, chiffre qui change en orange, « suivre les conseils »).
+- **Fenêtre d'objectif** : `9d97247`. « Fixer cet objectif » toujours visible, titres de colonnes, boutons de 44 px, assistance négative qui ne saute plus à zéro.
+- **Parcours de séance testé de bout en bout, 12 corrections** : `9e4f230`. Double « Démarrer », charge vide à calibrer, saisie gardée, pas de repos après la dernière série, séance libre, ordre après « Faire maintenant », repos de superset, déload écrit en plein écran, « − série » jusqu'à 1, messages qui ne bloquent plus.
+- **Superset en plein écran** : `2d72189`. Seul l'exercice en cours, ligne « Ensuite », « Valider » collé en bas si l'écran déborde.
+- **Réglages de la machine, en-tête, vocabulaire** : `3a385b7`. Plus de formulaire complet en séance, « Reste 4 exercices », correction depuis la fin de séance, note à la saisie, finisseurs sans défiler, « effort 8/10 » dans toute la séance.
+- **Photo depuis l'appareil** : `cddf5ea`. « Prendre une photo » et « Galerie » dans les réglages de la machine.
 
-Rien de ces six derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
+**Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement, sauf l'Accueil lui-même.**
 
-### Test complet du parcours de séance (2 nov. 2026)
+### À vérifier sur le téléphone (S25)
 
-Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
+Rien depuis `f591d41` n'a encore été confirmé sur le téléphone, sauf que la photo depuis la galerie fonctionne.
 
-- Superset refait (règles dans `AGENTS.md`). Reste le cas 5 séries et échauffement sous 720 px : il défile, « Valider » collé en bas recouvre les efforts jusqu'à ce qu'on défile.
-- Dans les écrans pas encore refaits (Bilan, Programmes, lexique) : RPE et émojis restent, à reprendre avec chacun. « ⚡ Séance libre » reste sur l'Accueil.
-- Pas essayé : son, vibrations, notification et alarme sur le téléphone ; déload depuis un vrai cycle ; « Créer un exercice » en séance .
+- Fenêtres : fluidité de la montée et du flou ; clavier dans « Ajouter un mouvement » et dans les réglages de la machine.
+- Bouton retour réel : liste (replier, puis revenir), réglages depuis la fiche, fenêtre de correction.
+- Prise de photo : retour dans la fenêtre avec la photo ; si Android ferme l'appli pendant la prise de vue, la photo peut être perdue (le reste est gardé).
+- Son, vibrations, notification sur écran verrouillé et alarme ; aucune alarme après la dernière série ; son à la fin du repos quand une fenêtre est ouverte.
+- Double appui réel sur « Démarrer ». Si une séance en double existait déjà, elle réapparaît : l'annuler.
+- Superset sans repos : message « Enchaîne », lisibilité de « Ensuite » ; finisseurs ; saisie absente de la liste, est-ce gênant en salle ?
+
+Limites connues du parcours :
+
+- 5 séries et échauffement sous 720 px de haut : l'écran défile, « Valider » collé en bas recouvre les efforts jusqu'à ce qu'on défile.
+- Fenêtre de réglages avec une photo, sur petit écran : il faut défiler pour voir ses boutons.
+- Séance libre : l'interrupteur « séance réutilisable » et son nom ne sont pas gardés si on revient dans la séance.
+- Pas essayé : déload depuis un vrai cycle ; « Créer un exercice » en séance.
 
 ### Décisions validées, absentes d'`AGENTS.md`
 
@@ -86,6 +101,8 @@ Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
 - **Questions de goût** : montrer des captures comparées avant de mettre en ligne.
 - **Ordre de la refonte** : un écran à la fois, un commit par écran, avec des captures avant / après.
 - **L'utilisateur ne se dit pas expert en applis** et demande un avis franc : proposer une direction claire avec une recommandation, pas seulement appliquer son retour. Il préfère qu'on remonte à la cause (« à quoi sert cet écran ? ») plutôt qu'on retire des infos une à une.
+- **Goûts constatés** : il préfère une direction claire à une liste d'options ; il trouve vite « trop gros » et « trop d'orange ». Il aime voir d'un coup d'œil ce qui change (chiffre en orange). Quand il n'a pas d'avis sur un écran, il attend qu'on teste tous les cas et qu'on lui dise ce qui ne va pas.
+- **Retours groupés** : s'il annonce d'autres retours, les vérifier à l'écran et proposer un seul lot avant de coder.
 - **Principe « les explications restent visibles »** : il vaut pour les conseils. La méthode de calcul de la durée de séance peut rester derrière un ⓘ (écran « Voir »).
 
 ### Reste à faire, dans l'ordre
@@ -102,15 +119,19 @@ Douze corrections faites (règles dans `AGENTS.md`). Encore à faire :
 - Exercice créé par l'utilisateur et assisté : rien ne permet encore de le marquer (`Exercice.assistance`), à prévoir dans la fiche en refaisant Exercices. Le repère des exercices équivalents (`repere`) ne connaît pas non plus l'assistance.
 - La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
-- Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. Remplacer les émojis et symboles restants, dont ★ en séance et 🏆 dans la fenêtre d'objectif.
+- Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. La séance n'a plus d'émojis ni de RPE (sauf l'aide de l'effort) ; il en reste dans le Bilan, Programmes, le lexique, l'Accueil (« ⚡ Séance libre ») et ailleurs.
+- Accueil : « Démarrer » et les autres boutons ont beaucoup de `style={{…}}` ; ne pas perdre « Démarrer visible sans défiler ».
+- Formulaire de l'onglet Exercices : dire « Palier » comme en séance (il dit encore « Pas de charge »).
 - Revoir l'échauffement général de la séance, pas encore repris.
 - Plein écran à 360 px de large : dans la rangée de séries, « S1 » est coupé à gauche, car la rangée se centre sur la série en cours. Déjà présent avant, à reprendre si ça gêne en salle.
-- Vérifier la séance sur le téléphone en mode finisseur, et le son à la fin du repos quand une fenêtre est ouverte.
-- Tester chaque écran de 667 à 832 px de haut et à 360 comme à 384 px de large. Les scripts de capture n'ont pas été gardés dans le dépôt : Playwright sur `npm run build` + `.claude/launch.json`, en remplissant la base avec un historique de séances, les noms d'exercices les plus longs (« Extension triceps poulie haute à la corde ») et un superset.
+- Tester chaque écran de 667 à 832 px de haut et à 360 comme à 384 px de large. Les scripts de capture ne sont pas dans le dépôt : Playwright sur `npm run build` + `.claude/launch.json`, en écrivant dans IndexedDB une séance `enCours` et un historique, avec les noms d'exercices les plus longs (« Extension triceps poulie haute à la corde ») et un superset. Pour simuler le bouton retour Android : `window.__retourCran()`. Deux validations à moins de 1,5 s : la seconde est ignorée (voulu). Les messages durent 4 s.
 - À la fin : `QA.md` et la fiche Play Store si des fonctions visibles ont changé, puis une vérification complète.
 
 ### Choix en attente de l'avis de l'utilisateur
 
+- **« Suivre les conseils »** : gardé par défaut ; à retirer seulement s'il ne s'en sert jamais après plusieurs séances.
+- **« Stoppe si douleur articulaire… »** : masqué sur les finisseurs sous 720 px de haut, pour que tout tienne. À remettre s'il préfère défiler.
+- **« Reste 4 exercices »** et **absence de l'autre exercice en superset** : décidés, à confirmer après un essai en salle.
 - **Décompte de 10 s avant de démarrer** (vu dans son ancienne appli) : déconseillé, rien ne court pendant qu'on s'installe et la durée se compte depuis la 1re série. Rien n'a été ajouté ; sa réponse n'est pas encore donnée. Il pourrait seulement avoir un sens pour les exercices en temps, où le décompte est de 3 s.
 - **Largeur réelle du S25** : `AGENTS.md` prend 384 px comme référence, mais le téléphone peut être à 360 selon son réglage d'affichage. À confirmer sur l'appareil.
 - **Halo du cercle de repos** : en ligne, mais aucun avis donné sur ce point précis. Sa fluidité sur le téléphone n'est pas confirmée non plus.
