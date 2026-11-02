@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useRef, useState } from 'react'
-import { Camera, Check, ChevronLeft, ChevronRight, Dumbbell, Flame, Moon, Pencil, Ruler, X } from 'lucide-react'
+import { Camera, Check, ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Moon, Pencil, Ruler, Smile, Trophy, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages } from '../db'
-import { dateISO, duree, estDure, kg } from '../lib/calc'
+import { dateISO, duree, estDure, kg, sensationSeance } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
@@ -1069,9 +1069,37 @@ function DetailSeance({
       <div className="carte">
         <ResumeSeance seance={seance} exo={catalogue.exo} />
         <div className="ligne wrap" style={{ gap: 6, marginTop: 6 }}>
-          {records > 0 && <span className="pastille ok">🏆 {pluriel(records, 'record')}</span>}
-          {seance.ressenti && <span className="pastille">Ressenti {seance.ressenti}/5</span>}
-          {seance.energie && <span className="pastille">Énergie {seance.energie}/5</span>}
+          {records > 0 && (
+            <span className="pastille ok" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Trophy size={13} strokeWidth={2} />
+              {pluriel(records, 'record')}
+            </span>
+          )}
+          {(() => {
+            const sens = sensationSeance(seance)
+            if (!sens) return null
+            const couleur = sens.label === 'Au top' ? 'rgba(249, 115, 22, 0.15)' : sens.label === 'Difficile' ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)'
+            const bord = sens.label === 'Au top' ? 'rgba(249, 115, 22, 0.35)' : sens.label === 'Difficile' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(34, 197, 94, 0.3)'
+            const texte = sens.label === 'Au top' ? '#fb923c' : sens.label === 'Difficile' ? '#f87171' : '#4ade80'
+            const Icone = sens.label === 'Au top' ? Flame : sens.label === 'Difficile' ? Frown : Smile
+            return (
+              <span
+                className="pastille"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  background: couleur,
+                  borderColor: bord,
+                  color: texte,
+                  fontWeight: 600,
+                }}
+              >
+                <Icone size={13} strokeWidth={2.2} />
+                Sensation : {sens.label}
+              </span>
+            )
+          })()}
         </div>
         {passes.length > 0 && <div className="faible" style={{ marginTop: 8 }}>Passés ce jour-là : {passes.join(', ')}</div>}
       </div>

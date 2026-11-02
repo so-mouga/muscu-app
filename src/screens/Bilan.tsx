@@ -12,7 +12,7 @@ import { BONUS_PRIORITE, etatCycle, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { analyser, aRetenir, libelleMesure, type Analyse } from '../lib/analyse'
 import { debutPeriode, genererBilan, type DonneesBilan } from '../lib/bilan'
-import { dateCourte, dateISO, duree, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
+import { dateCourte, dateISO, duree, kg, lundi, niveauSensation, semaineType, volumePrevu } from '../lib/calc'
 import { bilan, recordsParSeance, semaineDe } from '../lib/historique'
 import type { Muscle, Seance } from '../types'
 
@@ -278,12 +278,25 @@ export default function Bilan({ catalogue, onExo, onCorps }: { catalogue: Catalo
           {(a.rpe !== null || a.ressenti !== null || a.energie !== null || a.sommeil || a.calories.ok + a.calories.trop + a.calories.pasAssez > 0) && (
             <div className="tuiles">
               {a.rpe !== null && <Tuile valeur={kg(arrondi(a.rpe))} label="RPE moyen" n={a.rpe} m={avant.rpe ?? undefined} comparable={avant.rpe !== null} neutre texteAvant={avant.rpe !== null ? kg(arrondi(avant.rpe)) : ''} />}
-              {a.ressenti !== null && (
-                <Tuile valeur={`${kg(arrondi(a.ressenti))}/5`} label="ressenti" n={a.ressenti} m={avant.ressenti ?? undefined} comparable={avant.ressenti !== null} texteAvant={avant.ressenti !== null ? kg(arrondi(avant.ressenti)) : ''} />
-              )}
-              {a.energie !== null && (
-                <Tuile valeur={`${kg(arrondi(a.energie))}/5`} label="énergie" n={a.energie} m={avant.energie ?? undefined} comparable={avant.energie !== null} texteAvant={avant.energie !== null ? kg(arrondi(avant.energie)) : ''} />
-              )}
+              {(() => {
+                const formes = [a.energie, a.ressenti].filter((x): x is number => x !== null && x !== undefined)
+                if (!formes.length) return null
+                const forme = formes.reduce((x, y) => x + y, 0) / formes.length
+                const formesAvant = [avant.energie, avant.ressenti].filter((x): x is number => x !== null && x !== undefined)
+                const formeAvant = formesAvant.length ? formesAvant.reduce((x, y) => x + y, 0) / formesAvant.length : undefined
+                const labelActuel = niveauSensation(forme)
+                const labelAvant = formeAvant !== undefined ? niveauSensation(formeAvant) : ''
+                return (
+                  <Tuile
+                    valeur={labelActuel}
+                    label={`sensation moy. (${kg(arrondi(forme))}/5)`}
+                    n={forme}
+                    m={formeAvant}
+                    comparable={formeAvant !== undefined}
+                    texteAvant={labelAvant}
+                  />
+                )
+              })()}
               {a.sommeil && (
                 <Tuile
                   valeur={`${Math.floor(a.sommeil.moyenne)} h ${String(Math.round((a.sommeil.moyenne % 1) * 60)).padStart(2, '0')}`}

@@ -1,7 +1,7 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
 import type { Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
-import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, serieTexte, volumeParMuscle } from './calc'
+import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, sensationSeance, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, evolutionForce, recordsParSeance, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
 import { diagnostic, texteBlocage } from './blocages'
@@ -74,14 +74,15 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
     return lignes.join('\n')
   }
   const dures = travail.reduce((a, s) => a + s.series.filter(estDure).length, 0)
-  const ressentis = periode.map((s) => s.ressenti).filter((x): x is number => x !== undefined)
-  const energies = periode.map((s) => s.energie).filter((x): x is number => x !== undefined)
+  const sensations = periode.map(sensationSeance).filter((x): x is NonNullable<typeof x> => x !== null)
   lignes.push(
     `${periode.length} séance${periode.length > 1 ? 's' : ''}${periode.length > travail.length ? ` dont ${periode.length - travail.length} en déload` : ''} · ` +
       `durée moyenne ${duree(moyenne(periode.map(dureeReelle))!)} · ${dures} séries dures`
   )
-  if (ressentis.length) lignes.push(`Ressenti moyen ${kg(arrondi(moyenne(ressentis)!))}/5 (sur ${ressentis.length} séance${ressentis.length > 1 ? 's' : ''})`)
-  if (energies.length) lignes.push(`Énergie moyenne ${kg(arrondi(moyenne(energies)!))}/5`)
+  if (sensations.length) {
+    const moy = moyenne(sensations.map((s) => s.val))!
+    lignes.push(`Sensation moyenne : ${niveauSensation(moy)} (${kg(arrondi(moy))}/5 sur ${sensations.length} séance${sensations.length > 1 ? 's' : ''})`)
+  }
   const nbRecords = periode.reduce((a, s) => a + (records[s.id] ?? 0), 0)
   if (nbRecords) lignes.push(`${nbRecords} record${nbRecords > 1 ? 's' : ''} battu${nbRecords > 1 ? 's' : ''}`)
 
@@ -93,12 +94,13 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
       lignes.push(`Sem. du ${jour(l)} : aucune séance`)
       continue
     }
-    const r = moyenne(ss.map((s) => s.ressenti).filter((x): x is number => x !== undefined))
+    const ssSens = ss.map(sensationSeance).filter((x): x is NonNullable<typeof x> => x !== null)
+    const r = ssSens.length ? moyenne(ssSens.map((x) => x.val)) : null
     lignes.push(
       `Sem. du ${jour(l)} : ${ss.length} séance${ss.length > 1 ? 's' : ''} (${ss.map((s) => s.nom).join(', ')}) · ` +
         `${ss.filter((s) => !s.deload).reduce((a, s) => a + s.series.filter(estDure).length, 0)} séries dures` +
         (ss.some((s) => s.deload) ? ' · déload' : '') +
-        (r !== null ? ` · ressenti ${kg(arrondi(r))}/5` : '')
+        (r !== null ? ` · sensation ${niveauSensation(r)}` : '')
     )
   }
 

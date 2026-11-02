@@ -276,3 +276,19 @@ export function ecartSerie(s: Serie, avant: Serie | undefined, exo?: Exercice): 
   const effort = s.rpe > avant.rpe ? `${memes}, effort plus dur` : s.rpe < avant.rpe ? `${memes}, effort plus facile` : 'identique'
   return { sens, texte: texte || effort }
 }
+
+export type SensationNiveau = 'Difficile' | 'Bien' | 'Au top'
+
+export function niveauSensation(val: number): SensationNiveau {
+  if (val <= 2) return 'Difficile'
+  if (val >= 4.5) return 'Au top'
+  return 'Bien'
+}
+
+/** Sensation générale d'une séance (à partir de son énergie/ressenti ou des deux). */
+export function sensationSeance(seance: { ressenti?: number; energie?: number }): { val: number; label: SensationNiveau } | null {
+  const notes = [seance.ressenti, seance.energie].filter((n): n is number => typeof n === 'number')
+  if (!notes.length) return null
+  const val = notes.reduce((a, b) => a + b, 0) / notes.length
+  return { val, label: niveauSensation(val) }
+}

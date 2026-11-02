@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { Clock, Sparkles } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
 import { duree, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, serieTexte, tempsParExo } from '../lib/calc'
@@ -16,13 +17,21 @@ export function ResumeSeance({ seance, exo }: { seance: Seance; exo?: (id: strin
   const chauffes = Object.values(seance.chauffes).filter(Boolean).length
   return (
     <>
-      <div className="ligne wrap" style={{ marginTop: 8 }}>
-        <span className="pastille">⏱ {duree(ms)}</span>
+      <div className="ligne wrap" style={{ marginTop: 8, gap: 6 }}>
+        <span className="pastille" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Clock size={12} strokeWidth={2} />
+          {duree(ms)}
+        </span>
         <span className="pastille">
           {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
         </span>
         <span className="pastille">{kg(Math.round(tonnage))} kg soulevés</span>
-        {finisseurs > 0 && <span className="pastille fin">★ {finisseurs} finisseur(s)</span>}
+        {finisseurs > 0 && (
+          <span className="pastille fin" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Sparkles size={12} strokeWidth={2} />
+            {finisseurs} finisseur(s)
+          </span>
+        )}
         {chauffes > 0 && <span className="pastille">{chauffes} échauffement(s)</span>}
       </div>
     </>

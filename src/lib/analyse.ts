@@ -254,9 +254,9 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
   if (taille && taille.fin <= taille.debut - 0.5 && force !== null && force > 0)
     r.push(`Taille ${kg(arrondi(taille.fin - taille.debut))} cm pendant que tes charges montent (+${kg(arrondi(force))} % en moyenne) : ta recompo fonctionne.`)
 
-  // Fatigue : RPE en hausse et énergie en baisse par rapport à la période d'avant
+  // Fatigue : RPE en hausse et sensations en baisse par rapport à la période d'avant
   if (avant && a.rpe !== null && avant.rpe !== null && a.energie !== null && avant.energie !== null && a.rpe >= avant.rpe + 0.5 && a.energie <= avant.energie - 0.5)
-    r.push('RPE en hausse et énergie en baisse par rapport à la période d’avant : signe de fatigue, pense au déload.')
+    r.push('RPE en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense au déload.')
 
   // Records
   if (a.records.length) {

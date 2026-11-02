@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { Flame, Frown, Smile, Trophy } from 'lucide-react'
 import { MUSCLES } from '../data/exercices'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -1092,9 +1093,9 @@ function MachinePrise({
 }
 
 const OPTIONS_FORME = [
-  { val: 1, label: 'Difficile', emoji: '😫' },
-  { val: 3, label: 'Bien', emoji: '👌' },
-  { val: 5, label: 'Au top', emoji: '🔥' },
+  { val: 1, label: 'Difficile', Icon: Frown, couleur: '#f87171' },
+  { val: 3, label: 'Bien', Icon: Smile, couleur: '#4ade80' },
+  { val: 5, label: 'Au top', Icon: Flame, couleur: '#fb923c' },
 ] as const
 
 function FinSeance({
@@ -1177,9 +1178,14 @@ function FinSeance({
           if (!r || (!r.mieux && !r.records)) return null
           const morceaux = [
             r.mieux > 0 && `${r.mieux} exercice${r.mieux > 1 ? 's' : ''} mieux que la dernière fois`,
-            r.records > 0 && `${r.records} record${r.records > 1 ? 's' : ''} 🏆`,
+            r.records > 0 && `${r.records} record${r.records > 1 ? 's' : ''}`,
           ].filter(Boolean)
-          return <div className="mieux-titre" style={{ marginTop: 4 }}>↑ {morceaux.join(', ')}</div>
+          return (
+            <div className="mieux-titre" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {r.records > 0 && <Trophy size={14} style={{ color: '#fb923c' }} />}
+              <span>↑ {morceaux.join(', ')}</span>
+            </div>
+          )
         })()}
         <ResumeSeance seance={seance} exo={catalogue.exo} />
       </div>
@@ -1203,13 +1209,13 @@ function FinSeance({
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: 4,
+                    gap: 6,
                     fontSize: '0.85rem',
                     fontWeight: actif ? 700 : 500,
                   }}
                   onClick={() => choisirForme(o.val)}
                 >
-                  <span style={{ fontSize: '1.35rem', lineHeight: 1 }}>{o.emoji}</span>
+                  <o.Icon size={20} strokeWidth={actif ? 2.5 : 2} style={{ color: actif ? '#fff' : o.couleur }} />
                   <span>{o.label}</span>
                 </button>
               )
