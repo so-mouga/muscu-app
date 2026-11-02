@@ -44,6 +44,8 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
   ).toBeVisible()
 
   // Rechargement : la séance est enregistrée, terminée, avec la série corrigée.
+  // Après la fermeture, l'appli retire son entrée d'historique (`lib/nav.ts`) : ce retour annulerait le rechargement.
+  await p.waitForFunction(() => !history.state?.piege)
   await p.reload()
   const [s] = (await lireTable(p, 'seances')) as { enCours: boolean; series: { charge: number; reps: number }[] }[]
   expect(s.enCours).toBe(false)
