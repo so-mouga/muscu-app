@@ -6,10 +6,12 @@ export default function Courbe({
   points,
   format,
   label = 'Évolution',
+  sansEnTete = false,
 }: {
   points: { date: string; valeur: number }[]
   format: (v: number) => string
   label?: string
+  sansEnTete?: boolean
 }) {
   const [actif, setActif] = useState(points.length - 1)
   const L = 320
@@ -31,16 +33,18 @@ export default function Courbe({
   const airePoints = `${tracePoints} ${x(points.length - 1)},${H - m.b} ${x(0)},${H - m.b}`
 
   return (
-    <div style={{ marginTop: 8 }}>
-      {/* Valeur du point actif au survol / clic */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6, padding: '0 2px' }}>
-        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--texte)' }}>
-          {format(p.valeur)}
+    <div style={{ marginTop: sansEnTete ? 4 : 8 }}>
+      {/* Valeur du point actif au survol / clic (optionnellement masquée si affichée à côté) */}
+      {!sansEnTete && (
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6, padding: '0 2px' }}>
+          <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--texte)' }}>
+            {format(p.valeur)}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            {dateCourte(p.date)}
+          </div>
         </div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-          {dateCourte(p.date)}
-        </div>
-      </div>
+      )}
 
       <svg className="graph" viewBox={`0 0 ${L} ${H}`} width="100%" role="img" aria-label={label} style={{ overflow: 'visible' }}>
         <defs>

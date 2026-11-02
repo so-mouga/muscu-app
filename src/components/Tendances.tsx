@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import { Check, SlidersHorizontal } from 'lucide-react'
 import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { db, setReglage } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
@@ -104,36 +105,78 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
   const toutesDates = [...new Set(traces.flatMap((s) => s.pts.map((p) => p.date)))].sort()
 
   return (
-    <div className="carte pile">
-      <div className="ligne entre">
+    <div className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+      <div className="ligne entre" style={{ marginBottom: 10 }}>
         <div>
-          <h3>Tendances</h3>
-          <div className="faible">
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--texte)' }}>Tendances</h3>
+          <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 2 }}>
             {epinglees.length} mesure{epinglees.length > 1 ? 's' : ''} suivie{epinglees.length > 1 ? 's' : ''}
           </div>
         </div>
-        <button className="btn discret petit" onClick={() => setChoix(!choix)}>
-          {choix ? 'OK' : '✎ Choisir'}
+        <button
+          type="button"
+          onClick={() => setChoix(!choix)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '4px 10px',
+            borderRadius: 8,
+            fontSize: '0.8rem',
+            fontWeight: 500,
+            background: choix ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid ' + (choix ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+            color: choix ? 'var(--accent-orange)' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {choix ? (
+            <>
+              <Check size={14} strokeWidth={2.5} />
+              <span>OK</span>
+            </>
+          ) : (
+            <>
+              <SlidersHorizontal size={14} strokeWidth={2} />
+              <span>Choisir</span>
+            </>
+          )}
         </button>
       </div>
 
       {choix ? (
-        <div>
-          <div className="faible" style={{ marginBottom: 6 }}>
-            Jusqu’à {MAX} mesures sur le graphique.
+        <div style={{ marginTop: 4 }}>
+          <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 8 }}>
+            Jusqu’à {MAX} mesures sur le graphique :
           </div>
-          <div className="chips">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {dispo.map((c) => {
               const on = epinglees.includes(c.cle)
               return (
                 <button
                   key={c.cle}
-                  className={on ? 'actif' : ''}
+                  type="button"
                   disabled={!on && epinglees.length >= MAX}
                   onClick={() => void setReglage('tendances', on ? epinglees.filter((x) => x !== c.cle) : [...epinglees, c.cle])}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: 12,
+                    fontWeight: on ? 600 : 400,
+                    borderRadius: 20,
+                    cursor: !on && epinglees.length >= MAX ? 'not-allowed' : 'pointer',
+                    opacity: !on && epinglees.length >= MAX ? 0.4 : 1,
+                    background: on ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid ' + (on ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                    color: on ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                    transition: 'all 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
                 >
-                  {on ? '✓ ' : ''}
-                  {c.nom}
+                  {on && <Check size={12} strokeWidth={2.5} />}
+                  <span>{c.nom}</span>
                 </button>
               )
             })}
@@ -141,12 +184,33 @@ export default function Tendances({ mesures }: { mesures: Mesure[] }) {
         </div>
       ) : (
         <>
-          <div className="segments" role="tablist" style={{ marginBottom: 0 }}>
-            {PERIODES.map(([nom, j]) => (
-              <button key={nom} role="tab" aria-selected={jours === j} className={jours === j ? 'actif' : ''} onClick={() => (setJours(j), setActif(null))}>
-                {nom}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', overflowX: 'auto', marginBottom: 8, scrollbarWidth: 'none' }}>
+            {PERIODES.map(([nom, j]) => {
+              const actifTab = jours === j
+              return (
+                <button
+                  key={nom}
+                  type="button"
+                  style={{
+                    flex: 1,
+                    minWidth: 'fit-content',
+                    padding: '5px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: actifTab ? 600 : 400,
+                    color: actifTab ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                    background: actifTab ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
+                    border: '1px solid ' + (actifTab ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.08)'),
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onClick={() => (setJours(j), setActif(null))}
+                >
+                  {nom}
+                </button>
+              )
+            })}
           </div>
 
           {traces.length === 0 ? (

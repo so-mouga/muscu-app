@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { ArrowLeft, Info, Pencil, Ruler, Trash2 } from 'lucide-react'
+import Aide from '../components/Aide'
 import Courbe from '../components/Courbe'
 import Poids from '../components/Poids'
 import SilhouetteMesures from '../components/SilhouetteMesures'
@@ -153,46 +154,91 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
 
   return (
     <>
-      <button className="btn primaire grand" style={{ marginBottom: 12 }} onClick={() => onSaisir('nouvelle')}>
-        + Prendre mes mensurations
+      {/* Bouton d'action élégant 44px */}
+      <button
+        type="button"
+        onClick={() => onSaisir('nouvelle')}
+        style={{
+          width: '100%',
+          height: 44,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+          border: 'none',
+          borderRadius: 12,
+          color: '#ffffff',
+          fontSize: '0.92rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(249, 115, 22, 0.25)',
+          marginBottom: 14,
+          transition: 'transform 0.1s ease, box-shadow 0.15s ease',
+        }}
+      >
+        <Ruler size={18} strokeWidth={2.2} />
+        <span>Prendre mes mensurations</span>
       </button>
 
       <Tendances mesures={mesures} />
 
-      <div className="carte" ref={carte} style={{ scrollMarginTop: 12 }}>
-        <div className="mesures-haut">
-          <SilhouetteMesures active={active} onChoix={(id) => setActive(id)} remplies={remplies} />
-          <div className="pile" style={{ gap: 8, minWidth: 0 }}>
-            <div>
-              <div className="faible">{MESURES.indexOf(def) + 1}</div>
-              <h2>{def.nom}</h2>
+      {/* Carte silhouette & courbe de détail sans doublon */}
+      <div className="carte" ref={carte} style={{ padding: '16px', borderRadius: 18, scrollMarginTop: 12, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ flexShrink: 0 }}>
+            <SilhouetteMesures active={active} onChoix={(id) => setActive(id)} remplies={remplies} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <span className="faible" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                {MESURES.indexOf(def) + 1} ·
+              </span>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+                {def.nom}
+              </h3>
+              <Aide titre={def.nom} texte={def.consigne} />
             </div>
-            <div className="petit">{def.consigne}</div>
             <ValeursMesure def={def} mesures={mesures} />
           </div>
         </div>
+
         {points.length >= 2 && (
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 10 }}>
             {def.cotes && clesDef.every((c) => serie(mesures, c).length) && (
-              <div className="chips">
-                {(['g', 'd'] as const).map((c) => (
-                  <button key={c} className={cleCourbe.endsWith('_' + c) ? 'actif' : ''} onClick={() => setCote(c)}>
-                    {c === 'g' ? 'Gauche' : 'Droite'}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                {(['g', 'd'] as const).map((c) => {
+                  const actifCote = cleCourbe.endsWith('_' + c)
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      style={{
+                        padding: '3px 10px',
+                        fontSize: '0.75rem',
+                        fontWeight: actifCote ? 600 : 400,
+                        color: actifCote ? 'var(--texte)' : 'var(--text-secondary)',
+                        background: actifCote ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid ' + (actifCote ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.06)'),
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => setCote(c)}
+                    >
+                      {c === 'g' ? 'Gauche' : 'Droite'}
+                    </button>
+                  )
+                })}
               </div>
             )}
-            <Courbe key={cleCourbe} points={points} format={cm} label={`Évolution : ${def.nom}`} />
+            <Courbe key={cleCourbe} points={points} format={cm} label={`Évolution : ${def.nom}`} sansEnTete />
           </div>
         )}
       </div>
 
       {mesures.length > 0 && (
-        <div className="carte">
-          <h3>Depuis le début</h3>
-          <div className="faible" style={{ margin: '4px 0 8px' }}>
-            Dernière valeur et écart avec la première prise. Touche une ligne pour voir sa courbe.
-          </div>
+        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', fontWeight: 700 }}>Depuis le début</h3>
           {cles.filter((c) => PRINCIPALES.includes(c)).map(ligne)}
           {cles.some((c) => !PRINCIPALES.includes(c)) && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>
@@ -205,26 +251,39 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
       )}
 
       {mesures.length > 0 && (
-        <div className="carte">
+        <div className="carte" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
           <button type="button" className="groupe-repli" onClick={() => setVoirPrises(!voirPrises)} aria-expanded={voirPrises}>
-            <span>
+            <span style={{ fontWeight: 600 }}>
               Prises <span className="faible">({mesures.length})</span>
             </span>
             <span className="muted">{voirPrises ? '▾' : '▸'}</span>
           </button>
-          {voirPrises && [...mesures].reverse().map((m) => (
-            <button key={m.date} className="ligne-mesure" onClick={() => onSaisir(m)}>
-              <span>{dateCourte(m.date)}</span>
-              <span className="faible">
-                {Object.keys(m.valeurs).length} mesure{Object.keys(m.valeurs).length > 1 ? 's' : ''} ✎
-              </span>
-            </button>
-          ))}
+          {voirPrises && [...mesures].reverse().map((m) => {
+            const entrees = Object.entries(m.valeurs)
+            const apercu = entrees.length <= 2
+              ? entrees.map(([k, v]) => `${nomCle(k)} : ${cm(v)}`).join(' · ')
+              : `${entrees.length} mesures`
+            return (
+              <button
+                key={m.date}
+                className="ligne-mesure"
+                onClick={() => onSaisir(m)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0' }}
+              >
+                <span style={{ fontWeight: 500 }}>{dateCourte(m.date)}</span>
+                <span className="faible" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
+                  <span>{apercu}</span>
+                  <Pencil size={13} strokeWidth={1.75} style={{ opacity: 0.7 }} />
+                </span>
+              </button>
+            )
+          })}
         </div>
       )}
 
-      <div className="faible" style={{ marginBottom: 16 }}>
-        💡 {CONSEILS_MESURE}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
+        <Info size={15} strokeWidth={2} style={{ color: 'var(--accent-orange)', flexShrink: 0, marginTop: 1 }} />
+        <span>{CONSEILS_MESURE}</span>
       </div>
     </>
   )
@@ -235,24 +294,48 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
   const lignes = clesDe(def)
     .map((c) => ({ c, s: serie(mesures, c) }))
     .filter((x) => x.s.length)
-  if (!lignes.length) return <div className="faible">Pas encore mesuré.</div>
-  // Date sous chaque valeur seulement si les côtés n'ont pas été mesurés le même jour.
+  if (!lignes.length) return <div className="faible" style={{ fontSize: '0.85rem' }}>Pas encore mesuré.</div>
   const memeJour = new Set(lignes.map((l) => l.s[l.s.length - 1].date)).size === 1
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {lignes.map(({ c, s }) => {
         const der = s[s.length - 1]
         const d = s.length > 1 ? der.valeur - s[s.length - 2].valeur : null
         return (
           <div key={c}>
-            {def.cotes && <span className="faible">{c.endsWith('_g') ? 'G ' : 'D '}</span>}
-            <strong className="valeur-mesure">{cm(der.valeur)}</strong>
-            {d !== null && <span className="faible"> {signe(d)}</span>}
-            {!memeJour && <div className="faible">le {dateCourte(der.date)}</div>}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+              {def.cotes && <span className="faible" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{c.endsWith('_g') ? 'G ' : 'D '}</span>}
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--texte)', letterSpacing: '-0.3px' }}>
+                {cm(der.valeur)}
+              </span>
+              {d !== null && (
+                <span
+                  style={{
+                    padding: '2px 7px',
+                    borderRadius: 999,
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: d > 0 ? '#22c55e' : d < 0 ? '#f87171' : 'var(--text-secondary)',
+                    background: d > 0 ? 'rgba(34, 197, 94, 0.12)' : d < 0 ? 'rgba(248, 113, 113, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                  }}
+                >
+                  {signe(d)}
+                </span>
+              )}
+            </div>
+            {!memeJour && (
+              <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 1 }}>
+                le {dateCourte(der.date)}
+              </div>
+            )}
           </div>
         )
       })}
-      {memeJour && <div className="faible">le {dateCourte(lignes[0].s[lignes[0].s.length - 1].date)}</div>}
+      {memeJour && (
+        <div className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 1 }}>
+          le {dateCourte(lignes[0].s[lignes[0].s.length - 1].date)}
+        </div>
+      )}
     </div>
   )
 }
@@ -264,6 +347,7 @@ function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; dern
     Object.fromEntries(Object.entries(initial?.valeurs ?? {}).map(([k, v]) => [k, String(v).replace('.', ',')]))
   )
   const [active, setActive] = useState<string>('poitrine')
+  const [conseilOuvert, setConseilOuvert] = useState(false)
   const modifie = JSON.stringify(textes) !== JSON.stringify(Object.fromEntries(Object.entries(initial?.valeurs ?? {}).map(([k, v]) => [k, String(v).replace('.', ',')])))
   const fermer = () => {
     // Saisie en cours : on garde l'écran et on demande avant de perdre les valeurs.
@@ -297,52 +381,210 @@ function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; dern
   }
 
   const champ = (cle: string, label?: string) => (
-    <label className="champ-mesure" key={cle}>
-      {label && <span className="faible">{label}</span>}
-      <span className="ligne" style={{ gap: 4 }}>
+    <div key={cle} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      {label && <span className="faible" style={{ fontSize: '0.8rem', minWidth: 14 }}>{label}</span>}
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: 8,
+          padding: '4px 8px',
+        }}
+      >
         <input
           inputMode="decimal"
           placeholder={ref?.valeurs[cle] !== undefined ? kg(ref.valeurs[cle]) : '—'}
           value={textes[cle] ?? ''}
           onFocus={() => setActive(cle.replace(/_[gd]$/, ''))}
           onChange={(e) => setTextes((x) => ({ ...x, [cle]: e.target.value }))}
+          style={{
+            width: 52,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            color: 'var(--texte)',
+            fontSize: '0.92rem',
+            fontWeight: 600,
+            textAlign: 'right',
+            fontFamily: 'inherit',
+          }}
         />
-        <span className="faible">cm</span>
-      </span>
-    </label>
+        <span className="faible" style={{ fontSize: '0.8rem' }}>cm</span>
+      </div>
+    </div>
   )
 
   // Autres mesures ouvertes d'office si la prise en contient, ou si on touche l'une d'elles sur la silhouette.
   const [voirAutres, setVoirAutres] = useState(() => Object.keys(initial?.valeurs ?? {}).some((c) => !PRINCIPALES.includes(c)))
   const autresOuvertes = voirAutres || !clesDe(MESURES.find((m) => m.id === active)!).some((c) => PRINCIPALES.includes(c))
-  const carteSaisie = (m: DefMesure, cles: string[]) =>
-    cles.length > 0 && (
-      <div key={m.id} className={'carte pile mesure-saisie' + (m.id === active ? ' active' : '')} onClick={() => setActive(m.id)}>
-        <div className="ligne" style={{ gap: 8 }}>
-          <span className="num-mesure">{MESURES.indexOf(m) + 1}</span>
-          <strong>{cles.length === 1 ? nomCle(cles[0]) : m.nom}</strong>
+  const carteSaisie = (m: DefMesure, cles: string[]) => {
+    if (cles.length === 0) return null
+    const estActif = m.id === active
+    const mono = cles.length === 1
+
+    return (
+      <div
+        key={m.id}
+        className={'carte mesure-saisie' + (estActif ? ' active' : '')}
+        onClick={() => setActive(m.id)}
+        style={{
+          padding: '10px 14px',
+          borderRadius: 14,
+          marginBottom: 8,
+          background: estActif ? 'rgba(249, 115, 22, 0.08)' : 'var(--subcard-gradient)',
+          border: '1px solid ' + (estActif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.06)'),
+          transition: 'all 0.15s ease',
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: estActif ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.06)',
+                color: estActif ? '#fff' : 'var(--text-secondary)',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {MESURES.indexOf(m) + 1}
+            </span>
+            <strong style={{ fontSize: '0.92rem', color: 'var(--texte)' }}>
+              {mono ? nomCle(cles[0]) : m.nom}
+            </strong>
+          </div>
+
+          {mono ? (
+            champ(cles[0])
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {cles.map((c) => champ(c, c.endsWith('_g') ? 'G' : 'D'))}
+            </div>
+          )}
         </div>
-        {m.id === active && <div className="faible">{m.consigne}</div>}
-        <div className="ligne" style={{ gap: 12 }}>
-          {cles.length === 1 ? champ(cles[0]) : cles.map((c) => champ(c, c.endsWith('_g') ? 'Gauche' : 'Droite'))}
-        </div>
+
+        {/* Consigne affichée UNIQUEMENT sur la carte active */}
+        {estActif && (
+          <div
+            className="faible"
+            style={{
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)',
+              marginTop: 6,
+              paddingTop: 6,
+              borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+              lineHeight: 1.4,
+            }}
+          >
+            {m.consigne}
+          </div>
+        )}
       </div>
     )
+  }
 
   return (
-    <div>
-      <div className="entete">
-        <button className="btn" onClick={fermer} aria-label="Retour">
-          ←
+    <div style={{ paddingBottom: 110 }}>
+      <div className="entete" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button
+          type="button"
+          onClick={fermer}
+          aria-label="Retour"
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 6,
+            color: 'var(--texte)',
+            cursor: 'pointer',
+            display: 'flex',
+          }}
+        >
+          <ArrowLeft size={20} strokeWidth={2} />
         </button>
-        <h2 style={{ flex: 1 }}>{initial ? 'Modifier la prise' : 'Mensurations'}</h2>
+        <h2 style={{ flex: 1, margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+          {initial ? 'Modifier la prise' : 'Mensurations'}
+        </h2>
       </div>
-      <div className="carte pile">
-        <label className="champ">
-          <span>Date</span>
-          <input type="date" value={date} max={dateISO()} onChange={(e) => e.target.value && setDate(e.target.value)} />
-        </label>
-        <div className="faible">💡 {CONSEILS_MESURE} Remplis seulement ce que tu mesures ; en gris, ta dernière valeur.</div>
+
+      <div
+        className="carte"
+        style={{
+          padding: '12px 14px',
+          borderRadius: 14,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+        }}
+      >
+        <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--texte)' }}>Date de la prise</span>
+        <input
+          type="date"
+          value={date}
+          max={dateISO()}
+          onChange={(e) => e.target.value && setDate(e.target.value)}
+          style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 8,
+            color: 'var(--texte)',
+            padding: '5px 10px',
+            fontSize: '0.85rem',
+            fontFamily: 'inherit',
+          }}
+        />
+      </div>
+
+      {/* Bannière conseil repliable */}
+      <div
+        style={{
+          borderRadius: 12,
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          padding: '8px 12px',
+          marginBottom: 14,
+          fontSize: '0.8rem',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setConseilOuvert(!conseilOuvert)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer',
+            color: 'var(--text-secondary)',
+            textAlign: 'left',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Info size={14} strokeWidth={2} style={{ color: 'var(--accent-orange)' }} />
+            <span>Conseil : le matin à jeun</span>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            {conseilOuvert ? 'Masquer' : 'Voir plus ›'}
+          </span>
+        </button>
+        {conseilOuvert && (
+          <div style={{ marginTop: 6, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            {CONSEILS_MESURE} Remplis seulement ce que tu mesures ; en gris clair, ta dernière valeur de référence.
+          </div>
+        )}
       </div>
 
       <div className="saisie-mesures">
