@@ -42,7 +42,6 @@ body {
   font-size: 16px;
   line-height: 1.4;
   overscroll-behavior: none;
-  overflow-x: hidden;
   /* Comportement d'appli : pas de sélection au toucher long, pas de zoom au double-tap */
   -webkit-user-select: none;
   user-select: none;
@@ -65,8 +64,9 @@ textarea {
   margin: 0 auto;
   min-height: 100dvh;
   padding: 0 16px calc(96px + env(safe-area-inset-bottom));
-  overflow-x: hidden;
-  position: relative;
+  /* Coupe ce qui dépasse en largeur sans créer de zone de défilement : jamais overflow-x: hidden sur
+     html, body ou #root (la page ne défile plus au doigt et les en-têtes collants ne tiennent plus). */
+  overflow-x: clip;
 }
 
 #root:has(.onglets) {
