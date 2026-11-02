@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useRef, useState } from 'react'
-import { Camera, Check, ChevronLeft, ChevronRight, Dumbbell, Flame, Moon, Ruler } from 'lucide-react'
+import { Camera, Check, ChevronLeft, ChevronRight, Dumbbell, Flame, Moon, Pencil, Ruler, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
@@ -14,6 +14,7 @@ import { CALORIES, HEURES, heures, noterJournal } from '../components/JournalMat
 import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { PlanchePhotos, POSES } from './Photos'
 import Bilan from './Bilan'
+import { SaisieMesures } from './Corps'
 import { finAffichee, nomPhase, periodes, textePhase, type EtapeObjectifs } from '../lib/objectifs'
 import { prevuLe } from '../lib/cycle'
 import { objectifDuJour } from '../lib/nutrition'
@@ -136,6 +137,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             records={records}
             mieux={mieux}
             onSeance={(id) => onDetail(id)}
+            onCorps={onCorps}
           />
       </>
     </div>
@@ -182,6 +184,8 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
     },
   }
   const aujourdhui = dateISO()
+  const estMoisCourant = mois.getFullYear() === auj.getFullYear() && mois.getMonth() === auj.getMonth()
+  const pasAujourdhui = !estMoisCourant || choisi !== aujourdhui
   const prevuesMois = cases.reduce((n, d) => n + (d ? (prevu(dateISO(d))?.seances.length ?? 0) : 0), 0)
   const phaseMois = phases.find((p) => p.debut <= dateISO(mois) && dateISO(mois) <= finAffichee(p, dateISO()))?.phase ?? phases.find((p) => p.debut <= aujourdhui && aujourdhui <= finAffichee(p, dateISO()))?.phase
 
@@ -192,9 +196,38 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
           <ChevronLeft size={22} strokeWidth={2} />
         </button>
         <div style={{ textAlign: 'center' }}>
-          <strong style={{ textTransform: 'capitalize', fontSize: '1.1rem', color: 'var(--texte)' }}>
-            {mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-          </strong>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <strong style={{ textTransform: 'capitalize', fontSize: '1.1rem', color: 'var(--texte)' }}>
+              {mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+            </strong>
+            {pasAujourdhui && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSens(mois < auj ? 'avant' : 'arriere')
+                  setMois(new Date(auj.getFullYear(), auj.getMonth(), 1))
+                  onChoix(aujourdhui)
+                }}
+                aria-label="Revenir à aujourd'hui"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '3px 9px',
+                  borderRadius: 20,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: 'var(--accent-orange)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  lineHeight: 1.2,
+                }}
+              >
+                Aujourd’hui
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
             <span className="faible" style={{ fontSize: '0.8rem' }}>
               {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
@@ -266,29 +299,97 @@ function ecartMesure(mesures: Mesure[], date: string, cle: string) {
 }
 
 /** Toutes les mensurations d'un jour, avec l'écart depuis la prise précédente de chacune. */
-function FenetreMesures({ date, mesures, onFermer }: { date: string; mesures: Mesure[]; onFermer: () => void }) {
+function FenetreMesures({
+  date,
+  mesures,
+  onFermer,
+  onModifier,
+  onCorps,
+}: {
+  date: string
+  mesures: Mesure[]
+  onFermer: () => void
+  onModifier?: () => void
+  onCorps?: () => void
+}) {
   useRetour(true, onFermer)
   const valeurs = mesures.find((m) => m.date === date)?.valeurs ?? {}
   const cles = MESURES.flatMap(clesDe).filter((c) => valeurs[c] !== undefined)
   const depuis = [...new Set(cles.map((c) => ecartMesure(mesures, date, c)?.depuis).filter(Boolean))]
   return (
     <div className="modal-fond" onClick={onFermer}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-        <h3>📏 Mensurations · {jourCourt(date)}</h3>
-        {depuis.length === 1 && <div className="faible">Écart avec la prise du {jourCourt(depuis[0]!)}</div>}
-        <div>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '88dvh' }}>
+        <div className="ligne entre" style={{ marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: '50%',
+                background: 'rgba(249, 115, 22, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent-orange)',
+                flexShrink: 0,
+              }}
+            >
+              <Ruler size={18} strokeWidth={2} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+                Mensurations
+              </h3>
+              <div className="faible" style={{ fontSize: '0.8rem', marginTop: 1 }}>
+                {jourCourt(date)}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="icone"
+            onClick={onFermer}
+            aria-label="Fermer"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}
+          >
+            <X size={18} strokeWidth={2} />
+          </button>
+        </div>
+
+        {depuis.length === 1 && (
+          <div className="faible" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
+            Écart avec la prise du {jourCourt(depuis[0]!)}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '42dvh', overflowY: 'auto' }}>
           {cles.map((c) => {
             const e = ecartMesure(mesures, date, c)
             return (
-              <div key={c} className="ligne-mesure">
-                <span>{nomCle(c)}</span>
-                <span>
-                  <strong>{kg(valeurs[c])} cm</strong>
+              <div
+                key={c}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                }}
+              >
+                <span style={{ fontSize: '0.88rem', fontWeight: 500, color: 'var(--texte)' }}>{nomCle(c)}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <strong style={{ fontSize: '0.92rem', color: 'var(--texte)' }}>{kg(valeurs[c])} cm</strong>
                   {e && (
-                    <span className="faible">
-                      {' '}
-                      ({e.texte}
-                      {depuis.length > 1 ? ` depuis le ${jourCourt(e.depuis)}` : ''})
+                    <span
+                      style={{
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        color: e.texte.startsWith('+') ? '#22c55e' : e.texte.startsWith('−') ? '#3b82f6' : 'var(--text-secondary)',
+                      }}
+                    >
+                      ({e.texte})
                     </span>
                   )}
                 </span>
@@ -296,9 +397,66 @@ function FenetreMesures({ date, mesures, onFermer }: { date: string; mesures: Me
             )
           })}
         </div>
-        <button className="btn plein" onClick={onFermer}>
-          Fermer
-        </button>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+          {onModifier && (
+            <button
+              type="button"
+              className="btn discret"
+              onClick={onModifier}
+              style={{
+                height: 40,
+                borderRadius: 12,
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Pencil size={15} strokeWidth={1.75} />
+              <span>Modifier cette prise</span>
+            </button>
+          )}
+
+          {onCorps && (
+            <button
+              type="button"
+              className="btn primaire"
+              onClick={() => {
+                try {
+                  localStorage.setItem('sous_onglet_corps', 'mensurations')
+                } catch {}
+                onFermer()
+                onCorps()
+              }}
+              style={{
+                height: 44,
+                minHeight: 44,
+                borderRadius: 12,
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <span>Voir l'historique complet dans Corps ›</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="btn discret plein"
+            onClick={onFermer}
+            style={{ height: 38, borderRadius: 12, fontSize: '0.85rem' }}
+          >
+            Fermer
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -319,6 +477,7 @@ function JourChoisi({
   records,
   mieux,
   onSeance,
+  onCorps,
 }: {
   date: string
   catalogue: Catalogue
@@ -338,9 +497,11 @@ function JourChoisi({
   records: Record<string, number>
   mieux: Record<string, number>
   onSeance: (id: string) => void
+  onCorps?: () => void
 }) {
   const vide = !seances.length
   const [voirMesures, setVoirMesures] = useState(false)
+  const [saisieMesures, setSaisieMesures] = useState(false)
   const [voirPhotos, setVoirPhotos] = useState(false)
   const [saisiePoids, setSaisiePoids] = useState(false)
   const [valPoids, setValPoids] = useState('')
@@ -512,11 +673,17 @@ function JourChoisi({
           </div>
         </div>
 
-        {/* Tuile Mensurations (Taille) */}
+        {/* Tuile Mensurations */}
         <div
           role="button"
           tabIndex={0}
-          onClick={() => cleUne && setVoirMesures(true)}
+          onClick={() => {
+            if (clesMesure.length > 0) {
+              setVoirMesures(true)
+            } else {
+              setSaisieMesures(true)
+            }
+          }}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -526,12 +693,14 @@ function JourChoisi({
             background: 'var(--subcard-gradient)',
             border: '1px solid rgba(255, 255, 255, 0.06)',
             minHeight: 74,
-            cursor: cleUne ? 'pointer' : 'default',
+            cursor: 'pointer',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
             <Ruler size={18} strokeWidth={1.75} />
-            {cleUne && <ChevronRight size={14} strokeWidth={1.75} className="muted" />}
+            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>
+              {clesMesure.length > 0 ? '›' : '✎'}
+            </span>
           </div>
           <div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
@@ -789,7 +958,27 @@ function JourChoisi({
         </div>
       )}
 
-      {voirMesures && <FenetreMesures date={date} mesures={mesures} onFermer={() => setVoirMesures(false)} />}
+      {saisieMesures && (
+        <div className="page-dessus">
+          <SaisieMesures
+            initial={mesure ? { date, valeurs: mesure.valeurs } : { date, valeurs: {} }}
+            derniere={mesures[mesures.length - 1]}
+            onFermer={() => setSaisieMesures(false)}
+          />
+        </div>
+      )}
+      {voirMesures && (
+        <FenetreMesures
+          date={date}
+          mesures={mesures}
+          onFermer={() => setVoirMesures(false)}
+          onModifier={() => {
+            setVoirMesures(false)
+            setSaisieMesures(true)
+          }}
+          onCorps={onCorps}
+        />
+      )}
       {voirPhotos && <PlanchePhotos photos={photos} dates={[date]} comparerAvec={dernieresPhotos} onFermer={() => setVoirPhotos(false)} />}
     </div>
   )

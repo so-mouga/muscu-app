@@ -1521,12 +1521,13 @@ body:has(.focus) {
   opacity: 1;
 }
 .grille-mois .jour.fait {
-  background: var(--accent);
-  color: var(--accent-texte);
-  font-weight: 800;
+  background: rgba(249, 115, 22, 0.14);
+  border: 1px solid rgba(249, 115, 22, 0.32);
+  color: var(--texte);
+  font-weight: 600;
 }
 .grille-mois .jour.aujourdhui {
-  box-shadow: inset 0 0 0 2px var(--accent);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.45);
   color: inherit;
 }
 .tuiles {
@@ -2669,7 +2670,11 @@ body.sans-onglets .barre-demarrer {
 }
 /* Journal : jour choisi dans le calendrier */
 .grille-mois .jour.choisi {
-  box-shadow: 0 0 0 2px var(--texte);
+  background: var(--accent-orange) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  border-color: transparent !important;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.5), inset 0 0 0 1.5px rgba(255, 255, 255, 0.4) !important;
 }
 .grille-mois .jour:disabled {
   opacity: 0.35;
@@ -3037,10 +3042,18 @@ button.semaine-bilan.cliquable {
   background: var(--finisseur);
 }
 .grille-mois .jour.fait::after {
-  display: none;
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent-orange);
 }
-.grille-mois .jour.prevu.choisi {
-  box-shadow: 0 0 0 2px var(--texte);
+.grille-mois .jour.choisi::after {
+  background: #fff;
 }
 .legende-phases {
   flex-wrap: wrap;

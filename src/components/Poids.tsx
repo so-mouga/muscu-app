@@ -179,15 +179,15 @@ export default function Poids({
             onClick={() => ajuster(-0.1)}
             aria-label="Diminuer de 0,1 kg"
             style={{
-              width: 34,
-              height: 34,
+              width: 32,
+              height: 32,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: 9,
-              fontSize: '1.15rem',
+              borderRadius: 8,
+              fontSize: '1.1rem',
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
@@ -203,11 +203,11 @@ export default function Poids({
               enterKeyHint="done"
               className="duree"
               style={{
-                width: 48,
-                maxWidth: 52,
-                minWidth: 36,
+                width: 42,
+                maxWidth: 46,
+                minWidth: 30,
                 textAlign: 'center',
-                fontSize: '1.18rem',
+                fontSize: '1.12rem',
                 fontWeight: 800,
                 color: 'var(--texte)',
                 background: 'transparent',
@@ -228,22 +228,22 @@ export default function Poids({
               }}
               onKeyDown={(e) => e.key === 'Enter' && void enregistrer()}
             />
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>kg</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', flexShrink: 0 }}>kg</span>
           </div>
           <button
             type="button"
             onClick={() => ajuster(0.1)}
             aria-label="Augmenter de 0,1 kg"
             style={{
-              width: 34,
-              height: 34,
+              width: 32,
+              height: 32,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               background: 'rgba(255, 255, 255, 0.04)',
               border: '1px solid rgba(255, 255, 255, 0.06)',
-              borderRadius: 9,
-              fontSize: '1.15rem',
+              borderRadius: 8,
+              fontSize: '1.1rem',
               color: 'var(--texte)',
               cursor: 'pointer',
               userSelect: 'none',
@@ -260,7 +260,7 @@ export default function Poids({
           onClick={enregistrer}
           style={{
             height: 38,
-            padding: '0 12px',
+            padding: '0 10px',
             borderRadius: 11,
             background: estEnregistre && !enregistreAnim
               ? 'rgba(34, 197, 94, 0.12)'
@@ -270,11 +270,13 @@ export default function Poids({
               : 'none',
             color: estEnregistre && !enregistreAnim ? '#22c55e' : '#fff',
             fontWeight: 700,
-            fontSize: '0.84rem',
+            fontSize: '0.80rem',
+            letterSpacing: '0.01em',
             cursor: 'pointer',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: 5,
+            justifyContent: 'center',
+            gap: 4,
             boxShadow: estEnregistre && !enregistreAnim
               ? 'none'
               : '0 3px 12px rgba(249, 115, 22, 0.3)',
@@ -284,7 +286,7 @@ export default function Poids({
             boxSizing: 'border-box',
           }}
         >
-          <Check size={15} strokeWidth={2.5} />
+          <Check size={14} strokeWidth={2.5} />
           <span>{enregistreAnim ? 'Enregistré !' : estEnregistre ? 'Enregistré' : 'Enregistrer'}</span>
         </button>
       </div>

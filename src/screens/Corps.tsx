@@ -341,7 +341,7 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
 }
 
 /** Saisie d'une prise de mensurations : tout d'un coup, chaque champ facultatif. */
-function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; derniere?: Mesure; onFermer: () => void }) {
+export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; derniere?: Mesure; onFermer: () => void }) {
   const [date, setDate] = useState(initial?.date ?? dateISO())
   const [textes, setTextes] = useState<Record<string, string>>(() =>
     Object.fromEntries(Object.entries(initial?.valeurs ?? {}).map(([k, v]) => [k, String(v).replace('.', ',')]))
