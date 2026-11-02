@@ -1,12 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { Moon, Flame, Check, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
 import { informer } from './Dialogues'
 import { dateISO, kg } from '../lib/calc'
+import { useRetour } from '../lib/nav'
 import { objectifDuJour } from '../lib/nutrition'
-import type { JourJournal, Seance } from '../types'
+import type { JourJournal } from '../types'
 
 const JOUR = 86400000
 export const heures = (h: number) => `${Math.floor(h)} h${h % 1 ? ` ${String(Math.round((h % 1) * 60)).padStart(2, '0')}` : ''}`
@@ -27,279 +28,151 @@ export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
 export const noterJournal = (date: string, c: Partial<JourJournal>) =>
   db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
 
+const TEXTE_CALORIES: Record<NonNullable<JourJournal['calories']>, string> = { ok: 'calories tenues', trop: 'trop de calories', pasAssez: 'pas assez de calories' }
+
+type Saisie = 'poids' | 'sommeil' | 'calories'
+
 /**
- * Carte Aujourd'hui de l'accueil :
- * Grille compacte Poids / Sommeil (style Linear), suivi des calories.
+ * Journal du matin sur l'accueil : ce qu'il reste à noter (poids, sommeil, calories d'hier si un objectif
+ * est fixé), puis ce qui est noté, en une ligne discrète. Un appui ouvre la saisie dans une fenêtre,
+ * rien ne bouge dans l'écran et rien n'est jamais pré-rempli pour le sommeil ou les calories.
  */
-export default function JournalMatin({
-  catalogue,
-}: {
-  catalogue: Catalogue
-  terminees?: Seance[]
-  entrainement: boolean
-  deload?: boolean
-}) {
+export default function JournalMatin({ catalogue }: { catalogue: Catalogue }) {
   const aujourdhui = dateISO()
   const hier = dateISO(new Date(Date.now() - JOUR))
-  const pesees = useLiveQuery(() => db.pesees.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 14 * JOUR))).sortBy('date'), [], [])
-  const journal = useLiveQuery(() => db.journal.where('date').aboveOrEqual(dateISO(new Date(Date.now() - 30 * JOUR))).sortBy('date'), [], null)
-  const [saisieSommeil, setSaisieSommeil] = useState(false)
-  const [saisiePoids, setSaisiePoids] = useState(false)
-  const [valPoids, setValPoids] = useState<string>('')
-  if (journal === null) return null
-
-  const duJour = journal.find((j) => j.date === aujourdhui)
-  const dHier = journal.find((j) => j.date === hier)
-  const noter = noterJournal
-
-  const pesee = pesees.find((p) => p.date === aujourdhui)
-  const poids = pesees[pesees.length - 1]?.poids
+  const dernierePesee = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
+  const peseeDuJour = useLiveQuery(() => db.pesees.get(aujourdhui), [aujourdhui])
+  const duJour = useLiveQuery(() => db.journal.get(aujourdhui), [aujourdhui])
+  const dHier = useLiveQuery(() => db.journal.get(hier), [hier])
+  const [saisie, setSaisie] = useState<Saisie | null>(null)
+  const [valPoids, setValPoids] = useState('')
+  const [poidsDepart, setPoidsDepart] = useState('')
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui)
 
-  const toggleSaisiePoids = () => {
-    if (saisiePoids) {
-      setSaisiePoids(false)
-    } else {
-      const init = pesee ? pesee.poids : poids ?? 70
-      setValPoids(kg(init))
-      setSaisiePoids(true)
-      setSaisieSommeil(false)
-    }
-  }
-
-  const toggleSaisieSommeil = () => {
-    if (saisieSommeil) {
-      setSaisieSommeil(false)
-    } else {
-      setSaisieSommeil(true)
-      setSaisiePoids(false)
-    }
+  const ouvrirPoids = () => {
+    const v = kg(peseeDuJour?.poids ?? dernierePesee?.poids ?? 70)
+    setValPoids(v)
+    setPoidsDepart(v)
+    setSaisie('poids')
   }
 
   const enregistrerPoids = async () => {
-    const t = (valPoids || (poids ? kg(poids) : '70')).trim().replace(',', '.')
+    const t = valPoids.trim().replace(',', '.')
     const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
     if (!(val > 30 && val < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
-    {
-      const arr = Math.round(val * 10) / 10
-      await db.pesees.put({ date: aujourdhui, poids: arr })
-      await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
-        s.poidsCorps = arr
-      })
-      setSaisiePoids(false)
-    }
+    const arr = Math.round(val * 10) / 10
+    await db.pesees.put({ date: aujourdhui, poids: arr })
+    await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
+      s.poidsCorps = arr
+    })
+    setSaisie(null)
   }
 
   const ajusterPoids = (delta: number) => {
-    const t = (valPoids || (poids ? kg(poids) : '70')).trim().replace(',', '.')
-    const cur = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : (poids ?? 70)
-    const nouv = Math.round((cur + delta) * 10) / 10
-    setValPoids(kg(nouv))
+    const cur = parseFloat(valPoids.trim().replace(',', '.'))
+    if (Number.isFinite(cur)) setValPoids(kg(Math.round((cur + delta) * 10) / 10))
   }
 
+  // Un appui à côté ou le retour Android gardent le poids réglé ; sans changement, rien n'est noté.
+  const fermer = () => {
+    if (saisie === 'poids' && valPoids !== poidsDepart) return void enregistrerPoids()
+    setSaisie(null)
+  }
+  useRetour(saisie !== null, fermer)
+
+  const avecCalories = !!objectif
+  const rienDeNote = !peseeDuJour && duJour?.sommeil === undefined && (!avecCalories || !dHier?.calories)
+
   return (
-    <div className="carte pile journal-matin" style={{ padding: '16px', borderRadius: 'var(--rayon-2)', gap: 12 }}>
-      <h3 style={{ margin: '0 0 2px', fontSize: 'var(--t-titre)', fontWeight: 700 }}>Aujourd’hui</h3>
-
-      {/* Grille Poids & Sommeil (2 colonnes) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {/* Tuile Poids */}
-        <button
-          type="button"
-          onClick={toggleSaisiePoids}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            padding: '14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid var(--voile)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            minHeight: 88,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: 'var(--texte-3)' }}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="4" />
-              <path d="M8 7h8" />
-              <path d="M12 7v3" />
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
-              {pesee ? `${kg(pesee.poids)} kg` : <span className="faible" style={{ fontSize: 'var(--t-texte)' }}>—</span>}
-            </div>
-            <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 1 }}>Poids</div>
-          </div>
+    <div className="journal-matin">
+      {rienDeNote && <span className="journal-titre">À noter</span>}
+      {peseeDuJour ? (
+        <button type="button" className="journal-note" onClick={ouvrirPoids}>
+          {kg(peseeDuJour.poids)} kg
         </button>
-
-        {/* Tuile Sommeil */}
-        <button
-          type="button"
-          onClick={toggleSaisieSommeil}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            padding: '14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid var(--voile)',
-            cursor: 'pointer',
-            textAlign: 'left',
-            width: '100%',
-            minHeight: 88,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-            <span style={{ color: 'var(--info)', display: 'flex', alignItems: 'center' }}><Moon size={18} strokeWidth={1.75} /></span>
-          </div>
-          <div>
-            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
-              {duJour?.sommeil !== undefined ? heures(duJour.sommeil) : <span className="faible" style={{ fontSize: 'var(--t-texte)' }}>—</span>}
-            </div>
-            <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 1 }}>Sommeil</div>
-          </div>
+      ) : (
+        <button type="button" className="journal-puce" onClick={ouvrirPoids}>
+          Poids
         </button>
-      </div>
+      )}
+      {duJour?.sommeil !== undefined ? (
+        <button type="button" className="journal-note" onClick={() => setSaisie('sommeil')}>
+          {heures(duJour.sommeil)} de sommeil
+        </button>
+      ) : (
+        <button type="button" className="journal-puce" onClick={() => setSaisie('sommeil')}>
+          Sommeil
+        </button>
+      )}
+      {avecCalories &&
+        (dHier?.calories ? (
+          <button type="button" className="journal-note" onClick={() => setSaisie('calories')}>
+            {TEXTE_CALORIES[dHier.calories]}
+          </button>
+        ) : (
+          <button type="button" className="journal-puce" onClick={() => setSaisie('calories')}>
+            Calories
+          </button>
+        ))}
 
-      {/* Saisie Poids dépliée avec transition fluide */}
-      <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
-        <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
-            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>Poids du jour</span>
-            <div className="ligne" style={{ gap: 6, alignItems: 'center' }}>
-              <span className="mini-stepper compact">
-                <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
-                  −
-                </button>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  enterKeyHint="done"
-                  className="duree"
-                  value={valPoids || (poids ? kg(poids) : '70')}
-                  onFocus={(e) => {
-                    if (!valPoids) setValPoids(poids ? kg(poids) : '70')
-                    e.target.select()
-                  }}
-                  onChange={(e) => setValPoids(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
-                />
-                <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
-                  +
-                </button>
-              </span>
-              <button
-                type="button"
-                className="btn primaire petit"
-                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--rayon-2)' }}
-                onClick={() => void enregistrerPoids()}
-                aria-label="Valider"
-              >
-                <Check size={18} strokeWidth={2.5} />
-              </button>
-              <button
-                type="button"
-                className="btn discret petit"
-                style={{ width: 30, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--rayon-2)' }}
-                onClick={() => setSaisiePoids(false)}
-                aria-label="Fermer"
-              >
-                <X size={15} strokeWidth={2} />
-              </button>
+      {saisie &&
+        createPortal(
+          <div className="modal-fond" onClick={fermer}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              {saisie === 'poids' && (
+                <div className="pile">
+                  <h2>Poids du jour</h2>
+                  <div className="stepper">
+                    <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
+                      −
+                    </button>
+                    <div className="valeur">
+                      <input type="text" inputMode="decimal" enterKeyHint="done" aria-label="Poids en kg" value={valPoids} onFocus={(e) => e.target.select()} onChange={(e) => setValPoids(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()} />
+                      <span className="unite">kg</span>
+                    </div>
+                    <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
+                      +
+                    </button>
+                  </div>
+                  <button type="button" className="btn primaire plein" onClick={() => void enregistrerPoids()}>
+                    Noter ce poids
+                  </button>
+                  <button type="button" className="btn discret plein" onClick={() => setSaisie(null)}>
+                    Annuler
+                  </button>
+                </div>
+              )}
+              {saisie === 'sommeil' && (
+                <div className="pile">
+                  <h2>Sommeil cette nuit</h2>
+                  <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+                    {HEURES.map(([h, txt]) => (
+                      <button key={h} type="button" className={duJour?.sommeil === h ? 'actif' : ''} onClick={() => void noterJournal(aujourdhui, { sommeil: h }).then(() => setSaisie(null))}>
+                        {txt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {saisie === 'calories' && objectif && (
+                <div className="pile">
+                  <div>
+                    <h2>Calories d’hier</h2>
+                    <div className="faible">Objectif : {objectif.kcal.toLocaleString('fr-FR')} kcal</div>
+                  </div>
+                  <div className="rpe" style={{ gridTemplateColumns: `repeat(${CALORIES.length}, 1fr)` }}>
+                    {CALORIES.map(([id, nom]) => (
+                      <button key={id} type="button" className={dHier?.calories === id ? 'actif' : ''} onClick={() => void noterJournal(hier, { calories: dHier?.calories === id ? undefined : id }).then(() => setSaisie(null))}>
+                        {nom}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Saisie Sommeil dépliée avec transition fluide */}
-      <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
-        <div className="accordeon-contenu" style={{ paddingTop: 4 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
-            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>Sommeil cette nuit</span>
-            <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
-              {HEURES.map(([h, txt]) => (
-                <button
-                  key={h}
-                  className={duJour?.sommeil === h ? 'actif' : ''}
-                  onClick={() => void noter(aujourdhui, { sommeil: h }).then(() => setSaisieSommeil(false))}
-                >
-                  {txt}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Inset Box Calories (comme dans la maquette) */}
-      <div
-        style={{
-          marginTop: 6,
-          padding: '14px 16px',
-          borderRadius: 'var(--rayon-2)',
-          background: 'var(--sous-carte)',
-          border: '1px solid var(--voile)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>
-            Hier : <strong style={{ color: 'var(--texte)' }}>Calories</strong>
-          </span>
-          <div style={{ display: 'inline-flex', gap: 6 }}>
-            {CALORIES.map(([id, nom]) => {
-              const actif = dHier?.calories === id
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  style={{
-                    padding: '4px 10px',
-                    fontSize: 'var(--t-legende)',
-                    fontWeight: actif ? 600 : 400,
-                    color: actif ? 'var(--texte)' : 'var(--texte-3)',
-                    background: actif ? 'var(--voile-fort)' : 'var(--surface-2)',
-                    border: '1px solid ' + (actif ? 'var(--voile-bord)' : 'var(--voile)'),
-                    borderRadius: 'var(--rayon)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onClick={() => void noter(hier, { calories: actif ? undefined : id })}
-                >
-                  {nom}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {objectif && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 8, borderTop: '1px solid var(--voile)' }}>
-            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-3)' }}>
-              Cible : <strong style={{ color: 'var(--texte)' }}>{objectif.kcal.toLocaleString('fr-FR')} kcal</strong>
-            </span>
-            <Flame size={16} strokeWidth={1.75} style={{ color: 'var(--accent)' }} />
-          </div>
+          </div>,
+          document.body
         )}
-      </div>
     </div>
   )
 }

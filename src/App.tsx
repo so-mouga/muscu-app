@@ -113,7 +113,7 @@ export default function App() {
               setOnglet('corps')
             }}
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
-            onBilan={() => (setVue('bilan'), setOnglet('historique'))}
+            onJournal={() => (setVue('journal'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
           />
         )}

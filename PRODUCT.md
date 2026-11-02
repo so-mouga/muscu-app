@@ -24,7 +24,7 @@ PWA en ligne (so-mouga.github.io/muscu-app) et appli Android Capacitor qui charg
 
 ## Capabilities and Constraints
 
-Les règles métier et d'interface sont dans `AGENTS.md`, qui reste la référence. Vocabulaire : Programme = modèle ; Cycle = programme lancé à une date ; Phase = objectif corps et assiette, indépendante du cycle. Plein écran de séance sans défilement à 384 × 832 ; « Démarrer » visible sans défiler sur l'accueil ; libellés utilisés par `e2e/parcours.e2e.ts` inchangés. Pas d'activités hors muscu, pas de calcul automatique de calories, pas d'estimation de calories brûlées.
+Les règles métier et d'interface sont dans `AGENTS.md`, qui reste la référence. Vocabulaire : Programme = modèle ; Cycle = programme lancé à une date ; Phase = objectif corps et assiette, indépendante du cycle. Plein écran de séance sans défilement à 384 × 832 ; accueil sur un écran, « Démarrer » toujours au même endroit ; libellés utilisés par `e2e/parcours.e2e.ts` inchangés. Pas d'activités hors muscu, pas de calcul automatique de calories, pas d'estimation de calories brûlées.
 
 ## Brand Commitments
 
@@ -48,7 +48,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ## Refonte : où on en est
 
-État au 2 nov. 2026, dernier commit de fonction `cddf5ea`. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
+État au 2 nov. 2026 : Accueil refait après `cddf5ea`. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
 
 ### Fait et poussé
 
@@ -75,11 +75,15 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 - **Réglages de la machine, en-tête, vocabulaire** : `3a385b7`. Plus de formulaire complet en séance, « Reste 4 exercices », correction depuis la fin de séance, note à la saisie, finisseurs sans défiler, « effort 8/10 » dans toute la séance.
 - **Photo depuis l'appareil** : `cddf5ea`. « Prendre une photo » et « Galerie » dans les réglages de la machine.
 
-**Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement, sauf l'Accueil lui-même.**
+- **Accueil** : refait entièrement le 2 nov. 2026, version choisie par l'utilisateur après comparaison de maquettes (décrite dans `AGENTS.md`). Poids qui ne se perd plus, programme sans jours qui n'est plus une impasse, calories seulement avec un objectif, déload écrit sur la carte, onglets moins coupés.
+
+**Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)
 
 Rien depuis `f591d41` n'a encore été confirmé sur le téléphone, sauf que la photo depuis la galerie fonctionne.
+
+- Accueil : la taille réelle de l'écran, les trois pastilles « À noter » sur une ligne, les onglets « Progression » et « Programme » entiers, la montée des fenêtres de saisie, l'envie ou non de retrouver la frise de la semaine.
 
 - Fenêtres : fluidité de la montée et du flou ; clavier dans « Ajouter un mouvement » et dans les réglages de la machine.
 - Bouton retour réel : liste (replier, puis revenir), réglages depuis la fiche, fenêtre de correction.
@@ -107,20 +111,19 @@ Limites connues du parcours :
 
 ### Reste à faire, dans l'ordre
 
-1. **Accueil.**
-2. **Progression** (Bilan, Journal).
-3. **Corps.**
-4. **Programmes.**
-5. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
-6. **Réglages.**
+1. **Progression** (Bilan, Journal).
+2. **Corps.**
+3. **Programmes** (le sous-titre « maintien » d'une séance se lit mal à côté de la phase « Prise »).
+4. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
+5. **Réglages.**
 
 À traiter en refaisant ces écrans :
 
 - Exercice créé par l'utilisateur et assisté : rien ne permet encore de le marquer (`Exercice.assistance`), à prévoir dans la fiche en refaisant Exercices. Le repère des exercices équivalents (`repere`) ne connaît pas non plus l'assistance.
 - La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
-- Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. La séance n'a plus d'émojis ni de RPE (sauf l'aide de l'effort) ; il en reste dans le Bilan, Programmes, le lexique, l'Accueil (« ⚡ Séance libre ») et ailleurs.
-- Accueil : « Démarrer » et les autres boutons ont beaucoup de `style={{…}}` ; ne pas perdre « Démarrer visible sans défiler ».
+- Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. La séance n'a plus d'émojis ni de RPE (sauf l'aide de l'effort) ; il en reste dans le Bilan, Programmes, le lexique, et ailleurs.
+- Fenêtres de l'Accueil (« Choisir une séance », détail d'une séance faite) : pas encore reprises, encore des `style={{…}}`.
 - Formulaire de l'onglet Exercices : dire « Palier » comme en séance (il dit encore « Pas de charge »).
 - Revoir l'échauffement général de la séance, pas encore repris.
 - Plein écran à 360 px de large : dans la rangée de séries, « S1 » est coupé à gauche, car la rangée se centre sur la série en cours. Déjà présent avant, à reprendre si ça gêne en salle.
@@ -133,7 +136,7 @@ Limites connues du parcours :
 - **« Stoppe si douleur articulaire… »** : masqué sur les finisseurs sous 720 px de haut, pour que tout tienne. À remettre s'il préfère défiler.
 - **« Reste 4 exercices »** et **absence de l'autre exercice en superset** : décidés, à confirmer après un essai en salle.
 - **Décompte de 10 s avant de démarrer** (vu dans son ancienne appli) : déconseillé, rien ne court pendant qu'on s'installe et la durée se compte depuis la 1re série. Rien n'a été ajouté ; sa réponse n'est pas encore donnée. Il pourrait seulement avoir un sens pour les exercices en temps, où le décompte est de 3 s.
-- **Largeur réelle du S25** : `AGENTS.md` prend 384 px comme référence, mais le téléphone peut être à 360 selon son réglage d'affichage. À confirmer sur l'appareil.
+- **Largeur réelle du S25** : ses captures indiquent environ 360 × 731 px, alors que `AGENTS.md` prend 384 × 832 comme référence. À confirmer sur l'appareil.
 - **Halo du cercle de repos** : en ligne, mais aucun avis donné sur ce point précis. Sa fluidité sur le téléphone n'est pas confirmée non plus.
 - **Lueur de réussite** (record, série battue) : proposée, pas décidée.
 - **Lueur très légère en haut de l'écran** : proposée, pas essayée.

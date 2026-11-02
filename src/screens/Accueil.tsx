@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, ChevronRight, ChevronUp, Clock, CloudUpload, Download, Dumbbell, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, Target, X } from 'lucide-react'
+import { Check, CloudUpload, Download, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
@@ -10,14 +10,15 @@ import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
-import { BandeauCycle, BilanCycle } from '../components/Cycle'
+import { BilanCycle } from '../components/Cycle'
+import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
 import { etatCycle, planDeload } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import ChoixProgramme from '../components/ChoixProgramme'
-import { joursSansSeance } from '../lib/motivation'
+import { depuisDebut, joursSansSeance, semainesTenues } from '../lib/motivation'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
@@ -72,7 +73,7 @@ export default function Accueil({
   onMesures,
   onReglages,
   onObjectifs,
-  onBilan,
+  onJournal,
   onProgrammes,
 }: {
   catalogue: Catalogue
@@ -82,17 +83,14 @@ export default function Accueil({
   onReglages: () => void
   /** Ouvre Corps → Objectifs (phase). */
   onObjectifs: () => void
-  /** Ouvre Progression → Bilan. */
-  onBilan: () => void
+  /** Ouvre Progression → Journal. */
+  onJournal: () => void
   /** Ouvre l'onglet Programmes (gestion du cycle). */
   onProgrammes: () => void
 }) {
   const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
   const [seanceFaiteModal, setSeanceFaiteModal] = useState<Seance | null>(null)
-  const [seancePrevueModal, setSeancePrevueModal] = useState<{ jour: number; modele: SeanceModele } | null>(null)
-  const [jourReposModal, setJourReposModal] = useState<number | null>(null)
-  const [semaineDepliee, setSemaineDepliee] = useState<boolean | null>(null)
   const [ouvert, setOuvert] = useState<string | null>(null)
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(() => {
@@ -126,8 +124,6 @@ export default function Accueil({
   }
   useRetour(choix, () => setChoix(false))
   useRetour(!!seanceFaiteModal, () => setSeanceFaiteModal(null))
-  useRetour(!!seancePrevueModal, () => setSeancePrevueModal(null))
-  useRetour(jourReposModal !== null, () => setJourReposModal(null))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
     transition(() => setApercuEtat(m && catalogue.pourDemarrer(m)), m ? 'avant' : 'arriere')
@@ -139,7 +135,7 @@ export default function Accueil({
     [debutSemaine],
     []
   )
-  const estSemaineDepliee = semaineDepliee !== null ? semaineDepliee : semaine.length > 0
+  const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
@@ -166,6 +162,8 @@ export default function Accueil({
   )
   const faite = (e: EntreePlanning) => coches.has(planning.indexOf(e))
   const jour = jourSemaine()
+  // Séance terminée aujourd'hui, prévue ou non (rattrapage un jour de repos).
+  const faiteAuj = [...semaine].filter((s) => s.date === dateISO()).sort((a, b) => b.debut - a.debut)[0]
   const duJour = planning.find((e) => e.jour === jour)
   const prochaine = planning.find((e) => !faite(e) && e.jour >= jour) ?? planning.find((e) => !faite(e)) ?? planning[0]
   const variante = duJour && catalogue.modeles.find((m) => m.varianteDe === duJour.modele.id)
@@ -206,7 +204,6 @@ export default function Accueil({
     }
     return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
   }
-  const duresSemaine = semaine.reduce((a, s) => a + s.series.filter(estDure).length, 0)
 
   // Échauffement activé depuis « Voir » : enregistré sur la séance (comme dans Programmes) et pris en compte tout de suite.
   const changerEchauffement = (v: SeanceModele['echauffement']) => {
@@ -267,7 +264,7 @@ export default function Accueil({
   const texteCycle =
     cycle && etat
       ? etat.fini
-        ? 'Bilan cycle'
+        ? 'Cycle terminé'
         : etat.n <= 0
         ? `Cycle · ${
             cycle.debut === dateISO(new Date(Date.now() + 86400000))
@@ -277,199 +274,157 @@ export default function Accueil({
         : etat.pause
         ? 'Cycle en pause'
         : etat.deload
-        ? `Déload · Semaine ${etat.n}/${etat.total}`
-        : `Cycle · Semaine ${etat.n}/${etat.total}`
+        ? `Déload · sem. ${etat.n}/${etat.total}`
+        : `Cycle · sem. ${etat.n}/${etat.total}`
       : ''
 
-  return (
-    <div style={{ paddingBottom: 95 }}>
-      <div className="entete" style={{ alignItems: 'flex-start', marginBottom: 14 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <h1 style={{ textTransform: 'capitalize', fontSize: 'var(--t-titre)', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
-              {dateAffichee}
-            </h1>
-            <button
-              type="button"
-              className="btn-reglages"
-              onClick={onReglages}
-              aria-label="Réglages"
-              style={{ background: 'none', border: 'none', padding: 4, color: 'var(--texte-3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              <SlidersHorizontal size={20} strokeWidth={1.75} />
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'nowrap', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-            {phase ? (
-              <button
-                type="button"
-                onClick={onObjectifs}
-                aria-label={`Objectif de phase : ${textePhase}`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '5px 12px',
-                  fontSize: 'var(--t-legende)',
-                  fontWeight: 500,
-                  borderRadius: 'var(--rayon)',
-                  background: 'var(--voile)',
-                  border: '1px solid var(--voile-fort)',
-                  color: 'var(--texte)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ok)', flexShrink: 0 }} />
-                <span>{textePhase}</span>
-              </button>
-            ) : (
-              !premiereFois &&
-              !periodes(catalogue.objectifs).length && (
-                <button
-                  type="button"
-                  className="faible"
-                  onClick={onObjectifs}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '5px 12px',
-                    fontSize: 'var(--t-legende)',
-                    borderRadius: 'var(--rayon)',
-                    background: 'var(--surface-2)',
-                    border: '1px solid var(--bord)',
-                    color: 'var(--texte-3)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  + Phase
-                </button>
-              )
-            )}
-            {cycle && etat && (
-              <button
-                type="button"
-                onClick={etat.fini ? () => setBilan(true) : onProgrammes}
-                aria-label={`Cycle d'entraînement : ${texteCycle}`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '5px 12px',
-                  fontSize: 'var(--t-legende)',
-                  fontWeight: 500,
-                  borderRadius: 'var(--rayon)',
-                  background: 'var(--voile)',
-                  border: '1px solid var(--voile-fort)',
-                  color: 'var(--texte)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <RefreshCw size={13} strokeWidth={1.75} style={{ flexShrink: 0 }} />
-                <span>{texteCycle}</span>
-              </button>
-            )}
-          </div>
-        </div>
+  // Au plus deux rappels à la fois, par ordre d'importance : « Démarrer » doit rester à l'écran.
+  const rappels = [
+    majAndroid && !masque('android') && (
+      <div key="android" className="rappel-ligne">
+        {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
+        <a className="texte" href={majAndroid.url}>
+          <Download size={16} strokeWidth={2} className="rappel-ico info" />
+          <span className="rappel-texte">
+            Nouvelle version ({majAndroid.version}) : installer
+            <span className="faible"> · données gardées</span>
+          </span>
+        </a>
+        <button type="button" className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('android')}>
+          <X size={15} strokeWidth={2} />
+        </button>
       </div>
+    ),
+    !premiereFois && etat?.fini && (
+      <div key="cycle" className="rappel-ligne">
+        <button type="button" className="texte" onClick={() => setBilan(true)}>
+          <RefreshCw size={16} strokeWidth={2} className="rappel-ico ok" />
+          <span className="rappel-texte">Cycle terminé : voir le bilan</span>
+        </button>
+      </div>
+    ),
+    deloadPlusTot && !masque('deload') && (
+      <div key="deload" className="rappel-ligne">
+        <button type="button" className="texte" onClick={onProgrammes}>
+          <Info size={16} strokeWidth={2} className="rappel-ico info" />
+          <span className="rappel-texte">
+            Force en baisse sur {deloadPlusTot.baisses.length} exercices : déload conseillé ?
+            <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span>
+          </span>
+        </button>
+        <button type="button" className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('deload')}>
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
+    ),
+    exportVieux && !masque('export') && (
+      <div key="export" className="rappel-ligne">
+        <button type="button" className="texte" onClick={sauvegarderTout}>
+          <CloudUpload size={16} strokeWidth={2} className="rappel-ico info" />
+          <span className="rappel-texte">
+            Sauvegarder (Drive, mail…)
+            <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span>
+          </span>
+        </button>
+        <button type="button" className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
+    ),
+    mesuresEnRetard && !masque('mesures') && (
+      <div key="mesures" className="rappel-ligne">
+        <button type="button" className="texte" onClick={onMesures}>
+          <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
+          <span className="rappel-texte">
+            {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
+            {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>}
+          </span>
+        </button>
+        <button type="button" className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('mesures')}>
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
+    ),
+  ]
+    .filter(Boolean)
+    .slice(0, 2)
+
+  const nbFaites = planning.filter(faite).length
+  // Semaines tenues (les trois quarts des séances prévues) : affichées à partir de 2, déloads et pauses ne cassent rien.
+  const tenues = terminees ? semainesTenues(terminees, planning.length, cycles, dateISO()) : 0
+  // Un seul vrai progrès, depuis le début du cycle en cours, sinon de la phase, sinon en 4 semaines.
+  const blocEnCours = cycle && etat && etat.n >= 1 && !etat.fini ? cycle.debut : phase && !phase.aVenir ? phase.debut : undefined
+  const progres = terminees ? depuisDebut(terminees, catalogue.exo, blocEnCours ?? dateISO(new Date(Date.now() - 28 * 86400000)), 1)[0] : undefined
+  const gainBloc = (() => {
+    if (!progres) return ''
+    const dc = Math.round((progres.apres.charge - progres.avant.charge) * 100) / 100
+    const dr = progres.apres.reps - progres.avant.reps
+    if (progres.exo.assistance && dc < 0) return `−${kg(-dc)} kg d’assistance`
+    if (dc > 0) return `+${kg(dc)} kg`
+    if (dr <= 0) return ''
+    return progres.exo.mesure === 'temps' ? `+${dr} s` : `+${dr} rep${dr > 1 ? 's' : ''}`
+  })()
+
+  const lignesDe = (m: SeanceModele, avecGains: boolean): LigneExo[] => {
+    const gains = avecGains ? new Map(aBattreDe(m).map((x) => [x.exo.id, x.plus])) : undefined
+    return m.exercices.map((p, i) => ({ id: `${p.exoId}-${i}`, nom: catalogue.exo(p.exoId).nom, gain: gains?.get(p.exoId) }))
+  }
+  // Retour après un trou : pas de reproche, on reprend où on en était.
+  const joursSans = terminees ? joursSansSeance(terminees, dateISO()) : null
+  const etiquetteProchaine = (e: EntreePlanning) => (e.jour === (jour % 7) + 1 ? 'Demain' : `Prochaine (${JOURS[e.jour!]})`)
+
+  /** La séance qui vient, quand il n'y a rien à lancer aujourd'hui : on la regarde, sans orange. */
+  const blocProchaine = (e: EntreePlanning) => (
+    <>
+      <div className="seance-jour-suite">
+        <span>
+          {etiquetteProchaine(e)} : {e.modele.nom}
+        </span>
+        <span className="seance-jour-duree">{dureeTexte(e.modele, terminees, true)}</span>
+      </div>
+      <ListeExosJour lignes={lignesDe(e.modele, false)} faible />
+      <div className="seance-jour-actions">
+        <button type="button" className="btn" onClick={() => voir(e.modele)}>
+          Voir la séance
+        </button>
+      </div>
+    </>
+  )
+
+  return (
+    <div className={premiereFois ? 'accueil premiere' : 'accueil'}>
+      <div className="entete accueil-entete">
+        <h1>{dateAffichee}</h1>
+        <button type="button" className="btn-reglages" onClick={onReglages} aria-label="Réglages">
+          <SlidersHorizontal size={20} strokeWidth={1.75} />
+        </button>
+      </div>
+
+      {!premiereFois && (
+        <div className="accueil-reperes">
+          {phase ? (
+            <button type="button" onClick={onObjectifs} aria-label={`Objectif de phase : ${textePhase}`}>
+              <span className="repere-point" />
+              {textePhase}
+            </button>
+          ) : (
+            !periodes(catalogue.objectifs).length && (
+              <button type="button" onClick={onObjectifs}>
+                + Phase
+              </button>
+            )
+          )}
+          {cycle && etat && (
+            <button type="button" onClick={onProgrammes} aria-label={`Cycle d'entraînement : ${texteCycle}`}>
+              {texteCycle}
+            </button>
+          )}
+        </div>
+      )}
 
       {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
 
-      {/* En haut, sur une ligne : nouvelle version de l'appli Android, sauvegarde à faire (rares, et ce qu'on perdrait). */}
-      {majAndroid && !masque('android') && (
-        <div
-          className="rappel-ligne"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            whiteSpace: 'nowrap',
-            padding: '10px 14px',
-            border: '1px solid var(--info-bord)',
-            background: 'var(--info-voile)',
-          }}
-        >
-          {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
-          <a
-            className="texte"
-            href={majAndroid.url}
-            style={{
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Download size={16} strokeWidth={2} style={{ color: 'var(--info)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Nouvelle version ({majAndroid.version}) : installer
-              <span className="faible"> · données gardées</span>
-            </span>
-          </a>
-          <button
-            type="button"
-            className="fermer-rappel"
-            aria-label="Masquer ce rappel une semaine"
-            onClick={() => masquer('android')}
-          >
-            <X size={15} strokeWidth={2} />
-          </button>
-        </div>
-      )}
-      {exportVieux && !masque('export') && (
-        <div
-          className="rappel-ligne"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            whiteSpace: 'nowrap',
-            padding: '10px 14px',
-            border: '1px solid var(--accent-bord)',
-            background: 'var(--accent-voile)',
-          }}
-        >
-          <button
-            type="button"
-            className="texte"
-            onClick={sauvegarderTout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              background: 'none',
-              border: 'none',
-              color: 'inherit',
-              padding: 0,
-              cursor: 'pointer',
-              textAlign: 'left',
-              flex: 1,
-              minWidth: 0,
-            }}
-          >
-            <CloudUpload size={16} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Sauvegarder (Drive, mail…)
-              <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            className="fermer-rappel"
-            aria-label="Masquer ce rappel une semaine"
-            onClick={() => masquer('export')}
-          >
-            <X size={15} strokeWidth={2} />
-          </button>
-        </div>
-      )}
+      {rappels}
 
       {premiereFois && (
         <ChoixProgramme
@@ -479,617 +434,109 @@ export default function Accueil({
         />
       )}
 
-      {/* Si le cycle est terminé, le bilan est mis en avant juste au-dessus de la séance */}
-      {!premiereFois && cycle && etat?.fini && (
-        <div style={{ marginBottom: 12 }}>
-          <BandeauCycle cycle={cycle} etat={etat} onBilan={() => setBilan(true)} onProgrammes={onProgrammes} />
-        </div>
-      )}
-
-      {/* La séance d'abord : c'est l'action principale de l'écran. */}
       {!premiereFois && (
-      <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon-2)' }}>
-        {proposee && duJour && proposee === duJour && !faite(duJour) ? (
-          <>
-            <div>
-              <div className="faible" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Dumbbell size={16} strokeWidth={1.75} />
-                <span>Séance du jour</span>
-              </div>
-              <h2 style={{ margin: '4px 0 0' }}>{proposee.modele.nom}</h2>
-              {proposee.modele.sousTitre && (
-                <div className="faible" style={{ fontSize: 'var(--t-texte)', margin: '2px 0 6px' }}>
-                  {proposee.modele.sousTitre}
-                </div>
-              )}
-              {(() => {
-                // Retour après un trou : pas de reproche, on reprend où on en était.
-                const n = terminees ? joursSansSeance(terminees, dateISO()) : null
-                return n !== null && n >= 10 ? (
-                  <div className="faible" style={{ margin: '4px 0 6px' }}>
-                    Première séance depuis {n} jours : mêmes charges que la dernière fois, baisse un peu si c’est trop dur.
-                  </div>
-                ) : null
-              })()}
-              {!etat?.deload &&
-                (() => {
-                  const l = aBattreDe(proposee.modele)
-                  if (!l.length) return null
-                  return (
-                    <div
-                      style={{
-                        background: 'var(--surface-2)',
-                        borderRadius: 'var(--rayon-2)',
-                        padding: '8px 12px',
-                        margin: '10px 0',
-                        border: '1px solid var(--voile)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 'var(--t-legende)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--accent)' }}>
-                          À battre aujourd’hui
-                        </span>
-                        {l.length > 3 && (
-                          <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>
-                            +{l.length - 3} autre{l.length > 4 ? 's' : ''}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {l.slice(0, 3).map((x) => (
-                          <div
-                            key={x.exo.id}
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              gap: 8,
-                              fontSize: 'var(--t-petit)',
-                            }}
-                          >
-                            <span style={{ color: 'var(--texte)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {x.exo.nom}
-                            </span>
-                            <span style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                              <strong style={{ color: 'var(--texte)' }}>{x.cible}</strong>{' '}
-                              <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: 'var(--t-petit)' }}>({x.plus})</span>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })()}
-            </div>
-            <div className="ligne" style={{ gap: 10, marginTop: 12 }}>
-              <button
-                type="button"
-                className="btn primaire"
-                style={{
-                  flex: 2,
-                  height: 44,
-                  minHeight: 44,
-                  borderRadius: 'var(--rayon-2)',
-                  fontSize: 'var(--t-texte)',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                }}
-                onClick={() => lancer(proposee.modele)}
-              >
-                Démarrer
-              </button>
-              <button
-                type="button"
-                className="btn"
-                style={{
-                  flex: 1,
-                  height: 44,
-                  minHeight: 44,
-                  borderRadius: 'var(--rayon-2)',
-                  fontSize: 'var(--t-texte)',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                }}
-                onClick={() => voir(proposee.modele)}
-              >
-                Voir
-              </button>
-            </div>
-          </>
-        ) : duJour && faite(duJour) ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--ok-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={14} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
-              </div>
-              <span style={{ fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
-                {duJour.modele.nom} faite aujourd’hui
+        <>
+          <JournalMatin catalogue={catalogue} />
+
+          <button type="button" className="accueil-semaine" onClick={onJournal} aria-label="Cette semaine : ouvrir le Journal">
+            <strong>Cette semaine</strong>
+            {planning.length > 0 && (
+              <span className="semaine-points" aria-hidden="true">
+                {planning.map((_, i) => (
+                  <i key={i} className={i < nbFaites ? 'fait' : ''} />
+                ))}
               </span>
-            </div>
-            {prochaine && prochaine !== duJour && (
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label="Voir la séance"
-                onClick={() => voir(prochaine.modele)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 16px',
-                  borderRadius: 'var(--rayon-2)',
-                  background: 'var(--surface-2)',
-                  border: '1px solid var(--voile)',
-                  cursor: 'pointer',
-                  marginTop: 8,
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
-                    Prochaine ({JOURS[prochaine.jour!]}) : {prochaine.modele.nom}
-                  </div>
-                  {prochaine.modele.sousTitre && (
-                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
-                      {prochaine.modele.sousTitre}
-                    </div>
-                  )}
-                </div>
-                <ChevronRight size={18} strokeWidth={1.75} className="muted" />
-              </div>
             )}
-          </>
-        ) : (
-          /* Jour de repos (comme dans la maquette) */
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--info-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Moon size={16} strokeWidth={2.2} style={{ color: 'var(--info)' }} />
-              </div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--texte)' }}>
-                Repos aujourd’hui
-              </h2>
-            </div>
-            {proposee && (
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label="Voir la séance"
-                onClick={() => voir(proposee.modele)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '14px 16px',
-                  borderRadius: 'var(--rayon-2)',
-                  background: 'var(--sous-carte)',
-                  border: '1px solid var(--voile)',
-                  cursor: 'pointer',
-                  marginTop: 4,
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
-                    {proposee.jour === (jour % 7) + 1 ? 'Demain' : `Prochaine (${JOURS[proposee.jour!]})`} : {proposee.modele.nom}
-                  </div>
-                  {proposee.modele.sousTitre && (
-                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
-                      {proposee.modele.sousTitre}
-                    </div>
-                  )}
-                </div>
-                <ChevronRight size={18} strokeWidth={1.75} className="muted" />
-              </div>
-            )}
-          </>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
-          {proposee && (
-            <button
-              type="button"
-              className="btn texte"
-              onClick={() => setChoix(true)}
-              style={{
-                color: 'var(--accent)',
-                fontSize: 13,
-                fontWeight: 500,
-                padding: '6px 0',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Choisir une séance à faire aujourd’hui ›
-            </button>
-          )}
-          {variante && proposee === duJour && (
-            <button
-              type="button"
-              className="btn texte"
-              onClick={() => voir(variante)}
-              style={{
-                color: 'var(--texte-3)',
-                fontSize: 13,
-                fontWeight: 500,
-                padding: '6px 0',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              Pas de salle ›
-            </button>
-          )}
-        </div>
-      </div>
-      )}
-
-      {/* Rappels contextuels sous la séance : déload avancé ou mensurations > 21j */}
-      {deloadPlusTot && !masque('deload') && (
-        <div
-          className="rappel-ligne"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--bord)',
-            marginBottom: 10,
-            gap: 8,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <button
-            type="button"
-            className="texte"
-            onClick={onProgrammes}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'none',
-              border: 'none',
-              color: 'inherit',
-              padding: 0,
-              cursor: 'pointer',
-              flex: 1,
-              minWidth: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              fontSize: 'var(--t-petit)',
-            }}
-          >
-            <Info size={15} strokeWidth={2} style={{ color: 'var(--info)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              Force en baisse sur {deloadPlusTot.baisses.length} exercices : déload conseillé ?
-              <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span>
+            <span className="semaine-texte">
+              {tenues >= 2 ? `${tenues}e semaine tenue` : planning.length ? `${nbFaites} sur ${planning.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`} ›
             </span>
           </button>
-          <button
-            type="button"
-            className="fermer-rappel"
-            aria-label="Masquer ce rappel une semaine"
-            onClick={() => masquer('deload')}
-            style={{
-              width: 24,
-              height: 24,
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'none',
-              border: 'none',
-              color: 'var(--texte-3)',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            <X size={14} strokeWidth={2} />
-          </button>
-        </div>
-      )}
-      {mesuresEnRetard && !masque('mesures') && (
-        <div
-          className="rappel-ligne"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--bord)',
-            marginBottom: 10,
-            gap: 8,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <button
-            type="button"
-            className="texte"
-            onClick={onMesures}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'none',
-              border: 'none',
-              color: 'inherit',
-              padding: 0,
-              cursor: 'pointer',
-              flex: 1,
-              minWidth: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              fontSize: 'var(--t-petit)',
-            }}
-          >
-            <Ruler size={15} strokeWidth={2} style={{ color: 'var(--info)', flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
-              {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>}
-            </span>
-          </button>
-          <button
-            type="button"
-            className="fermer-rappel"
-            aria-label="Masquer ce rappel une semaine"
-            onClick={() => masquer('mesures')}
-            style={{
-              width: 24,
-              height: 24,
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'none',
-              border: 'none',
-              color: 'var(--texte-3)',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
-            <X size={14} strokeWidth={2} />
-          </button>
-        </div>
-      )}
-
-      {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
-      {!premiereFois && <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} />}
-
-      {!premiereFois && (
-      <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon-2)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <h3 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700 }}>Cette semaine</h3>
-          <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-            {planning.length ? `${planning.filter(faite).length}/${planning.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`}
-          </span>
-        </div>
-
-        {/* Frise 7 jours alignés */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, textAlign: 'center' }}>
-          {[
-            { id: 1, nomCourt: 'lun', lettre: 'L' },
-            { id: 2, nomCourt: 'mar', lettre: 'M' },
-            { id: 3, nomCourt: 'mer', lettre: 'M' },
-            { id: 4, nomCourt: 'jeu', lettre: 'J' },
-            { id: 5, nomCourt: 'ven', lettre: 'V' },
-            { id: 6, nomCourt: 'sam', lettre: 'S' },
-            { id: 7, nomCourt: 'dim', lettre: 'D' },
-          ].map((d) => {
-            const ent = planning.find((e) => e.jour === d.id)
-            const seanceDuJour = semaine.find((s) => jourSemaine(new Date(s.debut)) === d.id)
-            // Séance ayant validé ce créneau de planning même si faite un autre jour :
-            const seanceSlot = ent && semaine.find((s) => s.modeleId === ent.modele.id || catalogue.modele(s.modeleId)?.varianteDe === ent.modele.id)
-            const seanceValidee = seanceDuJour ?? (ent && faite(ent) ? seanceSlot : undefined)
-            const estFait = !!seanceValidee
-            const estAujourdhui = d.id === jour
-            return (
-              <button
-                key={d.id}
-                type="button"
-                aria-label={
-                  seanceValidee
-                    ? `${d.nomCourt} : ${seanceValidee.nom} validée`
-                    : ent
-                    ? `${d.nomCourt} : ${ent.modele.nom} prévue`
-                    : `${d.nomCourt} : repos`
-                }
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 6,
-                  cursor: 'pointer',
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  color: 'inherit',
-                  font: 'inherit',
-                  outline: 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-                onClick={() => {
-                  if (seanceValidee) {
-                    setSeanceFaiteModal(seanceValidee)
-                  } else if (ent) {
-                    setSeancePrevueModal({ jour: d.id, modele: ent.modele })
-                  } else {
-                    setJourReposModal(d.id)
-                  }
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 'var(--t-legende)',
-                    color: estAujourdhui ? 'var(--texte)' : 'var(--texte-3)',
-                    fontWeight: estAujourdhui ? 700 : 400,
-                  }}
-                >
-                  {d.nomCourt}
-                </span>
-
-                <div
-                  className="frise-jour-rond interactif"
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 'var(--t-petit)',
-                    fontWeight: 600,
-                    background: estFait
-                      ? 'var(--ok-voile)'
-                      : ent
-                      ? estAujourdhui
-                        ? 'var(--accent-voile)'
-                        : 'var(--voile)'
-                      : 'var(--surface-2)',
-                    border: estFait
-                      ? '1.5px solid var(--ok)'
-                      : ent
-                      ? estAujourdhui
-                        ? '2px solid var(--accent)'
-                        : '1.5px solid var(--voile-bord)'
-                      : '1px solid var(--bord)',
-                    boxShadow: estFait
-                      ? '0 0 10px var(--ok-bord)'
-                      : ent
-                      ? estAujourdhui
-                        ? '0 0 12px var(--accent-bord)'
-                        : '0 0 8px var(--voile-fort)'
-                      : 'none',
-                    color: estFait ? 'var(--ok)' : ent ? 'var(--texte)' : 'var(--texte-3)',
-                  }}
-                >
-                  {d.lettre}
-                </div>
-
-                <div style={{ height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {estFait ? (
-                    <Check size={14} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
-                  ) : ent ? (
-                    <span
-                      style={{
-                        width: 4,
-                        height: 4,
-                        borderRadius: '50%',
-                        background: estAujourdhui ? 'var(--accent)' : 'var(--voile-bord)',
-                        boxShadow: estAujourdhui ? '0 0 4px var(--accent)' : 'none',
-                      }}
-                    />
-                  ) : (
-                    <span style={{ color: 'var(--voile-fort)', fontSize: 'var(--t-legende)' }}>—</span>
-                  )}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Ligne bilan en bas avec accordéon des séances de la semaine */}
-        {semaine.length > 0 && (
-          <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid var(--voile)' }}>
-            <button
-              type="button"
-              onClick={() => setSemaineDepliee(!estSemaineDepliee)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'none',
-                border: 'none',
-                padding: '4px 0',
-                cursor: 'pointer',
-                textAlign: 'left',
-              }}
-            >
-              <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-                Séances de la semaine <strong style={{ color: 'var(--texte)' }}>({semaine.length}{planning.length ? `/${planning.length}` : ''})</strong>
-                {duresSemaine > 0 ? ` · ${duresSemaine} séries` : ''}
+          {progres && gainBloc && (
+            <div className="accueil-progres">
+              <span className="accueil-progres-nom">{progres.exo.nom}</span>
+              <span className="accueil-progres-gain">
+                &nbsp;: {gainBloc} {blocEnCours ? 'sur ce bloc' : 'en 4 semaines'}
               </span>
-              <span style={{ color: 'var(--texte-3)', display: 'flex', alignItems: 'center' }}>
-                {estSemaineDepliee ? <ChevronUp size={18} strokeWidth={1.75} /> : <ChevronDown size={18} strokeWidth={1.75} />}
-              </span>
-            </button>
+            </div>
+          )}
 
-            <div className={`accordeon-tiroir ${estSemaineDepliee ? 'ouvert' : ''}`}>
-              <div className="accordeon-contenu">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, paddingTop: 4 }}>
-                  {[...semaine]
-                    .sort((a, b) => b.debut - a.debut)
-                    .map((s) => {
-                      const dures = s.series.filter(estDure).length
-                      const t = duree(dureeSeanceEffective(s))
-                      const d = new Date(s.debut)
-                      const jourNom = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
-                      return (
-                        <div
-                          key={s.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => setSeanceFaiteModal(s)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '10px 12px',
-                            borderRadius: 'var(--rayon-2)',
-                            background: 'var(--surface-2)',
-                            border: '1px solid var(--voile)',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>
-                              {s.nom}
-                            </div>
-                            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
-                              <span style={{ textTransform: 'capitalize' }}>{jourNom}</span> · {t}{dures > 0 ? ` · ${dures} séries dures` : ''}
-                            </div>
-                          </div>
-                          <ChevronRight size={16} strokeWidth={1.75} className="muted" />
-                        </div>
-                      )
-                    })}
-
-                  <button
-                    type="button"
-                    className="btn texte"
-                    onClick={onBilan}
-                    style={{
-                      color: 'var(--accent)',
-                      fontSize: 'var(--t-petit)',
-                      fontWeight: 500,
-                      marginTop: 4,
-                      padding: '6px 0',
-                      textAlign: 'center',
-                      width: '100%',
-                    }}
-                  >
-                    Voir les statistiques complètes ›
+          {/* La séance d'abord : elle prend la place qui reste, « Démarrer » reste au même endroit. */}
+          <div className="seance-jour">
+            {proposee && duJour && proposee === duJour && !faite(duJour) ? (
+              <>
+                <div className="seance-jour-haut">
+                  <span className={etat?.deload ? 'seance-jour-etiquette deload' : 'seance-jour-etiquette'}>{etat?.deload ? 'Déload · charges allégées' : 'Séance du jour'}</span>
+                  <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>
+                    Autre séance ›
                   </button>
                 </div>
-              </div>
-            </div>
+                <div className="seance-jour-titre">
+                  <h2>{proposee.modele.nom}</h2>
+                  <span className="seance-jour-duree">{dureeTexte(proposee.modele, terminees, true)}</span>
+                </div>
+                {variante && (
+                  <button type="button" className="seance-jour-lien pas-de-salle" onClick={() => voir(variante)}>
+                    Pas de salle ›
+                  </button>
+                )}
+                {joursSans !== null && joursSans >= 10 && <div className="faible seance-jour-retour">Première séance depuis {joursSans} jours : mêmes charges que la dernière fois, baisse un peu si c’est trop dur.</div>}
+                <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload)} />
+                <div className="seance-jour-actions">
+                  <button type="button" className="btn primaire" onClick={() => lancer(proposee.modele)}>
+                    Démarrer
+                  </button>
+                  <button type="button" className="btn" onClick={() => voir(proposee.modele)}>
+                    Voir
+                  </button>
+                </div>
+              </>
+            ) : (duJour && faite(duJour)) || faiteAuj ? (
+              <>
+                <div className="seance-jour-haut">
+                  <span className="seance-jour-etat">
+                    <Check size={20} strokeWidth={2.5} className="rappel-ico ok" />
+                    {faiteAuj?.nom ?? duJour?.modele.nom} faite
+                  </span>
+                  <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>
+                    Autre séance ›
+                  </button>
+                </div>
+                {faiteAuj && (
+                  <button type="button" className="seance-jour-stats" onClick={() => setSeanceFaiteModal(faiteAuj)}>
+                    {duree(dureeSeanceEffective(faiteAuj))} · {faiteAuj.series.filter(estDure).length} séries dures ›
+                  </button>
+                )}
+                {prochaine && prochaine !== duJour && blocProchaine(prochaine)}
+              </>
+            ) : proposee ? (
+              <>
+                <div className="seance-jour-haut">
+                  <span className="seance-jour-etat">
+                    <Moon size={20} strokeWidth={2} className="rappel-ico info" />
+                    Repos
+                  </span>
+                  <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>
+                    Faire une séance ›
+                  </button>
+                </div>
+                {blocProchaine(proposee)}
+              </>
+            ) : (
+              /* Programme sans jours : rien de prévu, mais on peut toujours lancer une séance. */
+              <>
+                <div className="seance-jour-etat">Aucune séance prévue</div>
+                <div className="faible seance-jour-retour">Ton programme n’a pas de jours fixés : choisis ce que tu fais aujourd’hui.</div>
+                <div className="seance-jour-espace" />
+                <div className="seance-jour-actions">
+                  <button type="button" className="btn primaire" onClick={() => setChoix(true)}>
+                    Choisir une séance
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        )}
-      </div>
+        </>
       )}
-
 
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
@@ -1258,7 +705,9 @@ export default function Accueil({
                 onClick={() => lancer()}
               >
                 <div style={{ textAlign: 'left' }}>
-                  <strong style={{ fontSize: 'var(--t-texte)' }}>⚡ Séance libre</strong>
+                  <strong className="seance-libre" style={{ fontSize: 'var(--t-texte)' }}>
+                    <Zap size={16} strokeWidth={2} /> Séance libre
+                  </strong>
                   <div className="faible" style={{ marginTop: 2, fontSize: 'var(--t-legende)' }}>
                     Exercices ajoutés au fur et à mesure sans modèle
                   </div>
@@ -1423,226 +872,6 @@ export default function Accueil({
         )
       })()}
 
-      {seancePrevueModal && (() => {
-        const { jour: jourId, modele } = seancePrevueModal
-        const estAuj = jourId === jour
-        const jourNom = estAuj ? "Aujourd'hui" : ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][jourId]
-        const sousTitre = `${jourNom}${modele.sousTitre ? ` · ${modele.sousTitre}` : ''}`
-        const dureeEstimee = dureeTexte(modele, terminees)
-
-        return (
-          <div className="modal-fond" onClick={() => setSeancePrevueModal(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="ligne entre" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--accent-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Dumbbell size={18} strokeWidth={2} style={{ color: 'var(--accent)' }} />
-                  </div>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 800 }}>{modele.nom}</h2>
-                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
-                      {sousTitre}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="icone"
-                  onClick={() => setSeancePrevueModal(null)}
-                  aria-label="Fermer"
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}
-                >
-                  <X size={18} strokeWidth={2} />
-                </button>
-              </div>
-
-              {/* Badges d'estimation */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte)' }}>
-                  <Clock size={13} strokeWidth={2} style={{ color: 'var(--accent)' }} /> ~{dureeEstimee}
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
-                  <Target size={13} strokeWidth={2} style={{ color: 'var(--info)' }} /> {modele.exercices.length} exercices au programme
-                </span>
-              </div>
-
-              {/* Exercices prévus */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: '44dvh', overflowY: 'auto', marginBottom: 18 }}>
-                {modele.exercices.map((p, idx) => {
-                  const exo = catalogue.exo(p.exoId)
-                  const rMin = p.series[0]?.repsMin ?? 8
-                  const rMax = p.series[0]?.repsMax ?? 10
-                  return (
-                    <div
-                      key={p.exoId + idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 12px',
-                        borderRadius: 'var(--rayon-2)',
-                        background: 'var(--surface-2)',
-                        border: '1px solid var(--voile)',
-                      }}
-                    >
-                      <div style={{ minWidth: 0, flex: 1, paddingRight: 8 }}>
-                        <div style={{ fontWeight: 600, fontSize: 'var(--t-petit)', color: 'var(--texte)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {exo.nom}
-                        </div>
-                        {exo.muscle && (
-                          <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
-                            {exo.muscle}
-                          </div>
-                        )}
-                      </div>
-                      <span className="faible" style={{ fontSize: 'var(--t-petit)', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                        {p.series.length} séries · {rMin === rMax ? rMin : `${rMin}–${rMax}`} reps
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div className="faible" style={{ fontSize: 'var(--t-legende)', textAlign: 'center', marginBottom: -2 }}>
-                  Lancer ce modèle pour aujourd’hui
-                </div>
-                <button
-                  type="button"
-                  className="btn primaire"
-                  onClick={() => {
-                    setSeancePrevueModal(null)
-                    void lancer(modele)
-                  }}
-                  style={{
-                    height: 44,
-                    minHeight: 44,
-                    borderRadius: 'var(--rayon-2)',
-                    fontSize: 'var(--t-texte)',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  Faire cette séance
-                </button>
-                <button
-                  type="button"
-                  className="btn discret"
-                  onClick={() => {
-                    setSeancePrevueModal(null)
-                    voir(modele)
-                  }}
-                  style={{
-                    height: 40,
-                    borderRadius: 'var(--rayon-2)',
-                    fontSize: 'var(--t-petit)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  Consulter la fiche complète ›
-                </button>
-                <button
-                  type="button"
-                  className="btn discret plein"
-                  onClick={() => setSeancePrevueModal(null)}
-                  style={{ height: 38, borderRadius: 'var(--rayon-2)' }}
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
-
-      {jourReposModal !== null && (() => {
-        const jourId = jourReposModal
-        const estAuj = jourId === jour
-        const jourNom = estAuj ? "Aujourd'hui" : ['', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][jourId]
-
-        return (
-          <div className="modal-fond dialogue" onClick={() => setJourReposModal(null)}>
-            <div
-              className="modal pile"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                maxWidth: 380,
-                padding: '22px 18px',
-                borderRadius: 'var(--rayon)',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 14,
-              }}
-            >
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  background: 'var(--info-voile)',
-                  border: '1px solid var(--info-bord)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--info)',
-                }}
-              >
-                <Moon size={24} strokeWidth={2} />
-              </div>
-
-              <div>
-                <h3 style={{ margin: '0 0 6px', fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
-                  {jourNom} · Repos
-                </h3>
-                <p style={{ margin: 0, fontSize: 'var(--t-petit)', color: 'var(--texte-2)', lineHeight: 1.45 }}>
-                  C’est un jour de repos. Profite de cette journée pour récupérer et reconstruire tes fibres musculaires !
-                </p>
-              </div>
-
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-                <button
-                  type="button"
-                  className="btn primaire"
-                  onClick={() => {
-                    setJourReposModal(null)
-                    setChoix(true)
-                  }}
-                  style={{
-                    height: 44,
-                    minHeight: 44,
-                    borderRadius: 'var(--rayon-2)',
-                    fontSize: 'var(--t-petit)',
-                    fontWeight: 600,
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span>+ Choisir une séance</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="btn discret"
-                  onClick={() => setJourReposModal(null)}
-                  style={{ height: 38, minHeight: 38, borderRadius: 'var(--rayon-2)', fontSize: 'var(--t-petit)', width: '100%' }}
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
     </div>
   )
 }

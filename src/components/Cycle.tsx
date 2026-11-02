@@ -5,7 +5,7 @@ import { nomCle } from '../data/mesures'
 import { db, setReglage, uid } from '../db'
 import { chargeQte, dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle, volumePrevu } from '../lib/calc'
 import { depuisDebut } from '../lib/motivation'
-import { BONUS_PRIORITE, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle, nouveauCycle, type EtatCycle } from '../lib/cycle'
+import { BONUS_PRIORITE, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle, nouveauCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
@@ -23,49 +23,6 @@ const debutSemaine = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
 export { Aide } from './Aide'
 
-/** Accueil : où en est le cycle (semaine, déload, pause, fin). */
-export function BandeauCycle({ cycle, etat, onBilan, onProgrammes }: { cycle: Cycle; etat: EtatCycle; onBilan: () => void; onProgrammes: () => void }) {
-  if (etat.fini)
-    return (
-      <div className="pile cycle-fini">
-        <div>
-          <strong>🎉 Cycle « {nomCycle(cycle)} » terminé</strong>
-          <div className="faible">{cycle.semaines} semaines. Regarde ce que ça a donné, puis lance le suivant.</div>
-        </div>
-        <div className="ligne">
-          <button className="btn primaire" style={{ flex: 1 }} onClick={onBilan}>
-            Voir le bilan
-          </button>
-          <button className="btn" style={{ flex: 1 }} onClick={onProgrammes}>
-            Nouveau cycle
-          </button>
-        </div>
-      </div>
-    )
-  return (
-    <button className={'liste-btn bandeau-cycle' + (etat.deload ? ' deload' : '')} onClick={onProgrammes}>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span className="ligne entre">
-          <strong>🔁 {nomCycle(cycle)}</strong>
-          <span className="faible">
-            {etat.n <= 0 ? `début le ${debutSemaine(cycle.debut)}` : etat.pause ? 'semaine en pause' : `semaine ${etat.n}/${etat.total}`}
-          </span>
-        </span>
-        {etat.n >= 1 && (
-          <span className="semaines-cycle">
-            {Array.from({ length: etat.total }, (_, i) => (
-              <span key={i} className={(i + 1 < etat.n ? 'faite' : i + 1 === etat.n && !etat.pause ? 'courante' : '') + (cycle.deloads.includes(i + 1) ? ' deload' : '')} />
-            ))}
-          </span>
-        )}
-        {etat.deload && <span className="faible">🧘 Semaine de déload : séances allégées automatiquement (séries ÷ 2, −10 %, RPE 6-7).</span>}
-        {etat.pause && <span className="faible">⏸ Le cycle reprend la semaine prochaine.</span>}
-      </span>
-    </button>
-  )
-}
-
-/** Lancer un cycle, ou modifier celui en cours (durée, déloads). Le volume par muscle se lit dans le programme. */
 export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalogue: Catalogue; programme?: Programme; cycle?: Cycle; onFermer: () => void }) {
   useRetour(true, onFermer)
   const [progId, setProgId] = useState(cycle?.programmeId ?? programme?.id ?? catalogue.actif.id)

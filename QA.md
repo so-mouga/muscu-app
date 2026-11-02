@@ -21,11 +21,13 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Choisir un programme tout prêt (Full body 3 jours, Haut / Bas 4 jours, Recompo) : il devient actif, ses séances apparaissent.
 - Réglages : bouton en haut à droite de l'accueil, pas dans la barre du bas. (Pas de profil ni d'activités hors muscu : retirés volontairement.)
 
-### 2. Accueil (journal du matin)
-- Date, puis la **phase toujours sous la date** (même quand le bandeau du cycle est affiché ; un appui ouvre Corps → Objectifs ; sans phase jamais réglée : pastille « + Phase »), séance du jour, bouton Démarrer **visible sans défiler**. « 🔥 À battre » (3 lignes max) n'apparaît que si un objectif plus haut que la dernière fois a été fixé (conseil 💡 appliqué ou ✎ en fin de séance) : par défaut on refait pareil, il n'y a donc rien à battre.
-- Carte « Aujourd'hui » (absente à la toute première ouverture) : tuiles Poids et Sommeil (un appui ouvre la saisie, le sommeil se note en 2 appuis, **jamais pré-rempli**), calories d'hier (Tenu / Trop / Pas assez).
-- « Autre séance », séance libre.
-- Rappels en haut sur une ligne : sauvegarde (après 7 jours sans export), masquables.
+### 2. Accueil (la séance du jour)
+- Tout tient sur un écran, sans défiler. Date, puis la **phase toujours sous la date**, à côté du cycle (un appui sur la phase ouvre Corps → Objectifs ; sans phase jamais réglée : « + Phase »).
+- « À noter » et les pastilles Poids, Sommeil, Calories (Calories seulement si un objectif est fixé ; absent à la toute première ouverture). Un appui ouvre une fenêtre, le sommeil et les calories se notent en 2 appuis, **jamais pré-remplis**. Une fois notés : une ligne discrète (« 70 kg · 7 h de sommeil · calories tenues »), un appui corrige. Poids réglé puis appui à côté ou retour : il est gardé ; ouvrir et fermer sans rien changer : rien n'est noté.
+- Ligne « Cette semaine » : un point par séance prévue, vert quand elle est faite ; un appui ouvre le Journal. « n-ième semaine tenue » à partir de 2. Une phrase de progrès (« … : +2,5 kg sur ce bloc ») seulement s'il y en a un.
+- Carte de séance : nom, durée, liste des exercices, **« Démarrer » toujours en bas de la carte, au même endroit, visible sans défiler**. Un gain en orange à côté d'un exercice n'apparaît que si un objectif plus haut que la dernière fois a été fixé (conseil appliqué ou crayon en fin de séance) : par défaut on refait pareil. Repos ou séance faite : pas de bouton orange, la séance suivante et « Voir la séance ».
+- « Autre séance › », séance libre.
+- Rappels en haut, sur une ligne, deux au plus à la fois : sauvegarde (après 7 jours sans export), mensurations…, masquables.
 
 ### 3. Une séance complète
 - Démarrer. Elle s'ouvre **en plein écran** (grand chrono), **à chaque séance**, même si la vue liste avait été choisie la fois d'avant.

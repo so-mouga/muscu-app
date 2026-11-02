@@ -131,7 +131,7 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
   )
 
   await p.goto('/')
-  await expect(p.getByText('Aujourd’hui', { exact: true })).toBeVisible()
+  await expect(p.getByText('76,2 kg')).toBeVisible()
   // Base passée à la version actuelle, avec la nouvelle table, et les anciennes données intactes.
   const version = await p.evaluate(() => new Promise<number>((ok) => (indexedDB.open('muscu').onsuccess = (e) => ok((e.target as IDBOpenDBRequest).result.version))))
   expect(version).toBeGreaterThanOrEqual(70)

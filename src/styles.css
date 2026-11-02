@@ -97,6 +97,8 @@
 
   /* Cibles tactiles minimales */
   --cible: 44px;
+  /* Accueil : hauteur de la barre d'onglets et petit écart au-dessus. */
+  --bas-accueil: 84px;
   --cible-salle: 44px;
 
   /* Mouvement */
@@ -159,6 +161,9 @@ textarea {
 
 #root:has(.onglets) {
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+#root:has(.accueil) {
+  padding-bottom: calc(var(--bas-accueil) + env(safe-area-inset-bottom));
 }
 
 h1,
@@ -371,9 +376,9 @@ button:active:not(:disabled),
 }
 .onglets button {
   position: relative;
-  flex: 1;
+  /* Largeur selon le libellé : « Progression » et « Programme » ne sont plus coupés sur un écran étroit. */
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: 187px;
   background: none;
   padding: 12px 1px 14px;
   color: var(--texte-2);
@@ -2353,10 +2358,11 @@ button.pastille.cliquable {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
-  padding: 10px 14px;
+  margin-bottom: var(--e2);
+  padding: 0 6px 0 14px;
+  min-height: var(--cible);
   border-radius: var(--rayon-2);
-  border: 1px solid color-mix(in srgb, var(--alerte) 50%, var(--bord));
+  background: var(--surface-2);
   font-size: var(--t-petit);
   white-space: nowrap;
   animation: banniere-entree 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2378,8 +2384,8 @@ button.pastille.cliquable {
 }
 .fermer-rappel {
   flex: 0 0 auto;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: var(--cible);
   padding: 0;
   display: flex;
   align-items: center;
@@ -2408,12 +2414,6 @@ button.pastille.cliquable {
 .carte .bandeau-cycle {
   margin: 0 0 4px;
   background: var(--surface-2);
-}
-.cycle-fini {
-  padding: 12px;
-  border-radius: var(--rayon-2);
-  border: 1px solid var(--ok);
-  margin-bottom: 4px;
 }
 /* Lien d'action dans le texte : discret, mais une zone d'appui de 44 px pour le pouce. */
 .btn.lien-action {
@@ -4259,4 +4259,334 @@ html[data-sens='fondu']::view-transition-new(root) {
 .option-machine > svg {
   flex: 0 0 auto;
   color: var(--texte-2);
+}
+
+/* Accueil : tient sur un écran, la carte de séance prend la place qui reste et « Démarrer » ne bouge plus. */
+.accueil {
+  --ligne-exo: 26px;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - var(--bas-accueil) - env(safe-area-inset-bottom));
+}
+.accueil.premiere {
+  min-height: 0;
+}
+.accueil-entete {
+  justify-content: space-between;
+  margin-bottom: 0;
+  padding-bottom: 2px;
+}
+.accueil-entete h1 {
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+.accueil .btn-reglages {
+  width: var(--cible);
+  height: var(--cible);
+  margin: -8px -12px -8px 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--texte-3);
+  cursor: pointer;
+}
+.accueil-reperes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--e3);
+  margin-bottom: var(--e3);
+}
+.accueil-reperes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.repere-point {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.rappel-texte {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rappel-ico {
+  flex-shrink: 0;
+}
+.rappel-ico.info {
+  color: var(--info);
+}
+.rappel-ico.ok {
+  color: var(--ok);
+}
+.journal-matin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e2);
+  min-height: 36px;
+  margin-bottom: var(--e3);
+}
+.journal-titre {
+  color: var(--texte-3);
+  font-size: var(--t-petit);
+}
+.journal-puce {
+  position: relative;
+  height: 36px;
+  padding: 0 var(--e3);
+  border: none;
+  border-radius: 999px;
+  background: var(--controle);
+  color: var(--texte);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* Zone d'appui de 44 px pour une pastille de 36. */
+.journal-puce::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+.journal-note {
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.journal-note + .journal-note::before {
+  content: '·';
+  margin-right: var(--e2);
+  color: var(--texte-3);
+}
+.accueil-semaine {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  width: 100%;
+  min-height: var(--cible);
+  margin-top: calc(-1 * var(--e2));
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte);
+  font-size: var(--t-petit);
+  text-align: left;
+  cursor: pointer;
+}
+.accueil-semaine strong {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.semaine-points {
+  display: inline-flex;
+  gap: var(--e1);
+}
+.semaine-points i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--voile-fort);
+}
+.semaine-points i.fait {
+  background: var(--ok);
+}
+.semaine-texte {
+  margin-left: auto;
+  color: var(--texte-3);
+  white-space: nowrap;
+}
+.accueil-progres {
+  display: flex;
+  margin-top: calc(-1 * var(--e1));
+  margin-bottom: var(--e2);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+}
+.accueil-progres-nom {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.accueil-progres-gain {
+  flex-shrink: 0;
+}
+.seance-jour {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--e2);
+  padding: var(--e4);
+  border-radius: var(--rayon);
+  background: var(--surface);
+}
+.seance-jour-haut {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e2);
+  font-size: var(--t-petit);
+}
+.seance-jour-etiquette {
+  color: var(--texte-3);
+}
+.seance-jour-etiquette.deload {
+  color: var(--finisseur);
+}
+.seance-jour-lien {
+  position: relative;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.seance-jour-lien::after {
+  content: '';
+  position: absolute;
+  inset: -14px -8px;
+}
+.seance-jour-lien.pas-de-salle {
+  align-self: flex-start;
+  margin-top: var(--e1);
+}
+.seance-jour-titre {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--e3);
+  margin-top: var(--e1);
+}
+.seance-jour-titre h2 {
+  min-width: 0;
+  font-size: var(--t-page);
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seance-jour-duree {
+  flex-shrink: 0;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  font-weight: 400;
+  white-space: nowrap;
+}
+.seance-jour-etat {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  min-width: 0;
+  font-size: var(--t-titre);
+  font-weight: 800;
+}
+.seance-jour-stats {
+  align-self: flex-start;
+  padding: var(--e1) 0 0;
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  cursor: pointer;
+}
+.seance-jour-retour {
+  margin-top: var(--e2);
+}
+.seance-jour-suite {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--e3);
+  margin-top: var(--e4);
+  font-size: var(--t-texte);
+  font-weight: 600;
+}
+.seance-jour-espace {
+  flex: 1;
+}
+.seance-jour-actions {
+  display: flex;
+  gap: var(--e3);
+  margin-top: var(--e3);
+}
+.seance-jour-actions .btn {
+  flex: 1;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  font-size: var(--t-texte);
+  font-weight: 600;
+}
+.seance-jour-actions .btn.primaire {
+  flex: 2;
+}
+/* Hauteur prise sur la place restante, jamais moins de 2 lignes et « +n autres » : le nombre de lignes s'y adapte. */
+.exos-jour {
+  flex: 1;
+  position: relative;
+  min-height: calc(3 * var(--ligne-exo));
+  margin-top: var(--e3);
+}
+.exos-jour-lignes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.exo-jour,
+.exos-jour-autres {
+  height: var(--ligne-exo);
+  line-height: var(--ligne-exo);
+  font-size: var(--t-petit);
+}
+.exo-jour {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e3);
+  color: var(--texte);
+}
+.exos-jour.faibles .exo-jour {
+  color: var(--texte-2);
+}
+.exo-jour-nom {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.exo-jour-gain {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.exos-jour-autres {
+  color: var(--texte-3);
+  font-size: var(--t-legende);
+}
+.seance-libre {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
 }
