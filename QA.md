@@ -34,7 +34,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Passer en « Voir la séance » et revenir en « ⤢ Plein écran ».
 - Naviguer entre exercices : en plein écran, l'appli enchaîne seule et « Voir la suite de la séance › » montre le reste (pas de pastilles d'exercices, voulu) ; en vue liste, pastilles et Précédent / Suivant. « Machine prise », remplacer un exercice, ajouter un exercice.
 - Superset : relier deux exercices, vérifier l'alternance des séries et le repos de transition.
-- Échauffement : coupé par défaut ; l'activer (interrupteur « 🤸 Échauffement » en haut de l'écran « Voir », ou dans Programmes), cocher des mouvements, le texte du bouton suit les cases (« Passer l'échauffement », « Terminer l'échauffement (2/4) », « ✓ Échauffé, on attaque »).
+- Échauffement : coupé par défaut ; le choisir (ligne « Échauffement · aucun · Choisir › » en haut de l'écran « Voir », ou dans Programmes ; aucun mouvement choisi = pas d'échauffement), cocher des mouvements, le texte du bouton suit les cases (« Passer l'échauffement », « Terminer l'échauffement (2/4) », « ✓ Échauffé, on attaque »).
 - Fiche ⓘ d'un exercice : consignes, « Modifier l'exercice ».
 - Les changements faits en séance **ne modifient pas** la séance enregistrée dans le programme (sauf « Modifier l'exercice »).
 - **Retour** pendant la séance : ferme d'abord les fenêtres, puis défait ta dernière navigation (exercice 3 → retour → exercice 1, plein écran ↔ liste). Au départ sans série faite : la séance est annulée, retour à l'écran d'où tu l'as lancée. Avec des séries : fenêtre Continuer / Terminer et enregistrer / Supprimer.

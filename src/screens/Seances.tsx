@@ -768,7 +768,7 @@ function Editeur({
         )}
       </div>
 
-      <ReglageEchauffement modele={m} exo={catalogue.exo} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />
+      <ReglageEchauffement modele={m} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />
 
       <div className="carte">
         <div className="ligne entre">

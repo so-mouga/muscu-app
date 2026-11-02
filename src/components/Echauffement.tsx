@@ -1,13 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { dureeEchauffement, echauffementDe, mouvement, MOUVEMENTS, type MouvementEchauffement } from '../data/echauffements'
 import { db, setReglage, uid } from '../db'
 import { minutes } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import type { Exercice, Seance, SeanceModele } from '../types'
+import type { Seance, SeanceModele } from '../types'
 import { majSeance } from './CarteExo'
 import { confirmer } from './Dialogues'
-import Interrupteur from './Interrupteur'
 import PictoEchauffement from './PictoEchauffement'
 
 const ZONES = [
@@ -99,79 +100,39 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
 }
 
 /**
- * Réglage de l'échauffement d'une séance : coupé par défaut ; activé, on choisit ses mouvements dans une liste.
- * `compact` (écran « Voir ») : un interrupteur sur une ligne, et le choix des mouvements en dessous.
+ * Réglage de l'échauffement d'une séance : une ligne qui ouvre le choix des mouvements.
+ * Aucun mouvement choisi = pas d'échauffement ; un jour sans, « Passer l'échauffement » en début de séance.
  */
-export function ReglageEchauffement({
-  modele,
-  onChange,
-  compact = false,
-}: {
-  modele: SeanceModele
-  exo?: (id: string) => Exercice
-  onChange: (v: SeanceModele['echauffement']) => void
-  compact?: boolean
-}) {
+export function ReglageEchauffement({ modele, onChange }: { modele: SeanceModele; onChange: (v: SeanceModele['echauffement']) => void }) {
   const [choix, setChoix] = useState(false)
   const liste = useMouvements()
-  const actif = Array.isArray(modele.echauffement)
   const ids = echauffementDe(modele).filter((id) => mouvement(id, liste))
-
-  if (compact) {
-    return (
-      <div className="carte" style={{ padding: '8px 12px', marginBottom: 12 }}>
-        <Interrupteur
-          on={actif}
-          onChange={(v) => {
-            onChange(v ? (modele.echauffement ?? []) : undefined)
-            if (v && (!modele.echauffement || !modele.echauffement.length)) setChoix(true)
-          }}
-          label={actif && ids.length ? `🤸 Échauffement (≈ ${minutesDe(ids, liste)})` : '🤸 Échauffement avant la séance'}
-        />
-        {actif && (
-          <div className="ligne entre" style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid var(--bord)', alignItems: 'center' }}>
-            <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-              {ids.length ? `${ids.length} mouvement${ids.length > 1 ? 's' : ''} : ${ids.map((id) => mouvement(id, liste)!.nom).slice(0, 2).join(', ')}${ids.length > 2 ? '…' : ''}` : 'Aucun mouvement sélectionné'}
-            </span>
-            <button type="button" className="btn discret petit lien-action" style={{ padding: '2px 6px', fontSize: 'var(--t-petit)' }} onClick={() => setChoix(true)}>
-              Modifier ›
-            </button>
-          </div>
-        )}
-        {choix && <ChoixMouvements ids={ids} liste={liste} onChange={onChange} onFermer={() => setChoix(false)} />}
-      </div>
-    )
-  }
-
   return (
-    <div className="carte pile">
-      <Interrupteur
-        on={actif}
-        onChange={(v) => {
-          onChange(v ? [] : undefined)
-          if (v) setChoix(true)
-        }}
-        label="Échauffement avant la séance"
-        aide={actif ? undefined : 'Des mouvements à cocher avant la 1re série. Les séries de chauffe de chaque exercice restent, elles, toujours là.'}
-      />
-      {actif && (
-        <>
-          <div className="faible">{ids.length ? `${ids.map((id) => mouvement(id, liste)!.nom).join(' · ')} (≈ ${minutesDe(ids, liste)})` : 'Aucun mouvement choisi.'}</div>
-          <button type="button" className="btn" onClick={() => setChoix(true)}>
-            {ids.length ? 'Modifier les mouvements' : 'Choisir les mouvements'}
-          </button>
-        </>
-      )}
+    <>
+      <button type="button" className="carte ligne-echauffement" onClick={() => setChoix(true)}>
+        <span className="ligne-echauffement-texte">
+          <span>
+            Échauffement <span className="faible">· {ids.length ? `≈ ${minutesDe(ids, liste)}` : 'aucun'}</span>
+          </span>
+          {ids.length > 0 && <span className="faible coupe">{ids.map((id) => mouvement(id, liste)!.nom).join(', ')}</span>}
+        </span>
+        <span className="ligne-echauffement-action">
+          {ids.length ? 'Modifier' : 'Choisir'}
+          <ChevronRight size={20} />
+        </span>
+      </button>
       {choix && <ChoixMouvements ids={ids} liste={liste} onChange={onChange} onFermer={() => setChoix(false)} />}
-    </div>
+    </>
   )
 }
 
 /** Choix des mouvements : une liste par zone, avec le dessin, la quantité et les consignes (ⓘ). */
-function ChoixMouvements({ ids, liste, onChange, onFermer }: { ids: string[]; liste: MouvementEchauffement[]; onChange: (v: SeanceModele['echauffement']) => void; onFermer: () => void }) {
+function ChoixMouvements({ ids, liste, onChange: changer, onFermer }: { ids: string[]; liste: MouvementEchauffement[]; onChange: (v: SeanceModele['echauffement']) => void; onFermer: () => void }) {
   const [ajout, setAjout] = useState<MouvementEchauffement['zone'] | null>(null)
   const [ouvert, setOuvert] = useState<string | null>(null)
   useRetour(true, onFermer)
+  // Plus aucun mouvement = plus d'échauffement.
+  const onChange = (v: string[]) => changer(v.length ? v : undefined)
   const basculer = (id: string) => onChange(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id])
   const supprimer = async (m: MouvementEchauffement) => {
     if (!(await confirmer(`Supprimer « ${m.nom} » de tes mouvements ?`, { oui: 'Supprimer', danger: true }))) return
@@ -179,13 +140,15 @@ function ChoixMouvements({ ids, liste, onChange, onFermer }: { ids: string[]; li
     await setReglage('echauffementsPerso', perso)
     if (ids.includes(m.id)) onChange(ids.filter((x) => x !== m.id))
   }
-  return (
+  return createPortal(
     <div className="modal-fond" onClick={onFermer}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-        <h2>Mouvements d’échauffement</h2>
-        <div className="faible">
-          {ids.length} choisi{ids.length > 1 ? 's' : ''} · ≈ {minutesDe(ids, liste)}
+      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-tete">
+          <h2>Mouvements d’échauffement</h2>
+          <div className="faible">{ids.length ? `${ids.length} choisi${ids.length > 1 ? 's' : ''} · ≈ ${minutesDe(ids, liste)}` : 'Aucun choisi'}</div>
         </div>
+        <div className="modal-defile">
+        <div className="faible">Des mouvements à cocher avant la 1re série. Les séries de chauffe de chaque exercice restent, elles, toujours là.</div>
         {ZONES.map(([z, nom]) => (
           <div key={z} className="echauffement">
             <h3 style={{ margin: '8px 0 4px' }}>{nom}</h3>
@@ -244,11 +207,15 @@ function ChoixMouvements({ ids, liste, onChange, onFermer }: { ids: string[]; li
             )}
           </div>
         ))}
-        <button className="btn primaire plein" onClick={onFermer}>
-          OK
-        </button>
+        </div>
+        <div className="modal-pied">
+          <button className="btn primaire plein" onClick={onFermer}>
+            OK
+          </button>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

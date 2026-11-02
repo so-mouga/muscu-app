@@ -48,7 +48,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ## Refonte : où on en est
 
-État au 2 nov. 2026, dernier commit `b0fc9aa`. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
+État au 2 nov. 2026. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
 
 ### Fait et poussé
 
@@ -63,6 +63,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
   - `eea2d98` : halo du cercle de repos.
 - **Teinte et boutons, pour toute l'appli** : `af79a66`, validé par l'utilisateur. Remplace le relief de `75ead3c`, jugé vieillot.
 - **Test du parcours de séance fiable** : `b0fc9aa`.
+- **Écran « Voir » et fenêtre Échauffement** : plus d'exercices visibles, ligne à la place de l'interrupteur, fenêtres qui montent vraiment du bas (toutes les fenêtres du bas en profitent). Fluidité à confirmer sur le téléphone.
 
 ### Décisions validées, absentes d'`AGENTS.md`
 
@@ -85,6 +86,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
 - Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. Remplacer les émojis et symboles restants, dont ★ et 👀 en séance.
+- « Modifier l'objectif » (`EditeurObjectif`) ne se ferme pas par un appui à côté, contrairement à la règle d'`AGENTS.md` : à corriger avec la fin de séance.
 - Revoir le mode « Machine prise » et l'échauffement général de la séance, pas encore repris.
 - Vérifier la séance sur le téléphone en mode finisseur, et le son à la fin du repos quand une fenêtre est ouverte.
 - Tester chaque écran de 667 à 832 px de haut. Les scripts de capture de cette conversation n'ont pas été gardés dans le dépôt.

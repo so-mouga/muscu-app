@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Flame, Info, Link2, Pause, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { ObjectifApres } from '../components/EditeurObjectif'
@@ -11,6 +12,7 @@ import { hausse, suggestionPour } from '../lib/progression'
 import { diagnostic, texteBlocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
 import type { SeanceModele } from '../types'
+import { informer } from '../components/Dialogues'
 import { BoutonLexique } from '../components/Lexique'
 import { ReglageEchauffement } from '../components/Echauffement'
 import { estDansSuperset, groupeSuperset } from '../lib/superset'
@@ -44,6 +46,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
   // En-tête : la séance telle qu'elle sera faite (allégée en déload).
   const prevu = deload ? { ...modele, exercices: modele.exercices.map(planDeload) } : modele
   const series = prevu.exercices.reduce((a, p) => a + p.series.length, 0)
+  const finisseurs = prevu.exercices.filter((p) => p.finisseur).length
   const habituelle = terminees && dureeHabituelle(modele.id, terminees)
   const nbHabituelles = terminees ? seancesHabituelles(modele.id, terminees).length : 0
   /** Exercice dont on règle l'objectif (index dans la séance). */
@@ -55,30 +58,35 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
         <button className="btn" onClick={onFermer} aria-label="Retour">
           ←
         </button>
-        <div style={{ flex: 1 }}>
+        <div className="apercu-titre">
           <h2>{modele.nom}</h2>
           {modele.sousTitre && <div className="faible">{modele.sousTitre}</div>}
         </div>
       </div>
 
-      <div className="ligne wrap" style={{ marginBottom: 12 }}>
-        <span className="pastille">≈ {minutes(dureeEstimee(prevu))} prévues</span>
-        {habituelle && <span className="pastille">⏱ {minutes(habituelle)} d’habitude</span>}
-        <span className="pastille">
-          {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''}
-        </span>
-        <span className="pastille">{series} séries</span>
-        {prevu.exercices.some((p) => p.finisseur) && <span className="pastille fin">★ {prevu.exercices.filter((p) => p.finisseur).length} finisseur(s)</span>}
+      <div className="apercu-resume">
+        <div className="ligne">
+          <span>
+            ≈ {minutes(dureeEstimee(prevu))} prévues{habituelle ? ` · ${minutes(habituelle)} d’habitude` : ''}
+          </span>
+          <button
+            type="button"
+            className="btn-infos"
+            aria-label="Comment la durée est calculée"
+            onClick={() => void informer(`Prévu : 1 min par série et par échauffement, plus les repos.${habituelle ? (nbHabituelles > 1 ? ` D’habitude : tes ${nbHabituelles} dernières séances.` : ' D’habitude : ta dernière séance.') : ''}`, 'Durée de la séance')}
+          >
+            <Info size={20} />
+          </button>
+        </div>
+        <div className="faible">
+          {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''} · {series} séries
+          {finisseurs > 0 && <span className="texte-finisseur"> · {finisseurs} finisseur{finisseurs > 1 ? 's' : ''}</span>}
+        </div>
       </div>
 
-      <div className="faible" style={{ marginBottom: 12 }}>
-        Prévu : 1 min par série et par échauffement, plus les repos.{habituelle ? (nbHabituelles > 1 ? ` D’habitude : tes ${nbHabituelles} dernières séances.` : ' D’habitude : ta dernière séance.') : ''}
-      </div>
-      <BoutonLexique />
+      {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} />}
 
-      {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} compact />}
-
-      {deload && <div className="bandeau-deload">🧘 Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
+      {deload && <div className="bandeau-deload">Semaine de déload : moitié des séries, charges −10 %, RPE 6-7, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
       {modele.exercices.map((p0, i) => {
         const p = deload ? planDeload(p0) : p0
@@ -104,52 +112,62 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
               (precEnchaine && !enchaine ? ' suite-superset' : '')
             }
           >
-            <div className="ligne" style={{ gap: 12 }}>
+            <div className="ligne apercu-exo">
               <Vignette exo={exo} taille={44} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="ligne entre" style={{ gap: 4 }}>
-                  <strong>
-                    {i + 1}. {exo.nom}
-                  </strong>
-                  {dansSuperset && <span className="badge-superset">🔗 A{posSuperset} · Superset</span>}
-                </div>
+              <div className="apercu-exo-texte">
+                <strong>
+                  {i + 1}. {exo.nom}
+                </strong>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
+                {dansSuperset && (
+                  <div>
+                    <span className="badge-superset">
+                      <Link2 size={12} /> Superset {posSuperset}/{groupe.length}
+                    </span>
+                  </div>
+                )}
                 <div className="faible">
                   {schemaPlan(exo, p)}
-                  {/* RPE seulement s'il s'écarte du réglage par défaut (8) */}
-                  {p.series.some((x) => x.rpe !== 8) && !(p.finisseur && p.series.slice(0, -1).every((x) => x.rpe === 8)) ? ` · RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}` : ''} · repos{' '}
-                  {reposTexte(p)}
-                  {p.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ finisseur</span>}
+                  {/* Effort seulement s'il s'écarte du réglage par défaut (8) */}
+                  {p.series.some((x) => x.rpe !== 8) && !(p.finisseur && p.series.slice(0, -1).every((x) => x.rpe === 8)) ? ` · effort ${[...new Set(p.series.map((x) => kg(x.rpe)))].join(', ')}/10` : ''} · repos {reposTexte(p)}
+                  {p.finisseur && <span className="texte-finisseur"> · finisseur</span>}
                 </div>
               </div>
             </div>
             {sugg && (
               <div className={'suggestion petit' + (battre ? ' a-battre' : '')}>
-                <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
-                  <strong>
-                    {cibleTexte(exo, sugg.charges, sugg.reps)}
-                  </strong>
-                  {battre && <span className="badge-hausse">🔥 À battre</span>}
+                <div className="ligne entre">
+                  <div className="apercu-cible">
+                    <strong>{cibleTexte(exo, sugg.charges, sugg.reps)}</strong>
+                    {battre && (
+                      <span className="badge-hausse">
+                        <Flame size={12} className="ico-texte" /> À battre
+                      </span>
+                    )}
+                  </div>
+                  {derniere && !deload && (
+                    <button type="button" className="btn-infos" aria-label="Modifier l’objectif" onClick={() => setObjectif(i)}>
+                      <Pencil size={20} />
+                    </button>
+                  )}
                 </div>
                 {battre ? (
                   <div className="muted">
                     {hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
                     {derniere && <> · dernière fois {derniere.map((x) => chargeQte(exo, x.charge, x.reps)).join(', ')}</>}
                   </div>
-                ) : (
+                ) : bloque ? (
                   <div className="muted">
-                    {bloque ? `⏸ ${texteBlocage(bloque)}` : sugg.message}
+                    <Pause size={14} fill="currentColor" className="ico-texte" /> {texteBlocage(bloque)}
                   </div>
-                )}
-                {derniere && !deload && (
-                  <button className="btn discret petit lien-action" onClick={() => setObjectif(i)}>
-                    ✎ Modifier l’objectif
-                  </button>
+                ) : (
+                  /* « Comme la dernière fois » n'apprend rien : la cible suffit. */
+                  sugg.decision !== 'pareil' && <div className="muted">{sugg.message}</div>
                 )}
               </div>
             )}
             {p.chauffes.length > 0 && <div className="faible">Chauffe : {p.chauffes.join(' · ')}</div>}
-            {(p.note || exo.notes) && <div className="faible">ℹ️ {p.note ?? exo.notes}</div>}
+            {(p.note || exo.notes) && <div className="faible">{p.note ?? exo.notes}</div>}
           </div>
         )
       })}
@@ -163,10 +181,11 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
         />
       )}
 
+      <BoutonLexique />
 
       <div className="barre-demarrer">
         <button className="btn primaire grand" onClick={onDemarrer}>
-          DÉMARRER
+          Démarrer
         </button>
       </div>
     </div>

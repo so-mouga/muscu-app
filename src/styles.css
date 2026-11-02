@@ -676,7 +676,7 @@ button:active:not(:disabled),
   align-items: flex-end;
   justify-content: center;
   backdrop-filter: blur(8px);
-  animation: fondu-fond 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fondu-fond var(--duree-longue) var(--sortie);
 }
 .modal {
   background: var(--surface), var(--surface-uni);
@@ -687,8 +687,32 @@ button:active:not(:disabled),
   max-height: 88dvh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  animation: modal-monter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: bottom center;
+  animation: modal-monter var(--duree-longue) var(--sortie);
+}
+/* Fenêtre longue : titre et bouton restent à l'écran, seule la liste défile. */
+.modal.modal-colonne {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+.modal-tete {
+  flex: 0 0 auto;
+  padding-bottom: var(--e3);
+}
+.modal-defile {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-defile > .faible {
+  margin-bottom: var(--e2);
+}
+.modal-pied {
+  flex: 0 0 auto;
+  padding: var(--e3) 0 calc(var(--e4) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--bord);
 }
 .modal::before {
   content: '';
@@ -742,22 +766,20 @@ th {
 
 /* --- Animations ------------------------------------------------------------ */
 
+/* Seul le voile apparaît : une opacité ici rendrait aussi la fenêtre transparente. */
 @keyframes fondu-fond {
   from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+    background-color: transparent;
+    backdrop-filter: blur(0);
   }
 }
+/* La fenêtre monte du bas, sans transparence : son texte ne se mêle jamais à celui de la page. */
 @keyframes modal-monter {
   from {
-    transform: translateY(14px) scale(0.95);
-    opacity: 0;
+    transform: translateY(100%);
   }
   to {
-    transform: translateY(0) scale(1);
-    opacity: 1;
+    transform: translateY(0);
   }
 }
 @keyframes modal-dialogue {
@@ -3962,4 +3984,60 @@ html[data-sens='fondu']::view-transition-new(root) {
 /* Bouton principal grand : même poids que les autres, la couleur suffit. */
 .btn.grand.primaire {
   font-weight: 500;
+}
+
+/* Écran « Voir » (avant de démarrer) */
+.apercu-titre {
+  flex: 1;
+  min-width: 0;
+}
+.apercu-resume {
+  margin-bottom: var(--e3);
+  font-size: var(--t-petit);
+  color: var(--texte-2);
+}
+.apercu-exo {
+  gap: var(--e3);
+}
+.apercu-exo-texte {
+  flex: 1;
+  min-width: 0;
+}
+.apercu-cible {
+  flex: 1;
+  min-width: 0;
+}
+.texte-finisseur {
+  color: var(--finisseur);
+}
+
+/* Ligne « Échauffement » : un appui ouvre le choix des mouvements. */
+.ligne-echauffement {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  width: 100%;
+  min-height: var(--cible);
+  padding: var(--e3) var(--e4);
+  text-align: left;
+  color: var(--texte);
+}
+.ligne-echauffement-texte {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.ligne-echauffement-texte .coupe {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ligne-echauffement-action {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  font-size: var(--t-petit);
+  color: var(--texte-2);
 }
