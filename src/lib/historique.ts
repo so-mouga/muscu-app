@@ -22,7 +22,7 @@ export const semaineDe = (date: string) => lundi(new Date(date + 'T12:00:00'))
  */
 export function scoreSerie(exo: Exercice, x: Serie, poidsCorps?: number): number {
   if (enTemps(exo)) return x.reps
-  return e1rm(exo, x, poidsCorps) ?? x.charge * 1000 + x.reps
+  return e1rm(exo, x, poidsCorps) ?? (exo.assistance ? -x.charge : x.charge) * 1000 + x.reps
 }
 
 /**
@@ -128,9 +128,10 @@ export function evolutionForce(exo: Exercice, seances: Seance[]) {
   return avant && apres ? { avant, apres } : null
 }
 
-/** Meilleure série d'un exercice dans une séance : la plus lourde, puis le plus de reps. */
-export function meilleureSerie(series: Serie[]): Serie | undefined {
-  return series.reduce<Serie | undefined>((a, s) => (!a || s.charge > a.charge || (s.charge === a.charge && s.reps > a.reps) ? s : a), undefined)
+/** Meilleure série d'un exercice dans une séance : la plus lourde (la moins assistée), puis le plus de reps. */
+export function meilleureSerie(series: Serie[], assistance = false): Serie | undefined {
+  const dur = (s: Serie) => (assistance ? -s.charge : s.charge)
+  return series.reduce<Serie | undefined>((a, s) => (!a || dur(s) > dur(a) || (s.charge === a.charge && s.reps > a.reps) ? s : a), undefined)
 }
 
 /**

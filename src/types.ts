@@ -27,6 +27,8 @@ export interface Exercice {
   mode: ModeCharge
   /** Pas de charge en kg (lest pour le poids du corps, 1 niveau pour l'élastique). */
   pas: number
+  /** La charge notée est une assistance : moins de kg = plus dur (tractions à la machine). */
+  assistance?: boolean
   /** Charge maximale disponible (haltères fixes à la maison). */
   chargeMax?: number
   /** Calculateur de disques sous la charge : poids de la barre en kg (0 = disques seuls). Absent : pas de calculateur. */

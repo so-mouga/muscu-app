@@ -3359,6 +3359,9 @@ button.phase-accueil {
   padding: 4px 0 10px;
   font-size: var(--t-petit);
 }
+.fin-non-faits {
+  margin-top: var(--e3);
+}
 
 /* --- Séance : essoufflé, mains moites, sous les néons --------------------------------- */
 .ico-texte {

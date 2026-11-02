@@ -55,7 +55,8 @@ export function construireCatalogue(
   for (const m of modelesDb) parId.set(m.id, m)
   const tous = [...parId.values()].filter((m) => !m.supprime)
   const exercices: Record<string, Exercice> = { ...EXERCICES }
-  for (const e of exercicesDb) exercices[e.id] = e
+  // Une version modifiée d'un exercice de base garde son sens : une assistance reste une assistance.
+  for (const e of exercicesDb) exercices[e.id] = EXERCICES[e.id]?.assistance ? { ...e, assistance: true } : e
 
   // Sans programme enregistré : le planning d'origine (jours portés par les séances) devient le premier programme.
   const programmes: Programme[] = programmesDb.length

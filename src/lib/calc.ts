@@ -54,6 +54,7 @@ export function cibleTexte(exo: Exercice, charges: (number | null)[], reps: numb
  */
 export function kgSouleves(s: Serie, exo?: Exercice): number {
   if (exo && enTemps(exo)) return 0
+  if (exo?.assistance) return 0
   const charge = exo?.mode === 'poids_corps' ? Math.max(0, s.charge) : s.charge
   return charge * s.reps * (exo?.mode === 'par_main' ? 2 : 1)
 }
@@ -267,10 +268,12 @@ export function ecartSerie(s: Serie, avant: Serie | undefined, exo?: Exercice): 
   if (!avant) return null
   const dc = Math.round((s.charge - avant.charge) * 100) / 100
   const dr = s.reps - avant.reps
-  const texte = [dc ? `${dc > 0 ? '+' : '−'}${kg(Math.abs(dc))} kg` : '', dr ? ecartQte(exo, dr) : '']
+  const texte = [dc ? `${dc > 0 ? '+' : '−'}${kg(Math.abs(dc))} kg${exo?.assistance ? ' d’assistance' : ''}` : '', dr ? ecartQte(exo, dr) : '']
     .filter(Boolean)
     .join(', ')
-  const sens = dc > 0 || (dc === 0 && dr > 0) ? 'mieux' : dc === 0 && dr === 0 ? 'egal' : 'moins'
+  // Exercice assisté : moins d'assistance = plus dur, donc mieux.
+  const dur = exo?.assistance ? -dc : dc
+  const sens = dur > 0 || (dur === 0 && dr > 0) ? 'mieux' : dur === 0 && dr === 0 ? 'egal' : 'moins'
   // Mêmes charge et reps : l'effort noté dit si c'était plus dur ou plus facile.
   const memes = exo && enTemps(exo) ? 'même temps' : 'mêmes reps'
   const effort = s.rpe > avant.rpe ? `${memes}, effort plus dur` : s.rpe < avant.rpe ? `${memes}, effort plus facile` : 'identique'

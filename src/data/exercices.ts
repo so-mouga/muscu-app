@@ -72,7 +72,7 @@ const liste: Exercice[] = [
   exo({ id: 'tirage_unilateral', nom: 'Tirage unilatéral poulie haute', muscle: 'dos', type: 'compose', mode: 'machine' }),
   exo({ id: 'tirage_horizontal_large', nom: 'Tirage horizontal prise large', muscle: 'dos', secondaires: sec(['epaule_arriere', 0.5]), type: 'compose', mode: 'machine', pas: 5 }),
   exo({ id: 'tractions_supination', nom: 'Tractions supination', muscle: 'dos', type: 'compose', mode: 'poids_corps' }),
-  exo({ id: 'tractions_assistees', nom: 'Tractions assistées machine', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: false, notes: 'Charge = assistance : plus elle baisse, plus c’est dur.' }),
+  exo({ id: 'tractions_assistees', nom: 'Tractions assistées machine', muscle: 'dos', type: 'compose', mode: 'machine', assistance: true, pas: 5, suivreE1rm: false, notes: 'Charge = assistance : plus elle baisse, plus c’est dur.' }),
   exo({ id: 'souleve_terre', nom: 'Soulevé de terre', muscle: 'dos', secondaires: sec(['fessiers', 0.5], ['ischios', 0.5], ['lombaires', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
   exo({ id: 'pull_over_poulie', nom: 'Pull-over poulie à la corde', muscle: 'dos', type: 'isolation', mode: 'machine' }),
 

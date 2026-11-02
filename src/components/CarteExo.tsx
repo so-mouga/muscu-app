@@ -129,7 +129,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const enRepos = !edition && reposRestant > 0
   // Les −/+ suivent le palier de la machine (fiche de l'exercice) : pas de charge qui n'existe pas.
   const pas = exo.pas
-  const unite = exo.mode === 'elastique' ? 'niveau' : exo.mode === 'poids_corps' ? 'kg de lest (− = assistance)' : exo.mode === 'par_main' ? 'kg par main' : 'kg'
+  const unite = exo.assistance ? 'kg d’assistance' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'poids_corps' ? 'kg de lest (− = assistance)' : exo.mode === 'par_main' ? 'kg par main' : 'kg'
   const arr = (x: number) => Math.round(x * 100) / 100
 
   const construire = (t: TypeSerie, extra: Partial<Serie> = {}): Serie => ({

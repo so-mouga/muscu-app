@@ -1,6 +1,9 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
+import { ecartSerie, kgSouleves } from './calc'
+import { suggestionDeload } from './cycle'
+import { scoreSerie } from './historique'
 import { aBattre, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
 
 // Exemples du cahier des charges (5.6) : butterfly au palier de 2,5 kg (celui de la base est maintenant 5 kg).
@@ -357,5 +360,55 @@ describe('« plus dur que prévu » en clair', () => {
     const r = raisonPareil(EXERCICES.smith_incline, plan, [seance(20, '9@7', '9@8', '8@8')])
     expect(r).toMatch(/effort moyen 7,7 pour 7 visé/)
     expect(r).not.toMatch(/RPE/)
+  })
+})
+
+describe('viser plus ne retire jamais de reps', () => {
+  const plan = { exoId: 'x', repos: 90, chauffes: [], finisseur: false, charge: 35, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })) }
+  it('série au-dessus de la fourchette : elle garde ses reps, la plus basse gagne une rep', () => {
+    const c = conseil(EXERCICES.extension_corde, plan, [seance(35, '15@8', '13@8', '10@8')])
+    expect(c?.titre).toMatch(/viser plus/)
+    expect(c?.reps).toEqual([15, 13, 11])
+  })
+})
+
+describe('exercice assisté : moins de kg = plus dur', () => {
+  const exo = EXERCICES.tractions_assistees
+  const plan = { exoId: exo.id, repos: 120, chauffes: [], finisseur: false, charge: 30, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })) }
+  it('au haut de la fourchette : on retire de l’assistance, sans demander de confirmer le saut', () => {
+    const c = conseil(exo, plan, [seance(30, '12@8', '12@8', '12@8')])
+    expect(c?.decision).toBe('augmenter')
+    expect(c?.charges).toEqual([25, 25, 25])
+    expect(c?.titre).toMatch(/Moins d’assistance/)
+    expect(c?.message).toMatch(/−5 kg d’assistance/)
+  })
+  it('deux séances ratées : on rajoute de l’assistance', () => {
+    const r = suggere(exo, plan, [seance(30, '6@8', '6@8', '6@8'), seance(30, '6@8', '6@8', '6@8')])
+    expect(r.decision).toBe('baisser')
+    expect(r.charges).toEqual([35, 35, 35])
+  })
+  it('plus aucune assistance : pas de cran en dessous de zéro', () => {
+    const c = conseil(exo, plan, [seance(0, '12@8', '12@8', '12@8')])
+    expect(c?.charges).toEqual([0, 0, 0])
+    expect(c?.decision).toBe('consolider')
+    expect(monterMaintenant(exo, plan, seance(0, '15@8')[0], 1)).toBeNull()
+  })
+  it('« monte d’un cran » et « à battre » vont dans le bon sens', () => {
+    expect(monterMaintenant(exo, plan, seance(30, '15@8')[0], 1)).toBe(25)
+    const moins = { decision: 'manuel' as const, charges: [25], reps: [10], message: '' }
+    const plus = { decision: 'manuel' as const, charges: [35], reps: [10], message: '' }
+    expect(hausse(exo, moins, seance(30, '10@8'), 0)).toMatch(/−5 kg d’assistance/)
+    expect(hausse(exo, plus, seance(30, '10@8'), 0)).toBeNull()
+  })
+  it('écart avec la dernière fois et kg soulevés', () => {
+    const [a] = seance(30, '10@8')
+    const [m] = seance(25, '10@8')
+    expect(ecartSerie(m, a, exo)?.sens).toBe('mieux')
+    expect(ecartSerie(a, m, exo)?.sens).toBe('moins')
+    expect(kgSouleves(a, exo)).toBe(0)
+    expect(scoreSerie(exo, m)).toBeGreaterThan(scoreSerie(exo, a))
+  })
+  it('le déload ne retire pas d’assistance', () => {
+    expect(suggestionDeload(exo, { decision: 'pareil', charges: [30], reps: [10], message: '' }).charges).toEqual([30])
   })
 })

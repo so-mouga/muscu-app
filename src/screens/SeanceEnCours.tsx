@@ -1257,6 +1257,17 @@ function FinSeance({
   const basculer = (id: string) => setOuverts((x) => ({ ...x, [id]: !x[id] }))
   const libre = !modele && seance.exercices.length > 0
 
+  // Rien ne se perd : choix et sensations partent dans la base dès qu'ils changent, pour survivre
+  // à un retour dans la séance ou à une appli fermée par Android.
+  const dejaVu = useRef(false)
+  useEffect(() => {
+    if (!dejaVu.current) {
+      dejaVu.current = true
+      return
+    }
+    void db.seances.update(seance.id, { objectifs, ressenti, energie })
+  }, [seance.id, objectifs, ressenti, energie])
+
   const choisirForme = (v: number) => {
     const n = forme === v ? undefined : v
     setForme(n)
@@ -1275,8 +1286,12 @@ function FinSeance({
   const faits = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
   const lignes = faits.map((plan) => ({ plan, ...suggestionDe(plan.exoId) }))
   // En déload, rien à décider : tout passe dans la liste simple.
-  const aDecider = seance.deload ? [] : lignes.filter((l) => l.conseil)
-  const autres = seance.deload ? lignes : lignes.filter((l) => !l.conseil)
+  // « Confirme d'abord » et « Charge max atteinte » ne proposent rien de plus qu'aujourd'hui : pas de faux choix, une simple ligne.
+  const vraiChoix = ({ conseil: c, s: base }: (typeof lignes)[number]) =>
+    !!c && !(c.decision === 'consolider' && c.charges.every((x, i) => x === base.charges[i]) && c.reps.every((r, i) => r <= base.reps[i]))
+  const aDecider = seance.deload ? [] : lignes.filter(vraiChoix)
+  const autres = seance.deload ? lignes : lignes.filter((l) => !vraiChoix(l))
+  const nonFaits = seance.exercices.filter((p) => !seance.series.some((s) => s.exoId === p.exoId))
   const retirerObjectif = (id: string) =>
     setObjectifs((x) => {
       const { [id]: _retire, ...reste } = x
@@ -1289,16 +1304,24 @@ function FinSeance({
     return cibleTexte(exo, l.map((x) => x.charge), l.map((x) => x.reps))
   }
   /** Une ligne : objectif fixé, raison de refaire pareil, ou comparaison avec la dernière fois. */
-  const statut = (exo: Exercice, raison: string | null) => {
+  const statut = (exo: Exercice, raison: string | null, c: Suggestion | null) => {
     const o = objectifs[exo.id]
     if (o) return `✎ prochaine fois ${cibleTexte(exo, o.charges, o.reps)}`
     if (seance.deload) return 'déload'
     if (raison) return raison
+    if (c) return c.message.replace(/^Pourquoi : /, '').replace('\n', ' ')
     const avant = historiqueDe(terminees, exo.id)[0] ?? []
     if (!avant.length) return '1re fois · prochaine fois : pareil'
-    const sens = seriesDuJour(exo).map((x, k) => ecartSerie(x, avant[k], exo)?.sens)
+    const duJour = seriesDuJour(exo)
+    const sens = duJour.flatMap((x, k) => ecartSerie(x, avant[k], exo)?.sens ?? [])
     if (sens.includes('mieux')) return '↑ mieux que la dernière fois · prochaine fois : pareil'
-    if (sens.every((x) => x === 'egal')) return '= comme la dernière fois'
+    if (sens.every((x) => x === 'egal')) {
+      // Les séries faites sont les mêmes : seul le nombre de séries peut changer.
+      const ecart = duJour.length - avant.length
+      if (ecart > 0) return `↑ ${ecart} série${ecart > 1 ? 's' : ''} de plus que la dernière fois · prochaine fois : pareil`
+      if (ecart < 0) return `${-ecart} série${ecart < -1 ? 's' : ''} de moins que la dernière fois · prochaine fois : pareil`
+      return '= comme la dernière fois'
+    }
     return 'un peu moins que la dernière fois · prochaine fois : pareil'
   }
   /** Les séries du jour, en clair, comparées à la dernière fois. */
@@ -1421,13 +1444,13 @@ function FinSeance({
           <h3 style={{ margin: '18px 0 8px' }}>{aDecider.length ? 'Les autres exercices' : 'Tes exercices'}</h3>
           {seance.deload && <div className="faible" style={{ marginBottom: 8 }}>Séance de déload : pas d’objectif à fixer, la prochaine vraie séance reprend là où tu en étais.</div>}
           <div className="carte pile" style={{ gap: 0, paddingTop: 4, paddingBottom: 4 }}>
-            {autres.map(({ plan, exo, raison }) => (
+            {autres.map(({ plan, exo, raison, conseil: c }) => (
               <div key={plan.exoId}>
                 <div className="ligne-fin">
                   <button type="button" className="ligne-fin-principal" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
                     <strong>{exo.nom}</strong>
                     <span className="faible petit">
-                      {resumeDuJour(exo)} · {statut(exo, raison)}
+                      {resumeDuJour(exo)} · {statut(exo, raison, c)}
                     </span>
                   </button>
                   {!seance.deload && (
@@ -1441,6 +1464,12 @@ function FinSeance({
             ))}
           </div>
         </>
+      )}
+
+      {seance.series.length > 0 && nonFaits.length > 0 && (
+        <div className="faible petit fin-non-faits">
+          Pas fait aujourd’hui : {nonFaits.map((p) => catalogue.exo(p.exoId).nom).join(', ')}
+        </div>
       )}
 
       {libre && (

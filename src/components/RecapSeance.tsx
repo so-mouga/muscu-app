@@ -22,10 +22,12 @@ export function ResumeSeance({ seance, exo }: { seance: Seance; exo?: (id: strin
           <Clock size={12} strokeWidth={2} />
           {duree(ms)}
         </span>
-        <span className="pastille">
-          {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
-        </span>
-        <span className="pastille">{kg(Math.round(tonnage))} kg soulevés</span>
+        {dures > 0 && (
+          <span className="pastille">
+            {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
+          </span>
+        )}
+        {tonnage > 0 && <span className="pastille">{kg(Math.round(tonnage))} kg soulevés</span>}
         {finisseurs > 0 && (
           <span className="pastille fin" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <Sparkles size={12} strokeWidth={2} />

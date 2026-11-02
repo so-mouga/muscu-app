@@ -81,7 +81,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
 
         <div>
           <div className="faible" style={{ marginBottom: 6 }}>
-            Prochaine fois · charge ({unite}) · {enTemps(exo) ? 'secondes' : 'reps'}
+            Prochaine fois · {exo.assistance ? 'assistance (kg)' : `charge (${unite})`} · {enTemps(exo) ? 'secondes' : 'reps'}
           </div>
           {charges.map((c, i) => (
             <div key={i} className="objectif-serie">

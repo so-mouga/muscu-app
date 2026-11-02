@@ -111,7 +111,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
         if (ev.apres.score > ev.avant.score) {
           const pct =
             mAvant.charge > 0 && mApres.charge !== mAvant.charge
-              ? ((mApres.charge - mAvant.charge) / mAvant.charge) * 100
+              ? (((exo.assistance ? -1 : 1) * (mApres.charge - mAvant.charge)) / mAvant.charge) * 100
               : mAvant.reps > 0
                 ? ((mApres.reps - mAvant.reps) / mAvant.reps) * 100
                 : 0

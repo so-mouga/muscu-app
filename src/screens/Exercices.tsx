@@ -119,7 +119,7 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
     const liste = (eq[exo.id] ?? []).map((id) => {
       const autre = catalogue.exo(id)
       const s = seances.find((x) => x.series.some((y) => y.exoId === id))
-      const m = s && meilleureSerie(s.series.filter((y) => y.exoId === id))
+      const m = s && meilleureSerie(s.series.filter((y) => y.exoId === id), autre.assistance)
       return { exo: autre, derniere: s && m ? `${chargeQte(autre, m.charge, m.reps)} (${dateCourte(s.date)})` : undefined }
     })
     return (

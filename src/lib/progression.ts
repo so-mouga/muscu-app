@@ -64,12 +64,15 @@ function bilan(series: Serie[], plan: ExoPlan): Bilan | null {
 }
 
 export function increment(exo: Exercice, c: number): number {
-  if (exo.mode === 'poids_corps' || exo.mode === 'elastique') return exo.pas
+  if (exo.mode === 'poids_corps' || exo.mode === 'elastique' || exo.assistance) return exo.pas
   return exo.pas * Math.max(1, Math.ceil((c * 0.025) / exo.pas - EPS))
 }
 
+/** La charge d'un cran plus dur. Exercice assisté : un cran de moins d'assistance, jamais sous zéro. */
+const plusDur = (exo: Exercice, c: number) => (exo.assistance ? Math.max(0, arrondi(c - increment(exo, c))) : arrondi(c + increment(exo, c)))
+
 function decrement(exo: Exercice, c: number): number {
-  if (exo.mode === 'poids_corps' || exo.mode === 'elastique') return exo.pas
+  if (exo.mode === 'poids_corps' || exo.mode === 'elastique' || exo.assistance) return exo.pas
   return exo.pas * Math.max(1, Math.floor((c * 0.05) / exo.pas + EPS))
 }
 
@@ -113,8 +116,17 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
 
   if (b.top && b.rpeOk && b.garde) {
     const ref = Math.max(...memesCharges())
+    if (exo.assistance && ref <= 0) {
+      return {
+        decision: 'consolider',
+        charges: memesCharges(),
+        reps: plan.series.map((p) => p.repsMax),
+        message: 'Plus aucune assistance : passe à la version sans machine, ou garde et ralentis la descente.',
+      }
+    }
     const inc = increment(exo, ref)
-    const grosSaut = (exo.mode === 'machine' || exo.mode === 'par_main') && ref > 0 && inc / ref > SAUT_MAX + EPS
+    // Une assistance en moins ne fait pas un saut de charge : le poids du corps reste le gros du travail.
+    const grosSaut = !exo.assistance && (exo.mode === 'machine' || exo.mode === 'par_main') && ref > 0 && inc / ref > SAUT_MAX + EPS
     const max = exo.chargeMax
     if (max !== undefined && ref + inc > max + EPS) {
       return {
@@ -138,9 +150,9 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
     const unite = exo.mode === 'elastique' ? ' niveau' : ' kg'
     return {
       decision: 'augmenter',
-      charges: plan.series.map((_, i) => arrondi(chargeA(i) + increment(exo, chargeA(i)))),
+      charges: plan.series.map((_, i) => plusDur(exo, chargeA(i))),
       reps: basDe,
-      message: `↑ +${nombre(inc)}${unite} : toutes les séries au sommet de la fourchette au RPE visé. Reps repartent à ${borneTexte(plan, 'repsMin')}.`,
+      message: `↑ ${exo.assistance ? '−' : '+'}${nombre(inc)}${unite} : toutes les séries au sommet de la fourchette au RPE visé. Reps repartent à ${borneTexte(plan, 'repsMin')}.`,
     }
   }
 
@@ -151,6 +163,7 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
         decision: 'baisser',
         charges: plan.series.map((_, i) => {
           const c = chargeA(i)
+          if (exo.assistance) return arrondi(c + decrement(exo, c))
           const d = c - decrement(exo, c)
           return exo.mode === 'machine' || exo.mode === 'par_main' ? Math.max(0, arrondi(d)) : arrondi(d)
         }),
@@ -182,7 +195,8 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
 
   // Même charge, +1 rep : sur deux séries si toutes étaient faciles (effort 7 ou moins, 3 reps en réserve),
   // sinon sur une seule ; celles qui sont le plus loin du haut de leur fourchette.
-  const reps = memesReps()
+  // On part de ce qui a été fait : une série au-dessus de sa fourchette garde ses reps, viser plus n'en retire jamais.
+  const reps = plan.series.map((_, i) => repsA(i))
   const facile = derniere.filter((s) => s.type === 'normale').every((s) => s.rpe <= 7)
   const reste = (i: number) => haut(plan, i) - reps[i]
   const candidates = plan.series
@@ -264,7 +278,7 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
   const b = bilan(derniere, plan)
   const ord = (i: number) => (i === 0 ? '1re' : `${i + 1}e`)
   const series = (n: number) => `${n} série${n > 1 ? 's' : ''}`
-  const unite = exo.mode === 'elastique' ? ' niveau' : ' kg'
+  const unite = exo.mode === 'elastique' ? ' niveau' : exo.assistance ? ' kg d’assistance' : ' kg'
   // Série ratée (sous le bas, à l'effort visé) : viser le bas plutôt que refaire le score raté. Sans
   // fourchette, pas de baisse automatique : on vise le bas, même après deux ratés.
   if (b?.sous && (s.decision !== 'baisser' || !aFourchette(plan))) {
@@ -283,7 +297,8 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
   if (!aFourchette(plan)) return null
   if (s.decision === 'augmenter') {
     const d = arrondi((s.charges[0] ?? 0) - derniere[0].charge)
-    return { ...s, titre: '💡 Tu peux monter', message: `Pourquoi : tes ${series(b!.faites)} ont atteint ${haut} reps à l’effort visé.\n+${nombre(d)}${unite} (le palier de la machine), les reps repartent à ${bas}.` }
+    const palier = exo.mode === 'machine' && !exo.assistance ? ' (le palier de la machine)' : ''
+    return { ...s, titre: exo.assistance ? '💡 Moins d’assistance' : '💡 Tu peux monter', message: `Pourquoi : tes ${series(b!.faites)} ont atteint ${haut} reps à l’effort visé.\n${d < 0 ? '−' : '+'}${nombre(Math.abs(d))}${unite}${palier}, les reps repartent à ${bas}.` }
   }
   if (s.decision === 'plus_une_rep') {
     const plus = s.reps.map((_, i) => i).filter((i) => derniere[i] && s.reps[i] > derniere[i].reps)
@@ -293,7 +308,7 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
         : `tes séries étaient faciles (effort 7/10 ou moins, 3 reps en réserve ou plus) : une rep de plus sur deux séries`
     return { ...s, titre: '💡 Tu peux viser plus', message: `Pourquoi : ${pourquoi}.\nLa charge montera quand tes ${series(b!.prevues)} atteindront ${haut}.` }
   }
-  if (s.decision === 'baisser') return { ...s, titre: '💡 Baisse un peu', message: `Pourquoi : deux séances de suite sous ${bas} reps.\nOn repart un peu plus léger pour refaire des séries propres.` }
+  if (s.decision === 'baisser') return { ...s, titre: exo.assistance ? '💡 Un peu plus d’assistance' : '💡 Baisse un peu', message: `Pourquoi : deux séances de suite sous ${bas} reps.\nOn repart un peu plus ${exo.assistance ? 'aidé' : 'léger'} pour refaire des séries propres.` }
   // Haut atteint mais montée trop forte d'un coup (ou matériel au max) : le dire plutôt que se taire.
   if (s.decision === 'consolider' && b && b.top && b.rpeOk && b.garde) {
     const saut = s.message.match(/mais (.+) : confirme/)
@@ -339,7 +354,8 @@ export function monterMaintenant(exo: Exercice, plan: ExoPlan, precedente: Serie
   const p = plan.series[Math.min(index - 1, plan.series.length - 1)]
   if (!precedente || precedente.type !== 'normale' || enTemps(exo) || !p || p.repsMin >= p.repsMax) return null
   if (precedente.reps < p.repsMax + 3) return null
-  const c = arrondi(precedente.charge + increment(exo, precedente.charge))
+  if (exo.assistance && precedente.charge <= 0) return null
+  const c = plusDur(exo, precedente.charge)
   return exo.chargeMax !== undefined && c > exo.chargeMax + EPS ? null : c
 }
 
@@ -350,6 +366,8 @@ export function hausse(exo: Exercice, sugg: Suggestion, derniere: Serie[] | unde
   if (!d || c === null || c === undefined) return null
   const dc = arrondi(c - d.charge)
   const dr = (sugg.reps[i] ?? 0) - d.reps
+  if (exo.assistance && dc < -EPS) return `−${nombre(-dc)} kg d’assistance`
+  if (exo.assistance && dc > EPS) return null
   if (dc > EPS) return `+${nombre(dc)}${exo.mode === 'elastique' ? ' niv.' : ' kg'}`
   if (Math.abs(dc) <= EPS && dr > 0) return exo.mesure === 'temps' ? `+${dr} s` : `+${dr} rep${dr > 1 ? 's' : ''}`
   return null

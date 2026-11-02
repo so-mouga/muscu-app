@@ -122,7 +122,7 @@ const arrondiPas = (x: number, pas: number) => Math.round(Math.round(x / pas) * 
 /** Charges −10 % (arrondies au pas de l'exercice) par rapport à l'objectif normal. */
 export function suggestionDeload(exo: Exercice, s: Suggestion): Suggestion {
   const alleger = (c: number | null) => {
-    if (c === null || c <= 0 || exo.mode === 'elastique') return c
+    if (c === null || c <= 0 || exo.mode === 'elastique' || exo.assistance) return c
     const r = arrondiPas(c * 0.9, exo.pas)
     return r < c ? r : Math.max(0, arrondiPas(c - exo.pas, exo.pas))
   }
