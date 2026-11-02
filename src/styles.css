@@ -431,8 +431,8 @@ button:active:not(:disabled),
 }
 .pills button {
   flex: 0 0 auto;
-  min-width: 44px;
-  height: 40px;
+  min-width: var(--cible-salle);
+  height: var(--cible-salle);
   border-radius: var(--rayon-2);
   background: var(--surface);
   border: 1px solid var(--bord);
@@ -1753,26 +1753,19 @@ body:has(.focus) {
 /* Bouton ⓘ : fiche d'exécution */
 .btn-infos {
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: var(--cible);
+  height: var(--cible);
+  margin: -6px -8px -6px 0;
   border-radius: 50%;
-  border: 1.5px solid var(--texte-3);
+  border: 0;
   background: none;
   color: var(--texte-2);
-  font: italic 700 15px/1 Georgia, 'Times New Roman', serif;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   position: relative;
 }
-/* Zone d'appui plus grande que le rond */
-.btn-infos::after {
-  content: '';
-  position: absolute;
-  inset: -8px;
-}
-
 /* Objectif de la prochaine séance : ce qui a été fait, puis l'objectif */
 .objectif-serie {
   display: flex;
@@ -1846,7 +1839,7 @@ body:has(.focus) {
 }
 .focus.fixe > .btn.discret {
   margin: auto 0 0 !important;
-  min-height: 40px;
+  min-height: var(--cible);
 }
 .ligne-exo {
   display: flex;
@@ -3571,4 +3564,164 @@ button.phase-accueil {
   gap: 4px;
   padding: 4px 0 10px;
   font-size: var(--t-petit);
+}
+
+/* --- Séance : essoufflé, mains moites, sous les néons --------------------------------- */
+.ico-texte {
+  vertical-align: -2px;
+}
+.badge-superset,
+.nouvel-exo-titre {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+}
+.ligne-series > * {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+}
+.focus {
+  gap: var(--e3);
+}
+.focus .faible,
+.focus .muted,
+.focus .btn.discret,
+.focus .stepper .unite {
+  color: var(--texte-salle);
+}
+.focus-boutons .btn {
+  min-height: var(--cible-salle);
+  gap: var(--e1);
+}
+.focus .ligne-series {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: var(--e1);
+}
+.focus .ligne-series > * {
+  flex: 0 0 auto;
+  min-height: var(--cible);
+  padding: 0 10px;
+  color: var(--texte-salle);
+}
+.focus .ligne-series > .faite {
+  color: var(--ok);
+}
+.focus .ligne-series > .courante {
+  color: var(--accent-texte);
+}
+.focus .chauffes-ligne button {
+  min-height: var(--cible);
+}
+.focus .rpe button {
+  height: 56px;
+  font-size: var(--t-titre);
+}
+.focus .btn.grand {
+  min-height: 72px;
+}
+
+/* Charge et reps côte à côte : le nombre en grand, − et + dessous, sous le pouce. */
+.steppers-duo {
+  gap: var(--e3);
+}
+.steppers-duo .stepper {
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e2);
+}
+.steppers-duo .stepper > .valeur {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+.steppers-duo .stepper > button {
+  grid-row: 2;
+  height: 64px;
+  font-size: var(--t-page);
+}
+.steppers-duo .stepper .valeur input {
+  font-size: var(--t-chiffre);
+  font-weight: 800;
+  line-height: 1.1;
+  padding: 0;
+}
+.steppers-duo .stepper .valeur .unite,
+.steppers-duo .stepper .valeur button.unite-palier {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e1);
+  min-height: var(--cible);
+  margin: 0 auto;
+  white-space: normal;
+  line-height: 1.2;
+  text-align: center;
+}
+
+/* Valider tout en bas de l'écran, à portée du pouce. */
+.saisie-focus {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.editeur-compact {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.saisie-focus.pile > * + *,
+.editeur-compact.pile > * + * {
+  margin-top: var(--e2);
+}
+.groupe-inactif {
+  opacity: 0.75;
+}
+.groupe-inactif .ligne-series > .courante {
+  background: var(--voile-fort);
+  color: var(--texte-salle);
+}
+.editeur-compact > .ligne-options {
+  order: 8;
+  margin-top: auto;
+}
+.editeur-compact > .options-serie {
+  order: 9;
+}
+.editeur-compact > .zone-valider {
+  order: 10;
+}
+
+/* Repos : le chrono se lit de loin, les réglages se touchent sans viser. */
+.focus.fixe {
+  --anneau: clamp(120px, calc(100dvh - 580px), 250px);
+}
+.focus.fixe .temps-grand {
+  font-size: min(var(--t-chrono), calc(var(--anneau) * 0.3));
+}
+.focus .boutons-grand {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  width: 100%;
+  gap: var(--e2);
+}
+.focus .boutons-grand .btn {
+  min-height: 64px;
+  font-size: var(--t-titre);
+}
+.focus .cible-grand {
+  font-size: var(--t-page);
+}
+.focus .etat-chrono {
+  opacity: 0.8;
+}
+.focus ~ .toast,
+.focus .toast {
+  top: calc(var(--e1) + env(safe-area-inset-top));
+}
+.serie-bloc.en-saisie {
+  scroll-margin-top: 150px;
 }

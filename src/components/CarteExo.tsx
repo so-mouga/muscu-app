@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { Check, ChevronDown, ChevronRight, Circle, Flame, Lightbulb, Link2, Pencil, Play, StickyNote, Timer, TriangleAlert } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { db, modifierExercice, uid } from '../db'
 import { chargeQte, chargeTexte, chrono, cibleTexte, ecartSerie, enTemps, fourchette, kg, lireChauffe, reposApres, reposTexte, RIR, schemaPlan, serieTexte } from '../lib/calc'
 import { reposApresSuperset } from '../lib/superset'
@@ -126,6 +127,11 @@ export default function CarteExo({
 
   const cible = (n: number) => cibleSerie(exo, plan, sugg, n)
 
+  // Série suivante : on l'amène à l'écran pour que « Valider » soit visible au-dessus de la barre de repos.
+  useEffect(() => {
+    if (enSaisie > 0) document.querySelector('.serie-bloc.en-saisie')?.scrollIntoView({ block: 'start' })
+  }, [enSaisie])
+
   // Même série à la séance précédente (la plus proche si elle en avait moins).
   const avant = (n: number) => derniere?.[n]
   // Ce que l'objectif demande de plus que la dernière fois (« +2,5 kg ») : là où il faut se surpasser.
@@ -146,6 +152,7 @@ export default function CarteExo({
       edition={enEdition}
       reposRestant={reposRestant}
       verrou={verrou}
+      compact={!enEdition}
       onFini={(s) => {
         if (enEdition) setEditId(null)
         else onValide(s, reposApresSuperset(seance.exercices, seance.exercices.findIndex((p) => p.exoId === plan.exoId), index, total))
@@ -174,13 +181,13 @@ export default function CarteExo({
           </h2>
           <BoutonInfos onClick={() => setInfos(true)} />
           {!termine && !passe && (
-            <button className="btn petit" style={{ minHeight: 40, flex: '0 0 auto' }} onClick={onMachinePrise}>
+            <button className="btn petit" style={{ flex: '0 0 auto' }} onClick={onMachinePrise}>
               Machine prise
             </button>
           )}
         </div>
         <div className="faible">
-          {plan.enchaine && <span className="badge-superset" style={{ marginRight: 6 }}>🔗 Superset</span>}
+          {plan.enchaine && <span className="badge-superset" style={{ marginRight: 6 }}><Link2 size={14} /> Superset</span>}
           {schemaPlan(exo, plan)} · RPE{' '}
           {plan.series.map((p) => kg(p.rpe)).join(', ')} · repos {reposTexte(plan)}
           {plan.finisseur && <span style={{ color: 'var(--finisseur)' }}> · ★ {FINISSEURS[typeFinisseur(plan)].nom.toLowerCase()}</span>}
@@ -210,11 +217,11 @@ export default function CarteExo({
             Cible : {cibleTexte(exo, sugg.charges, sugg.reps)}
           </strong>
           {battre ? (
-            <span className="badge-hausse">🔥 À battre</span>
+            <span className="badge-hausse"><Flame size={14} className="ico-texte" /> À battre</span>
           ) : (
             onObjectif && (
               <button className="btn discret petit lien-action" onClick={onObjectif}>
-                ✎ Modifier
+                <Pencil size={14} /> Modifier
               </button>
             )
           )}
@@ -223,12 +230,12 @@ export default function CarteExo({
           {battre
             ? 'Tu as prévu de faire mieux que la dernière fois : c’est ici qu’on progresse.'
             : bloque >= 3
-              ? `⏸ Pas de progrès depuis ${bloque} semaines : tente +1 rep ou un cran de charge${onObjectif ? ' (✎ Modifier)' : ''}, et regarde ton sommeil et tes repas.`
+              ? `Pas de progrès depuis ${bloque} semaines : tente +1 rep ou un cran de charge${onObjectif ? ' (Modifier)' : ''}, et regarde ton sommeil et tes repas.`
               : sugg.message}
         </div>
         {battre && onObjectif && (
           <button className="btn discret petit lien-action" onClick={onObjectif}>
-            ✎ Modifier l’objectif
+            <Pencil size={14} /> Modifier l’objectif
           </button>
         )}
       </div>
@@ -238,12 +245,12 @@ export default function CarteExo({
         </div>
       )}
       {(plan.note || exo.notes) && <div className="faible">ℹ️ {plan.note ?? exo.notes}</div>}
-      {noteAvant && !seance.notes[exo.id] && <div className="faible">📝 La dernière fois : {noteAvant}</div>}
+      {noteAvant && !seance.notes[exo.id] && <div className="faible"><StickyNote size={14} className="ico-texte" /> La dernière fois : {noteAvant}</div>}
 
       <div>
         {plan.chauffes.length > 0 && faites.length > 0 && !voirChauffes && (
           <button className="chauffes-repliees" onClick={() => setVoirChauffes(true)}>
-            Échauffement {plan.chauffes.every((_, i) => seance.chauffes[`${exo.id}:${i}`]) ? '✓ ' : ''}
+            Échauffement {plan.chauffes.every((_, i) => seance.chauffes[`${exo.id}:${i}`]) ? <Check size={14} className="ico-texte" /> : ''}
             {plan.chauffes.filter((_, i) => seance.chauffes[`${exo.id}:${i}`]).length}/{plan.chauffes.length} ›
           </button>
         )}
@@ -275,12 +282,12 @@ export default function CarteExo({
             const ligne = (
               <button key={s.id} className={'serie-faite' + (s.id === editId ? ' edition' : '')} onClick={() => setEditId(s.id === editId ? null : s.id)}>
                 <span>
-                  <span className="ok-texte">✓</span> <span className="faible">S{n + 1}</span> {serieTexte(exo, s)}
+                  <Check size={16} className="ok-texte ico-texte" /> <span className="faible">S{n + 1}</span> {serieTexte(exo, s)}
                   {avant(n) && <Ecart s={s} avant={avant(n)!} exo={exo} />}
                 </span>
                 <span className="faible">
                   {s.type === 'serie_longue' ? '★' : s.type !== 'normale' ? TYPES.find((t) => t[0] === s.type)?.[1] : ''}
-                  {s.douleur ? ' ⚠️' : ''} ✎
+                  {s.douleur ? <TriangleAlert size={14} className="ico-texte" /> : ''} <Pencil size={14} className="ico-texte" />
                 </span>
               </button>
             )
@@ -296,7 +303,7 @@ export default function CarteExo({
           const ligne = (
             <div key={n} className={'serie-prevue ' + (n === enSaisie ? 'en-cours' : 'a-venir')}>
               <span>
-                {n === enSaisie ? '▶' : '○'} <span className="faible">S{n + 1}</span> {cible(n)}
+                {n === enSaisie ? <Play size={13} fill="currentColor" className="ico-texte" /> : <Circle size={13} className="ico-texte" />} <span className="faible">S{n + 1}</span> {cible(n)}
                 {plan.finisseur && n === total - 1 ? ' ★' : ''}
                 {plus(n) && <span className="badge-hausse">↑ {plus(n)}</span>}
                 {avant(n) && <span className="avant">dernière fois : {serieTexte(exo, avant(n)!)}</span>}
@@ -307,7 +314,7 @@ export default function CarteExo({
             </div>
           )
           return n === enSaisie && !enEdition ? (
-            <div key={n} className="serie-bloc">
+            <div key={n} className={'serie-bloc' + (n === enSaisie ? ' en-saisie' : '')}>
               {ligne}
               {editeur}
             </div>
@@ -323,7 +330,7 @@ export default function CarteExo({
             {passe ? (
               <span className="pastille">⤼ Passé aujourd’hui{faites.length ? ` après ${faites.length} série${faites.length > 1 ? 's' : ''}` : ''}</span>
             ) : (
-              <span className="pastille ok">✓ Exercice terminé</span>
+              <span className="pastille ok"><Check size={13} className="ico-texte" /> Exercice terminé</span>
             )}
             <button className="btn discret petit" onClick={() => (passe ? onAnnulerPasser() : (ajuster(+1), onFaireMaintenant()))}>
               {passe ? 'Le faire quand même' : '+ série'}
@@ -366,7 +373,7 @@ export default function CarteExo({
         />
       ) : (
         <button className="btn discret petit" style={{ alignSelf: 'flex-start' }} onClick={() => setVoirNote(true)}>
-          📝 Ajouter une note
+          <StickyNote size={16} /> Ajouter une note
         </button>
       )}
     </div>
@@ -604,7 +611,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         ) : (
           // Le palier se corrige devant la machine : c'est là qu'on le connaît.
           <button type="button" className="unite unite-palier" onClick={() => setReglerPalier(!reglerPalier)} aria-label={`Palier de la machine : ${kg(pas)} kg, modifier`}>
-            {unite} · ±{kg(pas)} ✎
+            {unite} · ±{kg(pas)} <Pencil size={12} />
           </button>
         )}
       </div>
@@ -623,7 +630,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   )
 
   return (
-    <div className="pile">
+    <div className={'pile' + (compact ? ' editeur-compact' : '')}>
       {(!compact || edition) && (
         <div className="ligne entre">
           {edition && <h3>Modifier la série {index + 1}</h3>}
@@ -659,7 +666,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             style={{ width: '100%', fontSize: 'var(--t-texte)', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             onClick={() => setChronoOuvert(true)}
           >
-            <span>⏱</span>
+            <Timer size={20} />
             <span>LANCER LE CHRONO ({sugg.reps[i] ?? p.repsMax} s)</span>
           </button>
           <button
@@ -668,7 +675,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             style={{ marginTop: 4, color: 'var(--texte-3)', fontSize: 'var(--t-petit)' }}
             onClick={() => setSaisieManuelle(true)}
           >
-            ✎ Saisie manuelle ({reps} s)
+            <Pencil size={14} /> Saisie manuelle ({reps} s)
           </button>
         </div>
       ) : (
@@ -692,7 +699,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
                 style={{ color: 'var(--accent)', fontSize: 'var(--t-petit)' }}
                 onClick={() => setSaisieManuelle(false)}
               >
-                ⏱ Utiliser le chronomètre interactif
+                <Timer size={16} /> Utiliser le chronomètre interactif
               </button>
             </div>
           )}
@@ -727,7 +734,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           return (
             <div className="conseil-surcharge discret">
               <span className="faible">
-                💡 {prec.reps} reps, bien au-dessus de {plan.series[Math.min(index - 1, plan.series.length - 1)].repsMax} : tu peux monter d’un cran.
+                <Lightbulb size={14} className="ico-texte" /> {prec.reps} reps, bien au-dessus de {plan.series[Math.min(index - 1, plan.series.length - 1)].repsMax} : tu peux monter d’un cran.
               </span>
               <button className="btn petit" onClick={() => (setCharge(c), setChargeTxt(null))}>
                 {chargeTexte(exo, c)}
@@ -798,9 +805,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </div>
       )}
 
+      <div className="zone-valider">
       {verrou && !edition ? (
         <button className="btn grand" disabled style={{ opacity: 1, color: 'var(--ok)' }}>
-          ✓ SÉRIE ENREGISTRÉE
+          <Check size={22} /> SÉRIE ENREGISTRÉE
         </button>
       ) : finisseur ? (
         <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
@@ -815,10 +823,11 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           {reps <= 0 ? (temps ? 'INDIQUE LE TEMPS TENU' : 'INDIQUE AU MOINS 1 REP') : edition ? 'METTRE À JOUR' : 'VALIDER LA SÉRIE'}
         </button>
       )}
+      </div>
 
-      <div className="ligne entre">
+      <div className="ligne entre ligne-options">
         <button className="btn discret petit" onClick={() => setOptions(!options)}>
-          {options ? '▾' : '▸'} Type de série, douleur
+          {options ? <ChevronDown size={16} /> : <ChevronRight size={16} />} Type de série, douleur
         </button>
         {edition && (
           <div className="ligne">
@@ -875,7 +884,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             </div>
             <div className="chips">
               <button className={douleur ? 'actif' : ''} onClick={() => setDouleur(!douleur)}>
-                ⚠️ {douleur ? 'Douleur signalée' : 'Signaler une douleur'}
+                <TriangleAlert size={16} className="ico-texte" /> {douleur ? 'Douleur signalée' : 'Signaler une douleur'}
               </button>
             </div>
             {douleur && <div className="faible">Allège ou passe l’exercice. Si elle persiste, consulte.</div>}

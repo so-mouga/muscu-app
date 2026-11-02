@@ -1,3 +1,4 @@
+import { Disc3 } from 'lucide-react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { modifierExercice } from '../db'
@@ -184,12 +185,13 @@ export function PuceDisques({ exo, charge, unite = 'kg' }: { exo: Exercice; char
         className="btn discret petit"
         style={{
           alignSelf: 'center',
-          fontSize: 12,
-          padding: '4px 10px',
-          borderRadius: 'var(--rayon-2)',
+          fontSize: 'var(--t-petit)',
+          minHeight: 'var(--cible)',
+          padding: '0 var(--e3)',
+          borderRadius: 999,
           background: 'var(--surface-2)',
           border: '1px solid var(--bord)',
-          color: 'var(--texte-2)',
+          color: 'var(--texte-salle)',
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
@@ -197,7 +199,7 @@ export function PuceDisques({ exo, charge, unite = 'kg' }: { exo: Exercice; char
         onClick={() => setOuvert(true)}
         title="Ouvrir le calculateur de disques"
       >
-        <span>🏋️</span>
+        <Disc3 size={16} />
         <span>{texteResume}</span>
       </button>
 

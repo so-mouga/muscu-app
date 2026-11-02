@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Flame, Frown, Smile, Trophy } from 'lucide-react'
+import { Check, Flame, Frown, Info, Link2, List, Maximize2, Pencil, Play, Smile, StickyNote, Timer, TriangleAlert, Trophy, Wind } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -344,10 +344,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const memeCharge = avant.filter((x) => x.charge === s.charge)
     const e = e1rm(exo, s, seance.poidsCorps)
     const meilleur = Math.max(0, ...avant.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
-    if (e && meilleur && e > meilleur) setToast(`🏆 Nouveau record : 1RM estimé à ${kg(e)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}`)
+    if (e && meilleur && e > meilleur) setToast(`Nouveau record : 1RM estimé à ${kg(e)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}`)
     // Sans 1RM (pas de poids noté, isolation…) : une charge jamais soulevée est aussi un record.
     else if (!enTemps(exo) && s.reps > 0 && s.charge > Math.max(...avant.map((x) => x.charge)))
-      setToast(`🏆 Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
+      setToast(`Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
     else if (memeCharge.length && s.reps > Math.max(...memeCharge.map((x) => x.reps)))
       setToast(enTemps(exo) ? `🏆 Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `🏆 Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
   }
@@ -383,7 +383,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         transition(() => setIdxEtat(c.i + 1), 'carte-avant')
         range(`idx:${seance.id}`, c.i + 1)
       }
-      setToast(`🔁 ${nomAncien} → ${exo.nom}${chargeAncien ? ` (${kg(chargeAncien)} kg)` : ''}`)
+      setToast(`${nomAncien} → ${exo.nom}${chargeAncien ? ` (${kg(chargeAncien)} kg)` : ''}`)
       if (!(equivalents[ancien.exoId] ?? []).includes(exoId)) setLien({ a: ancien.exoId, b: exoId })
     } else {
       await majSeance(seance.id, (s) => {
@@ -529,18 +529,18 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </Anneau>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div>
-            <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait 💪'}</strong>
+            <strong>{restantes > 0 ? `Reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'Tout est fait'}</strong>
             {resteSec > 0 && <span className="faible"> · ~{minutes(Math.max(1, Math.round(resteSec / 60)))}</span>}
           </div>
-          <div className="faible">
-            ⏱ {chronoSeance(maintenant - seance.debut)}
+          <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
+            <Timer size={14} /> {chronoSeance(maintenant - seance.debut)}
           </div>
         </div>
       </div>
       <div className="focus-boutons">
         {/* Pendant l'échauffement : on y reste (pas de saut vers un exercice, pas de « Machine prise »). */}
         <button className="btn petit" onClick={() => naviguer(() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false)))}>
-          ☰ Vue liste
+          <List size={18} /> Vue liste
         </button>
         {enCours >= 0 && !echauffementActif(seance) && restantes > 0 && (
           <button className="btn petit" onClick={() => (setIdx(enCours), setMachinePrise(true))}>
@@ -553,7 +553,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       </div>
       {maintenant - seance.debut > 4 * 3600000 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 'var(--rayon-2)', marginTop: 8 }}>
-          <span className="faible" style={{ color: 'var(--texte)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
+          <span className="faible" style={{ color: 'var(--texte)' }}><TriangleAlert size={14} className="ico-texte" /> Séance ouverte depuis plus de 4 h</span>
           <button className="btn primaire petit" onClick={() => (setFocus(false), ouvrirFin(true))}>
             Terminer
           </button>
@@ -659,10 +659,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const enSuperset = groupe.length > 1
       return (
         <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
-          {derniere?.mieux && <div className="mieux-titre">↑ {derniere.mieux} vs la dernière fois 💪</div>}
+          {derniere?.mieux && <div className="mieux-titre">↑ {derniere.mieux} vs la dernière fois</div>}
           {enSuperset && (
             <div className="ligne wrap" style={{ gap: 6, marginBottom: 4, alignItems: 'center' }}>
-              <span className="badge-superset">🔗 Superset</span>
+              <span className="badge-superset"><Link2 size={14} /> Superset</span>
               <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
                 {groupe.map((gIdx, k) => (
                   <span key={plans[gIdx].exoId}>
@@ -677,9 +677,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           )}
           {exoFini ? (
             <div className="ligne entre">
-              <div className="nouvel-exo-titre">✓ {exoFini} terminé · exercice suivant</div>
-              <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)}>
-                ✎ S{derniere!.k + 1}
+              <div className="nouvel-exo-titre"><Check size={16} /> {exoFini} terminé · exercice suivant</div>
+              <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)} aria-label={`Corriger la série ${derniere!.k + 1}`}>
+                <Pencil size={16} /> S{derniere!.k + 1}
               </button>
             </div>
           ) : (
@@ -699,9 +699,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                 const gTotal = totalDe(gIdx)
                 const estActif = gIdx === enCours
                 return (
-                  <div key={gPlan.exoId} className="ligne entre" style={{ opacity: estActif ? 1 : 0.75 }}>
+                  <div key={gPlan.exoId} className={'ligne entre' + (estActif ? '' : ' groupe-inactif')}>
                     <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {estActif ? '▶ ' : ''}{gExo.nom.slice(0, 12)} :
+                      {estActif && <Play size={11} fill="currentColor" className="ico-texte" />} {gExo.nom.slice(0, 12)} :
                     </span>
                     <LigneSeries
                       exo={gExo}
@@ -718,10 +718,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
           )}
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
-          {plus && <div className="badge-hausse grand">🔥 ↑ {plus} par rapport à la dernière fois</div>}
+          {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant)}</div>}
           {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
-          {(p.note || exo.notes) && <div className="faible">ℹ️ {p.note ?? exo.notes}</div>}
+          {(p.note || exo.notes) && <div className="faible"><Info size={14} className="ico-texte" /> {p.note ?? exo.notes}</div>}
         </div>
       )
     })()
@@ -784,7 +784,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               <div className="focus-bloc pile saisie-focus">
                 {enSuperset && (
                   <div className="ligne wrap" style={{ gap: 6, marginBottom: 2, alignItems: 'center' }}>
-                    <span className="badge-superset">🔗 Superset</span>
+                    <span className="badge-superset"><Link2 size={14} /> Superset</span>
                     <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
                       {groupe.map((gIdx, k) => (
                         <span key={plans[gIdx].exoId}>
@@ -813,9 +813,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                       const gTotal = totalDe(gIdx)
                       const estActif = gIdx === enCours
                       return (
-                        <div key={gPlan.exoId} className="ligne entre" style={{ opacity: estActif ? 1 : 0.75 }}>
+                        <div key={gPlan.exoId} className={'ligne entre' + (estActif ? '' : ' groupe-inactif')}>
                           <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: estActif ? '700' : 'normal', minWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {estActif ? '▶ ' : ''}{gExo.nom.slice(0, 12)} :
+                            {estActif && <Play size={11} fill="currentColor" className="ico-texte" />} {gExo.nom.slice(0, 12)} :
                           </span>
                           <LigneSeries
                             exo={gExo}
@@ -838,7 +838,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                     {plus && <span className="badge-hausse"> ↑ {plus}</span>}
                   </div>
                 )}
-                {noteAvant(p.exoId) && !seance.notes[p.exoId] && <div className="faible">📝 La dernière fois : {noteAvant(p.exoId)}</div>}
+                {noteAvant(p.exoId) && !seance.notes[p.exoId] && <div className="faible"><StickyNote size={14} className="ico-texte" /> La dernière fois : {noteAvant(p.exoId)}</div>}
                 <Editeur
                   key={`${p.exoId}-${n}-${suggestions[enCours].charges.join()}`}
                   seance={seance}
@@ -859,7 +859,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           })()
         ) : (
           <div className="focus-bloc pile">
-            <h2>Toutes les séries sont faites 💪</h2>
+            <h2>Toutes les séries sont faites</h2>
             <button className="btn primaire grand" onClick={() => (setFocus(false), ouvrirFin(true))}>
               Terminer la séance
             </button>
@@ -907,9 +907,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             <span>
               <strong className="chrono-seance">{chronoSeance(maintenant - seance.debut)}</strong>
               <span className="faible">
-                {totalSeries > 0 && (restantes > 0 ? `reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'tout est fait 💪')}
+                {totalSeries > 0 && (restantes > 0 ? `reste ${restantes} série${restantes > 1 ? 's' : ''}` : 'tout est fait')}
               </span>
-              <span className="indice-plein-ecran">⤢ Plein écran</span>
+              <span className="indice-plein-ecran"><Maximize2 size={12} className="ico-texte" /> Plein écran</span>
             </span>
           </button>
           <button className="btn" onClick={() => ouvrirFin(true)}>
@@ -918,13 +918,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
         {maintenant - seance.debut > 4 * 3600000 && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '8px 12px', background: 'var(--surface-2)', border: '1px solid var(--bord)', borderRadius: 'var(--rayon-2)', margin: '8px 0' }}>
-            <span className="faible" style={{ color: 'var(--texte)' }}>⚠️ Séance ouverte depuis plus de 4 h</span>
+            <span className="faible" style={{ color: 'var(--texte)' }}><TriangleAlert size={14} className="ico-texte" /> Séance ouverte depuis plus de 4 h</span>
             <button className="btn primaire petit" onClick={() => ouvrirFin(true)}>
               Terminer
             </button>
           </div>
         )}
-        {seance.deload && <div className="bandeau-deload">🧘 Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
+        {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> Déload : charges −10 %, RPE 6-7, sans échec. Récupère, ne force pas.</div>}
         {!echauffementActif(seance) && pastilles}
         {!surEchauffement && enCours >= 0 && enCours !== idx && (
           <div className="legende-pills">
@@ -1405,23 +1405,30 @@ function FinSeance({
 /** Toutes les séries de l'exercice sur une ligne : faites (✓), en cours (→), à venir. */
 function LigneSeries({ exo, faites, total, cible, onCorriger }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void }) {
   // Toutes les séries de l'exercice, chacune une seule fois : faites (✎ pour corriger), en cours (▶, sa cible est affichée en grand à côté), à venir.
+  const rangee = useRef<HTMLDivElement>(null)
+  // Une seule rangée qui défile : la série en cours reste visible, même sur 5 séries.
+  useEffect(() => {
+    const el = rangee.current
+    const c = el?.querySelector<HTMLElement>('.courante')
+    if (el && c) el.scrollLeft = c.offsetLeft - el.offsetLeft - (el.clientWidth - c.offsetWidth) / 2
+  }, [faites.length])
   return (
-    <div className="ligne-series">
+    <div className="ligne-series" ref={rangee}>
       {Array.from({ length: total }, (_, k) => {
         const f = faites[k]
         if (f)
           return onCorriger ? (
             <button key={k} className="faite" onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
-              S{k + 1} {serieTexte(exo, f)} ✓ ✎
+              S{k + 1} {serieTexte(exo, f)} <Pencil size={13} />
             </button>
           ) : (
             <span key={k} className="faite">
-              S{k + 1} {chargeQte(exo, f.charge, f.reps)} ✓
+              S{k + 1} {chargeQte(exo, f.charge, f.reps)} <Check size={14} />
             </span>
           )
         return (
           <span key={k} className={k === faites.length ? 'courante' : ''}>
-            S{k + 1} {k === faites.length ? '▶' : cible(k).split(' · ')[0]}
+            S{k + 1} {k === faites.length ? <Play size={13} fill="currentColor" /> : cible(k).split(' · ')[0]}
           </span>
         )
       })}

@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { consigne } from '../data/consignes'
@@ -46,7 +47,7 @@ export function BoutonInfos({ onClick }: { onClick: () => void }) {
         onClick()
       }}
     >
-      i
+      <Info size={22} />
     </button>
   )
 }

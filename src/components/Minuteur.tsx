@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Check, Maximize2, Pause, Play } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { db } from '../db'
 import { alarme, tic } from '../lib/appareil'
@@ -82,7 +83,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
           {/* En plein écran, la pause est sur le cercle lui-même. */}
           {variante !== 'grand' && (
             <button className="btn" onClick={basculerPause} aria-label={enPause ? 'Reprendre le repos' : 'Mettre en pause'}>
-              {enPause ? '▶' : '⏸'}
+              {enPause ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
             </button>
           )}
           <button className="btn" onClick={() => decaler(-15000)}>
@@ -121,7 +122,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
             fluide={!enPause && !fini}
           >
             <div className={'etat-chrono' + (enPause ? ' en-pause' : '') + (fini ? ' fini' : '')}>
-              {fini ? '✓' : enPause ? '▶' : '⏸'}
+              {fini ? <Check size={24} /> : enPause ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
             </div>
             <div className="temps-grand">{temps}</div>
           </Anneau>
@@ -139,7 +140,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
           <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? 'var(--minuteur-fini)' : 'var(--accent)'} fluide={!enPause && !fini}>
             <span className="temps-petit">{temps}</span>
           </Anneau>
-          {onAgrandir && <span className="indice-plein-ecran">⤢ Plein écran</span>}
+          {onAgrandir && <span className="indice-plein-ecran"><Maximize2 size={12} className="ico-texte" /> Plein écran</span>}
         </button>
         <span className="espace" />
         {boutons}
