@@ -29,10 +29,13 @@ const arr = (x: number) => Math.round(x * 100) / 100
 /** Ajuster à la main la charge et les reps de chaque série pour la prochaine séance,
  * en regard de ce qui vient d'être fait (charge, reps, RPE, écart avec la dernière fois). */
 export default function EditeurObjectif({ exo, base, actuel, faites, precedente, record, quand = 'aujourd’hui', onValider, onDefaut, onFermer }: Props) {
-  useRetour(true, onFermer)
   const [charges, setCharges] = useState<(number | null)[]>(actuel?.charges ?? base.charges)
   const [reps, setReps] = useState<number[]>(actuel?.reps ?? base.reps)
   const [textes, setTextes] = useState<(string | null)[]>(() => charges.map(() => null))
+  const [depart] = useState(() => JSON.stringify({ charges, reps }))
+  // Appui à côté et retour Android gardent ce qui a changé ; seul « Annuler » ne garde rien.
+  const fermer = () => (JSON.stringify({ charges, reps }) === depart ? onFermer() : onValider({ charges, reps }))
+  useRetour(true, fermer)
 
   const pas = exo.pas
   const unite = exo.mode === 'elastique' ? 'niv.' : exo.mode === 'poids_corps' ? 'lest' : 'kg'
@@ -46,7 +49,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
   }
 
   return (
-    <div className="modal-fond">
+    <div className="modal-fond" onClick={fermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div>
           <h2>{exo.nom}</h2>

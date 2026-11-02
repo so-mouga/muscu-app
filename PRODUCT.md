@@ -86,7 +86,6 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
 - Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. Remplacer les émojis et symboles restants, dont ★ et 👀 en séance.
-- « Modifier l'objectif » (`EditeurObjectif`) ne se ferme pas par un appui à côté, contrairement à la règle d'`AGENTS.md` : à corriger avec la fin de séance.
 - Revoir le mode « Machine prise » et l'échauffement général de la séance, pas encore repris.
 - Vérifier la séance sur le téléphone en mode finisseur, et le son à la fin du repos quand une fenêtre est ouverte.
 - Tester chaque écran de 667 à 832 px de haut. Les scripts de capture de cette conversation n'ont pas été gardés dans le dépôt.

@@ -52,7 +52,7 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
 - **Tout en français**, y compris noms de variables et fonctions. Expliquer en clair, sans jargon : l'utilisateur trouve les libellés techniques peu clairs.
 - **Jamais `confirm` / `alert` / `prompt` natifs** : utiliser `confirmer` / `informer` de `components/Dialogues.tsx`.
 - **Enregistrement automatique partout**, pas de bouton Enregistrer. Rien ne doit se perdre en quittant un écran, y compris par la barre du bas.
-- **Fenêtres** (`.modal-fond` > `.modal`) : un appui à côté les ferme en gardant ce qui est saisi (y compris la correction d'une série dans le Journal : `Editeur` reçoit `fermeture`, qui enregistre si la série a changé ; une série oubliée pas encore validée n'est pas ajoutée). Chaque couche ouverte s'enregistre avec `useRetour` pour que le bouton retour Android la ferme.
+- **Fenêtres** (`.modal-fond` > `.modal`) : un appui à côté les ferme en gardant ce qui est saisi (y compris la correction d'une série dans le Journal : `Editeur` reçoit `fermeture`, qui enregistre si la série a changé ; une série oubliée pas encore validée n'est pas ajoutée ; même chose pour l'objectif de la prochaine fois, `EditeurObjectif`, où seul « Annuler » ne garde rien). Chaque couche ouverte s'enregistre avec `useRetour` pour que le bouton retour Android la ferme.
 - Une fenêtre ouverte depuis l'intérieur d'une carte doit passer par `createPortal(…, document.body)`, sinon l'en-tête de séance passe au-dessus.
 - Nombres saisis au clavier : pris en compte à la fin de la saisie (`NombreCourt`), pas à chaque touche.
 - Réordonner une liste : poignée ⠿ avec appui maintenu, via `useGlisser` (`lib/glisser.ts`). Pas de flèches ↑↓.
