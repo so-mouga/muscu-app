@@ -182,7 +182,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
             {onChoixMultiple ? (
               <div className="barre-ajout">
                 <button className="btn primaire grand" disabled={!choisis.length} onClick={() => onChoixMultiple(choisis)}>
-                  {choisis.length ? `AJOUTER (${choisis.length})` : 'Coche des exercices'}
+                  {choisis.length ? `Ajouter (${choisis.length})` : 'Coche des exercices'}
                 </button>
                 <button className="btn discret plein" onClick={onFermer}>
                   Annuler

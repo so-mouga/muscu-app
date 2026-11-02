@@ -238,7 +238,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
         </div>
 
         <button className="btn primaire grand" onClick={enregistrer}>
-          {cycle ? 'ENREGISTRER' : 'LANCER LE CYCLE'}
+          {cycle ? 'Enregistrer' : 'Lancer le cycle'}
         </button>
         <button className="btn discret plein" onClick={onFermer}>
           Annuler

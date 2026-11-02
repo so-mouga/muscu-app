@@ -123,7 +123,7 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
         </div>
 
         <button className="btn primaire grand" onClick={() => onValider({ charges, reps })}>
-          FIXER CET OBJECTIF
+          Fixer cet objectif
         </button>
         {actuel && (
           <button className="btn plein" onClick={onDefaut}>

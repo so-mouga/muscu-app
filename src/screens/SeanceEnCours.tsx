@@ -1388,7 +1388,7 @@ function FinSeance({
         <>
           <div className="barre-enregistrer">
             <button className="btn primaire grand" onClick={enregistrer}>
-              ✓ ENREGISTRER LA SÉANCE
+              ✓ Enregistrer la séance
             </button>
           </div>
           <button className="btn discret danger plein" style={{ marginTop: 8 }} onClick={abandonner}>

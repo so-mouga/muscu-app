@@ -605,7 +605,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
 
       <div className="barre-demarrer">
         <button className="btn primaire grand" disabled={!Object.keys(valeurs).length} onClick={enregistrer}>
-          ENREGISTRER
+          Enregistrer
         </button>
       </div>
       {initial && (

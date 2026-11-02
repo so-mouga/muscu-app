@@ -583,7 +583,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           className="btn finisseur grand"
           onClick={() => enregistrer(construire(info.typeSerie, tf === 'partielles' ? { demiReps: demi, zone } : { suite, rpe: 10 }))}
         >
-          VALIDER LE FINISSEUR
+          Valider le finisseur
         </button>
         <button className="btn plein" onClick={() => enregistrer(construire('echec'))}>
           Je me suis arrêté à l’échec
@@ -693,7 +693,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             onClick={() => setChronoOuvert(true)}
           >
             <Timer size={20} />
-            <span>LANCER LE CHRONO ({sugg.reps[i] ?? p.repsMax} s)</span>
+            <span>Lancer le chrono ({sugg.reps[i] ?? p.repsMax} s)</span>
           </button>
           <button
             type="button"
@@ -812,11 +812,11 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       <div className="zone-valider">
       {verrou && !edition ? (
         <button className="btn grand" disabled style={{ opacity: 1, color: 'var(--ok)' }}>
-          <Check size={22} /> SÉRIE ENREGISTRÉE
+          <Check size={22} /> Série enregistrée
         </button>
       ) : finisseur ? (
         <button className={'btn grand' + (enRepos ? '' : ' finisseur')} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
-          {tf === 'echec' ? 'VALIDER (ÉCHEC)' : 'ÉCHEC ATTEINT'}
+          {tf === 'echec' ? 'Valider (échec)' : 'Échec atteint'}
         </button>
       ) : temps && !edition && !saisieManuelle ? null : (
         <button
@@ -824,7 +824,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           disabled={reps <= 0}
           onClick={() => enregistrer(serieAffichee())}
         >
-          {reps <= 0 ? (temps ? 'INDIQUE LE TEMPS TENU' : 'INDIQUE AU MOINS 1 REP') : edition ? 'METTRE À JOUR' : 'VALIDER LA SÉRIE'}
+          {reps <= 0 ? (temps ? 'Indique le temps tenu' : 'Indique au moins 1 rep') : edition ? 'Mettre à jour' : 'Valider la série'}
         </button>
       )}
       </div>

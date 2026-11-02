@@ -1,27 +1,26 @@
 :root {
   /* Fonds. --surface et --sous-carte sont des dégradés (fond seulement) : pour une couleur (fill, stroke, bordure, color-mix), --surface-uni. */
-  --bg: #090b10;
-  --surface: linear-gradient(160deg, #1c2230 0%, #141924 100%);
+  --bg: #0c0b0a;
+  --surface: linear-gradient(160deg, #1e1c1a 0%, #151413 100%);
   --sous-carte: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%);
-  --surface-uni: #181d28;
+  --surface-uni: #191716;
   --surface-2: rgba(255, 255, 255, 0.04);
-  --barre-fond: rgba(12, 15, 22, 0.9);
+  --barre-fond: rgba(15, 14, 13, 0.9);
 
   /* Voiles et bordures neutres */
   --voile: rgba(255, 255, 255, 0.06);
   --voile-fort: rgba(255, 255, 255, 0.12);
   --voile-bord: rgba(255, 255, 255, 0.25);
   --bord: rgba(255, 255, 255, 0.08);
-  --bord-haut: rgba(255, 255, 255, 0.18);
-  /* Boutons : encore un cran plus clairs que les cartes, éclairés par le haut. */
-  --controle: linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.06) 100%);
-  --reflet: rgba(255, 255, 255, 0.25);
+  --bord-haut: rgba(255, 255, 255, 0.14);
+  /* Boutons : un fond uni un cran plus clair que les cartes, sans bordure ni ombre. */
+  --controle: rgba(255, 255, 255, 0.08);
 
   /* Texte. --texte-salle : informations secondaires en séance (néons, soleil). */
-  --texte: #f3f4f6;
-  --texte-salle: #c9d1d9;
-  --texte-2: #98a1ad;
-  --texte-3: #8f98a4;
+  --texte: #f5f4f2;
+  --texte-salle: #d6d3d1;
+  --texte-2: #a8a29e;
+  --texte-3: #9c9690;
   --blanc: #ffffff;
   --noir: #000000;
 
@@ -31,7 +30,7 @@
   --accent-voile: rgba(249, 115, 22, 0.14);
   --accent-bord: rgba(249, 115, 22, 0.35);
   --accent-attenu: rgba(249, 115, 22, 0.5);
-  --ombre-primaire: 0 6px 16px rgba(249, 115, 22, 0.28), inset 0 1px 0 var(--reflet);
+  --ombre-primaire: 0 8px 24px rgba(249, 115, 22, 0.2);
   --ok: #22c55e;
   --ok-voile: rgba(34, 197, 94, 0.12);
   --ok-bord: rgba(34, 197, 94, 0.3);
@@ -50,7 +49,7 @@
   --finisseur-texte: #1b0d2b;
 
   /* Données : silhouette, disques de fonte, courbes de tendances. */
-  --silhouette: #3b4150;
+  --silhouette: #44403c;
   --silhouette-bord: rgba(0, 0, 0, 0.25);
   --disque-bleu: #2563eb;
   --disque-vert: #16a34a;
@@ -268,9 +267,7 @@ select {
   padding: 0 16px;
   border-radius: var(--rayon-2);
   background: var(--controle);
-  border: 1px solid var(--bord);
-  border-top-color: var(--bord-haut);
-  box-shadow: 0 1px 2px var(--ombre-legere);
+  border: 1px solid transparent;
   font-weight: 600;
 }
 button,
@@ -314,7 +311,9 @@ button:active:not(:disabled),
   background: var(--accent);
   color: var(--accent-texte);
   border-color: transparent;
+  border-radius: var(--rayon);
   box-shadow: var(--ombre-primaire);
+  font-weight: 500;
 }
 .btn.finisseur {
   background: var(--finisseur);
@@ -325,8 +324,7 @@ button:active:not(:disabled),
   width: 100%;
   min-height: var(--salle-valider);
   font-size: var(--t-texte);
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 .btn.plein {
   width: 100%;
@@ -334,7 +332,6 @@ button:active:not(:disabled),
 .btn.discret {
   background: transparent;
   border-color: transparent;
-  box-shadow: none;
   color: var(--texte-2);
 }
 .btn.danger {
@@ -453,8 +450,7 @@ button:active:not(:disabled),
   height: var(--cible);
   border-radius: var(--rayon-2);
   background: var(--controle);
-  border: 1px solid var(--bord);
-  border-top-color: var(--bord-haut);
+  border: 1px solid transparent;
   color: var(--texte-salle);
   font-weight: 700;
 }
@@ -477,9 +473,7 @@ button:active:not(:disabled),
   height: 56px;
   border-radius: var(--rayon-2);
   background: var(--controle);
-  border: 1px solid var(--bord);
-  border-top-color: var(--bord-haut);
-  box-shadow: 0 1px 2px var(--ombre-legere);
+  border: 1px solid transparent;
   font-size: var(--t-page);
   font-weight: 700;
 }
@@ -514,9 +508,7 @@ button:active:not(:disabled),
   height: 48px;
   border-radius: var(--rayon-2);
   background: var(--controle);
-  border: 1px solid var(--bord);
-  border-top-color: var(--bord-haut);
-  box-shadow: 0 1px 2px var(--ombre-legere);
+  border: 1px solid transparent;
   font-weight: 700;
   font-size: var(--t-texte);
   padding: 0;
@@ -3812,7 +3804,6 @@ button.phase-accueil {
   flex: 0 0 auto;
 }
 .ligne-terminee .btn {
-  box-shadow: none;
   min-height: 32px;
   padding: 0 0 0 var(--e2);
   font-size: var(--t-petit);
@@ -3966,4 +3957,9 @@ html[data-sens='fondu']::view-transition-new(root) {
 .minuteur.grand .anneau svg {
   filter: drop-shadow(0 0 14px var(--halo));
   transition: filter var(--duree-courte);
+}
+
+/* Bouton principal grand : même poids que les autres, la couleur suffit. */
+.btn.grand.primaire {
+  font-weight: 500;
 }

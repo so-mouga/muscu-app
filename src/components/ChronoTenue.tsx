@@ -70,7 +70,7 @@ export default function ChronoTenue({ objectif, nom, onStop, onAnnuler }: Props)
         </>
       )}
       <button className={'btn grand' + (avant > 0 ? '' : ' primaire')} style={{ width: '100%', fontSize: 'var(--t-titre)', minHeight: 52 }} onClick={() => (avant > 0 ? onAnnuler() : onStop(tenu))}>
-        {avant > 0 ? 'Annuler' : `■ STOP ET VALIDER (${tenu} s)`}
+        {avant > 0 ? 'Annuler' : `■ Stop et valider (${tenu} s)`}
       </button>
       {avant <= 0 && (
         <button type="button" className="btn discret petit" style={{ marginTop: 8, color: 'var(--texte-3)' }} onClick={onAnnuler}>
