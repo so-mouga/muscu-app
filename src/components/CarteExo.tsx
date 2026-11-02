@@ -657,7 +657,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   return (
     <div className={'pile' + (compact ? ' editeur-compact' : '')}>
-      {(!compact || edition) && (
+      {!compact && (
         <div className="ligne entre">
           {edition && <h3>Modifier la série {index + 1}</h3>}
           <span className="faible">
@@ -839,7 +839,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           )}
           <ChevronRight size={16} />
         </button>
-        {edition && (
+        {edition && !compact && (
           <div className="ligne">
             <button className="btn discret petit" onClick={onAnnulerEdition}>
               Annuler
@@ -850,6 +850,17 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           </div>
         )}
       </div>
+
+      {edition && compact && (
+        <div className="ligne entre ligne-correction">
+          <button className="btn discret petit danger" onClick={supprimer}>
+            Supprimer la série
+          </button>
+          <button className="btn discret petit" onClick={onAnnulerEdition}>
+            Annuler
+          </button>
+        </div>
+      )}
 
       {options &&
         createPortal(

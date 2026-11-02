@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Check, Flame, Frown, Info, Link2, Maximize2, Pencil, Play, Smile, StickyNote, Timer, TriangleAlert, Trophy, Wind } from 'lucide-react'
+import { Check, Flame, Frown, Info, Link2, Maximize2, Pencil, Play, Smile, StickyNote, Timer, TriangleAlert, Trophy, Wind, X } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -14,7 +14,7 @@ import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { ecartSerie, lireChauffe, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
+import { chrono, ecartSerie, lireChauffe, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -496,7 +496,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   // Mode plein écran : le repos en grand, puis la carte de l'exercice en cours pour saisir la série.
   const reposEnCours = !!minuteur && !(minuteur.pause === undefined && minuteur.fin <= maintenant)
-  const vueRepos = reposEnCours && !saisie && !corrige
+  const vueRepos = reposEnCours && !saisie
   const pastilles = (
     <div className="pills" ref={pills} onScroll={marquerDebord}>
       {avecEchauffement && (
@@ -738,41 +738,34 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </div>
       )
     })()
-    // Correction : seulement la série concernée, rien d'autre.
+    // Correction : une fenêtre par-dessus le plein écran, le repos continue derrière.
     const correction = (() => {
       const serie = corrige ? seance.series.find((x) => x.id === corrige) : undefined
       const i = serie ? plans.findIndex((p) => p.exoId === serie.exoId) : -1
       if (!serie || i < 0) return null
-      const faites = seance.series.filter((x) => x.exoId === serie.exoId)
+      const reste = minuteur ? resteRepos(minuteur, maintenant) : 0
+      const repos = !minuteur ? null : minuteur.pause !== undefined ? `Repos en pause · ${chrono(Math.ceil(reste))}` : reste > 0 ? `Repos ${chrono(Math.ceil(reste))}` : 'Repos terminé'
       return (
-        <div className="focus-bloc pile">
-          <div className="faible">{exos[i].nom}</div>
-          <Editeur
-            seance={seance}
-            plan={plans[i]}
-            exo={exos[i]}
-            sugg={suggestions[i]}
-            index={faites.indexOf(serie)}
-            total={totalDe(i)}
-            faites={faites}
-            edition={serie}
-            reposRestant={0}
-            verrou={false}
-            compact
-            onFini={() => setCorrige(null)}
-            onAnnulerEdition={() => setCorrige(null)}
-          />
-        </div>
+        <FenetreCorrection
+          key={serie.id}
+          seance={seance}
+          plan={plans[i]}
+          exo={exos[i]}
+          sugg={suggestions[i]}
+          serie={serie}
+          total={totalDe(i)}
+          repos={repos}
+          onFermer={() => setCorrige(null)}
+        />
       )
     })()
 
     return (
-      <div ref={ecranFocus} className={'focus' + (vueRepos && !correction ? ' fixe' : '')}>
+      <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
-        {correction ? (
-          correction
-        ) : vueRepos ? (
+        {correction}
+        {vueRepos ? (
           <>
             {prochaine}
             {plans.some((pl, j) => j !== enCours && !estPasse(j) && nbFaites(pl.exoId) < totalDe(j)) && (
@@ -1418,6 +1411,33 @@ function FinSeance({
 }
 
 /** Toutes les séries de l'exercice sur une ligne : faites (✓), en cours (→), à venir. */
+/** Corriger une série sans quitter le plein écran. Fermer (croix, appui à côté, retour) garde ce qui a changé. */
+function FenetreCorrection({ seance, plan, exo, sugg, serie, total, repos, onFermer }: { seance: Seance; plan: ExoPlan; exo: Exercice; sugg: Suggestion; serie: Serie; total: number; repos: string | null; onFermer: () => void }) {
+  const fermeture = useRef<(() => void) | null>(null)
+  const fermer = () => (fermeture.current ? fermeture.current() : onFermer())
+  useRetour(true, fermer)
+  const faites = seance.series.filter((x) => x.exoId === serie.exoId)
+  const index = faites.findIndex((x) => x.id === serie.id)
+  return createPortal(
+    <div className="modal-fond" onClick={fermer}>
+      <div className="modal pile fenetre-correction" onClick={(e) => e.stopPropagation()}>
+        <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
+          <div style={{ minWidth: 0 }}>
+            <h2>Corriger la série {index + 1}</h2>
+            <div className="faible">{exo.nom}</div>
+            {repos && <div className="repos-correction">{repos}</div>}
+          </div>
+          <button className="btn-fermer" aria-label="Fermer" onClick={fermer}>
+            <X size={22} />
+          </button>
+        </div>
+        <Editeur seance={seance} plan={plan} exo={exo} sugg={sugg} index={index} total={total} faites={faites} edition={serie} reposRestant={0} verrou={false} compact fermeture={fermeture} onFini={onFermer} onAnnulerEdition={onFermer} />
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function LigneSeries({ exo, faites, total, cible, onCorriger }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void }) {
   // Toutes les séries de l'exercice, chacune une seule fois : faites (✎ pour corriger), en cours (▶, sa cible est affichée en grand à côté), à venir.
   const rangee = useRef<HTMLDivElement>(null)

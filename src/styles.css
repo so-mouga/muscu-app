@@ -3901,3 +3901,24 @@ html[data-sens='fondu']::view-transition-new(root) {
     opacity: 0;
   }
 }
+
+/* Correction d'une série : fenêtre par-dessus le plein écran */
+.repos-correction {
+  margin-top: var(--e1);
+  font-size: var(--t-petit);
+  font-weight: 600;
+  color: var(--accent);
+}
+.fenetre-correction .faible {
+  color: var(--texte-salle);
+}
+.editeur-compact > .ligne-correction {
+  order: 11;
+}
+.ligne-correction .btn {
+  min-height: var(--cible);
+  padding: 0;
+}
+.fenetre-correction .ligne-options .btn {
+  color: var(--texte-salle);
+}
