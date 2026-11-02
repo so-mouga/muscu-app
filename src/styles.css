@@ -2325,26 +2325,39 @@ button.pastille.cliquable {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 8px;
-  padding: 4px 4px 4px 12px;
+  padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--alerte) 50%, var(--bord));
   font-size: 14px;
+  white-space: nowrap;
 }
 .rappel-ligne .texte {
   background: none;
-  padding: 8px 0;
+  padding: 0;
   text-align: left;
   color: inherit;
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fermer-rappel {
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
+  border: none;
   color: var(--texte-3);
-  font-size: 16px;
+  font-size: 15px;
+  cursor: pointer;
 }
 .carte .bandeau-cycle {
   margin: 0 0 4px;

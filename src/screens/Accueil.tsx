@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { Check, ChevronDown, ChevronRight, ChevronUp, Dumbbell, Moon, RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, ChevronUp, CloudUpload, Download, Dumbbell, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, X } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, lundi } from '../lib/calc'
@@ -270,7 +270,7 @@ export default function Accueil({
       : ''
 
   return (
-    <div>
+    <div style={{ paddingBottom: 95 }}>
       <div className="entete" style={{ alignItems: 'flex-start', marginBottom: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -366,25 +366,95 @@ export default function Accueil({
 
       {/* En haut, sur une ligne : nouvelle version de l'appli Android, sauvegarde à faire (rares, et ce qu'on perdrait). */}
       {majAndroid && !masque('android') && (
-        <div className="rappel-ligne">
+        <div
+          className="rappel-ligne"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            whiteSpace: 'nowrap',
+            padding: '10px 14px',
+            border: '1px solid rgba(86, 180, 233, 0.3)',
+            background: 'rgba(86, 180, 233, 0.08)',
+          }}
+        >
           {/* Le téléchargement s'ouvre dans le navigateur du téléphone ; on installe par-dessus, les données restent. */}
-          <a className="texte" href={majAndroid.url}>
-            📲 Nouvelle version de l’appli ({majAndroid.version}) : installer
-            <span className="faible"> · tes données sont gardées</span> ›
+          <a
+            className="texte"
+            href={majAndroid.url}
+            style={{
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Download size={16} strokeWidth={2} style={{ color: '#56b4e9', flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Nouvelle version ({majAndroid.version}) : installer
+              <span className="faible"> · données gardées</span>
+            </span>
           </a>
-          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('android')}>
-            ✕
+          <button
+            type="button"
+            className="fermer-rappel"
+            aria-label="Masquer ce rappel une semaine"
+            onClick={() => masquer('android')}
+          >
+            <X size={15} strokeWidth={2} />
           </button>
         </div>
       )}
       {exportVieux && !masque('export') && (
-        <div className="rappel-ligne">
-          <button className="texte" onClick={sauvegarderTout}>
-            💾 Sauvegarder (Drive, mail…)
-            <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span> ›
+        <div
+          className="rappel-ligne"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            whiteSpace: 'nowrap',
+            padding: '10px 14px',
+            border: '1px solid rgba(249, 115, 22, 0.3)',
+            background: 'rgba(249, 115, 22, 0.08)',
+          }}
+        >
+          <button
+            type="button"
+            className="texte"
+            onClick={sauvegarderTout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              padding: 0,
+              cursor: 'pointer',
+              textAlign: 'left',
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            <CloudUpload size={16} strokeWidth={2} style={{ color: '#f97316', flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Sauvegarder (Drive, mail…)
+              <span className="faible"> · {joursExport === null ? 'jamais fait' : `dernière il y a ${joursExport} j`}</span>
+            </span>
           </button>
-          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('export')}>
-            ✕
+          <button
+            type="button"
+            className="fermer-rappel"
+            aria-label="Masquer ce rappel une semaine"
+            onClick={() => masquer('export')}
+          >
+            <X size={15} strokeWidth={2} />
           </button>
         </div>
       )}
@@ -434,26 +504,88 @@ export default function Accueil({
                   const l = aBattreDe(proposee.modele)
                   if (!l.length) return null
                   return (
-                    <div className="a-battre">
-                      <div className="badge-hausse grand">À battre aujourd’hui</div>
-                      {l.slice(0, 3).map((x) => (
-                        <div key={x.exo.id} className="ligne-battre">
-                          <span>{x.exo.nom}</span>
-                          <span>
-                            <strong>{x.cible}</strong> <span className="plus">{x.plus}</span>
+                    <div
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: 10,
+                        padding: '8px 12px',
+                        margin: '10px 0',
+                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#f97316' }}>
+                          À battre aujourd’hui
+                        </span>
+                        {l.length > 3 && (
+                          <span className="faible" style={{ fontSize: '0.75rem' }}>
+                            +{l.length - 3} autre{l.length > 4 ? 's' : ''}
                           </span>
-                        </div>
-                      ))}
-                      {l.length > 3 && <div className="faible">+ {l.length - 3} autre{l.length > 4 ? 's' : ''}</div>}
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {l.slice(0, 3).map((x) => (
+                          <div
+                            key={x.exo.id}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: 8,
+                              fontSize: '0.85rem',
+                            }}
+                          >
+                            <span style={{ color: 'var(--texte)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {x.exo.nom}
+                            </span>
+                            <span style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                              <strong style={{ color: 'var(--texte)' }}>{x.cible}</strong>{' '}
+                              <span style={{ color: '#f97316', fontWeight: 600, fontSize: '0.82rem' }}>({x.plus})</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )
                 })()}
             </div>
-            <div className="ligne">
-              <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => lancer(proposee.modele)}>
+            <div className="ligne" style={{ gap: 10, marginTop: 12 }}>
+              <button
+                type="button"
+                className="btn primaire"
+                style={{
+                  flex: 2,
+                  height: 44,
+                  minHeight: 44,
+                  borderRadius: 12,
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                }}
+                onClick={() => lancer(proposee.modele)}
+              >
                 Démarrer
               </button>
-              <button className="btn grand" style={{ flex: 1 }} onClick={() => voir(proposee.modele)}>
+              <button
+                type="button"
+                className="btn"
+                style={{
+                  flex: 1,
+                  height: 44,
+                  minHeight: 44,
+                  borderRadius: 12,
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                }}
+                onClick={() => voir(proposee.modele)}
+              >
                 Voir
               </button>
             </div>
@@ -503,17 +635,13 @@ export default function Accueil({
         ) : (
           /* Jour de repos (comme dans la maquette) */
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#56b4e9', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-              <Moon size={14} strokeWidth={2} />
-              <span>Jour de repos</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 6px' }}>
-              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Check size={14} strokeWidth={2.5} style={{ color: 'var(--texte-faible)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(86, 180, 233, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Moon size={16} strokeWidth={2.2} style={{ color: '#56b4e9' }} />
               </div>
-              <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--texte)' }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: 'var(--texte)' }}>
                 Repos aujourd’hui
-              </span>
+              </h2>
             </div>
             {proposee && (
               <div
@@ -549,19 +677,40 @@ export default function Accueil({
           </>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
           {proposee && (
             <button
               type="button"
               className="btn texte"
               onClick={() => setChoix(true)}
-              style={{ color: 'var(--accent)', fontSize: '0.88rem', fontWeight: 500, padding: 0 }}
+              style={{
+                color: 'var(--accent)',
+                fontSize: 13,
+                fontWeight: 500,
+                padding: '6px 0',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
               Choisir une séance à faire aujourd’hui ›
             </button>
           )}
           {variante && proposee === duJour && (
-            <button type="button" className="btn texte lien-discret" style={{ marginTop: 6 }} onClick={() => voir(variante)}>
+            <button
+              type="button"
+              className="btn texte"
+              onClick={() => voir(variante)}
+              style={{
+                color: 'var(--texte-faible)',
+                fontSize: 13,
+                fontWeight: 500,
+                padding: '6px 0',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
               Pas de salle ›
             </button>
           )}
@@ -569,32 +718,142 @@ export default function Accueil({
       </div>
       )}
 
-      {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
-      {!premiereFois && <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} />}
-
-      {/* Rappels sous la séance, sur une ligne, masquables une semaine. */}
+      {/* Rappels contextuels sous la séance : déload avancé ou mensurations > 21j */}
       {deloadPlusTot && !masque('deload') && (
-        <div className="rappel-ligne">
-          <button className="texte" onClick={onProgrammes}>
-            Force en baisse sur {deloadPlusTot.baisses.length} exercices{deloadPlusTot.energieBasse ? ' et énergie basse' : ''} : un déload cette semaine ?
-            <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span> ›
+        <div
+          className="rappel-ligne"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            borderRadius: 10,
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            marginBottom: 10,
+            gap: 8,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <button
+            type="button"
+            className="texte"
+            onClick={onProgrammes}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              padding: 0,
+              cursor: 'pointer',
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontSize: '0.85rem',
+            }}
+          >
+            <Info size={15} strokeWidth={2} style={{ color: '#56b4e9', flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Force en baisse sur {deloadPlusTot.baisses.length} exercices : déload conseillé ?
+              <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span>
+            </span>
           </button>
-          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('deload')}>
-            ✕
+          <button
+            type="button"
+            className="fermer-rappel"
+            aria-label="Masquer ce rappel une semaine"
+            onClick={() => masquer('deload')}
+            style={{
+              width: 24,
+              height: 24,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'none',
+              border: 'none',
+              color: 'var(--texte-faible)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
       )}
       {mesuresEnRetard && !masque('mesures') && (
-        <div className="rappel-ligne">
-          <button className="texte" onClick={onMesures}>
-            {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
-            {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>} ›
+        <div
+          className="rappel-ligne"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            borderRadius: 10,
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            marginBottom: 10,
+            gap: 8,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <button
+            type="button"
+            className="texte"
+            onClick={onMesures}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'none',
+              border: 'none',
+              color: 'inherit',
+              padding: 0,
+              cursor: 'pointer',
+              flex: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontSize: '0.85rem',
+            }}
+          >
+            <Ruler size={15} strokeWidth={2} style={{ color: '#38bdf8', flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {derniereMesure ? 'Reprendre tes mensurations' : 'Prendre tes premières mensurations'}
+              {joursMesure !== null && <span className="faible"> · il y a {joursMesure} j</span>}
+            </span>
           </button>
-          <button className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('mesures')}>
-            ✕
+          <button
+            type="button"
+            className="fermer-rappel"
+            aria-label="Masquer ce rappel une semaine"
+            onClick={() => masquer('mesures')}
+            style={{
+              width: 24,
+              height: 24,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'none',
+              border: 'none',
+              color: 'var(--texte-faible)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
       )}
+
+      {/* Journal du matin : de quoi se mettre en route (pesée, sommeil, calories, un vrai progrès). */}
+      {!premiereFois && <JournalMatin catalogue={catalogue} terminees={terminees} entrainement={!!duJour} deload={!!etat?.deload && !etat.pause} />}
 
       {!premiereFois && (
       <div className="carte pile" style={{ padding: '16px', borderRadius: 16 }}>

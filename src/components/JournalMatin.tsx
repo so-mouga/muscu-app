@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { Scale, Moon, Flame, Check } from 'lucide-react'
+import { Moon, Flame, Check } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
 import { informer } from './Dialogues'
@@ -56,10 +56,24 @@ export default function JournalMatin({
   const poids = pesees[pesees.length - 1]?.poids
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui)
 
-  const ouvrirSaisiePoids = () => {
-    const init = pesee ? pesee.poids : poids ?? 70
-    setValPoids(kg(init))
-    setSaisiePoids(true)
+  const toggleSaisiePoids = () => {
+    if (saisiePoids) {
+      setSaisiePoids(false)
+    } else {
+      const init = pesee ? pesee.poids : poids ?? 70
+      setValPoids(kg(init))
+      setSaisiePoids(true)
+      setSaisieSommeil(false)
+    }
+  }
+
+  const toggleSaisieSommeil = () => {
+    if (saisieSommeil) {
+      setSaisieSommeil(false)
+    } else {
+      setSaisieSommeil(true)
+      setSaisiePoids(false)
+    }
   }
 
   const enregistrerPoids = async () => {
@@ -92,7 +106,7 @@ export default function JournalMatin({
         {/* Tuile Poids */}
         <button
           type="button"
-          onClick={ouvrirSaisiePoids}
+          onClick={toggleSaisiePoids}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -109,8 +123,20 @@ export default function JournalMatin({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', color: 'var(--texte-faible)' }}>
-            <Scale size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>✎</span>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="18" height="18" x="3" y="3" rx="4" />
+              <path d="M8 7h8" />
+              <path d="M12 7v3" />
+            </svg>
           </div>
           <div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
@@ -123,7 +149,7 @@ export default function JournalMatin({
         {/* Tuile Sommeil */}
         <button
           type="button"
-          onClick={() => setSaisieSommeil(!saisieSommeil)}
+          onClick={toggleSaisieSommeil}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -141,7 +167,6 @@ export default function JournalMatin({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <span style={{ color: '#8e8eff', display: 'flex', alignItems: 'center' }}><Moon size={18} strokeWidth={1.75} /></span>
-            <span style={{ fontSize: '0.8rem', opacity: 0.6, color: 'var(--texte-faible)' }}>✎</span>
           </div>
           <div>
             <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--texte)' }}>
