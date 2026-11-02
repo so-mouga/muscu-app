@@ -21,6 +21,9 @@
   --texte-3: #9098a8;
   /* Alias utilisé à plusieurs endroits : même gris discret que --texte-3. */
   --texte-faible: var(--texte-3);
+  /* Noms utilisés dans le code mais jamais définis jusqu'ici (avertissements) : raccordés à la charte. */
+  --attention: var(--alerte);
+  --texte-1: var(--texte);
   --accent: var(--accent-orange);
   --accent-texte: #1a0d03;
   --ok: var(--accent-green);
