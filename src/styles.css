@@ -2827,7 +2827,7 @@ button.semaine-bilan.cliquable {
   }
   50% {
     transform: scale(1.035);
-    filter: drop-shadow(0 0 16px var(--accent-bord));
+    filter: drop-shadow(0 0 16px var(--halo));
   }
 }
 /* Plein écran : série meilleure que la dernière fois, changement d'exercice, séries de l'exercice */
@@ -3930,4 +3930,22 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .fenetre-correction .ligne-options .btn {
   color: var(--texte-salle);
+}
+
+/* Halo du cercle de repos : sa lueur suit son état, et c'est le seul de la séance. */
+.minuteur.grand {
+  --halo: var(--accent-bord);
+}
+.minuteur.grand.decompte {
+  --halo: var(--alerte-bord);
+}
+.minuteur.grand.en-pause {
+  --halo: transparent;
+}
+.minuteur.grand.fini {
+  --halo: var(--ok-bord);
+}
+.minuteur.grand .anneau svg {
+  filter: drop-shadow(0 0 14px var(--halo));
+  transition: filter var(--duree-courte);
 }
