@@ -118,3 +118,15 @@ describe('audit déload conseillé', () => {
     expect(deloadConseille([...anciennes, ...recentes], exo, FIN)).toBeNull()
   })
 })
+
+describe('sensations à 3 choix (Difficile = 1, Bien = 3, Au top = 5)', () => {
+  it('« Difficile » compte comme énergie basse pour avancer le déload, « Bien » non', () => {
+    const l = (energie: number) =>
+      ['2026-10-24', '2026-10-26', '2026-10-28'].map((d, i) =>
+        seance(d, [['smith_incline', i === 2 ? 47.5 : 52.5, 8, 8], ['tirage_large', i === 2 ? 55 : 60, 10, 8]], i > 0 ? { energie } : {})
+      )
+    expect(deloadConseille(l(1), exo, FIN)?.energieBasse).toBe(true)
+    expect(deloadConseille(l(3), exo, FIN)).toBeNull()
+    expect(deloadConseille(l(5), exo, FIN)).toBeNull()
+  })
+})

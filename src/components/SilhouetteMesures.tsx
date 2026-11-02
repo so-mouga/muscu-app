@@ -46,7 +46,7 @@ export default function SilhouetteMesures({ active, onChoix, remplies }: Props) 
               cx={px}
               cy={y}
               r={on ? 7.5 : 6}
-              fill={on ? 'var(--accent)' : remplies?.has(m.id) ? 'var(--texte-2)' : 'var(--surface)'}
+              fill={on ? 'var(--accent)' : remplies?.has(m.id) ? 'var(--texte-2)' : 'var(--surface-uni)'}
               stroke={on ? 'var(--accent)' : 'var(--texte-3)'}
               strokeWidth={1.2}
             />

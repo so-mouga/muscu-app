@@ -12,6 +12,8 @@
 
   --bg: var(--bg-app);
   --surface: var(--card-gradient);
+  /* --surface est un dégradé (fond des cartes seulement) : pour une couleur (fill, stroke, color-mix, bordure), --surface-uni. */
+  --surface-uni: #161a24;
   --surface-2: rgba(255, 255, 255, 0.04);
   --bord: var(--border-light);
   --texte: var(--text-primary);
@@ -2805,7 +2807,7 @@ button.semaine-bilan.cliquable {
 /* Plein écran : série meilleure que la dernière fois, changement d'exercice, séries de l'exercice */
 .focus-bloc.mieux {
   border-color: var(--ok);
-  background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface-uni));
 }
 .mieux-titre {
   color: var(--ok);

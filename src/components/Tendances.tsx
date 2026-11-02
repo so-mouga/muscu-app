@@ -59,7 +59,7 @@ const pct = (v: number) => signe(v, '%', '')
 const ecart = (v: number, u: string) => signe(v, u, '±')
 
 function Point({ forme, x, y, couleur, r = 4 }: { forme: (typeof FORMES)[number]; x: number; y: number; couleur: string; r?: number }) {
-  const bord = { fill: couleur, stroke: 'var(--surface)', strokeWidth: 1.5 }
+  const bord = { fill: couleur, stroke: 'var(--surface-uni)', strokeWidth: 1.5 }
   if (forme === 'carre') return <rect x={x - r} y={y - r} width={r * 2} height={r * 2} {...bord} />
   if (forme === 'triangle') return <path d={`M${x} ${y - r * 1.2} L${x + r * 1.1} ${y + r * 0.8} L${x - r * 1.1} ${y + r * 0.8} Z`} {...bord} />
   if (forme === 'losange') return <path d={`M${x} ${y - r * 1.25} L${x + r * 1.1} ${y} L${x} ${y + r * 1.25} L${x - r * 1.1} ${y} Z`} {...bord} />
