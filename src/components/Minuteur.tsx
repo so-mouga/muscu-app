@@ -70,7 +70,13 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
     tic(seconde === 1)
   }, [seconde, bips, enPause, fini])
 
-  const decaler = (ms: number) => onChange(enPause ? { ...etat, pause: Math.max(0, etat.pause! + ms) } : { ...etat, fin: etat.fin + ms })
+  const [saut, setSaut] = useState(false)
+  useEffect(() => {
+    if (!saut) return
+    const t = setTimeout(() => setSaut(false), 250)
+    return () => clearTimeout(t)
+  }, [saut, etat.fin, etat.pause])
+  const decaler = (ms: number) => (setSaut(true), onChange(enPause ? { ...etat, pause: Math.max(0, etat.pause! + ms) } : { ...etat, fin: etat.fin + ms }))
   const basculerPause = () =>
     onChange(enPause ? { ...etat, fin: Date.now() + etat.pause!, pause: undefined } : { ...etat, pause: Math.max(0, etat.fin - Date.now()) })
 
@@ -107,7 +113,7 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
 
   if (variante === 'grand') {
     return (
-      <div className={'minuteur grand' + (fini ? ' fini' : '') + (enPause ? ' en-pause' : '')}>
+      <div className={'minuteur grand' + (fini ? ' fini' : '') + (enPause ? ' en-pause' : '') + (decompteActif ? ' decompte' : '')}>
         <button
           type="button"
           className={'cercle-pause' + (decompteActif ? ' pulsation' : '')}
@@ -118,8 +124,9 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
             valeur={part}
             taille={210}
             epaisseur={10}
-            couleur={fini ? 'var(--ok)' : enPause ? 'var(--alerte)' : 'var(--accent)'}
+            couleur={fini ? 'var(--ok)' : enPause ? 'var(--texte-2)' : decompteActif ? 'var(--alerte)' : 'var(--accent)'}
             fluide={!enPause && !fini}
+            saut={saut}
           >
             <div className={'etat-chrono' + (enPause ? ' en-pause' : '') + (fini ? ' fini' : '')}>
               {fini ? <Check size={24} /> : enPause ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
@@ -134,10 +141,10 @@ export default function Minuteur({ etat, onChange, ensuite, onAller, variante = 
 
   const bandeau = variante === 'bandeau'
   return (
-    <div className={'minuteur' + (bandeau ? ' bandeau' : '') + (fini ? ' fini flash' : '') + (enPause ? ' en-pause' : '')}>
+    <div className={'minuteur' + (bandeau ? ' bandeau' : '') + (fini ? ' fini flash' : '') + (enPause ? ' en-pause' : '') + (decompteActif ? ' decompte' : '')}>
       <div className="contenu">
         <button className="temps" onClick={onAgrandir} disabled={!onAgrandir} aria-label={onAgrandir ? `${libelle}, ${temps}. Plein écran` : undefined}>
-          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? 'var(--minuteur-fini)' : 'var(--accent)'} fluide={!enPause && !fini}>
+          <Anneau valeur={part} taille={52} epaisseur={4} couleur={fini ? 'var(--minuteur-fini)' : enPause ? 'var(--texte-2)' : decompteActif ? 'var(--alerte)' : 'var(--accent)'} fluide={!enPause && !fini} saut={saut}>
             <span className="temps-petit">{temps}</span>
           </Anneau>
           {onAgrandir && <span className="indice-plein-ecran"><Maximize2 size={12} className="ico-texte" /> Plein écran</span>}

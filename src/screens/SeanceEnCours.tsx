@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { Check, Flame, Frown, Info, Link2, List, Maximize2, Pencil, Play, Smile, StickyNote, Timer, TriangleAlert, Trophy, Wind } from 'lucide-react'
+import { Check, Flame, Frown, Info, Link2, Maximize2, Pencil, Play, Smile, StickyNote, Timer, TriangleAlert, Trophy, Wind } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -540,7 +540,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       <div className="focus-boutons">
         {/* Pendant l'échauffement : on y reste (pas de saut vers un exercice, pas de « Machine prise »). */}
         <button className="btn petit" onClick={() => naviguer(() => (!echauffementActif(seance) && enCours >= 0 && setIdx(enCours), setFocus(false)))}>
-          <List size={18} /> Vue liste
+          Voir la séance
         </button>
         {enCours >= 0 && !echauffementActif(seance) && restantes > 0 && (
           <button className="btn petit" onClick={() => (setIdx(enCours), setMachinePrise(true))}>
@@ -754,7 +754,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     })()
 
     return (
-      <div className={'focus apparait' + (vueRepos && !correction ? ' fixe' : '')}>
+      <div className={'focus' + (vueRepos && !correction ? ' fixe' : '')}>
         {avancementCompact}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
         {correction ? (
@@ -898,7 +898,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   }
 
   return (
-    <div className="apparait">
+    <div>
       <div className="entete colle">
         <div className="ligne entre" style={{ marginBottom: 10 }}>
           {/* Avancement et chrono ; un appui ouvre le plein écran. */}

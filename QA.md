@@ -31,7 +31,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Démarrer. Elle s'ouvre **en plein écran** (grand chrono), **à chaque séance**, même si la vue liste avait été choisie la fois d'avant.
 - Plein écran : pastilles S1 S2 S3 (faite ✓ ✎, en cours ▶, à venir avec leur cible), charge et reps côte à côte, RPE en 5 gros boutons (6 à 10, pas de demis). Tout tient **sans défiler**, chaque info une seule fois.
 - Valider des séries, laisser tourner le repos (dans l'appli : toucher le cercle = pause, −15 / +15, Passer ; « Pause / +30 s / Passer » sont les boutons de la notification Android), corriger une série déjà faite. Les nombres (charge, reps) se tapent aussi au clavier en les touchant (soulignés en pointillé).
-- Passer en « ☰ Vue liste » et revenir en « ⤢ Plein écran ».
+- Passer en « Voir la séance » et revenir en « ⤢ Plein écran ».
 - Naviguer entre exercices : en plein écran, l'appli enchaîne seule et « Voir la suite de la séance › » montre le reste (pas de pastilles d'exercices, voulu) ; en vue liste, pastilles et Précédent / Suivant. « Machine prise », remplacer un exercice, ajouter un exercice.
 - Superset : relier deux exercices, vérifier l'alternance des séries et le repos de transition.
 - Échauffement : coupé par défaut ; l'activer (interrupteur « 🤸 Échauffement » en haut de l'écran « Voir », ou dans Programmes), cocher des mouvements, le texte du bouton suit les cases (« Passer l'échauffement », « Terminer l'échauffement (2/4) », « ✓ Échauffé, on attaque »).

@@ -517,6 +517,7 @@ button:active:not(:disabled),
 }
 .rpe button.cible:not(.actif) {
   border-color: var(--voile-bord);
+  border-style: dashed;
 }
 
 .chips {
@@ -1240,10 +1241,6 @@ html[data-sens='arriere']::view-transition-new(root) {
 .serie-prevue .avant {
   opacity: 1;
 }
-.options-serie {
-  border-top: 1px solid var(--bord);
-  padding-top: 10px;
-}
 
 /* Accordéon par groupe musculaire */
 .groupe-repli {
@@ -1505,7 +1502,7 @@ body:has(.focus) {
   opacity: 1;
 }
 .etat-chrono.en-pause {
-  color: var(--alerte);
+  color: var(--texte-2);
   opacity: 1;
   font-size: var(--t-titre);
 }
@@ -1747,12 +1744,6 @@ body:has(.focus) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
-.erreurs-titre {
-  color: var(--danger);
-  font-weight: 700;
-  font-size: var(--t-petit);
-  margin-bottom: 4px;
 }
 .consignes.erreurs {
   color: var(--texte-2);
@@ -3680,9 +3671,6 @@ button.phase-accueil {
   display: flex;
   justify-content: center;
 }
-.editeur-compact.pile > .ligne-disques {
-  margin-top: var(--salle-ecart);
-}
 .zone-effort {
   display: flex;
   flex-direction: column;
@@ -3694,12 +3682,14 @@ button.phase-accueil {
 .ligne-effort strong {
   color: var(--texte);
 }
-.editeur-compact .ligne-effort .btn.lien-action {
-  min-height: 32px;
-  margin: 0;
+.ligne-effort.une-ligne .texte-effort {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.editeur-compact.pile > .zone-effort {
-  margin-top: var(--salle-ecart);
+.ligne-effort .btn-infos {
+  margin: -10px -8px -10px 0;
 }
 
 /* Valider tout en bas de l'écran, à portée du pouce. */
@@ -3715,10 +3705,18 @@ button.phase-accueil {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: var(--salle-ecart);
 }
-.saisie-focus.pile > * + *,
-.editeur-compact.pile > * + * {
+.saisie-focus.pile > * + * {
   margin-top: var(--salle-ecart);
+}
+.editeur-compact.pile > * + * {
+  margin-top: 0;
+}
+/* La place en trop se répartit entre les groupes au lieu de faire un trou. */
+.editeur-compact.pile > .steppers-duo,
+.editeur-compact.pile > .zone-effort {
+  margin-top: auto;
 }
 .groupe-inactif {
   opacity: 0.75;
@@ -3732,10 +3730,9 @@ button.phase-accueil {
   margin-top: auto;
 }
 .editeur-compact > .ligne-options .btn {
-  min-height: 32px;
-}
-.editeur-compact > .options-serie {
-  order: 9;
+  min-height: var(--salle-secondaire);
+  padding: 0;
+  gap: var(--e1);
 }
 .editeur-compact > .zone-valider {
   order: 10;
@@ -3776,5 +3773,83 @@ button.phase-accueil {
 @media (max-height: 700px) {
   :root {
     --salle-ecart: 6px;
+  }
+}
+
+/* Fenêtres : fermeture et blocs bien séparés */
+.btn-fermer {
+  flex: 0 0 auto;
+  width: var(--cible);
+  height: var(--cible);
+  margin: -8px -8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  color: var(--texte-2);
+}
+.bloc-option {
+  padding: var(--e3);
+}
+.modal.pile > .bloc-option + .bloc-option {
+  margin-top: var(--e2);
+}
+.fiche-exo {
+  font-size: var(--t-petit);
+  line-height: 1.45;
+}
+.fiche-exo.pile > * + * {
+  margin-top: var(--e4);
+}
+.fiche-exo .bloc-consigne h3 {
+  font-size: var(--t-petit);
+  margin-bottom: var(--e1);
+}
+.fiche-exo .consignes {
+  gap: var(--e1);
+}
+
+/* Fin du repos : le chrono change de couleur en même temps que les bips. */
+.minuteur.decompte .temps-grand,
+.minuteur.decompte .temps-petit {
+  color: var(--alerte);
+}
+.temps-grand,
+.temps-petit {
+  transition: color var(--duree-courte);
+}
+
+/* Le repos pendant une saisie passe par-dessus l'en-tête : rien ne se décale quand il finit. */
+.focus .minuteur.bandeau {
+  position: fixed;
+  top: 0;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  z-index: 25;
+  margin: 0 auto;
+  max-width: 560px;
+  padding: calc(var(--e2) + env(safe-area-inset-top)) var(--e4) var(--e2);
+  background: var(--surface-uni);
+}
+.focus .minuteur.bandeau.fini {
+  background: var(--ok);
+}
+.minuteur.grand,
+.minuteur.bandeau {
+  view-transition-name: none;
+}
+
+/* Plein écran et liste sont très différents : l'ancien disparaît d'abord, sans se superposer au nouveau. */
+html[data-sens='fondu']::view-transition-old(root) {
+  animation: fondu-sortie 90ms ease-out both;
+}
+html[data-sens='fondu']::view-transition-new(root) {
+  animation: fondu var(--duree-courte) var(--sortie) 60ms both;
+}
+@keyframes fondu-sortie {
+  to {
+    opacity: 0;
   }
 }

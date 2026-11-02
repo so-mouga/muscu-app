@@ -1,5 +1,6 @@
-import { Check, ChevronDown, ChevronRight, Circle, Flame, Lightbulb, Link2, Pencil, Play, StickyNote, Timer, TriangleAlert } from 'lucide-react'
+import { Check, ChevronRight, Circle, Flame, Info, Lightbulb, Link2, Pencil, Play, StickyNote, Timer, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { db, modifierExercice, uid } from '../db'
 import { chargeQte, chargeTexte, chrono, cibleTexte, ecartSerie, enTemps, fourchette, kg, lireChauffe, reposApres, reposTexte, RIR, schemaPlan, serieTexte } from '../lib/calc'
 import { reposApresSuperset } from '../lib/superset'
@@ -448,6 +449,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const tf = typeFinisseur(plan)
   const info = FINISSEURS[tf]
   const [aideRpe, setAideRpe] = useState(false)
+  useRetour(options, () => setOptions(false))
+  useRetour(aideRpe, () => setAideRpe(false))
   // Exercice en temps : « reps » = secondes, par pas de 5 s, et un chrono pour les mesurer.
   const temps = enTemps(exo)
   const pasQte = temps ? 5 : 1
@@ -630,15 +633,24 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   )
 
   // L'intitulé passe au-dessus des boutons en saisie compacte : on voit tout de suite à quoi ils servent.
+  // Toujours sur une ligne : choisir un effort ne doit rien décaler.
+  const plusDur = rpe > p.rpe + 0.5
   const ligneEffort = (
-    <div className="ligne entre faible ligne-effort">
-      <span>
-        {compact && <strong>Effort </strong>}RPE {kg(rpe)} · {RIR[Math.floor(rpe)] ?? ''}
-        {compact && rpe !== p.rpe && <span> · visé {kg(p.rpe)}</span>}
-        {rpe > p.rpe + 0.5 && <span style={{ color: 'var(--alerte)' }}> · plus dur que prévu</span>}
+    <div className={'ligne entre faible ligne-effort' + (compact ? ' une-ligne' : '')}>
+      <span className="texte-effort">
+        {compact && <strong>Effort </strong>}RPE {kg(rpe)} ·{' '}
+        {compact && plusDur ? (
+          <span style={{ color: 'var(--alerte)' }}>plus dur que prévu ({kg(p.rpe)})</span>
+        ) : (
+          <>
+            {RIR[Math.floor(rpe)] ?? ''}
+            {compact && rpe !== p.rpe && <span> · visé {kg(p.rpe)}</span>}
+            {!compact && plusDur && <span style={{ color: 'var(--alerte)' }}> · plus dur que prévu</span>}
+          </>
+        )}
       </span>
-      <button className="btn discret petit lien-action" onClick={() => setAideRpe(!aideRpe)}>
-        aide RPE
+      <button className="btn-infos" aria-label="aide RPE" onClick={() => setAideRpe(true)}>
+        <Info size={20} />
       </button>
     </div>
   )
@@ -794,20 +806,6 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             ))}
           </div>
           {!compact && ligneEffort}
-          {aideRpe && (
-            <table className="note-rpe" style={{ marginTop: 6 }}>
-              <tbody>
-                {[10, 9, 8, 7, 6].map((r) => (
-                  <tr key={r}>
-                    <td>
-                      <strong>{r}</strong>
-                    </td>
-                    <td>{['4 en réserve, très facile', '3 en réserve', '2 en réserve', '1 rep de plus possible', 'échec technique'][r - 6]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </div>
       )}
 
@@ -833,7 +831,13 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
       <div className="ligne entre ligne-options">
         <button className="btn discret petit" onClick={() => setOptions(!options)}>
-          {options ? <ChevronDown size={16} /> : <ChevronRight size={16} />} Type de série, douleur
+          Type de série, douleur
+          {(type !== 'normale' || douleur) && (
+            <span style={{ color: 'var(--alerte)' }}>
+              · {[type !== 'normale' ? TYPES.find((t) => t[0] === type)?.[1] : null, douleur ? 'douleur signalée' : null].filter(Boolean).join(', ')}
+            </span>
+          )}
+          <ChevronRight size={16} />
         </button>
         {edition && (
           <div className="ligne">
@@ -847,10 +851,18 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         )}
       </div>
 
-      {options && (
-        <div className="pile options-serie">
-          <div>
-            <div className="petit" style={{ marginBottom: 6 }}>
+      {options &&
+        createPortal(
+          <div className="modal-fond" onClick={() => setOptions(false)}>
+            <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+              <div className="ligne entre">
+                <h2>Type de série, douleur</h2>
+                <button className="btn-fermer" aria-label="Fermer" onClick={() => setOptions(false)}>
+                  <X size={22} />
+                </button>
+              </div>
+          <div className="sous-carte bloc-option">
+            <div className="petit" style={{ marginBottom: 8 }}>
               <strong>Type de série</strong> <span className="muted">— à changer seulement si ce n’était pas une série classique</span>
             </div>
             <div className="chips">
@@ -883,8 +895,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
               </button>
             </div>
           )}
-          <div>
-            <div className="petit" style={{ marginBottom: 6 }}>
+          <div className="sous-carte bloc-option">
+            <div className="petit" style={{ marginBottom: 8 }}>
               <strong>Douleur articulaire ?</strong>{' '}
               <span className="muted">— notée dans l’historique pour la surveiller. Une brûlure musculaire est normale : ne la signale pas.</span>
             </div>
@@ -895,8 +907,36 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
             </div>
             {douleur && <div className="faible">Allège ou passe l’exercice. Si elle persiste, consulte.</div>}
           </div>
-        </div>
-      )}
+            </div>
+          </div>,
+          document.body
+        )}
+      {aideRpe &&
+        createPortal(
+          <div className="modal-fond" onClick={() => setAideRpe(false)}>
+            <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+              <div className="ligne entre">
+                <h2>Effort (RPE)</h2>
+                <button className="btn-fermer" aria-label="Fermer" onClick={() => setAideRpe(false)}>
+                  <X size={22} />
+                </button>
+              </div>
+              <table className="note-rpe">
+                <tbody>
+                  {[10, 9, 8, 7, 6].map((r) => (
+                    <tr key={r}>
+                      <td>
+                        <strong>{r}</strong>
+                      </td>
+                      <td>{['4 en réserve, très facile', '3 en réserve', '2 en réserve', '1 rep de plus possible', 'échec technique'][r - 6]}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   )
 }
