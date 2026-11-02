@@ -44,4 +44,4 @@ Aucun témoignage ni chiffre d'usage. Ne pas en inventer. Pas encore publiée su
 
 ## Accessibility & Inclusion
 
-Lisible sous les néons et au soleil, utilisable mains moites : cibles de 48 px minimum en séance, 44 px ailleurs, contraste du texte d'au moins 4,5:1.
+Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px minimum pour les actions de la séance, sans grossir au point d'étouffer l'écran, contraste du texte d'au moins 4,5:1.

@@ -611,7 +611,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         ) : (
           // Le palier se corrige devant la machine : c'est là qu'on le connaît.
           <button type="button" className="unite unite-palier" onClick={() => setReglerPalier(!reglerPalier)} aria-label={`Palier de la machine : ${kg(pas)} kg, modifier`}>
-            {unite} · ±{kg(pas)} <Pencil size={12} />
+            {compact && exo.mode === 'poids_corps' ? 'kg de lest' : unite} · ±{kg(pas)} <Pencil size={12} />
           </button>
         )}
       </div>
@@ -626,6 +626,20 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         <span className="unite">{temps ? 'secondes tenues' : 'reps'}</span>
       </div>
       <button onClick={() => setReps(reps + pasQte)}>+</button>
+    </div>
+  )
+
+  // L'intitulé passe au-dessus des boutons en saisie compacte : on voit tout de suite à quoi ils servent.
+  const ligneEffort = (
+    <div className="ligne entre faible ligne-effort">
+      <span>
+        {compact && <strong>Effort </strong>}RPE {kg(rpe)} · {RIR[Math.floor(rpe)] ?? ''}
+        {compact && rpe !== p.rpe && <span> · visé {kg(p.rpe)}</span>}
+        {rpe > p.rpe + 0.5 && <span style={{ color: 'var(--alerte)' }}> · plus dur que prévu</span>}
+      </span>
+      <button className="btn discret petit lien-action" onClick={() => setAideRpe(!aideRpe)}>
+        aide RPE
+      </button>
     </div>
   )
 
@@ -722,7 +736,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           </div>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0 4px' }}>
+      <div className="ligne-disques">
         <PuceDisques exo={exo} charge={charge} unite={unite} />
       </div>
       {/* Série d'avant bien au-dessus de la fourchette : proposer un cran de plus, sans rien imposer. */}
@@ -765,7 +779,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       )}
 
       {!finisseur && (
-        <div>
+        <div className="zone-effort">
+          {compact && ligneEffort}
           <div className="rpe" style={{ gridTemplateColumns: `repeat(${RPES.length}, 1fr)` }}>
             {RPES.map((r) => (
               <button
@@ -778,16 +793,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
               </button>
             ))}
           </div>
-          <div className="ligne entre faible" style={{ marginTop: 4 }}>
-            <span>
-              RPE {kg(rpe)} · {RIR[Math.floor(rpe)] ?? ''}
-              {compact && rpe !== p.rpe && <span> · visé {kg(p.rpe)}</span>}
-              {rpe > p.rpe + 0.5 && <span style={{ color: 'var(--alerte)' }}> · plus dur que prévu</span>}
-            </span>
-            <button className="btn discret petit lien-action" onClick={() => setAideRpe(!aideRpe)}>
-              aide RPE
-            </button>
-          </div>
+          {!compact && ligneEffort}
           {aideRpe && (
             <table className="note-rpe" style={{ marginTop: 6 }}>
               <tbody>

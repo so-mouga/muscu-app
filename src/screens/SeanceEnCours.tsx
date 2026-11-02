@@ -745,6 +745,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             edition={serie}
             reposRestant={0}
             verrou={false}
+            compact
             onFini={() => setCorrige(null)}
             onAnnulerEdition={() => setCorrige(null)}
           />
@@ -783,7 +784,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             return (
               <div className="focus-bloc pile saisie-focus">
                 {enSuperset && (
-                  <div className="ligne wrap" style={{ gap: 6, marginBottom: 2, alignItems: 'center' }}>
+                  <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
                     <span className="badge-superset"><Link2 size={14} /> Superset</span>
                     <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
                       {groupe.map((gIdx, k) => (
@@ -797,12 +798,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                     </span>
                   </div>
                 )}
+                {/* Superset : le nom de l'exercice est déjà dans la ligne au-dessus. */}
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>
                     {p.finisseur && n === t - 1 && <div className="faible">★ {FINISSEURS[typeFinisseur(p)].nom}</div>}
-                    <h2>{exo.nom}</h2>
+                    {!enSuperset && <h2>{exo.nom}</h2>}
                   </div>
-                  <BoutonInfos onClick={() => setInfos(exo.id)} />
+                  {!enSuperset && <BoutonInfos onClick={() => setInfos(exo.id)} />}
                 </div>
                 {enSuperset ? (
                   <div className="pile" style={{ gap: 6, margin: '6px 0' }}>

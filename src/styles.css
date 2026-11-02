@@ -68,8 +68,16 @@
   --t-texte: 16px;
   --t-titre: 20px;
   --t-page: 26px;
-  --t-chiffre: 40px;
-  --t-chrono: 64px;
+  --t-chiffre: 36px;
+  --t-chrono: 56px;
+
+  /* Séance : les tailles suivent la hauteur de l'écran, pour que tout tienne sans défiler. */
+  --salle-chiffre: clamp(28px, 4.4dvh, var(--t-chiffre));
+  --salle-pas: clamp(44px, 6.2dvh, 52px);
+  --salle-rpe: clamp(44px, 5.6dvh, 48px);
+  --salle-valider: clamp(52px, 6.8dvh, 56px);
+  --salle-secondaire: 40px;
+  --salle-ecart: clamp(6px, 2dvh, 18px);
 
   /* Rayons : cartes, puis sous-cartes et boutons. Pastilles : 999px ; ronds : 50 %. */
   --rayon: 18px;
@@ -85,7 +93,7 @@
 
   /* Cibles tactiles minimales */
   --cible: 44px;
-  --cible-salle: 48px;
+  --cible-salle: 44px;
 
   /* Mouvement */
   --duree-courte: 200ms;
@@ -307,8 +315,8 @@ button:active:not(:disabled),
 }
 .btn.grand {
   width: 100%;
-  min-height: 64px;
-  font-size: var(--t-titre);
+  min-height: var(--salle-valider);
+  font-size: var(--t-texte);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
@@ -431,8 +439,8 @@ button:active:not(:disabled),
 }
 .pills button {
   flex: 0 0 auto;
-  min-width: var(--cible-salle);
-  height: var(--cible-salle);
+  min-width: var(--cible);
+  height: var(--cible);
   border-radius: var(--rayon-2);
   background: var(--surface);
   border: 1px solid var(--bord);
@@ -503,12 +511,12 @@ button:active:not(:disabled),
   color: var(--texte-3);
 }
 .rpe button.actif {
-  background: var(--accent);
-  color: var(--accent-texte);
-  border-color: transparent;
+  background: var(--voile-bord);
+  color: var(--texte);
+  border-color: var(--texte);
 }
 .rpe button.cible:not(.actif) {
-  border-color: var(--accent);
+  border-color: var(--voile-bord);
 }
 
 .chips {
@@ -915,8 +923,8 @@ html[data-sens='arriere']::view-transition-new(root) {
   font-size: var(--t-legende);
   padding: 2px 7px;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-texte);
+  background: var(--accent-voile);
+  color: var(--accent);
   font-weight: 700;
   letter-spacing: 0.2px;
   white-space: nowrap;
@@ -1074,12 +1082,12 @@ html[data-sens='arriere']::view-transition-new(root) {
   position: relative;
 }
 .pills button.en-cours {
-  background: var(--accent);
-  color: var(--accent-texte);
-  border-color: var(--accent);
+  background: var(--accent-voile);
+  color: var(--accent);
+  border-color: var(--accent-bord);
 }
 .pills button.en-cours.actif {
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  border-color: var(--accent);
 }
 .pills button.en-cours::after {
   content: '';
@@ -2866,8 +2874,8 @@ button.semaine-bilan.cliquable {
   color: var(--ok);
 }
 .ligne-series > .courante {
-  color: var(--accent-texte);
-  background: var(--accent);
+  color: var(--accent);
+  background: var(--accent-voile);
   font-weight: 700;
 }
 .astuce-pause {
@@ -3582,7 +3590,7 @@ button.phase-accueil {
   gap: var(--e1);
 }
 .focus {
-  gap: var(--e3);
+  gap: var(--e2);
 }
 .focus .faible,
 .focus .muted,
@@ -3591,20 +3599,27 @@ button.phase-accueil {
   color: var(--texte-salle);
 }
 .focus-boutons .btn {
-  min-height: var(--cible-salle);
+  min-height: var(--salle-secondaire);
   gap: var(--e1);
 }
-.focus .ligne-series {
+.focus .ligne.entre > .ligne-series {
   flex: 1;
+}
+.focus .ligne-series,
+.focus .chauffes-ligne {
+  flex-shrink: 0;
   min-width: 0;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
   gap: var(--e1);
 }
-.focus .ligne-series > * {
+.focus .ligne-series > *,
+.focus .chauffes-ligne > * {
   flex: 0 0 auto;
-  min-height: var(--cible);
+}
+.focus .ligne-series > * {
+  min-height: var(--salle-secondaire);
   padding: 0 10px;
   color: var(--texte-salle);
 }
@@ -3612,22 +3627,23 @@ button.phase-accueil {
   color: var(--ok);
 }
 .focus .ligne-series > .courante {
-  color: var(--accent-texte);
+  color: var(--accent);
 }
 .focus .chauffes-ligne button {
-  min-height: var(--cible);
+  min-height: var(--salle-secondaire);
 }
-.focus .rpe button {
-  height: 56px;
-  font-size: var(--t-titre);
+.rpe {
+  gap: var(--e2);
 }
-.focus .btn.grand {
-  min-height: 72px;
+.focus .rpe button,
+.editeur-compact .rpe button {
+  height: var(--salle-rpe);
+  font-size: var(--t-texte);
 }
 
-/* Charge et reps côte à côte : le nombre en grand, − et + dessous, sous le pouce. */
+/* Charge et reps côte à côte : le nombre en grand, − et + dessous. */
 .steppers-duo {
-  gap: var(--e3);
+  gap: var(--e4);
 }
 .steppers-duo .stepper {
   grid-template-columns: 1fr 1fr;
@@ -3639,11 +3655,11 @@ button.phase-accueil {
 }
 .steppers-duo .stepper > button {
   grid-row: 2;
-  height: 64px;
-  font-size: var(--t-page);
+  height: var(--salle-pas);
+  font-size: var(--t-titre);
 }
 .steppers-duo .stepper .valeur input {
-  font-size: var(--t-chiffre);
+  font-size: var(--salle-chiffre);
   font-weight: 800;
   line-height: 1.1;
   padding: 0;
@@ -3654,11 +3670,36 @@ button.phase-accueil {
   align-items: center;
   justify-content: center;
   gap: var(--e1);
-  min-height: var(--cible);
+  min-height: 24px;
   margin: 0 auto;
-  white-space: normal;
+  white-space: nowrap;
   line-height: 1.2;
   text-align: center;
+}
+.ligne-disques {
+  display: flex;
+  justify-content: center;
+}
+.editeur-compact.pile > .ligne-disques {
+  margin-top: var(--salle-ecart);
+}
+.zone-effort {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.ligne-effort {
+  min-height: 24px;
+}
+.ligne-effort strong {
+  color: var(--texte);
+}
+.editeur-compact .ligne-effort .btn.lien-action {
+  min-height: 32px;
+  margin: 0;
+}
+.editeur-compact.pile > .zone-effort {
+  margin-top: var(--salle-ecart);
 }
 
 /* Valider tout en bas de l'écran, à portée du pouce. */
@@ -3667,6 +3708,9 @@ button.phase-accueil {
   display: flex;
   flex-direction: column;
 }
+.focus-bloc.saisie-focus {
+  padding: var(--e3) var(--e4);
+}
 .editeur-compact {
   flex: 1;
   display: flex;
@@ -3674,7 +3718,7 @@ button.phase-accueil {
 }
 .saisie-focus.pile > * + *,
 .editeur-compact.pile > * + * {
-  margin-top: var(--e2);
+  margin-top: var(--salle-ecart);
 }
 .groupe-inactif {
   opacity: 0.75;
@@ -3687,6 +3731,9 @@ button.phase-accueil {
   order: 8;
   margin-top: auto;
 }
+.editeur-compact > .ligne-options .btn {
+  min-height: 32px;
+}
 .editeur-compact > .options-serie {
   order: 9;
 }
@@ -3694,9 +3741,9 @@ button.phase-accueil {
   order: 10;
 }
 
-/* Repos : le chrono se lit de loin, les réglages se touchent sans viser. */
+/* Repos : le chrono se lit de loin ; tout tient dans la hauteur restante. */
 .focus.fixe {
-  --anneau: clamp(120px, calc(100dvh - 580px), 250px);
+  --anneau: clamp(112px, calc(100dvh - 500px), 210px);
 }
 .focus.fixe .temps-grand {
   font-size: min(var(--t-chrono), calc(var(--anneau) * 0.3));
@@ -3709,11 +3756,11 @@ button.phase-accueil {
   gap: var(--e2);
 }
 .focus .boutons-grand .btn {
-  min-height: 64px;
-  font-size: var(--t-titre);
+  min-height: var(--salle-pas);
+  font-size: var(--t-texte);
 }
 .focus .cible-grand {
-  font-size: var(--t-page);
+  font-size: var(--t-titre);
 }
 .focus .etat-chrono {
   opacity: 0.8;
@@ -3724,4 +3771,10 @@ button.phase-accueil {
 }
 .serie-bloc.en-saisie {
   scroll-margin-top: 150px;
+}
+/* Petits écrans : on resserre les écarts plutôt que de faire défiler. */
+@media (max-height: 700px) {
+  :root {
+    --salle-ecart: 6px;
+  }
 }

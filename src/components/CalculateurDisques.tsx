@@ -1,4 +1,4 @@
-import { Disc3 } from 'lucide-react'
+import { Disc3, TriangleAlert, X } from 'lucide-react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { modifierExercice } from '../db'
@@ -38,9 +38,9 @@ export default function CalculateurDisques({ exo, charge, onFermer }: Props) {
         style={{ maxWidth: 360, width: '100%' }}
       >
         <div className="ligne entre" style={{ marginBottom: 4 }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>🏋️ Disques à charger</h2>
+          <h2 className="ligne" style={{ margin: 0 }}><Disc3 size={20} /> Disques à charger</h2>
           <button className="btn discret petit" onClick={onFermer}>
-            ✕
+            <X size={20} />
           </button>
         </div>
 
@@ -142,7 +142,7 @@ export default function CalculateurDisques({ exo, charge, onFermer }: Props) {
 
             {rep.reste > 0 && (
               <div className="faible" style={{ color: 'var(--alerte)' }}>
-                ⚠️ Reste non décomposable avec les disques standards : {kg(rep.reste)} kg par côté.
+                <TriangleAlert size={14} className="ico-texte" /> Reste non décomposable avec les disques standards : {kg(rep.reste)} kg par côté.
               </div>
             )}
 
@@ -185,8 +185,8 @@ export function PuceDisques({ exo, charge, unite = 'kg' }: { exo: Exercice; char
         className="btn discret petit"
         style={{
           alignSelf: 'center',
-          fontSize: 'var(--t-petit)',
-          minHeight: 'var(--cible)',
+          fontSize: 'var(--t-legende)',
+          minHeight: 32,
           padding: '0 var(--e3)',
           borderRadius: 999,
           background: 'var(--surface-2)',
@@ -199,7 +199,7 @@ export function PuceDisques({ exo, charge, unite = 'kg' }: { exo: Exercice; char
         onClick={() => setOuvert(true)}
         title="Ouvrir le calculateur de disques"
       >
-        <Disc3 size={16} />
+        <Disc3 size={14} />
         <span>{texteResume}</span>
       </button>
 
