@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useRef, useState } from 'react'
-import { Camera, ChevronLeft, ChevronRight, Dumbbell, Flame, Moon, Ruler, Scale } from 'lucide-react'
+import { Camera, Check, ChevronLeft, ChevronRight, Dumbbell, Flame, Moon, Ruler } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
@@ -20,7 +20,7 @@ import { objectifDuJour } from '../lib/nutrition'
 
 type Prevu = ReturnType<typeof prevuLe>
 import { planParDefaut } from './Seances'
-import { confirmer } from '../components/Dialogues'
+import { confirmer, informer } from '../components/Dialogues'
 
 const JOURS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const dateLongue = (s: Seance) =>
@@ -342,8 +342,69 @@ function JourChoisi({
   const vide = !seances.length
   const [voirMesures, setVoirMesures] = useState(false)
   const [voirPhotos, setVoirPhotos] = useState(false)
+  const [saisiePoids, setSaisiePoids] = useState(false)
+  const [valPoids, setValPoids] = useState('')
   const [saisieSommeil, setSaisieSommeil] = useState(false)
   const [saisieCalories, setSaisieCalories] = useState(false)
+
+  const toggleSaisiePoids = () => {
+    if (saisiePoids) {
+      setSaisiePoids(false)
+    } else {
+      const def = pesee !== undefined ? pesee : 70
+      setValPoids(kg(def))
+      setSaisiePoids(true)
+      setSaisieSommeil(false)
+      setSaisieCalories(false)
+    }
+  }
+
+  const toggleSaisieSommeil = () => {
+    if (saisieSommeil) {
+      setSaisieSommeil(false)
+    } else {
+      setSaisieSommeil(true)
+      setSaisiePoids(false)
+      setSaisieCalories(false)
+    }
+  }
+
+  const toggleSaisieCalories = () => {
+    if (saisieCalories) {
+      setSaisieCalories(false)
+    } else {
+      setSaisieCalories(true)
+      setSaisiePoids(false)
+      setSaisieSommeil(false)
+    }
+  }
+
+  const ajusterPoids = (delta: number) => {
+    const t = (valPoids || (pesee !== undefined ? kg(pesee) : '70')).trim().replace(',', '.')
+    const cur = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : (pesee ?? 70)
+    const nouv = Math.round((cur + delta) * 10) / 10
+    setValPoids(kg(nouv))
+  }
+
+  const enregistrerPoids = async () => {
+    const t = (valPoids || (pesee !== undefined ? kg(pesee) : '70')).trim().replace(',', '.')
+    const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
+    if (!(val > 30 && val < 250)) {
+      return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
+    }
+    const arr = Math.round(val * 10) / 10
+    await db.pesees.put({ date, poids: arr })
+    await db.seances.filter((s) => s.date === date && !s.poidsCorps).modify((s) => {
+      s.poidsCorps = arr
+    })
+    setSaisiePoids(false)
+  }
+
+  const supprimerPoids = async () => {
+    await db.pesees.delete(date)
+    setValPoids('')
+    setSaisiePoids(false)
+  }
 
   // Mensurations : la taille d'abord (la plus parlante), sinon la première prise ; l'écart avec la fois d'avant.
   const clesMesure = mesure ? MESURES.flatMap(clesDe).filter((c) => mesure.valeurs[c] !== undefined) : []
@@ -410,6 +471,9 @@ function JourChoisi({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 4 }}>
         {/* Tuile Poids */}
         <div
+          role="button"
+          tabIndex={0}
+          onClick={toggleSaisiePoids}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -417,11 +481,29 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid ' + (saisiePoids ? 'var(--accent)' : 'rgba(255, 255, 255, 0.06)'),
             minHeight: 74,
+            cursor: 'pointer',
+            transition: 'border 0.15s ease',
           }}
         >
-          <div style={{ color: 'var(--text-secondary)' }}><Scale size={18} strokeWidth={1.75} /></div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="18" height="18" x="3" y="3" rx="4" />
+              <path d="M8 7h8" />
+              <path d="M12 7v3" />
+            </svg>
+            <span style={{ fontSize: '0.75rem', opacity: 0.6, color: 'var(--text-secondary)' }}>✎</span>
+          </div>
           <div>
             <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--texte)' }}>
               {pesee !== undefined ? `${kg(pesee)} kg` : <span className="faible">—</span>}
@@ -466,7 +548,7 @@ function JourChoisi({
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setSaisieSommeil(!saisieSommeil)}
+          onClick={toggleSaisieSommeil}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -474,9 +556,10 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid ' + (saisieSommeil ? '#8e8eff' : 'rgba(255, 255, 255, 0.06)'),
             minHeight: 74,
             cursor: 'pointer',
+            transition: 'border 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#8e8eff' }}>
@@ -495,7 +578,7 @@ function JourChoisi({
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setSaisieCalories(!saisieCalories)}
+          onClick={toggleSaisieCalories}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -503,9 +586,10 @@ function JourChoisi({
             padding: '12px 14px',
             borderRadius: 14,
             background: 'var(--subcard-gradient)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid ' + (saisieCalories ? '#f97316' : 'rgba(255, 255, 255, 0.06)'),
             minHeight: 74,
             cursor: 'pointer',
+            transition: 'border 0.15s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#f97316' }}>
@@ -526,6 +610,93 @@ function JourChoisi({
           </div>
         </div>
       </div>
+
+      {/* Saisie Poids dépliée */}
+      {saisiePoids && (
+        <div style={{ marginTop: 8, padding: '10px 12px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div className="ligne entre" style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+              Pesée ({date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})
+            </span>
+            <button
+              type="button"
+              className="btn discret petit"
+              style={{ padding: '0 4px', height: 24, fontSize: '0.75rem' }}
+              onClick={() => setSaisiePoids(false)}
+            >
+              Fermer
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+            <span className="mini-stepper compact" style={{ flex: 1 }}>
+              <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
+                −
+              </button>
+              <input
+                type="text"
+                inputMode="decimal"
+                enterKeyHint="done"
+                className="duree"
+                value={valPoids || (pesee !== undefined ? kg(pesee) : '70')}
+                onFocus={(e) => {
+                  if (!valPoids) setValPoids(pesee !== undefined ? kg(pesee) : '70')
+                  e.target.select()
+                }}
+                onChange={(e) => setValPoids(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
+              />
+              <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
+                +
+              </button>
+            </span>
+            <button
+              type="button"
+              className="btn primaire petit"
+              style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}
+              onClick={() => void enregistrerPoids()}
+              aria-label="Valider le poids"
+            >
+              <Check size={18} strokeWidth={2.5} />
+            </button>
+            {pesee !== undefined && (
+              <button
+                type="button"
+                className="btn discret petit"
+                style={{ height: 34, minHeight: 34, padding: '0 8px', fontSize: '0.75rem', color: 'var(--danger)', borderRadius: 8 }}
+                onClick={() => void supprimerPoids()}
+                aria-label="Effacer la pesée"
+              >
+                Effacer
+              </button>
+            )}
+          </div>
+
+          {/* Raccourcis d'ajustement rapide */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+            {[-0.5, -0.2, +0.2, +0.5].map((delta) => (
+              <button
+                key={delta}
+                type="button"
+                style={{
+                  padding: '5px 0',
+                  borderRadius: 8,
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: 'var(--texte)',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+                onClick={() => ajusterPoids(delta)}
+              >
+                {delta > 0 ? `+${delta}` : delta} kg
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Saisie Sommeil dépliée */}
       {saisieSommeil && (
