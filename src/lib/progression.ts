@@ -304,9 +304,9 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
     const plus = s.reps.map((_, i) => i).filter((i) => derniere[i] && s.reps[i] > derniere[i].reps)
     const pourquoi =
       plus.length === 1
-        ? `${derniere[plus[0]].reps} reps avec ${Math.max(0, 10 - derniere[plus[0]].rpe)} en réserve sur la ${ord(plus[0])} série (effort ${kgTexte(derniere[plus[0]].rpe)}/10)`
-        : `tes séries étaient faciles (effort 7/10 ou moins, 3 reps en réserve ou plus) : une rep de plus sur deux séries`
-    return { ...s, titre: '💡 Tu peux viser plus', message: `Pourquoi : ${pourquoi}.\nLa charge montera quand tes ${series(b!.prevues)} atteindront ${haut}.` }
+        ? `${ord(plus[0])} série à ${derniere[plus[0]].reps} reps, effort ${kgTexte(derniere[plus[0]].rpe)}/10`
+        : `tes séries étaient faciles (effort 7/10 ou moins)`
+    return { ...s, titre: '💡 Tu peux viser plus', message: `Pourquoi : ${pourquoi}.\nLa charge montera quand toutes feront ${haut}.` }
   }
   if (s.decision === 'baisser') return { ...s, titre: exo.assistance ? '💡 Un peu plus d’assistance' : '💡 Baisse un peu', message: `Pourquoi : deux séances de suite sous ${bas} reps.\nOn repart un peu plus ${exo.assistance ? 'aidé' : 'léger'} pour refaire des séries propres.` }
   // Haut atteint mais montée trop forte d'un coup (ou matériel au max) : le dire plutôt que se taire.

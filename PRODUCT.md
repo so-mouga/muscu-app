@@ -68,8 +68,9 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 - **Vue liste de la séance** : `f591d41`. Toute la séance en une liste, plus de saisie ; plein écran = faire, liste = voir et organiser.
 - **Écran de repos** : `f5c4968`. « Voir la suite de la séance » retiré, il faisait double emploi avec la liste.
 - **Machine prise, retour de Fin de séance, temps en clair** : `f9f2c5a`. Icônes et lignes sans bordure, « Échanger » seulement sur l'exercice en cours, retour vers l'écran d'où on vient, « 0:04 de séance · ~55 min restantes » en plein écran.
+- **Fin de séance** : `49ffc54` pour les corrections de fond (choix enregistrés tout de suite, exercice assisté, viser plus sans perdre de reps, pas de faux choix), puis nouvel affichage : sensations en haut, cartes réduites, chiffre qui change en orange, « suivre les conseils ».
 
-Rien de ces cinq derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
+Rien de ces six derniers points n'a encore été essayé sur le téléphone. À y regarder : fluidité de la montée des fenêtres et du flou ; clavier dans « Ajouter un mouvement » ; vrai bouton retour dans la liste (replier, puis revenir) ; saisie absente de la liste, est-ce gênant en salle ?
 
 ### Décisions validées, absentes d'`AGENTS.md`
 
@@ -81,16 +82,18 @@ Rien de ces cinq derniers points n'a encore été essayé sur le téléphone. À
 
 ### Reste à faire, dans l'ordre
 
-1. **Fin de séance.**
-2. **Accueil.**
-3. **Progression** (Bilan, Journal).
-4. **Corps.**
-5. **Programmes.**
-6. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
-7. **Réglages.**
+1. **Accueil.**
+2. **Progression** (Bilan, Journal).
+3. **Corps.**
+4. **Programmes.**
+5. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
+6. **Réglages.**
 
 À traiter en refaisant ces écrans :
 
+- Exercice créé par l'utilisateur et assisté : rien ne permet encore de le marquer (`Exercice.assistance`), à prévoir dans la fiche en refaisant Exercices. Le repère des exercices équivalents (`repere`) ne connaît pas non plus l'assistance.
+- Fenêtre d'objectif avec 5 séries sous 700 px de haut : elle défile, « Fixer cet objectif » est sous le pli (un appui à côté garde ce qui a changé).
+- La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
 - Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. Remplacer les émojis et symboles restants, dont ★ en séance et 🏆 dans la fenêtre d'objectif.
 - Revoir l'échauffement général de la séance, pas encore repris.

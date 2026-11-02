@@ -3308,29 +3308,182 @@ button.phase-accueil {
   cursor: pointer;
 }
 
+/* Fin de séance : résumé et sensations, en tête pour qu'on les voie. */
+.fin-resume {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+}
+.fin-mieux {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+}
+.fin-mieux svg {
+  flex: none;
+  margin-top: 3px;
+}
+.fin-sensations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  margin-top: var(--e2);
+}
+.fin-sensations-choix {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--e2);
+}
+.fin-sensations-choix button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--cible);
+  padding: 0 4px;
+  border-radius: var(--rayon-2);
+  border: 1px solid transparent;
+  background: var(--controle);
+  color: var(--texte-2);
+  font: inherit;
+  font-size: var(--t-petit);
+}
+/* Un choix simple : fond neutre, jamais d'orange (seul « Enregistrer » l'est). */
+.fin-sensations-choix button.actif,
+.choix-prochaine button.actif {
+  background: var(--voile-fort);
+  border-color: var(--voile-bord);
+  color: var(--texte);
+}
+.fin-titre {
+  margin: var(--e5) 0 var(--e2);
+}
+.fin-titre h3 {
+  margin: 0;
+}
+.fin-suivre {
+  position: relative;
+  flex: none;
+  min-height: 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--controle);
+  color: var(--texte);
+  font: inherit;
+  font-size: var(--t-legende);
+}
+/* 44 px au doigt sans grossir la pastille. */
+.fin-suivre::after {
+  content: '';
+  position: absolute;
+  inset: -8px 0;
+}
+.fin-deload {
+  margin-bottom: var(--e2);
+}
+.fin-lignes {
+  gap: 0;
+  padding-top: var(--e1);
+  padding-bottom: var(--e1);
+}
+.fin-lignes > :last-child .ligne-fin {
+  border-bottom: 0;
+}
+.fin-libre {
+  margin-top: var(--e4);
+}
+.fin-supprimer {
+  margin-top: var(--e2);
+}
+.fin-quitter {
+  width: 100%;
+  margin-top: var(--e5);
+}
+
 /* Fin de séance : un choix à deux options par exercice qui a un conseil. */
+.decision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.decision-tete {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+}
+.decision-nom {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+}
+.decision-chevron {
+  margin-left: 4px;
+  transition: transform var(--duree-courte) var(--sortie);
+}
+.decision-chevron.ouvert {
+  transform: rotate(180deg);
+}
+.decision-crayon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--cible);
+  height: var(--cible);
+  margin: -10px -12px -10px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texte-2);
+}
+.ligne-fin .decision-crayon {
+  margin: 0 -12px 0 0;
+}
 .choix-prochaine {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--e2);
 }
 .choix-prochaine button {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  min-height: 0;
+  min-width: 0;
+  min-height: var(--cible);
   padding: 10px 12px;
   border-radius: var(--rayon-2);
-  border: 1px solid var(--bord);
+  border: 1px solid transparent;
   background: var(--surface-2);
   color: var(--texte);
   font: inherit;
   text-align: left;
 }
-.choix-prochaine button.actif {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-uni));
+.choix-prochaine .faible {
+  font-size: var(--t-legende);
+  line-height: 1.25;
+}
+.choix-prochaine strong {
+  font-weight: 600;
+}
+/* Ce qui change d'une option à l'autre : du texte orange, pas un fond plein. */
+.fin-diff {
+  color: var(--accent);
+}
+.fin-pourquoi {
+  white-space: pre-line;
+  line-height: 1.35;
 }
 /* Fin de séance : les autres exercices, une ligne chacun. */
 .ligne-fin {

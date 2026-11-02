@@ -9,12 +9,21 @@ import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
 export const dureeSeance = (s: Seance) => (s.enCours ? Date.now() - s.debut : dureeSeanceEffective(s))
 
 /** Pastilles de bilan d'une séance : durée, séries dures, kg soulevés… */
-export function ResumeSeance({ seance, exo }: { seance: Seance; exo?: (id: string) => Exercice }) {
+export function ResumeSeance({ seance, exo, enLigne }: { seance: Seance; exo?: (id: string) => Exercice; /** Une ligne de texte plutôt que des pastilles. */ enLigne?: boolean }) {
   const ms = dureeSeance(seance)
   const dures = seance.series.filter(estDure).length
   const tonnage = seance.series.reduce((a, s) => a + kgSouleves(s, exo?.(s.exoId)), 0)
   const finisseurs = seance.series.filter((s) => s.type === 'serie_longue' || s.type === 'drop' || s.type === 'rest_pause').length
   const chauffes = Object.values(seance.chauffes).filter(Boolean).length
+  if (enLigne) {
+    const morceaux = [
+      duree(ms),
+      dures > 0 && `${dures} série${dures > 1 ? 's' : ''} dure${dures > 1 ? 's' : ''}`,
+      tonnage > 0 && `${kg(Math.round(tonnage))} kg soulevés`,
+      finisseurs > 0 && `${finisseurs} finisseur${finisseurs > 1 ? 's' : ''}`,
+    ]
+    return <div className="faible petit">{morceaux.filter(Boolean).join(' · ')}</div>
+  }
   return (
     <>
       <div className="ligne wrap" style={{ marginTop: 8, gap: 6 }}>

@@ -34,7 +34,7 @@ const REGLES: [string, string[]][] = [
       'Deux séances ratées de suite (avec fourchette) : baisser d’environ 5 % (au moins un pas).',
       'Exercice assisté (tractions à la machine) : les kg notés aident, donc tout s’inverse. Progresser, c’est retirer de l’assistance, d’un palier à la fois ; c’est aussi ce qui compte comme un progrès.',
       'Séance écourtée (moins de séries que prévu) : pas de conseil, refais d’abord la séance en entier.',
-      'Chaque conseil dit pourquoi, avec tes chiffres du jour (quelle série, combien de reps, quel effort). En fin de séance, tu choisis entre « Comme aujourd’hui » (coché par défaut) et le conseil ; rien ne monte tout seul.',
+      'Chaque conseil dit pourquoi, avec tes chiffres du jour (quelle série, combien de reps, quel effort). En fin de séance, tu choisis entre « Comme aujourd’hui » (coché par défaut) et le conseil, un par un ou tous d’un coup avec « suivre les conseils » ; rien ne monte tout seul.',
       'Sans conseil, la carte dit pourquoi on refait pareil : effort plus dur que prévu, ou série d’échec trop courte.',
     ],
   ],

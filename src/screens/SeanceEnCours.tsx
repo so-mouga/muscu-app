@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, SkipForward, Smile, Square, StickyNote, Timer, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, SkipForward, Smile, Square, StickyNote, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -15,7 +15,7 @@ import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { chrono, ecartSerie, lireChauffe, chargeQte, chargeTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, serieTexte } from '../lib/calc'
+import { chrono, ecartSerie, lireChauffe, chargeQte, chargeTexte, chargesTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -1301,28 +1301,27 @@ function FinSeance({
   /** « 105 kg × 10/10/10 » : ce qui a été fait aujourd'hui sur l'exercice. */
   const resumeDuJour = (exo: Exercice) => {
     const l = seriesDuJour(exo)
-    return cibleTexte(exo, l.map((x) => x.charge), l.map((x) => x.reps))
+    return cibleTexte(exo, l.map((x) => x.charge), l.map((x) => x.reps), true)
   }
   /** Une ligne : objectif fixé, raison de refaire pareil, ou comparaison avec la dernière fois. */
   const statut = (exo: Exercice, raison: string | null, c: Suggestion | null) => {
     const o = objectifs[exo.id]
-    if (o) return `✎ prochaine fois ${cibleTexte(exo, o.charges, o.reps)}`
-    if (seance.deload) return 'déload'
+    if (o) return `prochaine fois ${cibleTexte(exo, o.charges, o.reps, true)}`
     if (raison) return raison
     if (c) return c.message.replace(/^Pourquoi : /, '').replace('\n', ' ')
     const avant = historiqueDe(terminees, exo.id)[0] ?? []
-    if (!avant.length) return '1re fois · prochaine fois : pareil'
+    if (!avant.length) return '1re fois'
     const duJour = seriesDuJour(exo)
     const sens = duJour.flatMap((x, k) => ecartSerie(x, avant[k], exo)?.sens ?? [])
-    if (sens.includes('mieux')) return '↑ mieux que la dernière fois · prochaine fois : pareil'
+    if (sens.includes('mieux')) return '↑ mieux que la dernière fois'
     if (sens.every((x) => x === 'egal')) {
       // Les séries faites sont les mêmes : seul le nombre de séries peut changer.
       const ecart = duJour.length - avant.length
-      if (ecart > 0) return `↑ ${ecart} série${ecart > 1 ? 's' : ''} de plus que la dernière fois · prochaine fois : pareil`
-      if (ecart < 0) return `${-ecart} série${ecart < -1 ? 's' : ''} de moins que la dernière fois · prochaine fois : pareil`
-      return '= comme la dernière fois'
+      if (ecart > 0) return `↑ ${ecart} série${ecart > 1 ? 's' : ''} de plus que la dernière fois`
+      if (ecart < 0) return `${-ecart} série${ecart < -1 ? 's' : ''} de moins que la dernière fois`
+      return 'comme la dernière fois'
     }
-    return 'un peu moins que la dernière fois · prochaine fois : pareil'
+    return 'un peu moins que la dernière fois'
   }
   /** Les séries du jour, en clair, comparées à la dernière fois. */
   const detailSeries = (exo: Exercice) => {
@@ -1367,6 +1366,17 @@ function FinSeance({
     await annulerSeance(seance.id)
   }
 
+  const choixDe = (id: string, c: Suggestion): 'pareil' | 'conseil' | 'perso' => {
+    const o = objectifs[id]
+    return !o ? 'pareil' : JSON.stringify([o.charges, o.reps]) === JSON.stringify([c.charges, c.reps]) ? 'conseil' : 'perso'
+  }
+  const suivreConseil = (id: string, c: Suggestion) => setObjectifs((x) => ({ ...x, [id]: { charges: c.charges, reps: c.reps } }))
+  // Le bouton « tout d'un coup » ne touche jamais à un objectif fixé à la main.
+  const modifiables = aDecider.filter((l) => choixDe(l.exo.id, l.conseil!) !== 'perso')
+  const tousSuivis = modifiables.length > 0 && modifiables.every((l) => choixDe(l.exo.id, l.conseil!) === 'conseil')
+  const basculerTous = () => modifiables.forEach((l) => (tousSuivis ? retirerObjectif(l.exo.id) : suivreConseil(l.exo.id, l.conseil!)))
+  const resumeForme = seance.deload ? null : resumeSeance(seance, terminees, catalogue.exo)
+
   return (
     <div className="apparait">
       <div className="entete">
@@ -1374,64 +1384,92 @@ function FinSeance({
           ←
         </button>
         <div style={{ flex: 1 }}>
-          <h1 style={{ whiteSpace: 'nowrap', fontSize: 'clamp(20px, 6vw, 28px)' }}>Fin de séance</h1>
+          <h1>Fin de séance</h1>
         </div>
       </div>
-      <div className="carte">
+      <div className="carte fin-resume">
         <h2>{seance.nom}</h2>
-        {(() => {
-          // Le moment où on est le plus réceptif : ce qui a été mieux aujourd'hui (jamais en déload).
-          const r = seance.deload ? null : resumeSeance(seance, terminees, catalogue.exo)
-          if (!r || (!r.mieux && !r.records)) return null
-          const morceaux = [
-            r.mieux > 0 && `${r.mieux} exercice${r.mieux > 1 ? 's' : ''} mieux que la dernière fois`,
-            r.records > 0 && `${r.records} record${r.records > 1 ? 's' : ''}`,
-          ].filter(Boolean)
-          return (
-            <div className="mieux-titre" style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {r.records > 0 && <Trophy size={14} style={{ color: 'var(--accent)' }} />}
-              <span>↑ {morceaux.join(', ')}</span>
+        {/* Le moment où on est le plus réceptif : ce qui a été mieux aujourd'hui (jamais en déload). */}
+        {resumeForme && (resumeForme.mieux > 0 || resumeForme.records > 0) && (
+          <div className="mieux-titre fin-mieux">
+            {resumeForme.records > 0 ? <Trophy size={16} /> : <TrendingUp size={16} />}
+            <span>
+              {[
+                resumeForme.mieux > 0 && `${resumeForme.mieux} exercice${resumeForme.mieux > 1 ? 's' : ''} mieux que la dernière fois`,
+                resumeForme.records > 0 && `${resumeForme.records} record${resumeForme.records > 1 ? 's' : ''}`,
+              ]
+                .filter(Boolean)
+                .join(', ')}
+            </span>
+          </div>
+        )}
+        {seance.series.length > 0 ? <ResumeSeance seance={seance} exo={catalogue.exo} enLigne /> : <div className="faible">Aucune série validée : rien à enregistrer.</div>}
+        {/* Ici plutôt qu'en bas : « Enregistrer » reste toujours visible, on n'irait jamais les chercher. */}
+        {seance.series.length > 0 && (
+          <div className="fin-sensations">
+            <div className="faible petit">Comment c’était ?</div>
+            <div className="fin-sensations-choix">
+              {OPTIONS_FORME.map((o) => (
+                <button key={o.val} type="button" className={forme === o.val ? 'actif' : ''} aria-pressed={forme === o.val} onClick={() => choisirForme(o.val)}>
+                  <o.Icon size={18} style={{ color: forme === o.val ? 'var(--texte)' : o.couleur }} />
+                  {o.label}
+                </button>
+              ))}
             </div>
-          )
-        })()}
-        <ResumeSeance seance={seance} exo={catalogue.exo} />
+          </div>
+        )}
       </div>
 
       {/* Ce qui compte : décider de la prochaine fois, seulement là où il y a un conseil. Le reste en une ligne. */}
       {aDecider.length > 0 && (
         <>
-          <h3 style={{ margin: '18px 0 8px' }}>À décider pour la prochaine fois</h3>
+          <div className="fin-titre ligne entre">
+            <h3>Pour la prochaine fois</h3>
+            {aDecider.length >= 3 && modifiables.length > 0 && (
+              <button type="button" className="fin-suivre" onClick={basculerTous}>
+                {tousSuivis ? 'tout comme aujourd’hui' : 'suivre les conseils'}
+              </button>
+            )}
+          </div>
           {aDecider.map(({ plan, exo, s: base, conseil: c }) => {
             const o = objectifs[exo.id]
-            const choix = !o ? 'pareil' : JSON.stringify([o.charges, o.reps]) === JSON.stringify([c!.charges, c!.reps]) ? 'conseil' : 'perso'
+            const choix = choixDe(exo.id, c!)
+            const memeCharge = JSON.stringify(base.charges) === JSON.stringify(c!.charges)
             return (
-              <div key={plan.exoId} className="carte pile decision">
-                <div className="ligne entre" style={{ alignItems: 'baseline', gap: 8 }}>
-                  <strong>{exo.nom}</strong>
-                  <span className="faible petit">aujourd’hui {resumeDuJour(exo)}</span>
+              <div key={plan.exoId} className="carte decision">
+                <div className="decision-tete">
+                  <button type="button" className="decision-nom" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
+                    <strong>{exo.nom}</strong>
+                    <span className="faible petit">
+                      {memeCharge ? '' : 'aujourd’hui '}
+                      {chargesTexte(exo, base.charges, true)} · {ouverts[exo.id] ? 'masquer' : 'voir'} les séries
+                      <ChevronDown size={14} className={'ico-texte decision-chevron' + (ouverts[exo.id] ? ' ouvert' : '')} />
+                    </span>
+                  </button>
+                  <button type="button" className="decision-crayon" onClick={() => setAjuste(exo.id)} aria-label={`Autre objectif pour ${exo.nom}`}>
+                    <Pencil size={18} />
+                  </button>
                 </div>
                 <div className="choix-prochaine" role="radiogroup" aria-label={`Prochaine fois, ${exo.nom}`}>
                   <button type="button" role="radio" aria-checked={choix === 'pareil'} className={choix === 'pareil' ? 'actif' : ''} onClick={() => retirerObjectif(exo.id)}>
-                    <span className="faible petit">Comme aujourd’hui</span>
-                    <strong>{cibleTexte(exo, base.charges, base.reps)}</strong>
+                    <span className="faible">Comme aujourd’hui</span>
+                    <strong>{base.reps.join('/')}</strong>
                   </button>
-                  <button type="button" role="radio" aria-checked={choix === 'conseil'} className={choix === 'conseil' ? 'actif' : ''} onClick={() => setObjectifs((x) => ({ ...x, [exo.id]: { charges: c!.charges, reps: c!.reps } }))}>
-                    <span className="faible petit">{(c!.titre ?? 'Conseil').replace(/^💡\s*/, '')}</span>
-                    <strong>{cibleTexte(exo, c!.charges, c!.reps)}</strong>
-                  </button>
-                </div>
-                {choix === 'perso' && <div className="faible">✎ Fixé par toi : {cibleTexte(exo, o!.charges, o!.reps)}</div>}
-                <div className="faible" style={{ whiteSpace: 'pre-line' }}>
-                  {c!.message}
-                </div>
-                <div className="ligne entre">
-                  <button type="button" className="btn discret petit" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
-                    {ouverts[exo.id] ? 'Masquer les séries' : 'Voir les séries'}
-                  </button>
-                  <button type="button" className="btn discret petit" onClick={() => setAjuste(exo.id)}>
-                    ✎ Autre objectif
+                  <button type="button" role="radio" aria-checked={choix === 'conseil'} className={choix === 'conseil' ? 'actif' : ''} onClick={() => suivreConseil(exo.id, c!)}>
+                    <span className="faible">{libelleConseil(c!, base)}</span>
+                    <strong>
+                      {memeCharge ? (
+                        <RepsDiff reps={c!.reps} avant={base.reps} />
+                      ) : (
+                        <>
+                          <span className="fin-diff">{chargesCourtes(exo, c!.charges)}</span> × {c!.reps.join('/')}
+                        </>
+                      )}
+                    </strong>
                   </button>
                 </div>
+                {choix === 'perso' && <div className="faible"><Pencil size={14} className="ico-texte" /> Fixé par toi : {cibleTexte(exo, o!.charges, o!.reps, true)}</div>}
+                <div className="faible petit fin-pourquoi">{c!.message}</div>
                 {ouverts[exo.id] && detailSeries(exo)}
               </div>
             )
@@ -1441,27 +1479,31 @@ function FinSeance({
 
       {autres.length > 0 && (
         <>
-          <h3 style={{ margin: '18px 0 8px' }}>{aDecider.length ? 'Les autres exercices' : 'Tes exercices'}</h3>
-          {seance.deload && <div className="faible" style={{ marginBottom: 8 }}>Séance de déload : pas d’objectif à fixer, la prochaine vraie séance reprend là où tu en étais.</div>}
-          <div className="carte pile" style={{ gap: 0, paddingTop: 4, paddingBottom: 4 }}>
-            {autres.map(({ plan, exo, raison, conseil: c }) => (
-              <div key={plan.exoId}>
-                <div className="ligne-fin">
-                  <button type="button" className="ligne-fin-principal" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
-                    <strong>{exo.nom}</strong>
-                    <span className="faible petit">
-                      {resumeDuJour(exo)} · {statut(exo, raison, c)}
-                    </span>
-                  </button>
-                  {!seance.deload && (
-                    <button type="button" className="btn discret petit" onClick={() => setAjuste(exo.id)} aria-label={`Fixer un objectif pour ${exo.nom}`}>
-                      ✎
+          <h3 className="fin-titre">{seance.deload ? 'Tes exercices' : 'On refait pareil'}</h3>
+          {seance.deload && <div className="faible fin-deload">Séance de déload : pas d’objectif à fixer, la prochaine vraie séance reprend là où tu en étais.</div>}
+          <div className="carte pile fin-lignes">
+            {autres.map(({ plan, exo, raison, conseil: c }) => {
+              const texte = statut(exo, raison, c)
+              return (
+                <div key={plan.exoId}>
+                  <div className="ligne-fin">
+                    <button type="button" className="ligne-fin-principal" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
+                      <strong>{exo.nom}</strong>
+                      <span className="faible petit">
+                        {resumeDuJour(exo)}
+                        {texte && ` · ${texte}`}
+                      </span>
                     </button>
-                  )}
+                    {!seance.deload && (
+                      <button type="button" className="decision-crayon" onClick={() => setAjuste(exo.id)} aria-label={`Fixer un objectif pour ${exo.nom}`}>
+                        <Pencil size={18} />
+                      </button>
+                    )}
+                  </div>
+                  {ouverts[exo.id] && detailSeries(exo)}
                 </div>
-                {ouverts[exo.id] && detailSeries(exo)}
-              </div>
-            ))}
+              )
+            })}
           </div>
         </>
       )}
@@ -1473,7 +1515,7 @@ function FinSeance({
       )}
 
       {libre && (
-        <div className="carte pile">
+        <div className="carte pile fin-libre">
           <Interrupteur
             on={garder}
             onChange={setGarder}
@@ -1505,40 +1547,6 @@ function FinSeance({
           )
         })()}
 
-      {seance.series.length > 0 && (
-        <div className="carte pile" style={{ gap: 8, marginTop: 16 }}>
-          <div className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-            Sensations générales · facultatif
-          </div>
-          <div className="ligne" style={{ gap: 8 }}>
-            {OPTIONS_FORME.map((o) => {
-              const actif = forme === o.val
-              return (
-                <button
-                  key={o.val}
-                  type="button"
-                  className={'btn ' + (actif ? 'primaire' : 'discret')}
-                  style={{
-                    flex: 1,
-                    padding: '10px 4px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 6,
-                    fontSize: 'var(--t-petit)',
-                    fontWeight: actif ? 700 : 500,
-                  }}
-                  onClick={() => choisirForme(o.val)}
-                >
-                  <o.Icon size={20} strokeWidth={actif ? 2.5 : 2} style={{ color: actif ? 'var(--blanc)' : o.couleur }} />
-                  <span>{o.label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       {seance.series.length > 0 ? (
         <>
           <div className="barre-enregistrer">
@@ -1546,23 +1554,46 @@ function FinSeance({
               ✓ Enregistrer la séance
             </button>
           </div>
-          <button className="btn discret danger plein" style={{ marginTop: 8 }} onClick={abandonner}>
+          <button className="btn discret danger plein fin-supprimer" onClick={abandonner}>
             Supprimer la séance
           </button>
         </>
       ) : (
-        <div style={{ marginTop: 20 }}>
-          <button
-            className="btn primaire grand"
-            style={{ width: '100%' }}
-            onClick={() => void annulerSeance(seance.id)}
-          >
-            Quitter sans enregistrer
-          </button>
-        </div>
+        <button className="btn primaire grand fin-quitter" onClick={() => void annulerSeance(seance.id)}>
+          Quitter sans enregistrer
+        </button>
       )}
     </div>
   )
+}
+
+/** Les reps d'une option, avec en couleur celles qui changent par rapport à aujourd'hui. */
+function RepsDiff({ reps, avant }: { reps: number[]; avant: number[] }) {
+  return (
+    <>
+      {reps.map((r, i) => (
+        <span key={i}>
+          {i > 0 && '/'}
+          {r !== avant[i] ? <span className="fin-diff">{r}</span> : r}
+        </span>
+      ))}
+    </>
+  )
+}
+
+/** Titre d'un conseil dans son option : dit ce qui change quand c'est une rep de plus. */
+function libelleConseil(c: Suggestion, base: Suggestion): string {
+  const plus = c.reps.flatMap((r, i) => (r > base.reps[i] ? [i] : []))
+  if (c.decision === 'plus_une_rep' && plus.length === 1) return `+1 rep, ${plus[0] === 0 ? '1re' : `${plus[0] + 1}e`} série`
+  if (c.decision === 'plus_une_rep' && plus.length > 1) return `+1 rep sur ${plus.length} séries`
+  return (c.titre ?? 'Conseil').replace(/^💡\s*/, '')
+}
+
+/** Charge dans une option, où la place manque : le lest seul au poids du corps. */
+function chargesCourtes(exo: Exercice, charges: (number | null)[]): string {
+  if (exo.mode !== 'poids_corps') return chargesTexte(exo, charges)
+  const c = charges[0] ?? 0
+  return c === 0 ? 'sans lest' : `${c > 0 ? '+' : '−'}${kg(Math.abs(c))} kg`
 }
 
 /** Toutes les séries de l'exercice sur une ligne : faites (✓), en cours (→), à venir. */

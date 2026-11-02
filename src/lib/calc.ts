@@ -19,7 +19,7 @@ export function chargeTexte(exo: Exercice, charge: number | null | undefined, lo
   if (exo.mode === 'poids_corps') return charge === 0 ? pdc : `${pdc} ${charge > 0 ? '+' : '−'}${kg(Math.abs(charge))} kg`
   if (exo.mode === 'elastique') return `niveau ${charge}`
   if (exo.mode === 'par_main') return `${kg(charge)} kg/main`
-  return `${kg(charge)} kg`
+  return `${kg(charge)} kg${long && exo.assistance ? ' d’assistance' : ''}`
 }
 
 /** Exercice mesuré en secondes tenues (gainage…) plutôt qu'en reps. */
@@ -43,9 +43,14 @@ export const chargeQte = (exo: Exercice, charge: number | null | undefined, n: n
   enTemps(exo) && exo.mode === 'poids_corps' && charge === 0 ? qte(exo, n) : `${chargeTexte(exo, charge, long)} × ${qte(exo, n)}`
 
 /** Objectif d'un exercice : « 30 kg × 12/12/10 », « 30 kg → 25 kg × 12/12 », « 45/45/45 s ». */
-export function cibleTexte(exo: Exercice, charges: (number | null)[], reps: number[]): string {
+export function cibleTexte(exo: Exercice, charges: (number | null)[], reps: number[], long = false): string {
   const varie = charges.some((c) => c !== charges[0])
-  return varie ? `${chargeTexte(exo, charges[0])} → ${chargeTexte(exo, charges[charges.length - 1])} × ${qte(exo, reps.join('/'))}` : chargeQte(exo, charges[0], reps.join('/'))
+  return varie ? `${chargesTexte(exo, charges, long)} × ${qte(exo, reps.join('/'))}` : chargeQte(exo, charges[0], reps.join('/'), long)
+}
+
+/** Les charges d'un objectif : « 30 kg », « 30 kg → 25 kg » si elles changent d'une série à l'autre. */
+export function chargesTexte(exo: Exercice, charges: (number | null)[], long = false): string {
+  return charges.some((c) => c !== charges[0]) ? `${chargeTexte(exo, charges[0], long)} → ${chargeTexte(exo, charges[charges.length - 1], long)}` : chargeTexte(exo, charges[0], long)
 }
 
 /**

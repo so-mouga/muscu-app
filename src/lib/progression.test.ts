@@ -335,8 +335,8 @@ describe('conseil expliqué, +1 rep selon l’effort', () => {
     expect(c?.decision).toBe('plus_une_rep')
     expect(c?.reps.filter((r) => r > 8).length).toBe(1)
     expect(c?.titre).toMatch(/viser plus/)
-    expect(c?.message).toMatch(/Pourquoi : 8 reps avec \d en réserve sur la \d(re|e) série \(effort \d\/10\)/)
-    expect(c?.message).toMatch(/La charge montera quand tes 3 séries atteindront 10/)
+    expect(c?.message).toMatch(/Pourquoi : \d(re|e) série à 8 reps, effort \d\/10/)
+    expect(c?.message).toMatch(/La charge montera quand toutes feront 10/)
   })
   it('séance incomplète (2 séries sur 3) : pas de conseil, et on dit pourquoi', () => {
     expect(conseil(smithExo, plan, [seance(52.5, '8@7', '8@8')])).toBeNull()

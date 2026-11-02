@@ -1,3 +1,4 @@
+import { Trophy } from 'lucide-react'
 import { useState } from 'react'
 import { ecartSerie, enTemps, kg, serieTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
@@ -56,8 +57,8 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
           <div className="faible">Objectif pour la prochaine séance</div>
         </div>
         {(faites.some((x, k) => ecartSerie(x, precedente[k], exo)?.sens === 'mieux') || record) && (
-          <div className="pastille ok" style={{ alignSelf: 'flex-start' }}>
-            🏆 {record ? `Nouveau record ${quand}` : quand === 'aujourd’hui' ? 'Mieux que la dernière fois' : 'Mieux que la fois d’avant'}
+          <div className="pastille ok" style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Trophy size={14} /> {record ? `Nouveau record ${quand}` : quand === 'aujourd’hui' ? 'Mieux que la dernière fois' : 'Mieux que la fois d’avant'}
           </div>
         )}
 
@@ -81,11 +82,11 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
 
         <div>
           <div className="faible" style={{ marginBottom: 6 }}>
-            Prochaine fois · {exo.assistance ? 'assistance (kg)' : `charge (${unite})`} · {enTemps(exo) ? 'secondes' : 'reps'}
+            Fait {quand}, puis à viser : {exo.assistance ? 'assistance (kg)' : `charge (${unite})`} · {enTemps(exo) ? 'secondes' : 'reps'}
           </div>
           {charges.map((c, i) => (
             <div key={i} className="objectif-serie">
-              {faites[i] && <Fait n={`S${i + 1}`} quand={quand} s={faites[i]} avant={precedente[i]} exo={exo} />}
+              {faites[i] && <Fait n={`S${i + 1}`} s={faites[i]} avant={precedente[i]} exo={exo} />}
             <div className="ligne" style={{ gap: 6 }}>
               <span className="faible" style={{ width: 24 }}>
                 {faites[i] ? '→' : `S${i + 1}`}
@@ -141,13 +142,13 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
   )
 }
 
-/** Série faite aujourd'hui : « 30 kg × 14 · RPE 8 (visé 8) », et l'écart avec la dernière fois. */
-function Fait({ n, quand, s, avant, exo }: { n: string; quand: string; s: Serie; avant?: Serie; exo: Exercice }) {
+/** Série faite aujourd'hui : « 30 kg × 14 · effort 8/10 (visé 8) », et l'écart avec la dernière fois. */
+function Fait({ n, s, avant, exo }: { n: string; s: Serie; avant?: Serie; exo: Exercice }) {
   const e = ecartSerie(s, avant, exo)
   const ecartRpe = s.rpeCible !== undefined ? s.rpe - s.rpeCible : 0
   return (
     <div className="faible">
-      {n} · {quand} <strong style={{ color: 'var(--texte)' }}>{serieTexte(exo, s).replace(' @', ' · RPE ')}</strong>
+      {n} · <strong style={{ color: 'var(--texte)' }}>{serieTexte(exo, s, true)}</strong> · effort {kg(s.rpe)}/10
       {s.rpeCible !== undefined && ecartRpe !== 0 && (
         <span style={ecartRpe > 0.5 ? { color: 'var(--alerte)' } : undefined}>
           {' '}
