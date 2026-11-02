@@ -285,6 +285,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return () => clearTimeout(t)
   }, [toast])
 
+  // Plein écran : tant que tout tient, pas de geste vertical, sinon Android étire la page sous le doigt.
+  const ecranFocus = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ecranFocus.current
+    if (el) el.classList.toggle('tient', el.scrollHeight <= el.clientHeight)
+  })
+
   const exos = useMemo(
     () => (reglages ? plans.map((p) => exoAvecReglages(catalogue.exo(p.exoId), reglages)) : []),
     [plans, reglages, catalogue]
@@ -676,12 +683,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </div>
           )}
           {exoFini ? (
-            <div className="ligne entre">
-              <div className="nouvel-exo-titre"><Check size={16} /> {exoFini} terminé · exercice suivant</div>
-              <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)} aria-label={`Corriger la série ${derniere!.k + 1}`}>
-                <Pencil size={16} /> S{derniere!.k + 1}
-              </button>
-            </div>
+            <>
+              <div className="ligne entre ligne-terminee">
+                <div className="nouvel-exo-titre">
+                  <Check size={16} /> <span>{exoFini} terminé</span>
+                </div>
+                <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)} aria-label={`Corriger la série ${derniere!.k + 1}`}>
+                  Corriger
+                </button>
+              </div>
+              <div className="faible">Exercice suivant</div>
+            </>
           ) : (
             <div className="faible">Prochaine série</div>
           )}
@@ -715,7 +727,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               })}
             </div>
           ) : (
-            <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
+            // Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger.
+            n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
           )}
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
@@ -754,7 +767,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     })()
 
     return (
-      <div className={'focus' + (vueRepos && !correction ? ' fixe' : '')}>
+      <div ref={ecranFocus} className={'focus' + (vueRepos && !correction ? ' fixe' : '')}>
         {avancementCompact}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
         {correction ? (
