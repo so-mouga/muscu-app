@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { ArrowLeftRight, Camera, Image, Layers, Maximize2, Pencil, Plus, RefreshCw, ShieldCheck, Timer, Trash2, X } from 'lucide-react'
+import Aide from '../components/Aide'
 import { MESURES, nomCle } from '../data/mesures'
 import { db, uid } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
@@ -39,6 +41,7 @@ function parDate(photos: PhotoCorps[]) {
 /** Onglet Photos de la page Corps : séances photo et comparaison de deux dates. */
 export default function Photos() {
   const photos = useLiveQuery(() => db.photos.toArray(), [], [])
+  const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const [prise, setPrise] = useState(false)
   const [importer, setImporter] = useState(false)
   const [vue, setVue] = useState<PhotoCorps | null>(null)
@@ -61,59 +64,154 @@ export default function Photos() {
 
   return (
     <>
-      <button className="btn primaire grand" style={{ marginBottom: 12 }} onClick={() => setPrise(true)}>
-        {dates[0]?.[0] === dateISO() ? '📸 Refaire / compléter les photos du jour' : '📸 Nouvelle séance photo'}
-      </button>
-      <button className="btn plein" style={{ marginBottom: 12 }} onClick={() => setImporter(true)}>
-        🖼 Importer des photos déjà prises
-      </button>
-      <div className="faible" style={{ marginBottom: 12 }}>
-        3 poses : face, profil, dos. Même endroit, même lumière, même heure : c’est ce qui rend la comparaison fiable. Les photos restent sur ce téléphone.
+      {/* Deux boutons côte à côte sur une seule ligne (44px) */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button
+          type="button"
+          onClick={() => setPrise(true)}
+          style={{
+            flex: 1.4,
+            height: 44,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+            border: 'none',
+            borderRadius: 12,
+            color: '#fff',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(249, 115, 22, 0.25)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Camera size={18} strokeWidth={2.2} />
+          <span>{dates[0]?.[0] === dateISO() ? 'Compléter photos' : 'Séance photo'}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setImporter(true)}
+          style={{
+            flex: 1,
+            height: 44,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 7,
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 12,
+            color: 'var(--texte)',
+            fontSize: '0.88rem',
+            fontWeight: 500,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Image size={17} strokeWidth={2} />
+          <span>Importer</span>
+        </button>
       </div>
+
+      {/* Ligne discrète de confidentialité avec Aide */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14 }}>
+        <ShieldCheck size={14} strokeWidth={2} style={{ color: '#22c55e', flexShrink: 0 }} />
+        <span>Stockées uniquement sur cet appareil</span>
+        <Aide
+          titre="Conseils photo de progression"
+          texte="3 poses : face, profil, dos. Même endroit, même lumière, même heure (idéalement le matin à jeun) : c’est ce qui rend la comparaison fiable dans le temps."
+        />
+      </div>
+
       {importer && <ImportPhotos photos={photos} onFermer={() => setImporter(false)} />}
 
       {dates.length >= 2 && <Comparaison dates={dates} />}
 
-      {recentes.map(([date, poses]) => (
-        <div key={date} className="carte pile">
-          <div className="ligne entre">
-            <strong>{dateCourte(date)}</strong>
-            <button className="btn discret petit" onClick={() => setGerer(date)}>
-              ✎ Modifier
-            </button>
+      {recentes.map(([date, poses]) => {
+        const pPoids = avant(pesees, date)
+        const aPoids = pPoids && Math.abs((Date.parse(date) - Date.parse(pPoids.date)) / 86400000) <= 2
+        return (
+          <div key={date} className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+            <div className="ligne entre" style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                <strong style={{ fontSize: '1rem', color: 'var(--texte)' }}>{dateCourte(date)}</strong>
+                {aPoids && (
+                  <span className="faible" style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                    · {kg(pPoids.poids)} kg
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn discret petit"
+                onClick={() => setGerer(date)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', fontSize: '0.8rem' }}
+              >
+                <Pencil size={12} strokeWidth={2} />
+                <span>Modifier</span>
+              </button>
+            </div>
+            <div className="vignettes-poses">
+              {POSES.map((p) =>
+                poses[p.id] ? (
+                  <button key={p.id} type="button" onClick={() => setVue(poses[p.id]!)}>
+                    <img src={poses[p.id]!.image} alt={`${p.nom}, ${dateCourte(date)}`} />
+                    <span className="faible" style={{ fontSize: '0.8rem', marginTop: 4 }}>{p.nom}</span>
+                  </button>
+                ) : (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setGerer(date)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      aspectRatio: '3 / 4',
+                      borderRadius: 12,
+                      border: '1px dashed rgba(255, 255, 255, 0.15)',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      cursor: 'pointer',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    <Plus size={16} strokeWidth={2} style={{ opacity: 0.7 }} />
+                    <span className="faible" style={{ fontSize: '0.78rem' }}>{p.nom}</span>
+                  </button>
+                )
+              )}
+            </div>
           </div>
-          <div className="vignettes-poses">
-            {POSES.map((p) =>
-              poses[p.id] ? (
-                <button key={p.id} onClick={() => setVue(poses[p.id]!)}>
-                  <img src={poses[p.id]!.image} alt={`${p.nom}, ${dateCourte(date)}`} />
-                  <span className="faible">{p.nom}</span>
-                </button>
-              ) : (
-                <div key={p.id} className="vide">
-                  <span className="faible">{p.nom}</span>
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      ))}
+        )
+      })}
+
       {anciennes.length > 0 &&
         (!toutes ? (
-          <button className="btn plein" onClick={() => setToutes(true)}>
+          <button className="btn plein" style={{ borderRadius: 12, height: 42, marginBottom: 12 }} onClick={() => setToutes(true)}>
             Voir les photos plus anciennes ({anciennes.length} date{anciennes.length > 1 ? 's' : ''})
           </button>
         ) : (
-          <div className="carte pile">
+          <div className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
             {parMois.map(([mois, l]) => (
               <div key={mois} className="pile" style={{ gap: 4 }}>
-                <span className="faible" style={{ textTransform: 'capitalize' }}>
+                <span className="faible" style={{ textTransform: 'capitalize', fontSize: '0.82rem', fontWeight: 600 }}>
                   {mois}
                 </span>
                 {l.map(([date, poses]) => (
-                  <div key={date} className="ligne entre ligne-photos">
-                    <button className="btn discret petit" onClick={() => setGerer(date)}>
-                      {dateCourte(date)} ✎
+                  <div key={date} className="ligne entre ligne-photos" style={{ padding: '6px 0' }}>
+                    <button
+                      type="button"
+                      className="btn discret petit"
+                      onClick={() => setGerer(date)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <span>{dateCourte(date)}</span>
+                      <Pencil size={11} strokeWidth={2} style={{ opacity: 0.7 }} />
                     </button>
                     <span className="ligne" style={{ gap: 4 }}>
                       {POSES.map((p) =>
@@ -130,7 +228,7 @@ export default function Photos() {
                 ))}
               </div>
             ))}
-            <button className="btn discret petit" onClick={() => setToutes(false)}>
+            <button className="btn discret petit" style={{ alignSelf: 'center', marginTop: 4 }} onClick={() => setToutes(false)}>
               Replier
             </button>
           </div>
@@ -195,16 +293,28 @@ function GererPhotos({ date, photos, onFermer }: { date: string; photos: PhotoCo
                   <input type="file" accept="image/*" hidden onChange={(e) => void remplacer(pose.id, e.target.files?.[0])} />
                 </label>
                 {p && (
-                  <button className="btn discret petit danger" onClick={() => void supprimerPose(p)}>
-                    Supprimer
+                  <button
+                    type="button"
+                    className="btn discret petit danger"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    onClick={() => void supprimerPose(p)}
+                  >
+                    <Trash2 size={13} strokeWidth={2} />
+                    <span>Supprimer</span>
                   </button>
                 )}
               </span>
             </div>
           )
         })}
-        <button className="btn discret plein danger" onClick={() => void toutSupprimer()}>
-          Supprimer toutes les photos de ce jour
+        <button
+          type="button"
+          className="btn discret plein danger"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          onClick={() => void toutSupprimer()}
+        >
+          <Trash2 size={15} strokeWidth={2} />
+          <span>Supprimer toutes les photos de ce jour</span>
         </button>
         <button className="btn plein" onClick={onFermer}>
           Fermer
@@ -314,7 +424,20 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
   const signe = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(Math.round(d * 10) / 10))} ${u}`
 
   const choixDate = (v: string, set: (d: string) => void) => (
-    <select value={v} onChange={(e) => set(e.target.value)}>
+    <select
+      value={v}
+      onChange={(e) => set(e.target.value)}
+      style={{
+        width: '100%',
+        padding: '8px 10px',
+        background: 'rgba(255, 255, 255, 0.05)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: 10,
+        color: 'var(--texte)',
+        fontSize: '0.85rem',
+        cursor: 'pointer',
+      }}
+    >
       {liste.map((d) => (
         <option key={d} value={d}>
           {dateCourte(d)}
@@ -324,76 +447,208 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
   )
 
   return (
-    <div className="carte pile">
-      <h3>Comparer</h3>
-      <div className="ligne" style={{ gap: 8 }}>
-        {choixDate(a, setA)}
-        <span className="faible">→</span>
-        {choixDate(b, setB)}
-      </div>
-      <div className="ligne entre wrap" style={{ gap: 8 }}>
-        <div className="chips">
-          {POSES.map((p) => (
-            <button key={p.id} className={pose === p.id ? 'actif' : ''} onClick={() => setPose(p.id)}>
-              {p.nom}
-            </button>
-          ))}
-        </div>
-        <button className="btn discret petit" onClick={() => setCurseur(curseur === null ? 50 : null)}>
-          {curseur === null ? '⇆ Superposer' : '▥ Côte à côte'}
+    <div className="carte pile" style={{ padding: '16px', borderRadius: 18, marginBottom: 12 }}>
+      <h3 style={{ margin: '0 0 10px', fontSize: '1.05rem', fontWeight: 700 }}>Comparer</h3>
+
+      {/* Sélecteurs de dates avec bouton d'inversion au centre */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>{choixDate(a, setA)}</div>
+        <button
+          type="button"
+          onClick={() => {
+            setA(b)
+            setB(a)
+          }}
+          aria-label="Inverser les dates"
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--texte)',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <ArrowLeftRight size={15} strokeWidth={2} />
         </button>
+        <div style={{ flex: 1 }}>{choixDate(b, setB)}</div>
+      </div>
+
+      {/* Barre d'outils unique : Poses à gauche, Vue (Superposer/Côte à côte + Plein écran) à droite */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(255, 255, 255, 0.04)', padding: 3, borderRadius: 8, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          {POSES.map((p) => {
+            const actifPose = pose === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: actifPose ? 600 : 400,
+                  color: actifPose ? 'var(--texte)' : 'var(--text-secondary)',
+                  background: actifPose ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => setPose(p.id)}
+              >
+                {p.nom}
+              </button>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => setCurseur(curseur === null ? 50 : null)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 10px',
+              borderRadius: 8,
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              background: curseur !== null ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid ' + (curseur !== null ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.1)'),
+              color: curseur !== null ? 'var(--accent-orange)' : 'var(--texte)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Layers size={13} strokeWidth={2} />
+            <span>{curseur === null ? 'Superposer' : 'Côte à côte'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPleinEcran(true)}
+            aria-label="Plein écran et zoom"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--texte)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <Maximize2 size={14} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       {curseur === null ? (
         <div className="comparaison">
           {[
-            [a, pa],
-            [b, pb],
-          ].map(([d, p], i) => (
-            <figure key={i}>
-              {p ? <img src={(p as PhotoCorps).image} alt="" onClick={() => setPleinEcran(true)} /> : <div className="vide faible">Pas de photo</div>}
-              <figcaption className="faible">{dateCourte(d as string)}</figcaption>
+            [a, pa, poidsA],
+            [b, pb, poidsB],
+          ].map(([d, p, w], i) => (
+            <figure key={i} style={{ margin: 0, position: 'relative' }}>
+              {p ? (
+                <img src={(p as PhotoCorps).image} alt="" onClick={() => setPleinEcran(true)} style={{ cursor: 'zoom-in' }} />
+              ) : (
+                <div className="vide faible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '3 / 4', border: '1px dashed rgba(255, 255, 255, 0.15)', borderRadius: 12 }}>
+                  Pas de photo
+                </div>
+              )}
+              <figcaption className="faible" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: 4 }}>
+                {dateCourte(d as string)}
+                {w ? ` · ${kg((w as { poids: number }).poids)} kg` : ''}
+              </figcaption>
             </figure>
           ))}
         </div>
       ) : pa && pb ? (
-        <div className="superposition">
-          <img src={pa.image} alt="" />
-          <img src={pb.image} alt="" style={{ clipPath: `inset(0 0 0 ${curseur}%)` }} />
-          <div className="trait-curseur" style={{ left: `${curseur}%` }} />
-          <input type="range" min={0} max={100} value={curseur} onChange={(e) => setCurseur(+e.target.value)} aria-label="Curseur de comparaison" />
-          <span className="etiquette g">{dateCourte(a)}</span>
-          <span className="etiquette d">{dateCourte(b)}</span>
+        <div className="superposition" style={{ position: 'relative', aspectRatio: '3 / 4', borderRadius: 14, overflow: 'hidden' }}>
+          <img src={pa.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={pb.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 0 0 ${curseur}%)` }} />
+          {/* Ligne blanche verticale */}
+          <div className="trait-curseur" style={{ position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, background: '#fff', left: `${curseur}%`, zIndex: 1, pointerEvents: 'none' }} />
+          {/* Poignée ronde centrale bien visible */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: `${curseur}%`,
+              transform: 'translate(-50%, -50%)',
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'rgba(22, 27, 34, 0.88)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '2px solid #ffffff',
+              boxShadow: '0 2px 12px rgba(0, 0, 0, 0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          >
+            <ArrowLeftRight size={13} strokeWidth={2.5} />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={curseur}
+            onChange={(e) => setCurseur(+e.target.value)}
+            aria-label="Curseur de comparaison avant/après"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, margin: 0, cursor: 'ew-resize', zIndex: 3 }}
+          />
+          <span className="etiquette g" style={{ position: 'absolute', bottom: 8, left: 8, padding: '3px 8px', borderRadius: 999, background: 'rgba(0, 0, 0, 0.65)', color: '#fff', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
+            {dateCourte(a)}{poidsA ? ` · ${kg(poidsA.poids)} kg` : ''}
+          </span>
+          <span className="etiquette d" style={{ position: 'absolute', bottom: 8, right: 8, padding: '3px 8px', borderRadius: 999, background: 'rgba(0, 0, 0, 0.65)', color: '#fff', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
+            {dateCourte(b)}{poidsB ? ` · ${kg(poidsB.poids)} kg` : ''}
+          </span>
         </div>
       ) : (
-        <div className="faible">Il manque la photo « {POSES.find((p) => p.id === pose)?.nom} » à l’une des deux dates.</div>
+        <div className="faible" style={{ textAlign: 'center', padding: '16px 0' }}>
+          Il manque la photo « {POSES.find((p) => p.id === pose)?.nom} » à l’une des deux dates.
+        </div>
       )}
-      {curseur === null && (
-        <button className="btn discret petit" onClick={() => setPleinEcran(true)}>
-          ⤢ Plein écran et zoom
-        </button>
-      )}
+
       {pleinEcran && <PlanchePhotos photos={dates.flatMap(([, p]) => Object.values(p))} dates={[a, b]} pose={pose} onFermer={() => setPleinEcran(false)} />}
 
-      {(poidsA && poidsB && poidsA.date !== poidsB.date) || ecarts.length ? (
-        <div>
-          <div className="faible" style={{ marginBottom: 4 }}>
+      {((poidsA && poidsB && poidsA.date !== poidsB.date) || ecarts.length > 0) && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="faible" style={{ fontSize: '0.8rem', marginBottom: 6 }}>
             Entre ces deux dates
           </div>
           {poidsA && poidsB && poidsA.date !== poidsB.date && (
             <div className="ligne-mesure">
               <span>Poids</span>
-              <strong>{signe(poidsB.poids - poidsA.poids, 'kg')}</strong>
+              <strong style={{ color: 'var(--texte)' }}>{signe(poidsB.poids - poidsA.poids, 'kg')}</strong>
             </div>
           )}
           {ecarts.map((c) => (
             <div key={c} className="ligne-mesure">
               <span>{nomCle(c)}</span>
-              <strong>{signe(mB!.valeurs[c] - mA!.valeurs[c], 'cm')}</strong>
+              <strong style={{ color: 'var(--texte)' }}>{signe(mB!.valeurs[c] - mA!.valeurs[c], 'cm')}</strong>
             </div>
           ))}
         </div>
-      ) : null}
+      )}
     </div>
   )
 }
@@ -408,31 +663,76 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
   const [pose, setPose] = useState<Pose>(() => poseDepart ?? POSES.find((p) => photos.some((x) => x.date === depart[0] && x.pose === p.id))?.id ?? 'face')
   const photo = (d: string) => photos.find((p) => p.date === d && p.pose === pose)
   return createPortal(
-    <div className="comparaison-plein">
-      <div className="ligne entre">
-        <div className="chips">
-          {POSES.filter((p) => dates.some((d) => photos.some((x) => x.date === d && x.pose === p.id))).map((p) => (
-            <button key={p.id} className={pose === p.id ? 'actif' : ''} onClick={() => setPose(p.id)}>
-              {p.nom}
-            </button>
-          ))}
+    <div
+      className="comparaison-plein"
+      style={{
+        padding: 'calc(6px + env(safe-area-inset-top)) 8px calc(6px + env(safe-area-inset-bottom))',
+        gap: 6,
+      }}
+    >
+      <div className="ligne entre" style={{ padding: '0 4px' }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'rgba(255, 255, 255, 0.08)', padding: 3, borderRadius: 8 }}>
+          {POSES.filter((p) => dates.some((d) => photos.some((x) => x.date === d && x.pose === p.id))).map((p) => {
+            const actifPose = pose === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                style={{
+                  padding: '3px 8px',
+                  fontSize: '0.78rem',
+                  fontWeight: actifPose ? 600 : 400,
+                  color: actifPose ? '#fff' : 'var(--text-secondary)',
+                  background: actifPose ? 'rgba(255, 255, 255, 0.2)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+                onClick={() => setPose(p.id)}
+              >
+                {p.nom}
+              </button>
+            )
+          })}
         </div>
-        <button className="btn discret petit" onClick={onFermer}>
-          ✕ Fermer
+        <button
+          type="button"
+          onClick={onFermer}
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: 'none',
+            borderRadius: 8,
+            padding: '4px 10px',
+            color: '#fff',
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <X size={14} strokeWidth={2} />
+          <span>Fermer</span>
         </button>
       </div>
-      <div className="comparaison-plein-photos" style={dates.length === 1 ? { gridTemplateColumns: '1fr' } : undefined}>
+      <div className="comparaison-plein-photos" style={{ flex: 1, minHeight: 0, gap: 4, ...(dates.length === 1 ? { gridTemplateColumns: '1fr' } : {}) }}>
         {dates.map((d, i) => (
           <PhotoZoomable key={`${i}-${pose}-${d}`} image={photo(d)?.image} date={d} />
         ))}
       </div>
       {dates.length === 1 && comparerAvec && comparerAvec !== dates[0] && (
-        <button className="btn plein" onClick={() => setDates(comparerAvec < dates[0] ? [comparerAvec, dates[0]] : [dates[0], comparerAvec])}>
-          ⇆ Comparer avec le {dateCourte(comparerAvec)}
+        <button
+          type="button"
+          className="btn plein"
+          style={{ height: 38, fontSize: '0.82rem', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          onClick={() => setDates(comparerAvec < dates[0] ? [comparerAvec, dates[0]] : [dates[0], comparerAvec])}
+        >
+          <ArrowLeftRight size={13} strokeWidth={2} />
+          <span>Comparer avec le {dateCourte(comparerAvec)}</span>
         </button>
       )}
-      <div className="faible" style={{ textAlign: 'center', fontSize: 13 }}>
-        Écarte deux doigts sur {dates.length > 1 ? 'une' : 'la'} photo pour zoomer, glisse pour te déplacer, touche deux fois pour revenir.
+      <div style={{ textAlign: 'center', fontSize: 11, opacity: 0.6, color: '#8b949e', padding: '2px 0' }}>
+        Écarte deux doigts pour zoomer · glisse pour te déplacer · touche deux fois pour réinitialiser
       </div>
     </div>,
     document.body,
@@ -667,7 +967,7 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
     <div className="prise-photo">
       <div className="ligne entre prise-haut">
         <button className="btn" onClick={() => void terminer()} aria-label={faites.length || apercu ? 'Terminer en gardant les photos prises' : 'Fermer'}>
-          {faites.length || apercu ? 'Terminer' : '✕'}
+          {faites.length || apercu ? 'Terminer' : <X size={18} strokeWidth={2} />}
         </button>
         <div style={{ textAlign: 'center' }}>
           <strong>
@@ -694,53 +994,210 @@ function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () 
       </div>
 
       {apercu ? (
-        <div className="ligne prise-bas">
-          <button className="btn grand" style={{ flex: 1 }} onClick={() => setApercu(null)}>
+        <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+          <button
+            type="button"
+            className="btn"
+            style={{
+              flex: 1,
+              height: 48,
+              borderRadius: 12,
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            onClick={() => setApercu(null)}
+          >
             Reprendre
           </button>
-          <button className="btn primaire grand" style={{ flex: 2 }} onClick={() => suivante(true)}>
-            {etape < POSES.length - 1 ? 'GARDER · SUIVANTE' : 'GARDER · TERMINER'}
+          <button
+            type="button"
+            className="btn primaire"
+            style={{
+              flex: 1.6,
+              height: 48,
+              borderRadius: 12,
+              fontSize: '0.92rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              whiteSpace: 'nowrap',
+            }}
+            onClick={() => suivante(true)}
+          >
+            {etape < POSES.length - 1 ? 'Garder et suivant →' : 'Garder et terminer ✓'}
           </button>
         </div>
       ) : (
-        <div className="pile prise-bas">
-          {/* Réglages sur une seule rangée : retardateur, repère, caméra. */}
+        <div className="pile prise-bas" style={{ gap: 10 }}>
+          {/* Réglages compacts sans débordement horizontal */}
           {!erreur && (
-            <div className="reglages-prise">
-              <span className="faible">⏱</span>
-              {[0, 3, 10].map((d) => (
-                <button key={d} className={'pastille-reglage' + (delai === d ? ' actif' : '')} onClick={() => setDelai(d)} aria-label={d ? `Retardateur ${d} secondes` : 'Sans retardateur'}>
-                  {d ? `${d} s` : 'Direct'}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                gap: 6,
+                padding: '2px 0',
+              }}
+            >
+              {/* Retardateur compact */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  padding: 3,
+                  borderRadius: 10,
+                }}
+              >
+                <Timer size={13} strokeWidth={2} style={{ color: 'var(--text-secondary)', marginLeft: 4, marginRight: 2 }} />
+                {[0, 3, 10].map((d) => {
+                  const actifDelai = delai === d
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '0.75rem',
+                        fontWeight: actifDelai ? 600 : 400,
+                        color: actifDelai ? '#fff' : 'var(--text-secondary)',
+                        background: actifDelai ? 'var(--accent-orange)' : 'transparent',
+                        border: 'none',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                      onClick={() => setDelai(d)}
+                      aria-label={d ? `Retardateur ${d} secondes` : 'Sans retardateur'}
+                    >
+                      {d ? `${d}s` : 'Direct'}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Repère fantôme & switch caméra */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {precedente && (
+                  <button
+                    type="button"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '5px 10px',
+                      borderRadius: 10,
+                      fontSize: '0.78rem',
+                      fontWeight: fantome ? 600 : 400,
+                      color: fantome ? 'var(--accent-orange)' : 'var(--text-secondary)',
+                      background: fantome ? 'rgba(249, 115, 22, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid ' + (fantome ? 'var(--accent-orange)' : 'rgba(255, 255, 255, 0.1)'),
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onClick={() => setFantome(!fantome)}
+                    aria-label={fantome ? 'Masquer le repère' : 'Afficher le repère'}
+                  >
+                    <Layers size={13} strokeWidth={2} />
+                    <span>Repère</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 10,
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  onClick={() => setAvantCam(!avantCam)}
+                  aria-label="Changer de caméra"
+                >
+                  <RefreshCw size={15} strokeWidth={2} />
                 </button>
-              ))}
-              <span style={{ flex: 1 }} />
-              {precedente && (
-                <button className={'pastille-reglage' + (fantome ? ' actif' : '')} onClick={() => setFantome(!fantome)} aria-label={fantome ? 'Masquer le repère' : 'Afficher le repère'}>
-                  👻 Repère
-                </button>
-              )}
-              <button className="pastille-reglage" onClick={() => setAvantCam(!avantCam)} aria-label="Changer de caméra">
-                🔄
-              </button>
+              </div>
             </div>
           )}
+
+          {/* Bouton de capture */}
           {erreur ? (
-            <label className="btn primaire grand plein">
-              📸 PRENDRE LA PHOTO
+            <label
+              className="btn primaire grand plein"
+              style={{
+                height: 48,
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Camera size={18} strokeWidth={2} />
+              <span>Prendre la photo</span>
               <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
             </label>
           ) : (
-            <button className="btn primaire grand plein" onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}>
-              {decompte !== null ? `Photo dans ${decompte} s · annuler` : '📸 PRENDRE LA PHOTO'}
+            <button
+              type="button"
+              className="btn primaire grand plein"
+              style={{
+                height: 48,
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                fontSize: '0.95rem',
+                fontWeight: 600,
+              }}
+              onClick={() => (decompte !== null ? setDecompte(null) : delai ? setDecompte(delai) : capturer())}
+            >
+              <Camera size={18} strokeWidth={2} />
+              <span>{decompte !== null ? `Photo dans ${decompte} s · annuler` : 'Prendre la photo'}</span>
             </button>
           )}
-          {/* Une photo déjà prise (avec l'appareil du téléphone, un miroir…) : on la choisit dans la galerie. */}
-          <label className="btn plein" aria-label="Choisir dans la galerie">
-            🖼 Choisir dans la galerie
+
+          {/* Choisir dans la galerie */}
+          <label
+            className="btn plein"
+            style={{
+              height: 44,
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              fontSize: '0.88rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+            aria-label="Choisir dans la galerie"
+          >
+            <Image size={16} strokeWidth={2} />
+            <span>Choisir dans la galerie</span>
             <input type="file" accept="image/*" hidden onChange={(e) => void depuisFichier(e.target.files?.[0])} />
           </label>
+
           {precedente && fantome && (
-            <div className="faible">
+            <div className="faible" style={{ fontSize: '0.8rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
               En transparence, ta photo {precedente.date === date ? 'prise plus tôt aujourd’hui' : `du ${dateCourte(precedente.date)}`} : cale-toi dessus.
             </div>
           )}
