@@ -53,6 +53,12 @@ export function chargesTexte(exo: Exercice, charges: (number | null)[], long = f
   return charges.some((c) => c !== charges[0]) ? `${chargeTexte(exo, charges[0], long)} → ${chargeTexte(exo, charges[charges.length - 1], long)}` : chargeTexte(exo, charges[0], long)
 }
 
+/** Charge décalée de `d` : au poids du corps, elle peut passer sous zéro (une assistance) ; sinon, zéro est le minimum. */
+export function chargeDecalee(exo: Exercice, c: number | null, d: number): number {
+  const n = Math.round(((c ?? 0) + d) * 100) / 100
+  return exo.mode === 'poids_corps' ? n : Math.max(0, n)
+}
+
 /**
  * Kg soulevés par une série : les deux haltères comptent pour un exercice « par main » ; au poids
  * du corps, seul le lest compte ; un exercice en temps ne compte pas.

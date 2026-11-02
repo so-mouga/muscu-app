@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { ecartSerie, kgSouleves } from './calc'
+import { chargeDecalee, ecartSerie, kgSouleves } from './calc'
 import { suggestionDeload } from './cycle'
 import { scoreSerie } from './historique'
 import { aBattre, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
@@ -410,5 +410,18 @@ describe('exercice assisté : moins de kg = plus dur', () => {
   })
   it('le déload ne retire pas d’assistance', () => {
     expect(suggestionDeload(exo, { decision: 'pareil', charges: [30], reps: [10], message: '' }).charges).toEqual([30])
+  })
+})
+
+describe('charge décalée à la main', () => {
+  it('au poids du corps, une assistance reste une assistance : pas de saut à zéro', () => {
+    expect(chargeDecalee(EXERCICES.tractions, -15, 2.5)).toBe(-12.5)
+    expect(chargeDecalee(EXERCICES.tractions, -15, -2.5)).toBe(-17.5)
+    expect(chargeDecalee(EXERCICES.tractions, 0, -2.5)).toBe(-2.5)
+  })
+  it('ailleurs, zéro est le minimum', () => {
+    expect(chargeDecalee(EXERCICES.butterfly, 2.5, -5)).toBe(0)
+    expect(chargeDecalee(EXERCICES.tractions_assistees, 5, -5)).toBe(0)
+    expect(chargeDecalee(EXERCICES.butterfly, null, 5)).toBe(5)
   })
 })

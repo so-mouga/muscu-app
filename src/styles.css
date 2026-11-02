@@ -1594,15 +1594,92 @@ body:has(.focus) {
   position: relative;
 }
 /* Objectif de la prochaine séance : ce qui a été fait, puis l'objectif */
+.objectif-bravo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  margin-bottom: var(--e3);
+}
+.objectif-tous {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: var(--e1);
+}
+.objectif-tous .btn {
+  min-height: var(--cible);
+  padding: 0 2px;
+  white-space: nowrap;
+}
+.objectif-legende {
+  margin-top: var(--e4);
+}
+.objectif-colonnes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e3);
+  text-align: center;
+}
 .objectif-serie {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 0;
+  gap: var(--e1);
+  padding: var(--e2) 0;
   border-bottom: 1px solid var(--bord);
 }
-.objectif-serie:last-child {
+.objectif-serie:last-of-type {
   border-bottom: none;
+}
+.objectif-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--e1);
+  min-width: 0;
+}
+.objectif-stepper button {
+  flex: none;
+  width: var(--cible);
+  height: var(--cible);
+  padding: 0;
+  border: 0;
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+  color: var(--texte);
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+.objectif-stepper input,
+.objectif-stepper strong {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  text-align: center;
+  font-size: var(--t-texte);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* Tapable au clavier : souligné en pointillé, sans cadre. */
+.objectif-stepper input {
+  height: var(--cible);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--texte);
+  text-decoration: underline dotted var(--voile-bord);
+  text-underline-offset: 4px;
+}
+.objectif-stepper input.fin-diff {
+  color: var(--accent);
+}
+.objectif-remettre {
+  margin: var(--e2) 0;
+}
+.objectif-pied {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--e2);
+  align-items: center;
 }
 
 /* Objectif au-dessus de la dernière fois : « à battre » */

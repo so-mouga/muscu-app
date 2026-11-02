@@ -1,6 +1,6 @@
 import { Trophy } from 'lucide-react'
 import { useState } from 'react'
-import { ecartSerie, enTemps, kg, serieTexte } from '../lib/calc'
+import { chargeDecalee, ecartSerie, enTemps, kg, serieTexte } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import type { Suggestion } from '../lib/progression'
 import { db, historiqueDe } from '../db'
@@ -25,8 +25,6 @@ interface Props {
   onFermer: () => void
 }
 
-const arr = (x: number) => Math.round(x * 100) / 100
-
 /** Ajuster à la main la charge et les reps de chaque série pour la prochaine séance,
  * en regard de ce qui vient d'être fait (charge, reps, RPE, écart avec la dernière fois). */
 export default function EditeurObjectif({ exo, base, actuel, faites, precedente, record, quand = 'aujourd’hui', onValider, onDefaut, onFermer }: Props) {
@@ -44,27 +42,32 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
   const pasQte = enTemps(exo) ? 5 : 1
   const uniteQte = enTemps(exo) ? 's' : 'rep'
   const decaler = (dc: number, dr: number) => {
-    if (dc) setCharges((c) => c.map((x) => arr(Math.max(0, (x ?? 0) + dc))))
+    if (dc) setCharges((c) => c.map((x) => chargeDecalee(exo, x, dc)))
     if (dr) setReps((r) => r.map((x) => Math.max(1, x + dr)))
     setTextes((t) => t.map(() => null))
   }
 
+  const titreCharge = exo.assistance ? 'Assistance (kg)' : exo.mode === 'elastique' ? 'Niveau' : exo.mode === 'poids_corps' ? 'Lest (kg)' : exo.mode === 'par_main' ? 'Kg par main' : 'Charge (kg)'
+  const majCharge = (i: number, f: (v: number | null) => number | null) => setCharges((x) => x.map((v, k) => (k === i ? f(v) : v)))
+  const oublierTexte = (i: number) => setTextes((t) => t.map((v, k) => (k === i ? null : v)))
+
   return (
     <div className="modal-fond" onClick={fermer}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-        <div>
+      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-tete">
           <h2>{exo.nom}</h2>
           <div className="faible">Objectif pour la prochaine séance</div>
         </div>
-        {(faites.some((x, k) => ecartSerie(x, precedente[k], exo)?.sens === 'mieux') || record) && (
-          <div className="pastille ok" style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <Trophy size={14} /> {record ? `Nouveau record ${quand}` : quand === 'aujourd’hui' ? 'Mieux que la dernière fois' : 'Mieux que la fois d’avant'}
-          </div>
-        )}
 
-        <div className="ligne entre wrap" style={{ gap: 6 }}>
-          <span className="petit">Toutes les séries</span>
-          <span className="ligne" style={{ gap: 6 }}>
+        <div className="modal-defile">
+          {(faites.some((x, k) => ecartSerie(x, precedente[k], exo)?.sens === 'mieux') || record) && (
+            <div className="pastille ok objectif-bravo">
+              <Trophy size={14} /> {record ? `Nouveau record ${quand}` : quand === 'aujourd’hui' ? 'Mieux que la dernière fois' : 'Mieux que la fois d’avant'}
+            </div>
+          )}
+
+          <div className="petit">Toutes les séries</div>
+          <div className="objectif-tous">
             <button className="btn petit" onClick={() => decaler(-pas, 0)}>
               −{kg(pas)} {unite}
             </button>
@@ -77,66 +80,66 @@ export default function EditeurObjectif({ exo, base, actuel, faites, precedente,
             <button className="btn petit" onClick={() => decaler(0, pasQte)}>
               +{pasQte} {uniteQte}
             </button>
-          </span>
-        </div>
+          </div>
 
-        <div>
-          <div className="faible" style={{ marginBottom: 6 }}>
-            Fait {quand}, puis à viser : {exo.assistance ? 'assistance (kg)' : `charge (${unite})`} · {enTemps(exo) ? 'secondes' : 'reps'}
+          <div className="faible petit objectif-legende">Fait {quand}, puis à viser</div>
+          <div className="objectif-colonnes faible petit">
+            <span>{titreCharge}</span>
+            <span>{enTemps(exo) ? 'Secondes' : 'Reps'}</span>
           </div>
           {charges.map((c, i) => (
             <div key={i} className="objectif-serie">
-              {faites[i] && <Fait n={`S${i + 1}`} s={faites[i]} avant={precedente[i]} exo={exo} />}
-            <div className="ligne" style={{ gap: 6 }}>
-              <span className="faible" style={{ width: 24 }}>
-                {faites[i] ? '→' : `S${i + 1}`}
-              </span>
-              <span className="mini-stepper compact">
-                <button type="button" onClick={() => (setCharges((x) => x.map((v, k) => (k === i ? arr(Math.max(0, (v ?? 0) - pas)) : v))), setTextes((t) => t.map((v, k) => (k === i ? null : v))))}>
-                  −
-                </button>
-                <input
-                  className="duree"
-                  inputMode="decimal"
-                  placeholder="—"
-                  value={textes[i] ?? (c === null ? '' : kg(c))}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => {
-                    const t = e.target.value
-                    setTextes((x) => x.map((v, k) => (k === i ? t : v)))
-                    const v = parseFloat(t.replace(',', '.'))
-                    setCharges((x) => x.map((w, k) => (k === i ? (t.trim() === '' ? null : isNaN(v) ? w : v) : w)))
-                  }}
-                />
-                <button type="button" onClick={() => (setCharges((x) => x.map((v, k) => (k === i ? arr((v ?? 0) + pas) : v))), setTextes((t) => t.map((v, k) => (k === i ? null : v))))}>
-                  +
-                </button>
-              </span>
-              <span className="mini-stepper compact">
-                <button type="button" onClick={() => setReps((x) => x.map((v, k) => (k === i ? Math.max(1, v - pasQte) : v)))}>
-                  −
-                </button>
-                <strong>{reps[i]}</strong>
-                <button type="button" onClick={() => setReps((x) => x.map((v, k) => (k === i ? v + pasQte : v)))}>
-                  +
-                </button>
-              </span>
-            </div>
+              {faites[i] ? <Fait n={`S${i + 1}`} s={faites[i]} avant={precedente[i]} exo={exo} /> : <div className="faible">S{i + 1}</div>}
+              <div className="objectif-colonnes">
+                <span className="objectif-stepper">
+                  <button type="button" aria-label={`Moins de charge, série ${i + 1}`} onClick={() => (majCharge(i, (v) => chargeDecalee(exo, v, -pas)), oublierTexte(i))}>
+                    −
+                  </button>
+                  <input
+                    className={faites[i] && c !== faites[i].charge ? 'fin-diff' : ''}
+                    inputMode="decimal"
+                    placeholder="—"
+                    aria-label={`Charge, série ${i + 1}`}
+                    value={textes[i] ?? (c === null ? '' : kg(c))}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const t = e.target.value
+                      setTextes((x) => x.map((v, k) => (k === i ? t : v)))
+                      const v = parseFloat(t.replace(',', '.'))
+                      majCharge(i, (w) => (t.trim() === '' ? null : isNaN(v) ? w : v))
+                    }}
+                  />
+                  <button type="button" aria-label={`Plus de charge, série ${i + 1}`} onClick={() => (majCharge(i, (v) => chargeDecalee(exo, v, pas)), oublierTexte(i))}>
+                    +
+                  </button>
+                </span>
+                <span className="objectif-stepper">
+                  <button type="button" aria-label={`Moins de reps, série ${i + 1}`} onClick={() => setReps((x) => x.map((v, k) => (k === i ? Math.max(1, v - pasQte) : v)))}>
+                    −
+                  </button>
+                  <strong className={faites[i] && reps[i] !== faites[i].reps ? 'fin-diff' : ''}>{reps[i]}</strong>
+                  <button type="button" aria-label={`Plus de reps, série ${i + 1}`} onClick={() => setReps((x) => x.map((v, k) => (k === i ? v + pasQte : v)))}>
+                    +
+                  </button>
+                </span>
+              </div>
             </div>
           ))}
+          {actuel && (
+            <button className="btn plein objectif-remettre" onClick={onDefaut}>
+              Remettre comme {quand}
+            </button>
+          )}
         </div>
 
-        <button className="btn primaire grand" onClick={() => onValider({ charges, reps })}>
-          Fixer cet objectif
-        </button>
-        {actuel && (
-          <button className="btn plein" onClick={onDefaut}>
-            Remettre comme {quand}
+        <div className="modal-pied objectif-pied">
+          <button className="btn discret" onClick={onFermer}>
+            Annuler
           </button>
-        )}
-        <button className="btn discret plein" onClick={onFermer}>
-          Annuler
-        </button>
+          <button className="btn primaire grand" onClick={() => onValider({ charges, reps })}>
+            Fixer cet objectif
+          </button>
+        </div>
       </div>
     </div>
   )
