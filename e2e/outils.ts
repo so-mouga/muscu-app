@@ -73,6 +73,8 @@ export async function premierProgramme(p: Page) {
   await p.getByRole('button', { name: 'Continuer' }).click()
   await p.getByRole('button', { name: 'Prendre ce programme' }).click()
   await expect(p.getByRole('button', { name: 'Réglages' })).toBeVisible()
+  // En fermant le démarrage, l'appli retire son entrée d'historique (`lib/nav.ts`) : ce retour annulerait un rechargement lancé juste après.
+  await p.waitForFunction(() => !history.state?.piege)
 }
 
 /** Ouvre les Réglages : ⚙ en haut à droite de l'accueil. */
