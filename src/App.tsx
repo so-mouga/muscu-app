@@ -7,7 +7,7 @@ import { dateISO } from './lib/calc'
 import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJourNatif, type Rappel } from './lib/natif'
 import IconeOnglet from './components/IconeOnglet'
 import Accueil from './screens/Accueil'
-import Corps from './screens/Corps'
+import Corps, { type PageCorps } from './screens/Corps'
 import Exercices from './screens/Exercices'
 import Historique, { type VueProgression } from './screens/Historique'
 import Reglages from './screens/Reglages'
@@ -33,6 +33,8 @@ export default function App() {
   const [reglages, setReglages] = useState(false)
   /** Exercice ouvert depuis le Bilan dans l'onglet Exercices. */
   const [exoInitial, setExoInitial] = useState<string | null>(null)
+  /** Page de détail ouverte dans Corps (phases, pesées, mensurations, photos). */
+  const [pageCorps, setPageCorps] = useState<PageCorps | null>(null)
   /** Partie de Progression affichée (mémorisée d'une ouverture à l'autre). */
   const [vue, setVueEtat] = useState<VueProgression>(() => {
     try {
@@ -65,6 +67,10 @@ export default function App() {
   const faiteAujourdhui = useLiveQuery(() => db.seances.where('date').equals(dateISO()).count(), [], 0)
   useEffect(() => void (natif && faiteAujourdhui > 0 && seanceDuJourNatif(dateISO())), [faiteAujourdhui])
 
+  const ouvrirCorps = (page?: PageCorps) => {
+    setPageCorps(page ?? null)
+    setOnglet('corps')
+  }
   const setOnglet = (o: Onglet) => {
     if (o === onglet) return
     const sens = ONGLETS.findIndex((x) => x[0] === o) > ONGLETS.findIndex((x) => x[0] === onglet) ? 'avant' : 'arriere'
@@ -103,15 +109,8 @@ export default function App() {
           <Accueil
             catalogue={catalogue}
             onVoirSeance={(id) => setDetail(id, 'accueil')}
-            onMesures={() => setOnglet('corps')}
-            onObjectifs={() => {
-              try {
-                localStorage.setItem('sous_onglet_corps', 'objectifs')
-              } catch {
-                /* stockage indisponible */
-              }
-              setOnglet('corps')
-            }}
+            onMesures={() => ouvrirCorps('mensurations')}
+            onObjectifs={() => ouvrirCorps('phases')}
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onJournal={() => (setVue('journal'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
@@ -125,10 +124,10 @@ export default function App() {
             vue={vue}
             onVue={setVue}
             onExo={(id) => (setExoInitial(id), setOnglet('exercices'))}
-            onCorps={() => setOnglet('corps')}
+            onCorps={ouvrirCorps}
           />
         )}
-        {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} />}
+        {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={setPageCorps} />}
         {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} />}
         {!reglages && onglet === 'exercices' && (
           <Exercices
@@ -140,7 +139,7 @@ export default function App() {
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
-          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
+          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setPageCorps(null), setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
             <IconeOnglet nom={id} />
             {nom}
           </button>

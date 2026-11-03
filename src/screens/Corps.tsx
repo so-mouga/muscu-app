@@ -1,16 +1,17 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useRef, useState } from 'react'
-import { ArrowLeft, Info, Pencil, Ruler, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
 import Aide from '../components/Aide'
 import Courbe from '../components/Courbe'
-import Poids from '../components/Poids'
+import { FenetreJour } from '../components/JournalMatin'
 import SilhouetteMesures from '../components/SilhouetteMesures'
-import Tendances from '../components/Tendances'
 import { clesDe, CONSEILS_MESURE, MESURES, nomCle, PRINCIPALES, type DefMesure } from '../data/mesures'
 import { db } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import type { Mesure } from '../types'
+import { nomPhase, phaseA, phaseAffichee, poidsDepart, poidsSemaine } from '../lib/objectifs'
+import { objectifDuJour } from '../lib/nutrition'
+import type { Mesure, PhotoCorps } from '../types'
 import { confirmer } from '../components/Dialogues'
 import Photos from './Photos'
 import Objectifs from './Objectifs'
@@ -22,87 +23,284 @@ const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(
 /** Valeurs d'une clé dans le temps (prises qui la contiennent, de la plus ancienne à la plus récente). */
 const serie = (mesures: Mesure[], cle: string) => mesures.filter((m) => m.valeurs[cle] !== undefined).map((m) => ({ date: m.date, valeur: m.valeurs[cle] }))
 
-type SousOngletCorps = 'poids' | 'objectifs' | 'mensurations' | 'photos'
+export type PageCorps = 'phases' | 'pesees' | 'mensurations' | 'photos'
+
+const TITRES: Record<PageCorps, string> = { phases: 'Phases', pesees: 'Toutes les pesées', mensurations: 'Mensurations', photos: 'Photos' }
 
 /**
- * Onglet Corps (barre du bas) : Poids, Objectifs (phase, timeline, calories),
- * Mensurations, Photos.
+ * Onglet Corps (barre du bas) : une seule page dit si le corps change. La phase, le poids, les
+ * mensurations et les photos, lus ensemble ; un appui ouvre le détail de chacun.
  */
-export default function Corps({ catalogue }: { catalogue: Catalogue }) {
-  const [onglet, setOnglet] = useState<SousOngletCorps>(() => {
-    try {
-      return (localStorage.getItem('sous_onglet_corps') as SousOngletCorps) || 'poids'
-    } catch {
-      return 'poids'
-    }
-  })
+export default function Corps({ catalogue, page, onPage }: { catalogue: Catalogue; page: PageCorps | null; onPage: (p: PageCorps | null) => void }) {
+  useRetour(page !== null, () => onPage(null))
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [page])
+  if (!page) return <AccueilCorps catalogue={catalogue} onPage={onPage} />
+  return (
+    <div>
+      <div className="entete">
+        <button className="btn" onClick={() => onPage(null)} aria-label="Retour à Corps">
+          <ArrowLeft size={20} strokeWidth={2} />
+        </button>
+        <h2 style={{ flex: 1 }}>{TITRES[page]}</h2>
+      </div>
+      {page === 'phases' && <Objectifs catalogue={catalogue} />}
+      {page === 'pesees' && <ListePesees catalogue={catalogue} />}
+      {page === 'mensurations' && <Mesures catalogue={catalogue} />}
+      {page === 'photos' && <Photos />}
+    </div>
+  )
+}
 
-  const changerOnglet = (o: SousOngletCorps) => {
-    setOnglet(o)
-    try {
-      localStorage.setItem('sous_onglet_corps', o)
-    } catch {}
+/** Valeur d'une série de mesures au repère : la dernière prise à cette date ou avant, sinon la première. */
+const auRepere = (s: { date: string; valeur: number }[], depuis?: string) => (depuis ? [...s].reverse().find((x) => x.date <= depuis) : undefined) ?? s[0]
+
+const signeCm = (d: number) => (Math.abs(d) < 0.05 ? '±0' : signe(d))
+
+function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p: PageCorps) => void }) {
+  const aujourdhui = dateISO()
+  const pesees = useLiveQuery(() => db.pesees.orderBy('date').toArray(), [], [])
+  const mesures = useLiveQuery(() => db.mesures.orderBy('date').toArray(), [], [])
+  const journal = useLiveQuery(() => db.journal.get(aujourdhui), [aujourdhui])
+  const phase = phaseAffichee(catalogue.objectifs, aujourdhui)
+  const enCours = phase && !phase.aVenir ? phase : null
+  // Photos : seulement celles du début de la phase et les dernières (elles sont lourdes).
+  const photos = useLiveQuery(
+    async () => {
+      const dates = (await db.photos.orderBy('date').uniqueKeys()) as string[]
+      if (!dates.length) return { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
+      const derniere = dates[dates.length - 1]
+      const depart = (enCours && dates.find((d) => d >= enCours.debut && d < derniere)) || (dates.length > 1 ? dates[0] : undefined)
+      return { depart, derniere, liste: await db.photos.where('date').anyOf([derniere, depart ?? derniere]).toArray() }
+    },
+    [enCours?.debut],
+    { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
+  )
+  const [noter, setNoter] = useState(false)
+  const [jours, setJours] = useState(30)
+
+  // Poids : moyenne sur 7 jours, courbe et écart sur la période choisie.
+  const moyenne = poidsSemaine(pesees, aujourdhui)
+  const depuisCourbe = jours ? dateISO(new Date(Date.now() - jours * 86400000)) : ''
+  const points = pesees.filter((p) => p.date >= depuisCourbe).map((p) => ({ date: p.date, valeur: p.poids }))
+  const ecartPoids = points.length >= 2 ? points[points.length - 1].valeur - points[0].valeur : null
+
+  // Phase : objectif de poids, sans jugement.
+  const totalPhase = phase?.total
+  const depart = enCours ? poidsDepart(pesees, enCours.debut) : null
+  const vise = depart !== null && enCours?.ecartVise ? Math.round((depart + enCours.ecartVise) * 10) / 10 : null
+  const kcal = objectifDuJour(catalogue.objectifs, aujourdhui)?.kcal
+  const fin = (iso: string) => dateCourte(dateISO(new Date(Date.parse(iso + 'T12:00:00') - 86400000))).replace(/^\S+ /, '')
+  const avance = enCours && totalPhase ? Math.min(100, (enCours.semaine / totalPhase) * 100) : 0
+
+  // Mensurations : les principales, depuis le début de la phase (sinon depuis la première prise).
+  const principales = PRINCIPALES.filter((c) => serie(mesures, c).length)
+  const principalesTriees = [...principales].sort((x, y) => (y === 'taille' ? 1 : 0) - (x === 'taille' ? 1 : 0))
+  const derniereMesure = mesures[mesures.length - 1]
+
+  const photoDe = (d?: string) => {
+    const l = photos.liste.filter((p) => p.date === d)
+    return l.find((p) => p.pose === 'face') ?? l[0]
   }
+  const pDepart = photoDe(photos.depart)
+  const pDerniere = photoDe(photos.derniere)
 
   return (
     <div>
       <div className="entete">
         <h1>Corps</h1>
       </div>
-      <div className="segments" role="tablist" style={{ marginTop: 2, marginBottom: 14 }}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={onglet === 'poids'}
-          className={onglet === 'poids' ? 'actif' : ''}
-          onClick={() => changerOnglet('poids')}
-        >
-          Poids
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={onglet === 'objectifs'}
-          className={onglet === 'objectifs' ? 'actif' : ''}
-          onClick={() => changerOnglet('objectifs')}
-        >
-          Objectifs
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={onglet === 'mensurations'}
-          className={onglet === 'mensurations' ? 'actif' : ''}
-          onClick={() => changerOnglet('mensurations')}
-        >
-          Mensurations
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={onglet === 'photos'}
-          className={onglet === 'photos' ? 'actif' : ''}
-          onClick={() => changerOnglet('photos')}
-        >
-          Photos
-        </button>
-      </div>
 
-      {onglet === 'poids' && <OngletPoids />}
-      {onglet === 'objectifs' && <Objectifs catalogue={catalogue} />}
-      {onglet === 'mensurations' && <Mesures />}
-      {onglet === 'photos' && <Photos />}
+      {phase ? (
+        <button type="button" className="carte corps-carte corps-phase" onClick={() => onPage('phases')}>
+          <span className="ligne entre">
+            <strong className="corps-titre">{nomPhase(phase.phase)}</strong>
+            <span className="corps-detail-droite">
+              {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : `sem. ${phase.semaine}${totalPhase ? `/${totalPhase}` : ''}`}
+              <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+            </span>
+          </span>
+          {(phase.finPrevue || kcal) && !phase.aVenir && (
+            <span className="faible petit-texte">{[phase.finPrevue && `Jusqu’au ${fin(phase.finPrevue)}`, kcal && `${kcal.toLocaleString('fr-FR')} kcal par jour`].filter(Boolean).join(' · ')}</span>
+          )}
+          {vise !== null && depart !== null && (
+            <span className="petit-texte">
+              {kg(depart)} → {kg(vise)} kg visés
+            </span>
+          )}
+          {totalPhase && !phase.aVenir && (
+            <span className="barre-phase corps-barre">
+              <span style={{ width: `${avance}%` }} />
+            </span>
+          )}
+        </button>
+      ) : (
+        <section className="carte corps-carte">
+          <strong className="corps-titre">Phase</strong>
+          <p className="faible petit-texte">Qu’est-ce que tu vises en ce moment ?</p>
+          <button type="button" className="btn plein" onClick={() => onPage('phases')}>
+            Choisir ma phase
+          </button>
+        </section>
+      )}
+
+      <section className="carte corps-carte">
+        <strong className="corps-titre">Poids</strong>
+        {moyenne !== null && (
+          <div className="ligne entre">
+            <span className="corps-chiffre">{kg(Math.round(moyenne * 10) / 10)} kg</span>
+            <span className="faible petit-texte corps-droite">
+              moyenne sur 7 jours
+              {ecartPoids !== null && (
+                <>
+                  <br />
+                  {signe(ecartPoids)} kg sur la période
+                </>
+              )}
+            </span>
+          </div>
+        )}
+        {pesees.length >= 2 ? (
+          <>
+            {points.length >= 2 ? <Courbe key={jours} points={points} format={(v) => `${kg(v)} kg`} label="Évolution du poids" sansEnTete /> : <p className="faible petit-texte">Pas assez de pesées sur cette période.</p>}
+            <div className="bilan-periodes">
+              {(
+                [
+                  ['1 mois', 30],
+                  ['3 mois', 91],
+                  ['6 mois', 182],
+                  ['Tout', 0],
+                ] as [string, number][]
+              ).map(([nom, j]) => (
+                <button key={nom} type="button" className={jours === j ? 'actif' : ''} aria-pressed={jours === j} onClick={() => setJours(j)}>
+                  {nom}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="faible petit-texte">Note ton poids le matin : la courbe apparaît dès 2 pesées.</p>
+        )}
+        <div className="corps-boutons">
+          <button type="button" className="btn" onClick={() => setNoter(true)}>
+            Noter mon poids
+          </button>
+          {pesees.length > 0 && (
+            <button type="button" className="btn" onClick={() => onPage('pesees')}>
+              {pesees.length} pesée{pesees.length > 1 ? 's' : ''} ›
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="carte corps-carte">
+        {principalesTriees.length > 0 ? (
+          <>
+            <div className="ligne entre">
+              <strong className="corps-titre">Mensurations</strong>
+              {mesures.length > 1 && <span className="faible petit-texte">{enCours ? 'depuis le début de la phase' : 'depuis la première prise'}</span>}
+            </div>
+            {principalesTriees.map((c) => {
+              const s = serie(mesures, c)
+              const d = s[s.length - 1].valeur - auRepere(s, enCours?.debut).valeur
+              return (
+                <div key={c} className="ligne entre corps-mesure">
+                  <span>{nomCle(c)}</span>
+                  <span>
+                    <strong>{cm(s[s.length - 1].valeur)}</strong> {s.length > 1 && <span className="faible">{signeCm(d)}</span>}
+                  </span>
+                </div>
+              )
+            })}
+            <button type="button" className="bilan-tous" onClick={() => onPage('mensurations')}>
+              <span>Toutes les mesures{derniereMesure ? ` · dernière le ${dateCourte(derniereMesure.date).replace(/^\S+ /, '')}` : ''}</span>
+              <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+            </button>
+          </>
+        ) : (
+          <>
+            <strong className="corps-titre">Mensurations</strong>
+            <p className="faible petit-texte">Une prise toutes les 2 à 4 semaines suffit.</p>
+            <button type="button" className="btn plein" onClick={() => onPage('mensurations')}>
+              {mesures.length ? 'Voir mes mensurations' : 'Prendre mes mensurations'}
+            </button>
+          </>
+        )}
+      </section>
+
+      <section className="carte corps-carte">
+        <strong className="corps-titre">Photos</strong>
+        {pDerniere ? (
+          <>
+            <div className="corps-photos">
+              {pDepart && <PhotoDatee photo={pDepart} />}
+              <PhotoDatee photo={pDerniere} />
+            </div>
+            <button type="button" className="bilan-tous" onClick={() => onPage('photos')}>
+              <span>{pDepart ? 'Comparer et toutes les photos' : 'Toutes les photos'}</span>
+              <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="faible petit-texte">Stockées uniquement sur cet appareil.</p>
+            <button type="button" className="btn plein" onClick={() => onPage('photos')}>
+              Séance photo
+            </button>
+          </>
+        )}
+      </section>
+
+      {noter && <FenetreJour saisie="poids" date={aujourdhui} catalogue={catalogue} journal={journal} poidsDuJour={pesees.find((p) => p.date === aujourdhui)?.poids} poidsRepere={pesees[pesees.length - 1]?.poids} onFermer={() => setNoter(false)} />}
     </div>
   )
 }
 
+function PhotoDatee({ photo }: { photo: PhotoCorps }) {
+  return (
+    <figure>
+      <img src={photo.image} alt={`Photo du ${dateCourte(photo.date)}`} />
+      <figcaption>{dateCourte(photo.date).replace(/^\S+ /, '')}</figcaption>
+    </figure>
+  )
+}
+
+/** Toutes les pesées, un appui pour corriger ou supprimer. */
+function ListePesees({ catalogue }: { catalogue: Catalogue }) {
+  const pesees = useLiveQuery(() => db.pesees.orderBy('date').reverse().toArray(), [], [])
+  const [date, setDate] = useState<string | null>(null)
+  const [voirTout, setVoirTout] = useState(false)
+  const affichees = voirTout ? pesees : pesees.slice(0, 30)
+  const choisie = pesees.find((p) => p.date === date)
+  return (
+    <>
+      <p className="faible petit-texte corps-aide">Un appui pour corriger ou effacer une pesée.</p>
+      <div className="carte corps-carte corps-liste">
+        {affichees.map((p) => (
+          <button key={p.date} type="button" className="bilan-tous corps-pesee" onClick={() => setDate(p.date)}>
+            <span>{dateCourte(p.date)}</span>
+            <strong>{kg(p.poids)} kg</strong>
+          </button>
+        ))}
+        {pesees.length > affichees.length && (
+          <button type="button" className="btn discret plein" onClick={() => setVoirTout(true)}>
+            Voir les {pesees.length} pesées
+          </button>
+        )}
+      </div>
+      {date && <FenetreJour saisie="poids" date={date} catalogue={catalogue} poidsDuJour={choisie?.poids} onFermer={() => setDate(null)} />}
+    </>
+  )
+}
+
 /** Mensurations : silhouette, évolution, et la saisie par-dessus l'écran. */
-function Mesures() {
+function Mesures({ catalogue }: { catalogue: Catalogue }) {
   const [saisie, setSaisie] = useState<Mesure | 'nouvelle' | null>(null)
   const mesures = useLiveQuery(() => db.mesures.orderBy('date').toArray(), [], [])
   return (
     <>
-      <Mensurations mesures={mesures} onSaisir={setSaisie} />
+      <Mensurations mesures={mesures} depuis={phaseA(catalogue.objectifs, dateISO())?.debut} onSaisir={setSaisie} />
       {saisie && (
         <div className="page-dessus">
           <SaisieMesures initial={saisie === 'nouvelle' ? undefined : saisie} derniere={mesures[mesures.length - 1]} onFermer={() => setSaisie(null)} />
@@ -112,12 +310,7 @@ function Mesures() {
   )
 }
 
-function OngletPoids() {
-  const pesees = useLiveQuery(() => db.pesees.orderBy('date').reverse().toArray(), [], [])
-  return <ListePoids pesees={pesees} />
-}
-
-function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: Mesure | 'nouvelle') => void }) {
+function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis?: string; onSaisir: (m: Mesure | 'nouvelle') => void }) {
   const [active, setActive] = useState('taille')
   const [cote, setCote] = useState<'g' | 'd'>('g')
   const [voirPrises, setVoirPrises] = useState(false)
@@ -139,7 +332,7 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
   const cles = MESURES.flatMap(clesDe).filter((c) => serie(mesures, c).length)
   const ligne = (c: string) => {
     const s = serie(mesures, c)
-    const d = s[s.length - 1].valeur - s[0].valeur
+    const d = s[s.length - 1].valeur - auRepere(s, depuis).valeur
     const id = c.replace(/_[gd]$/, '')
     return (
       <button key={c} className={'ligne-mesure' + (id === active ? ' active' : '')} onClick={() => choisir(id, c.endsWith('_d') ? 'd' : 'g')}>
@@ -180,8 +373,6 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
         <Ruler size={18} strokeWidth={2.2} />
         <span>Prendre mes mensurations</span>
       </button>
-
-      <Tendances mesures={mesures} />
 
       {/* Carte silhouette & courbe de détail sans doublon */}
       <div className="carte" ref={carte} style={{ padding: '16px', borderRadius: 'var(--rayon)', scrollMarginTop: 12, marginBottom: 12, overflow: 'hidden' }}>
@@ -238,7 +429,7 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
 
       {mesures.length > 0 && (
         <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>Depuis le début</h3>
+          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>{depuis ? 'Depuis le début de la phase' : 'Depuis le début'}</h3>
           {cles.filter((c) => PRINCIPALES.includes(c)).map(ligne)}
           {cles.some((c) => !PRINCIPALES.includes(c)) && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>
@@ -281,10 +472,6 @@ function Mensurations({ mesures, onSaisir }: { mesures: Mesure[]; onSaisir: (m: 
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 'var(--rayon-2)', background: 'var(--surface-2)', border: '1px solid var(--voile)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginBottom: 20 }}>
-        <Info size={15} strokeWidth={2} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
-        <span>{CONSEILS_MESURE}</span>
-      </div>
     </>
   )
 }
@@ -315,8 +502,8 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
                     borderRadius: 999,
                     fontSize: 'var(--t-legende)',
                     fontWeight: 600,
-                    color: d > 0 ? 'var(--ok)' : d < 0 ? 'var(--danger)' : 'var(--texte-2)',
-                    background: d > 0 ? 'var(--ok-voile)' : d < 0 ? 'var(--danger-voile)' : 'var(--voile)',
+                    color: 'var(--texte-2)',
+                    background: 'var(--voile)',
                   }}
                 >
                   {signe(d)}
@@ -614,188 +801,5 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
         </button>
       )}
     </div>
-  )
-}
-
-function ListePoids({ pesees }: { pesees: { date: string; poids: number }[] }) {
-  // Date de la pesée saisie : aujourd'hui, ou celle d'une ligne touchée dans la liste (correction).
-  const [date, setDate] = useState(dateISO())
-  const [jours, setJours] = useState(30)
-  const [voirTout, setVoirTout] = useState(false)
-  const depuis = jours ? dateISO(new Date(Date.now() - jours * 86400000)) : ''
-  const points = [...pesees]
-    .reverse()
-    .filter((p) => p.date >= depuis)
-    .map((p) => ({ date: p.date, valeur: p.poids }))
-  const ecart = points.length >= 2 ? points[points.length - 1].valeur - points[0].valeur : null
-
-  const peseesAffichees = voirTout ? pesees : pesees.slice(0, 7)
-
-  return (
-    <>
-      <Poids key={date} pesees={pesees} aujourdhui={date} onDate={setDate} />
-      {pesees.length >= 2 && (
-        <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginTop: 12 }}>
-          <div className="ligne entre" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>Évolution</h3>
-            {ecart !== null && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '3px 10px',
-                  borderRadius: 999,
-                  background: ecart > 0 ? 'var(--ok-voile)' : ecart < 0 ? 'var(--info-voile)' : 'var(--voile)',
-                  border: '1px solid ' + (ecart > 0 ? 'var(--ok-bord)' : ecart < 0 ? 'var(--info-bord)' : 'var(--bord)'),
-                  color: ecart > 0 ? 'var(--ok)' : ecart < 0 ? 'var(--info)' : 'var(--texte)',
-                  fontSize: 'var(--t-legende)',
-                  fontWeight: 700,
-                }}
-              >
-                {signe(ecart).replace(/ $/, '')} kg
-              </span>
-            )}
-          </div>
-          {/* Barre d'onglets de période fins et compacts */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-            {(
-              [
-                ['1 mois', 30],
-                ['3 mois', 91],
-                ['6 mois', 182],
-                ['Tout', 0],
-              ] as [string, number][]
-            ).map(([nom, j]) => {
-              const actif = jours === j
-              return (
-                <button
-                  key={nom}
-                  type="button"
-                  style={{
-                    flex: 1,
-                    padding: '6px 0',
-                    fontSize: 'var(--t-petit)',
-                    fontWeight: actif ? 600 : 400,
-                    color: actif ? 'var(--accent)' : 'var(--texte-2)',
-                    background: actif ? 'var(--accent-voile)' : 'transparent',
-                    border: '1px solid ' + (actif ? 'var(--accent)' : 'var(--bord)'),
-                    borderRadius: 'var(--rayon-2)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onClick={() => setJours(j)}
-                >
-                  {nom}
-                </button>
-              )
-            })}
-          </div>
-          {points.length >= 2 ? (
-            <Courbe key={jours} points={points} format={(v) => `${kg(v)} kg`} label="Évolution du poids" />
-          ) : (
-            <div className="faible" style={{ padding: '12px 0' }}>Pas assez de pesées sur cette période.</div>
-          )}
-        </div>
-      )}
-      {pesees.length > 0 && (
-        <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginTop: 12 }}>
-          <div className="ligne entre" style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
-              Pesées <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>({pesees.length})</span>
-            </h3>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {peseesAffichees.map((p) => {
-              const estActive = p.date === date
-              return (
-                <div
-                  key={p.date}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--rayon-2)',
-                    background: estActive ? 'var(--accent-voile)' : 'var(--sous-carte)',
-                    border: '1px solid ' + (estActive ? 'var(--accent-bord)' : 'var(--voile)'),
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <button
-                    type="button"
-                    style={{
-                      flex: 1,
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                      color: 'var(--texte)',
-                      fontSize: 'var(--t-petit)',
-                      fontWeight: estActive ? 700 : 500,
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                      setDate(p.date)
-                      window.scrollTo({ top: 0, behavior: 'smooth' })
-                    }}
-                  >
-                    {dateCourte(p.date)}
-                  </button>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>{kg(p.poids)} kg</strong>
-                    <button
-                      type="button"
-                      aria-label={`Supprimer la pesée du ${dateCourte(p.date)}`}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--texte-2)',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        borderRadius: 'var(--rayon-2)',
-                        transition: 'color 0.15s ease',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--texte-2)')}
-                      onClick={async () => {
-                        const suppr = await confirmer(`Supprimer la pesée du ${dateCourte(p.date)} ?`, { oui: 'Supprimer', danger: true })
-                        if (suppr) await db.pesees.delete(p.date)
-                      }}
-                    >
-                      <Trash2 size={16} strokeWidth={1.75} />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          {pesees.length > 7 && (
-            <button
-              type="button"
-              style={{
-                width: '100%',
-                marginTop: 10,
-                padding: '8px 0',
-                background: 'var(--surface-2)',
-                border: '1px solid var(--voile)',
-                borderRadius: 'var(--rayon-2)',
-                color: 'var(--texte-2)',
-                fontSize: 'var(--t-petit)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                textAlign: 'center',
-                transition: 'all 0.15s ease',
-              }}
-              onClick={() => setVoirTout(!voirTout)}
-            >
-              {voirTout ? 'Réduire' : `Voir les ${pesees.length} pesées`}
-            </button>
-          )}
-        </div>
-      )}
-    </>
   )
 }

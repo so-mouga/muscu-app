@@ -264,7 +264,7 @@ export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: 
             </div>
           )}
           {a.poids && (
-            <button type="button" className="ligne entre bilan-forme bilan-lien" onClick={onCorps}>
+            <button type="button" className="ligne entre bilan-forme bilan-lien" onClick={() => onCorps?.()}>
               <span>Poids moyen</span>
               <span>
                 <strong>{kg(arrondi(a.poids.fin))} kg</strong> <span className="faible">{ecart(a.poids.fin - a.poids.debut, 'kg')}</span>

@@ -1806,7 +1806,7 @@ body:has(.focus) {
   border-bottom: none;
 }
 .ligne-mesure.active {
-  color: var(--accent);
+  font-weight: 700;
 }
 .ecart-mesure {
   color: var(--texte-2);
@@ -4861,4 +4861,110 @@ html[data-sens='fondu']::view-transition-new(root) {
   background: none;
   color: var(--texte-2);
   font-size: var(--t-petit);
+}
+
+/* Corps : une page, le détail à un appui */
+.corps-carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  width: 100%;
+  color: var(--texte);
+  text-align: left;
+}
+.corps-carte p {
+  margin: 0;
+}
+.corps-phase .ligne {
+  flex-wrap: nowrap;
+}
+.corps-titre {
+  font-size: var(--t-texte);
+  font-weight: 700;
+}
+.corps-detail-droite {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+}
+.corps-barre {
+  display: block;
+  margin-top: 0;
+}
+.corps-barre span {
+  background: var(--ok);
+}
+.corps-chiffre {
+  font-size: var(--t-page);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.corps-droite {
+  text-align: right;
+}
+.corps-boutons {
+  display: flex;
+  gap: var(--e2);
+}
+.corps-boutons .btn {
+  flex: 1;
+  min-width: 0;
+  padding-inline: var(--e2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+}
+.corps-liste {
+  gap: 0;
+}
+.corps-mesure {
+  flex-wrap: nowrap;
+  font-size: var(--t-petit);
+}
+.corps-photos {
+  display: flex;
+  gap: var(--e2);
+}
+.corps-photos figure {
+  flex: 1;
+  min-width: 0;
+  max-width: 50%;
+  margin: 0;
+}
+.corps-photos img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--rayon-2);
+  object-fit: cover;
+}
+.corps-photos figcaption {
+  margin-top: var(--e1);
+  color: var(--texte-2);
+  font-size: var(--t-legende);
+  text-align: center;
+}
+.corps-aide {
+  margin: 0 0 var(--e2);
+}
+.corps-pesee strong {
+  font-variant-numeric: tabular-nums;
+}
+.calories-visees {
+  flex-wrap: nowrap;
+  gap: var(--e3);
+  margin-top: var(--e3);
+}
+.calories-visees > span:first-child {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.calories-champ {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  flex-shrink: 0;
 }

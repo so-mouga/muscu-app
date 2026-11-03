@@ -14,7 +14,7 @@ import { CaseJour, FenetreJour, heures, TEXTE_CALORIES, type SaisieJour } from '
 import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { PlanchePhotos, POSES } from './Photos'
 import Bilan from './Bilan'
-import { SaisieMesures } from './Corps'
+import { SaisieMesures, type PageCorps } from './Corps'
 import { finAffichee, nomPhase, periodes, type EtapeObjectifs } from '../lib/objectifs'
 import { prevuLe } from '../lib/cycle'
 import { objectifDuJour } from '../lib/nutrition'
@@ -53,7 +53,7 @@ interface Props {
   /** Ouvre la fiche / courbe d'un exercice dans l'onglet Exercices. */
   onExo?: (id: string) => void
   /** Ouvre l'onglet Corps (poids, mensurations, photos). */
-  onCorps?: () => void
+  onCorps?: (page?: PageCorps) => void
 }
 
 export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, onCorps }: Props) {
@@ -273,7 +273,7 @@ function FenetreMesures({
   mesures: Mesure[]
   onFermer: () => void
   onAjouterOuModifier?: () => void
-  onCorps?: () => void
+  onCorps?: (page?: PageCorps) => void
 }) {
   useRetour(true, onFermer)
   const valeurs = mesures.find((m) => m.date === date)?.valeurs ?? {}
@@ -393,11 +393,8 @@ function FenetreMesures({
                   type="button"
                   className="btn discret"
                   onClick={() => {
-                    try {
-                      localStorage.setItem('sous_onglet_corps', 'mensurations')
-                    } catch {}
                     onFermer()
-                    onCorps()
+                    onCorps('mensurations')
                   }}
                   style={{
                     height: 40,
@@ -411,7 +408,7 @@ function FenetreMesures({
                     gap: 6,
                   }}
                 >
-                  <span>Gérer toutes les mensurations ›</span>
+                  <span>Toutes les mensurations ›</span>
                 </button>
               )}
 
@@ -468,7 +465,7 @@ function JourChoisi({
   records: Record<string, number>
   mieux: Record<string, number>
   onSeance: (id: string) => void
-  onCorps?: () => void
+  onCorps?: (page?: PageCorps) => void
 }) {
   const vide = !seances.length
   const [voirMesures, setVoirMesures] = useState(false)
