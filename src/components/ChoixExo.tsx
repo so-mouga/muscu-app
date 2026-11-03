@@ -127,7 +127,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
             <h2>{titre}</h2>
             <input ref={champ} placeholder="Rechercher (nom ou muscle)" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
             {!recherche.trim() && (
-              <div className="chips zones">
+              <div className="chips zones une-rangee">
                 <button className={zone === 'tous' ? 'actif' : ''} onClick={() => setZone('tous')}>
                   Tous
                 </button>
@@ -139,9 +139,6 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
                 ))}
               </div>
             )}
-            <button className="btn plein" onClick={() => setCreation(true)}>
-              + Créer un exercice{recherche ? ` « ${recherche} »` : ''}
-            </button>
             {equivalentsVisibles.length > 0 ? (
               <div>
                 <div className="faible" style={{ marginBottom: 4 }}>
@@ -169,6 +166,10 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
               ))}
               {groupes.length === 0 && <div className="muted">Aucun exercice trouvé.</div>}
             </div>
+            {/* Après la liste : les exercices d'abord. Une recherche sans résultat l'amène juste sous le champ. */}
+            <button className="btn plein" onClick={() => setCreation(true)}>
+              + Créer un exercice{recherche ? ` « ${recherche} »` : ''}
+            </button>
             {onChoixMultiple ? (
               <div className="barre-ajout">
                 <button className="btn primaire grand" disabled={!choisis.length} onClick={() => onChoixMultiple(choisis, crees)}>

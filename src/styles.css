@@ -1471,6 +1471,16 @@ body:has(.focus) {
 }
 
 /* Choix d'exercice : zones et sélection multiple */
+.chips.une-rangee {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-right: calc(-1 * var(--e4));
+  padding-right: var(--e4);
+}
+.chips.une-rangee button {
+  flex: 0 0 auto;
+}
 .chips.zones button {
   display: inline-flex;
   align-items: center;
