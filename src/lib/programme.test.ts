@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EXERCICES } from '../data/exercices'
 import type { Programme, SeanceModele, Serie } from '../types'
 import { conseil } from './progression'
-import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesSansSeance } from './programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesAbandonnes, programmesSansSeance } from './programme'
 
 const seance = (id: string): SeanceModele => ({ id, nom: `Séance ${id}`, sousTitre: '', exercices: [{ exoId: 'presse', repos: 120, chauffes: [], finisseur: false, charge: 50, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }] })
 const programme: Programme = { id: 'p1', nom: 'Mon programme ', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'a', jour: 5 }] }
@@ -88,5 +88,24 @@ describe('fourchetteParDefaut', () => {
     const plan = { exoId: exo.id, repos: 180, series: [0, 1, 2].map(() => ({ ...fourchetteParDefaut(exo), rpe: 8 })), chauffes: [], finisseur: false, charge: null }
     const faites = [0, 1, 2].map((i): Serie => ({ id: String(i), exoId: exo.id, type: 'normale', charge: 50, reps: 10, rpe: 7, heure: 0 }))
     expect(conseil(exo, plan, [faites])).not.toBeNull()
+  })
+})
+
+describe('programmesAbandonnes', () => {
+  const vide = (id: string, nom: string): Programme => ({ id, nom, seances: [] })
+  const plein: Programme = { id: 'p', nom: 'Mon programme', seances: [{ modeleId: 'a', jour: 1 }] }
+
+  it('retire un programme vide sous son nom proposé', () => {
+    expect(programmesAbandonnes([plein, vide('x', 'Mon programme 2'), vide('y', 'Mon programme 3')], 'p', [])).toEqual(['x', 'y'])
+  })
+
+  it('garde le programme en service, celui qui est ouvert, un programme renommé et un programme non vide', () => {
+    expect(programmesAbandonnes([plein, vide('x', 'Mon programme 2')], 'x', [])).toEqual([])
+    expect(programmesAbandonnes([plein, vide('x', 'Mon programme 2')], 'p', ['x'])).toEqual([])
+    expect(programmesAbandonnes([plein, vide('x', 'Jambes')], 'p', [])).toEqual([])
+  })
+
+  it('ne retire jamais le seul programme', () => {
+    expect(programmesAbandonnes([vide('x', 'Mon programme')], 'autre', [])).toEqual([])
   })
 })

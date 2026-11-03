@@ -23,7 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
-import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesSansSeance, reposParDefaut } from '../lib/programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, reposParDefaut } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -106,6 +106,13 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
     if (catalogue.sansProgramme) setPile([])
     else ouvrir({ type: 'programme', p })
   }
+  // « Créer le mien » puis retour, ou la barre du bas : un programme laissé vide ne reste pas dans la liste.
+  const ouverts = pile.flatMap((x) => (x.type === 'programme' ? [x.p.id] : []))
+  useEffect(() => {
+    const vides = programmesAbandonnes(catalogue.programmes, catalogue.actif.id, ouverts)
+    if (vides.length) void db.programmes.bulkDelete(vides)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ouverts.join()])
   useEffect(() => {
     if (!creer) return
     void nouveauProgramme()

@@ -44,3 +44,9 @@ export function estDuJour(ligne: { modeleId: string; jour?: number }, seances: {
   if (!planning.some((x) => x.modele.id === ligne.modeleId && x.jour === jour)) return false
   return ligne.jour === jour || !seances.some((x) => x.modeleId === ligne.modeleId && x.jour === jour)
 }
+
+/** Programmes créés puis laissés vides sous leur nom proposé : ni le programme en service, ni un programme encore ouvert. */
+export function programmesAbandonnes(programmes: Programme[], actifId: string, ouverts: string[]): string[] {
+  if (programmes.length <= 1) return []
+  return programmes.filter((p) => !p.seances.length && /^Mon programme( \d+)?$/.test(p.nom) && p.id !== actifId && !ouverts.includes(p.id)).map((p) => p.id)
+}
