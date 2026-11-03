@@ -225,7 +225,8 @@ export const seancesHabituelles = (modeleId: string, terminees: Seance[]) =>
     .filter((s) => s.modeleId === modeleId && s.series.length > 0 && !s.deload)
     .filter((s) => {
       const ms = dureeSeanceEffective(s)
-      return ms >= 15 * 60000 && ms <= 4 * 3600000
+      // Au plafond de 4 h, c'est une séance oubliée ou coupée : elle ne dit rien de la durée habituelle.
+      return ms >= 15 * 60000 && ms < 4 * 3600000
     })
     .sort((a, b) => b.debut - a.debut)
     .slice(0, 3)

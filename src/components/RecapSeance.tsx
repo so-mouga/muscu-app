@@ -7,7 +7,8 @@ import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
 import Deplie from './Deplie'
 
 /** Durée d'une séance : effective (de la 1re à la dernière série), ou jusqu'à maintenant si elle est en cours. */
-export const dureeSeance = (s: Seance) => (s.enCours ? Date.now() - s.debut : dureeSeanceEffective(s))
+/** Séance en cours : le temps écoulé ; au-delà de 4 h (oubliée, longue coupure), la même durée que le Journal. */
+export const dureeSeance = (s: Seance) => (s.enCours && Date.now() - s.debut <= 4 * 3600000 ? Date.now() - s.debut : dureeSeanceEffective(s))
 
 /** Pastilles de bilan d'une séance : durée, séries dures, kg soulevés… */
 export function ResumeSeance({ seance, exo, enLigne }: { seance: Seance; exo?: (id: string) => Exercice; /** Une ligne de texte plutôt que des pastilles. */ enLigne?: boolean }) {

@@ -115,6 +115,10 @@ describe('durée habituelle et calories', () => {
     expect(dureeHabituelle('a', [s(1, 50), s(2, 70), s(3, 62), s(4, 120, 'b'), s(0, 300)])).toBe(60)
     expect(dureeHabituelle('z', [s(1, 50)])).toBeNull()
   })
+  it('une séance au plafond de 4 h ne compte pas dans la durée habituelle', () => {
+    expect(dureeHabituelle('a', [s(1, 300)])).toBeNull()
+    expect(dureeHabituelle('a', [s(1, 300), s(2, 50)])).toBe(50)
+  })
   it('la durée habituelle est dite comme telle, une séance vide n’affiche aucune durée', () => {
     const plan = { exoId: 'presse', repos: 120, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }], chauffes: [], finisseur: false, charge: null }
     const m = { id: 'a', nom: 'A', sousTitre: '', exercices: [plan] }
