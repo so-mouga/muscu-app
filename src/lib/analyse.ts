@@ -265,7 +265,7 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
 
   // Fatigue : RPE en hausse et sensations en baisse par rapport à la période d'avant
   if (avant && a.rpe !== null && avant.rpe !== null && a.energie !== null && avant.energie !== null && a.rpe >= avant.rpe + 0.5 && a.energie <= avant.energie - 0.5)
-    r.push('RPE en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense au déload.')
+    r.push('RPE en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense à une semaine allégée.')
 
   // Records
   if (a.records.length) {
@@ -300,7 +300,7 @@ export function essentiel(a: Analyse, avant: Analyse | null, phase?: Phase, depu
     const commune = bloques[0].pistes.find((p) => bloques.every((s) => s.pistes.includes(p)))
     r.push({ texte: `${bloques.length} exercices sans progrès.${commune ? ` Piste commune : ${commune}.` : ''}`, blocages: true })
   }
-  if (avant && a.rpe !== null && avant.rpe !== null && a.energie !== null && avant.energie !== null && a.rpe >= avant.rpe + 0.5 && a.energie <= avant.energie - 0.5) r.push({ texte: 'Effort en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense au déload.' })
+  if (avant && a.rpe !== null && avant.rpe !== null && a.energie !== null && avant.energie !== null && a.rpe >= avant.rpe + 0.5 && a.energie <= avant.energie - 0.5) r.push({ texte: 'Effort en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense à une semaine allégée.' })
   return r.slice(0, 3)
 }
 

@@ -507,7 +507,7 @@ function JourChoisi({
             <strong>{m.nom}</strong>
             <span className="faible">Prévu{prevu.semaine ? ` · semaine ${prevu.semaine}/${prevu.total}` : ''}</span>
           </span>
-          {prevu.deload && <span className="etiquette-deload">Déload</span>}
+          {prevu.deload && <span className="etiquette-deload">Allégée</span>}
         </div>
       ))}
 

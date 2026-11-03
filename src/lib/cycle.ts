@@ -248,7 +248,7 @@ export function suggestionDeload(exo: Exercice, s: Suggestion): Suggestion {
   }
   const charges = s.charges.map(alleger)
   const memes = charges.every((c, i) => c === s.charges[i]) && charges.some((c) => c !== null && c > 0) && exo.mode !== 'elastique' && !exo.assistance
-  return { ...s, charges, message: memes ? 'Déload : même charge (le palier est trop gros pour −10 %), effort 6-7/10, sans aller à l’échec.' : 'Déload : environ −10 % de charge, effort 6-7/10, sans aller à l’échec.' }
+  return { ...s, charges, message: memes ? 'Semaine allégée : même charge (le palier est trop gros pour −10 %), effort 6-7/10, sans aller à l’échec.' : 'Semaine allégée : environ −10 % de charge, effort 6-7/10, sans aller à l’échec.' }
 }
 
 /** Ce qui est prévu un jour donné : séances du planning (1 = lundi), et pendant un cycle sa semaine, déload ou pause. */

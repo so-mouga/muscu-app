@@ -145,7 +145,7 @@ export function pistes(exo: Exercice, depuis: string, jusqua: string, c: Context
   const dernierDeload = faites.filter((s) => s.deload).reduce<string | null>((a, s) => (!a || s.date > a ? s.date : a), null)
   const reprise = dates.reduce<string | null>((a, d, i) => (i && jours(dates[i - 1], d) >= JOURS_ARRET ? d : a), dates[0] ?? null)
   const repere = [dernierDeload, reprise].reduce<string | null>((a, d) => (d && (!a || d > a) ? d : a), null)
-  if (repere && jours(repere, jusqua) > 42) r.push(`pas de déload depuis ${Math.floor(jours(repere, jusqua) / 7)} semaines`)
+  if (repere && jours(repere, jusqua) > 42) r.push(`pas de semaine allégée depuis ${Math.floor(jours(repere, jusqua) / 7)} semaines`)
   return r
 }
 

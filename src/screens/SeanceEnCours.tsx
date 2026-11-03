@@ -514,7 +514,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong>
           {exosRestants > 1 ? `Reste ${exosRestants} exercices` : exosRestants === 1 ? `Dernier exercice, ${restantes} série${restantes > 1 ? 's' : ''}` : plans.length ? 'Tout est fait' : 'Rien pour l’instant'}
-          {seance.deload && <span className="texte-finisseur"> · déload</span>}
+          {seance.deload && <span className="texte-finisseur"> · allégée</span>}
         </strong>
         <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
           <Timer size={14} /> {chronoSeance(maintenant - seance.debut)}
@@ -843,7 +843,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </button>
           </div>
         )}
-        {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> Déload : charges −10 %, effort 6-7/10, sans échec. Récupère, ne force pas.</div>}
+        {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> Semaine allégée : charges −10 %, effort 6-7/10, sans échec. Récupère, ne force pas.</div>}
       </div>
 
       <div className="liste-seance">
@@ -1460,7 +1460,7 @@ function FinSeance({
       {autres.length > 0 && (
         <>
           <h3 className="fin-titre">{seance.deload ? 'Tes exercices' : 'On refait pareil'}</h3>
-          {seance.deload && <div className="faible fin-deload">Séance de déload : pas d’objectif à fixer, la prochaine vraie séance reprend là où tu en étais.</div>}
+          {seance.deload && <div className="faible fin-deload">Séance allégée : pas d’objectif à fixer, la prochaine vraie séance reprend là où tu en étais.</div>}
           <div className="carte pile fin-lignes">
             {autres.map(({ plan, exo, raison, conseil: c }) => {
               const texte = statut(exo, raison, c)

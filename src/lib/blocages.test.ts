@@ -158,7 +158,7 @@ describe('pistes', () => {
   it('rien quand la donnée manque ; pas de déload depuis plus de 6 semaines', () => {
     expect(pistes(smith, '2026-10-01', FIN, { seances: l.map((s) => ({ ...s, series: s.series.map((x) => ({ ...x, rpe: 8 })) })) })).toEqual([])
     const long = [...semaines(4, '2026-09-01'), ...l.map((s) => s.date)].map((d) => seance(d, [['smith_incline', 50, 8, 8]]))
-    expect(pistes(smith, '2026-10-01', FIN, { seances: long })).toContain('pas de déload depuis 8 semaines')
+    expect(pistes(smith, '2026-10-01', FIN, { seances: long })).toContain('pas de semaine allégée depuis 8 semaines')
   })
   it('un arrêt de 3 semaines vaut un repos : pas de « pas de déload depuis 16 semaines » à la reprise', () => {
     const l = [...semaines(10, '2026-06-01'), ...semaines(3, '2026-09-14')].map((d) => seance(d, [['smith_incline', 50, 8, 8]]))

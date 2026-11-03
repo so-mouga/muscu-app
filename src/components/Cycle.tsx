@@ -14,9 +14,9 @@ import Aide, { LigneAide } from './Aide'
 import Deplie from './Deplie'
 
 export const AIDE_CYCLE =
-  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine de déload à la fin : 5 de travail + 1 de déload). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, tu choisis s’il s’applique aux semaines qui restent ou seulement au prochain cycle.'
+  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine allégée à la fin : 5 de travail + 1 allégée). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, tu choisis s’il s’applique aux semaines qui restent ou seulement au prochain cycle.'
 export const AIDE_DELOAD =
-  'Déload : une semaine allégée pour récupérer et repartir plus fort. L’appli divise les séries par deux, baisse les charges d’environ 10 %, vise un RPE de 6-7 et retire les finisseurs. Garde tes repas et tes pas comme d’habitude : une semaine allégée ne fait pas perdre de muscle. Ces séances ne comptent pas pour ta progression : ensuite, tu reprends là où tu en étais.'
+  'Une semaine allégée (on dit aussi « déload ») pour récupérer et repartir plus fort. L’appli divise les séries par deux, baisse les charges d’environ 10 %, vise un effort de 6-7/10 et retire les finisseurs. Garde tes repas et tes pas comme d’habitude : une semaine allégée ne fait pas perdre de muscle. Ces séances ne comptent pas pour ta progression : ensuite, tu reprends là où tu en étais.'
 
 const debutSemaine = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
@@ -141,7 +141,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
         </label>
 
         <div className="champ">
-          <span>Durée, déload compris</span>
+          <span>Durée, semaine allégée comprise</span>
           <div className="chips">
             {[4, 5, 6, 7, 8, 10, 12]
               .filter((n) => !etat || n >= etat.n)
@@ -155,8 +155,8 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
 
         <div className="champ">
           <span className="ligne entre">
-            <span>Semaines allégées (déload)</span>
-            <Aide titre="Le déload" texte={AIDE_DELOAD} />
+            <span>Semaines allégées</span>
+            <Aide titre="La semaine allégée" texte={AIDE_DELOAD} />
           </span>
           <div className="chips">
             {Array.from({ length: semaines }, (_, i) => i + 1).map((n) => (
@@ -172,8 +172,8 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
           </div>
           <span className="faible">
             {deloads.length
-              ? `${semaines - deloads.length} semaines de travail, ${deloads.length} de déload.`
-              : 'Aucun déload : au-delà de 6-8 semaines, la fatigue s’accumule.'}
+              ? `${semaines - deloads.length} semaines de travail, ${deloads.length} allégée${deloads.length > 1 ? 's' : ''}.`
+              : 'Aucune semaine allégée : au-delà de 6-8 semaines, la fatigue s’accumule.'}
           </span>
         </div>
 
@@ -273,7 +273,7 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1>{etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h1>
           <div className="faible">
-            {nomCycle(cycle)} · depuis le {debutSemaine(cycle.debut)}
+            {nomCycle(cycle)} · {etat.n <= 0 ? 'commence le' : 'depuis le'} {debutSemaine(cycle.debut)}
             {cycle.priorites?.length ? ` · priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}` : ''}
           </div>
         </div>
@@ -450,7 +450,7 @@ function FenetreSemaine({ cycle, lundiSemaine, onChoix, onFermer }: { cycle: Cyc
   const n = etatCycle(cycle, lundiSemaine).n
   const options: [RegimeSemaine, string, string][] = [
     ['normale', 'Normale', regime === 'pause' ? 'La pause est annulée : la suite revient d’une semaine' : regime === 'allegee' ? 'Le programme complet' : 'Le programme complet'],
-    ['allegee', 'Allégée (déload)', 'Moitié moins de séries, charges −10 %. La suite est décalée d’une semaine'],
+    ['allegee', 'Allégée', 'Moitié moins de séries, charges −10 %. La suite est décalée d’une semaine'],
     ['pause', 'En pause', 'Vacances, maladie : elle ne compte pas, la suite glisse d’une semaine'],
   ]
   return (

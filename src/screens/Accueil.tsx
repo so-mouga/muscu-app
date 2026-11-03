@@ -277,7 +277,7 @@ export default function Accueil({
         : etat.pause
         ? 'Cycle en pause'
         : etat.deload
-        ? `Déload · sem. ${etat.n}/${etat.total}`
+        ? `Allégée · sem. ${etat.n}/${etat.total}`
         : `Cycle · sem. ${etat.n}/${etat.total}`
       : ''
 
@@ -311,7 +311,7 @@ export default function Accueil({
         <button type="button" className="texte" onClick={onProgrammes}>
           <Info size={16} strokeWidth={2} className="rappel-ico info" />
           <span className="rappel-texte">
-            Force en baisse sur {deloadPlusTot.baisses.length} exercices : déload conseillé ?
+            Force en baisse sur {deloadPlusTot.baisses.length} exercices : semaine allégée conseillée ?
             <span className="faible"> · {deloadPlusTot.baisses.slice(0, 3).map((e) => e.nom).join(', ')}</span>
           </span>
         </button>
@@ -510,7 +510,7 @@ export default function Accueil({
           ) : aLancer ? (
             <>
               <div className="seance-jour-haut">
-                <span className={etat?.deload ? 'seance-jour-etiquette deload' : 'seance-jour-etiquette'}>{etat?.deload ? 'Déload · charges allégées' : 'Séance du jour'}</span>
+                <span className={etat?.deload ? 'seance-jour-etiquette deload' : 'seance-jour-etiquette'}>{etat?.deload ? 'Semaine allégée · charges −10 %' : 'Séance du jour'}</span>
                 <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>
                   Autre séance ›
                 </button>

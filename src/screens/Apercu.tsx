@@ -90,7 +90,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
 
       {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} />}
 
-      {deload && <div className="bandeau-deload">Semaine de déload : moitié des séries, charges −10 %, effort 6-7/10, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
+      {deload && <div className="bandeau-deload">Semaine allégée : moitié des séries, charges −10 %, effort 6-7/10, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
       {terminees && modele.exercices.some((p) => suggestionPour(exoAvecReglages(catalogue.exo(p.exoId), reglages), p, terminees).decision === 'calibrer') && (
         <div className="faible">À calibrer : démarre léger et ajuste jusqu’à l’effort visé dès la 1re série.</div>
