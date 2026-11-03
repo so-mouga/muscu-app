@@ -46,7 +46,7 @@ const REGLES: [string, string[]][] = [
       'Après 10 jours ou plus sans séance : « mêmes charges que la dernière fois, baisse un peu si c’est trop dur ».',
       'Semaines tenues de suite (à partir de 2) : une semaine est tenue avec les trois quarts des séances prévues (3 → 2, 4 → 3). Le déload et une semaine en pause ne cassent pas la série.',
       'Sur ce bloc (cycle en cours, sinon phase, sinon 4 semaines) : ton exercice principal le plus pratiqué qui a progressé.',
-      'Déload à avancer (pendant un cycle) : ta force baisse sur 2 exercices et tu as répondu « Difficile » à 2 des 3 dernières séances, ou ta force baisse sur 3 exercices (ces 10 derniers jours). Jamais dans les 3 semaines après un déload.',
+      'Déload à avancer (pendant un cycle) : ta force baisse sur 2 exercices et tu as répondu « Difficile » à 2 des 3 dernières séances, ou ta force baisse sur 3 exercices (ces 10 derniers jours). Monter la charge, ou faire autant de reps à la même charge, n’est pas une baisse. Jamais dans les 3 semaines après un déload ou 2 semaines sans séance.',
       'En haut, deux rappels au plus : nouvelle version de l’appli, cycle terminé, déload conseillé, programme modifié pendant le cycle, sauvegarde (après 7 jours sans export), mensurations.',
       'Rappel de séance (appli Android, si tu l’actives) : les jours prévus à l’heure choisie, sauf si ta séance est déjà commencée.',
     ],

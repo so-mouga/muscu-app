@@ -19,7 +19,9 @@ function scores(exo: Exercice, seances: Seance[], jusqua: string) {
     .sort((a, b) => a.debut - b.debut)
     .flatMap((s) => {
       const l = s.series.filter((x) => x.exoId === exo.id && x.type === 'normale' && x.reps > 0)
-      return l.length ? [{ date: s.date, score: Math.max(...l.map((x) => scoreSerie(exo, x, s.poidsCorps))) }] : []
+      if (!l.length) return []
+      const notes = l.map((x) => ({ serie: x, score: scoreSerie(exo, x, s.poidsCorps) })).sort((a, b) => b.score - a.score)
+      return [{ date: s.date, score: notes[0].score, serie: notes[0].serie }]
     })
 }
 
@@ -160,17 +162,24 @@ export function texteBlocage(d: Blocage & { pistes: string[] }): string {
 /**
  * Déload à avancer : force en baisse sur au moins 2 exercices ces 10 derniers jours (meilleure série sous
  * celle des 2 séances d'avant), avec une énergie basse (≤ 2/5) sur 2 des 3 dernières séances de ces 10 jours, ou une
- * baisse sur 3 exercices ou plus. Jamais dans les 3 semaines qui suivent un déload.
+ * baisse sur 3 exercices ou plus. Une charge plus dure, ou autant de reps à la même charge, n'est pas une baisse,
+ * quoi que dise la force estimée. Jamais dans les 3 semaines qui suivent un déload ou 2 semaines sans séance : on vient de récupérer.
  */
 export function deloadConseille(seances: Seance[], exo: (id: string) => Exercice, jusqua: string): { baisses: Exercice[]; energieBasse: boolean } | null {
   const faites = seances.filter((s) => !s.enCours && s.date <= jusqua)
   if (faites.some((s) => s.deload && jours(s.date, jusqua) < 21)) return null
+  const dates = [...new Set(faites.map((s) => s.date))].sort()
+  if (dates.some((d, i) => i && jours(dates[i - 1], d) >= 14 && jours(d, jusqua) < 21)) return null
   const recentes = faites.filter((s) => !s.deload && jours(s.date, jusqua) <= 10)
   const ids = [...new Set(recentes.flatMap((s) => s.series.map((x) => x.exoId)))]
   const baisses = ids.map(exo).filter((e) => {
     const l = scores(e, faites, jusqua)
     if (l.length < 3 || jours(l[l.length - 1].date, jusqua) > 10) return false
     const avant = Math.max(l[l.length - 2].score, l[l.length - 3].score)
+    const ref = l[l.length - 2].score >= l[l.length - 3].score ? l[l.length - 2].serie : l[l.length - 3].serie
+    const der = l[l.length - 1].serie
+    const dur = (c: number) => (e.assistance ? -c : c)
+    if (dur(der.charge) > dur(ref.charge) || (der.charge === ref.charge && der.reps >= ref.reps)) return false
     return l[l.length - 1].score < (seuil(e) > 1 ? avant * 0.97 : Math.min(l[l.length - 2].score, l[l.length - 3].score))
   })
   // Même fenêtre que la baisse de force : une fatigue d'il y a un mois n'explique pas celle d'aujourd'hui.

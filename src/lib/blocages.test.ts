@@ -182,6 +182,29 @@ describe('déload conseillé', () => {
   })
 })
 
+describe('déload conseillé : pas de fausse alerte', () => {
+  const trois = (id: string, series: [number, number, number][]) => series.map(([c, r, e]) => [id, c, r, e] as S)
+  const dates = ['2026-10-20', '2026-10-24', '2026-10-28']
+  const avec = (f: (i: number) => [number, number, number]) =>
+    dates.map((d, i) => seance(d, ['smith_incline', 'tirage_large', 'tirage_horizontal'].flatMap((id) => trois(id, [f(i)]))))
+  it('monter la charge avec les reps qui repartent au bas n’est pas une baisse', () => {
+    expect(deloadConseille(avec((i) => (i < 2 ? [50, 12, 8] : [52.5, 8, 8])), exo, FIN)).toBeNull()
+  })
+  it('mêmes charge et reps avec un effort noté plus haut n’est pas une baisse', () => {
+    expect(deloadConseille(avec((i) => [50, 10, i < 2 ? 7 : 9]), exo, FIN)).toBeNull()
+  })
+  it('moins de reps à la même charge reste une baisse', () => {
+    expect(deloadConseille(avec((i) => [50, i < 2 ? 10 : 8, 8]), exo, FIN)?.baisses).toHaveLength(3)
+  })
+  it('à la reprise après un arrêt : jamais, puis la règle revient après 3 semaines', () => {
+    const avant = ['2026-09-21', '2026-09-25'].map((d) => seance(d, ['smith_incline', 'tirage_large', 'tirage_horizontal'].flatMap((id) => trois(id, [[50, 10, 8]]))))
+    const reprise = ['2026-10-26', '2026-10-28'].map((d) => seance(d, ['smith_incline', 'tirage_large', 'tirage_horizontal'].flatMap((id) => trois(id, [[50, 8, 8]]))))
+    expect(deloadConseille([...avant, ...reprise], exo, '2026-10-30')).toBeNull()
+    const plusTard = ['2026-11-08', '2026-11-16', '2026-11-20'].map((d, i) => seance(d, ['smith_incline', 'tirage_large', 'tirage_horizontal'].flatMap((id) => trois(id, [[50, i < 2 ? 10 : 8, 8]]))))
+    expect(deloadConseille([...avant, ...reprise, ...plusTard], exo, '2026-11-20')?.baisses).toHaveLength(3)
+  })
+})
+
 describe('audit blocages', () => {
   it('petits progrès réguliers (+0,6 % par séance, +2,4 % en tout) : pas bloqué', () => {
     const l = DATES.map((d, i) => seance(d, [['smith_incline', 50 * (1 + 0.006 * i), 8, 8]]))
