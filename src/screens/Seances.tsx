@@ -835,6 +835,8 @@ function Editeur({
   const volume = volumePrevu([m], catalogue.exercices)
   const travailles = MUSCLES.filter((x) => volume[x.id] > 0).sort((a, b) => volume[b.id] - volume[a.id])
   const nbSeries = m.exercices.reduce((n, e) => n + e.series.length, 0)
+  // Beaucoup de muscles : les principaux d'abord, pour que la carte laisse voir les exercices.
+  const [tousMuscles, setTousMuscles] = useState(false)
 
   const dupliquer = async () => {
     setPlus(false)
@@ -906,11 +908,16 @@ function Editeur({
                 />
               </div>
               <div className="seance-muscles">
-                {travailles.map((x, i) => (
+                {(tousMuscles || travailles.length <= 5 ? travailles : travailles.slice(0, 4)).map((x, i) => (
                   <span key={x.id} className={i < 2 ? 'fort' : ''}>
                     <strong>{kg(volume[x.id])}</strong> {x.nom}
                   </span>
                 ))}
+                {travailles.length > 5 && (
+                  <button type="button" aria-expanded={tousMuscles} aria-label={tousMuscles ? 'Montrer moins de muscles' : `Montrer les ${travailles.length - 4} autres muscles`} onClick={() => setTousMuscles(!tousMuscles)}>
+                    {tousMuscles ? 'moins' : `+${travailles.length - 4}`}
+                  </button>
+                )}
               </div>
             </>
           )}
