@@ -50,3 +50,8 @@ export function programmesAbandonnes(programmes: Programme[], actifId: string, o
   if (programmes.length <= 1) return []
   return programmes.filter((p) => !p.seances.length && /^Mon programme( \d+)?$/.test(p.nom) && p.id !== actifId && !ouverts.includes(p.id)).map((p) => p.id)
 }
+
+/** Jours où le programme a déjà une séance, sans celle qu'on est en train de placer (`exclu` : sa position). */
+export function joursPris(seances: { modeleId: string; jour?: number }[], existe: (id: string) => boolean, exclu?: number): number[] {
+  return seances.flatMap((e, i) => (e.jour && i !== exclu && existe(e.modeleId) ? [e.jour] : []))
+}

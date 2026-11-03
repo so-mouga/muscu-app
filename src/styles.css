@@ -5122,6 +5122,23 @@ html[data-sens='fondu']::view-transition-new(root) {
   background: var(--controle);
   font-size: var(--t-petit);
 }
+.jours-semaine button {
+  position: relative;
+}
+.jour-pris {
+  position: absolute;
+  left: 50%;
+  bottom: var(--e1);
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.7;
+}
+.jours-legende {
+  font-size: var(--t-legende);
+}
 .jours-semaine button.actif {
   background: var(--texte);
   color: var(--bg);

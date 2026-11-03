@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EXERCICES } from '../data/exercices'
 import type { Programme, SeanceModele, Serie } from '../types'
 import { conseil } from './progression'
-import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesAbandonnes, programmesSansSeance } from './programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance } from './programme'
 
 const seance = (id: string): SeanceModele => ({ id, nom: `Séance ${id}`, sousTitre: '', exercices: [{ exoId: 'presse', repos: 120, chauffes: [], finisseur: false, charge: 50, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }] })
 const programme: Programme = { id: 'p1', nom: 'Mon programme ', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'a', jour: 5 }] }
@@ -107,5 +107,17 @@ describe('programmesAbandonnes', () => {
 
   it('ne retire jamais le seul programme', () => {
     expect(programmesAbandonnes([vide('x', 'Mon programme')], 'autre', [])).toEqual([])
+  })
+})
+
+describe('joursPris', () => {
+  const seances = [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'c' }, { modeleId: 'supprimee', jour: 5 }]
+  const existe = (id: string) => id !== 'supprimee'
+
+  it('donne les jours des autres séances, sans celle qu’on place', () => {
+    expect(joursPris(seances, existe, 0)).toEqual([3])
+  })
+  it('une nouvelle séance voit tous les jours pris, sans ceux d’une séance supprimée', () => {
+    expect(joursPris(seances, existe)).toEqual([1, 3])
   })
 })

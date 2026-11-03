@@ -23,7 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
-import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, reposParDefaut } from '../lib/programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, reposParDefaut } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -190,16 +190,20 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
   )
 }
 
-/** Sept jours sur une ligne : un appui choisit, ou retire le jour déjà choisi. */
-function ChoixJours({ jour, onJour }: { jour?: number; onJour: (j: number | undefined) => void }) {
+/** Sept jours sur une ligne : un appui choisit, ou retire le jour déjà choisi. Un point signale les jours déjà pris, sans les interdire. */
+function ChoixJours({ jour, pris, onJour }: { jour?: number; pris: number[]; onJour: (j: number | undefined) => void }) {
   return (
-    <div className="jours-semaine" role="group" aria-label="Jour de la séance">
-      {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((nom, i) => (
-        <button key={i} type="button" className={jour === i + 1 ? 'actif' : ''} aria-label={JOURS[i + 1]} aria-pressed={jour === i + 1} onClick={() => onJour(jour === i + 1 ? undefined : i + 1)}>
-          {nom}
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="jours-semaine" role="group" aria-label="Jour de la séance">
+        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((nom, i) => (
+          <button key={i} type="button" className={jour === i + 1 ? 'actif' : ''} aria-label={JOURS[i + 1] + (pris.includes(i + 1) ? ', déjà une séance' : '')} aria-pressed={jour === i + 1} onClick={() => onJour(jour === i + 1 ? undefined : i + 1)}>
+            {nom}
+            {pris.includes(i + 1) && <span className="jour-pris" />}
+          </button>
+        ))}
+      </div>
+      {pris.length > 0 && <div className="faible jours-legende">Un point : déjà une séance ce jour-là. Tu peux quand même le choisir.</div>}
+    </>
   )
 }
 
@@ -468,6 +472,7 @@ function PageProgramme({
             <h2>Quel jour pour {nomSeance(choixJour)} ?</h2>
             <ChoixJours
               jour={p.seances[choixJour]?.jour}
+              pris={joursPris(p.seances, (id) => !!catalogue.modele(id), choixJour)}
               onJour={(j) => {
                 const i = choixJour
                 setChoixJour(null)
@@ -521,7 +526,7 @@ function PageProgramme({
                 </label>
                 <div className="champ">
                   <span>Quel jour ?</span>
-                  <ChoixJours jour={ajout.jour} onJour={(jour) => setAjout({ ...ajout, jour })} />
+                  <ChoixJours jour={ajout.jour} pris={joursPris(p.seances, (id) => !!catalogue.modele(id))} onJour={(jour) => setAjout({ ...ajout, jour })} />
                 </div>
                 <button className="btn primaire plein" onClick={() => void creerSeance()}>
                   Choisir les exercices
@@ -1064,6 +1069,7 @@ function Editeur({
             <h2>Quel jour pour {m.nom} ?</h2>
             <ChoixJours
               jour={jour}
+              pris={joursPris(programme.seances, (id) => !!catalogue.modele(id), entree.index)}
               onJour={(j) => {
                 setFenetre(null)
                 void sauverProgramme({ ...programme, seances: programme.seances.map((e, i) => (i === entree.index ? { ...e, jour: j } : e)) }, catalogue)
