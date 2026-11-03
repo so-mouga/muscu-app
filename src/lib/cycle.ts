@@ -113,12 +113,15 @@ const signature = (x: unknown) =>
 const signaturePlanning = (p: Programme) =>
   signature(p.seances.map((e) => [e.modeleId, e.jour ?? 0]).sort((a, b) => String(a[0]).localeCompare(String(b[0])) || Number(a[1]) - Number(b[1])))
 
+// Le sous-titre ne change rien à ce qu'on fait : il ne mérite pas de question.
+const signatureSeance = ({ sousTitre: _s, ...m }: SeanceModele) => signature(m)
+
 export function ecartCycle(c: Cycle, programme: Programme | undefined, modele: (id: string) => SeanceModele | undefined): EcartCycle | undefined {
   const dansCycle = new Set(c.programme.seances.map((e) => e.modeleId))
   const planning = !!programme && signaturePlanning(programme) !== signaturePlanning(c.programme) && signaturePlanning(programme) !== c.refus?.[CLE_PLANNING]
   const seances = c.modeles.flatMap((copie) => {
     const m = dansCycle.has(copie.id) ? modele(copie.id) : undefined
-    return m && signature(m) !== signature(copie) && signature(m) !== c.refus?.[copie.id] ? [m] : []
+    return m && signatureSeance(m) !== signatureSeance(copie) && signatureSeance(m) !== c.refus?.[copie.id] ? [m] : []
   })
   return planning || seances.length ? { planning, seances } : undefined
 }
@@ -147,7 +150,7 @@ export function appliquerEcart(c: Cycle, e: EcartCycle, programme: Programme | u
 export function garderEcart(c: Cycle, e: EcartCycle, programme: Programme | undefined): Pick<Cycle, 'refus'> {
   const refus = { ...c.refus }
   if (e.planning && programme) refus[CLE_PLANNING] = signaturePlanning(programme)
-  for (const s of e.seances) refus[s.id] = signature(s)
+  for (const s of e.seances) refus[s.id] = signatureSeance(s)
   return { refus }
 }
 

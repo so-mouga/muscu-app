@@ -55,9 +55,10 @@ export function AvisCycle({ catalogue, fixe = false }: { catalogue: Catalogue; f
   )
 }
 
-export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalogue: Catalogue; programme?: Programme; cycle?: Cycle; onFermer: () => void }) {
+export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: { catalogue: Catalogue; programme?: Programme; cycle?: Cycle; onFermer: () => void; /** Le cycle vient d'être lancé : le message à afficher. */ onLance?: (message: string) => void }) {
   useRetour(true, onFermer)
-  const [progId, setProgId] = useState(cycle?.programmeId ?? programme?.id ?? catalogue.actif.id)
+  const progId = cycle?.programmeId ?? programme?.id ?? catalogue.actif.id
+  const [regler, setRegler] = useState(false)
   const cetteSemaine = lundi()
   const prochaine = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') + 7 * 86400000))
   const [debut, setDebut] = useState(cetteSemaine)
@@ -88,6 +89,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
     const enCours = catalogue.cycle
     if (
       enCours &&
+      !etatCycle(enCours).fini &&
       !(await confirmer(`Le cycle « ${nomCycle(enCours)} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer un nouveau cycle ?', oui: 'Lancer le nouveau cycle' }))
     )
       return
@@ -108,42 +110,44 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
           })
     })
     onFermer()
+    onLance?.(debut === cetteSemaine ? `Cycle lancé : semaine 1 sur ${semaines}` : `Cycle lancé : il commence la semaine prochaine`)
   }
 
+  // Par défaut, une phrase et un bouton : les réglages sont à un appui. Modifier un cycle les montre d'emblée.
+  const resume = [
+    `${semaines} semaines à partir ${debut === cetteSemaine ? 'de cette semaine' : 'de la semaine prochaine'}.`,
+    deloads.length === 1 && deloads[0] === semaines
+      ? 'La dernière est allégée pour récupérer : moitié moins de séries, charges −10 %.'
+      : deloads.length
+        ? `Semaines allégées pour récupérer : ${[...deloads].sort((a, b) => a - b).join(', ')}.`
+        : 'Sans semaine allégée : au-delà de 6 à 8 semaines, la fatigue s’accumule.',
+  ].join(' ')
+
   return (
-    <div className="modal-fond">
+    <div className="modal-fond" onClick={onFermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="ligne entre">
-          <h2>{cycle ? 'Modifier le cycle' : 'Lancer un cycle'}</h2>
+          <h2>{cycle ? 'Modifier le cycle' : `Lancer ${progChoisi?.nom ?? 'un cycle'}`}</h2>
           <Aide texte={AIDE_CYCLE} />
         </div>
+        {!cycle && <div className="faible">{resume}</div>}
 
-        {!cycle && (
-          <>
-            <label className="champ">
-              <span>Programme</span>
-              <select value={progId} onChange={(e) => setProgId(e.target.value)}>
-                {catalogue.programmes.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nom}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="champ">
-              <span>Début</span>
-              <div className="chips">
-                <button className={debut === cetteSemaine ? 'actif' : ''} onClick={() => setDebut(cetteSemaine)}>
-                  Cette semaine (lun. {debutSemaine(cetteSemaine)})
-                </button>
-                <button className={debut === prochaine ? 'actif' : ''} onClick={() => setDebut(prochaine)}>
-                  Semaine prochaine (lun. {debutSemaine(prochaine)})
-                </button>
-              </div>
+        {!cycle && regler && (
+          <div className="champ">
+            <span>Début</span>
+            <div className="chips">
+              <button className={debut === cetteSemaine ? 'actif' : ''} onClick={() => setDebut(cetteSemaine)}>
+                Cette semaine (lun. {debutSemaine(cetteSemaine)})
+              </button>
+              <button className={debut === prochaine ? 'actif' : ''} onClick={() => setDebut(prochaine)}>
+                Semaine prochaine (lun. {debutSemaine(prochaine)})
+              </button>
             </div>
-          </>
+          </div>
         )}
 
+        {(cycle || regler) && (
+        <>
         <label className="champ">
           <span>Nom du cycle (facultatif)</span>
           <input type="text" value={nom} maxLength={40} placeholder={cycle?.programme.nom ?? catalogue.programmes.find((x) => x.id === progId)?.nom} onChange={(e) => setNom(e.target.value)} />
@@ -164,7 +168,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
 
         <div className="champ">
           <span className="ligne entre">
-            <span>Semaines de déload</span>
+            <span>Semaines allégées (déload)</span>
             <Aide texte={AIDE_DELOAD} />
           </span>
           <div className="chips">
@@ -175,7 +179,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
                 disabled={!!etat && n < etat.n}
                 onClick={() => setDeloads((d) => (d.includes(n) ? d.filter((x) => x !== n) : [...d, n]))}
               >
-                {deloads.includes(n) ? '🧘 ' : ''}S{n}
+                S{n}
               </button>
             ))}
           </div>
@@ -222,13 +226,17 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalog
         </div>
         )}
 
-        <div className="faible">
-          Volume par muscle : voir la carte « Volume par semaine » du programme (et ★ Priorité pour pousser un muscle).
-        </div>
+        </>
+        )}
 
         <button className="btn primaire grand" onClick={enregistrer}>
           {cycle ? 'Enregistrer' : 'Lancer le cycle'}
         </button>
+        {!cycle && !regler && (
+          <button className="btn plein" onClick={() => setRegler(true)}>
+            Régler
+          </button>
+        )}
         <button className="btn discret plein" onClick={onFermer}>
           Annuler
         </button>

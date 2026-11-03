@@ -120,9 +120,8 @@ Limites connues du parcours :
 
 ### Reste à faire, dans l'ordre
 
-1. **Programmes** (le sous-titre « maintien » d'une séance se lit mal à côté de la phase « Prise »).
-2. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
-3. **Réglages.**
+1. **Programme et Exercices**, plan validé après maquette cliquable (`AGENTS.md`), un commit par écran. Fait : page Programme et fenêtre de lancement. À faire, dans l'ordre : écran de séance et réglage d'un exercice (ⓘ dans la liste d'ajout, avec « Ajouter à la séance » dans la fiche ; le jour se change aussi depuis la séance, à voir à l'usage si l'appui sur le jour se trouve), Changer de programme (aperçu des tout prêts, « Prendre ce programme »), cycle et fusion du Bilan du cycle, fiche d'exercice, liste dans Progrès et retrait de l'onglet, formulaire d'exercice (Palier, Machine assistée).
+2. **Réglages.**
 
 À traiter en refaisant ces écrans :
 
@@ -138,13 +137,13 @@ Limites connues du parcours :
 - Formulaire de l'onglet Exercices : dire « Palier » comme en séance (il dit encore « Pas de charge »).
 - Revoir l'échauffement général de la séance, pas encore repris.
 - Plein écran à 360 px de large : dans la rangée de séries, « S1 » est coupé à gauche, car la rangée se centre sur la série en cours. Déjà présent avant, à reprendre si ça gêne en salle.
+- Styles de l'ancienne page Programme encore dans `styles.css` (`.sous-seance-item`, `.badge-jour`, `.seance-plan-carte`, `.btn-jour`…) : à retirer une fois Programme et Exercices finis.
 - Tester chaque écran de 667 à 832 px de haut et à 360 comme à 384 px de large. Les scripts de capture ne sont pas dans le dépôt : Playwright sur `npm run build` + `.claude/launch.json`, en écrivant dans IndexedDB une séance `enCours` et un historique, avec les noms d'exercices les plus longs (« Extension triceps poulie haute à la corde ») et un superset. Pour simuler le bouton retour Android : `window.__retourCran()`. Deux validations à moins de 1,5 s : la seconde est ignorée (voulu). Les messages durent 4 s.
 - À la fin : `QA.md` et la fiche Play Store si des fonctions visibles ont changé, puis une vérification complète.
 
 ### Choix en attente de l'avis de l'utilisateur
 
 - **Full body 2 jours** : les 9 muscles suivis restent « Léger » dans le programme et le Bilan. Non vu avec de vraies séances ; à revoir si ça met la pression.
-- **« Créer le mien »** : ouvre l'éditeur de programme actuel, pas encore repris (étape Programmes).
 
 - **« Suivre les conseils »** : gardé par défaut ; à retirer seulement s'il ne s'en sert jamais après plusieurs séances.
 - **« Stoppe si douleur articulaire… »** : masqué sur les finisseurs sous 720 px de haut, pour que tout tienne. À remettre s'il préfère défiler.

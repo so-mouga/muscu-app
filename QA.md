@@ -50,9 +50,10 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 
 ### 4. Programmes
 - Créer un programme, une séance, ajouter / retirer / réordonner des exercices (poignée ⠿, appui maintenu, pas de flèches).
-- Planning par jour, rendre un programme actif, lancer un cycle (nom, déload en fin de cycle), « Plus d'options ».
+- L'onglet Programme montre le programme en service : cycle en une ligne (« Cycle · semaine 3 sur 6 ») ou « Lancer sur 6 semaines » en orange, séances triées par jour, un appui sur le jour le change, un appui sur la ligne ouvre la séance. Fenêtre de lancement : une phrase, « Lancer le cycle », « Régler » pour le début, le nom, la durée et les semaines allégées ; un message confirme. Cycle terminé : « Relancer sur 6 semaines ».
+- « Changer de programme » : autres programmes, tout prêts, « Créer le mien », « Autres séances » (ce qui reste de la Bibliothèque). ⋯ : renommer, dupliquer, supprimer.
 - Programme modifié pendant un cycle : la carte « Ton cycle garde l'ancienne version » apparaît tout de suite, reste après la barre du bas ou l'appli fermée (rappel sur l'Accueil) ; « Garder pour le prochain cycle » n'entre jamais dans le cycle, même en acceptant ensuite un autre changement ; l'historique ne change pas.
-- Carte « Volume par semaine » : jauges Léger / Optimal / Beaucoup, « Ajuster les cibles ».
+- « Volume par semaine » : une ligne qui donne la réponse, un appui pour les jauges Léger / Optimal / Beaucoup, « Ajuster les cibles ».
 - Supprimer un programme, une séance (au moins un programme reste).
 
 ### 5. Exercices

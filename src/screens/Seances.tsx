@@ -7,8 +7,9 @@ import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import ChoixProgramme from '../components/ChoixProgramme'
 import { Aide, AIDE_CYCLE, AvisCycle, LancerCycle, VueCycle } from '../components/Cycle'
+import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
-import { etatCycle, nomCycle } from '../lib/cycle'
+import { etatCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
@@ -57,9 +58,12 @@ export function resumePlan(exo: Exercice, p: ExoPlan): string {
 }
 
 type Vue =
-  | { type: 'programme'; p: Programme; initial: Programme; nouveau: boolean }
-  | { type: 'seance'; m: SeanceModele; nouvelle: boolean; /** Ajouter la séance créée au programme en dessous. */ pourProgramme?: boolean }
+  | { type: 'programme'; p: Programme }
+  | { type: 'seance'; m: SeanceModele; nouvelle: boolean; /** Dans un programme : pas de choix de programme ici. */ pourProgramme?: boolean; /** Séance à peine créée : on choisit tout de suite ses exercices. */ choisirExos?: boolean }
   | { type: 'cycle' }
+  | { type: 'volume'; p: Programme }
+  | { type: 'changer' }
+  | { type: 'autresSeances' }
 
 export const jourCourt = (j?: number) => (j ? JOURS[j].slice(0, 3) : '')
 
@@ -69,40 +73,31 @@ async function sauverProgramme(p: Programme, catalogue: Catalogue) {
   await db.programmes.put(p)
 }
 
+/** Le programme tel qu'on le modifie : jamais la copie du cycle. */
+const programmeVivant = (catalogue: Catalogue, p: Programme) => catalogue.programmes.find((x) => x.id === p.id) ?? p
+
 export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void }) {
   const [pile, setPile] = useState<Vue[]>([])
-  const masquees = useLiveQuery(() => db.modeles.filter((m) => !!m.supprime).toArray(), [], [])
-  const [voirTypes, setVoirTypes] = useState(false)
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
-  const [lancer, setLancer] = useState(false)
-  const [onglet, setOnglet] = useState<'programmes' | 'seances'>(() => {
-    try {
-      return (localStorage.getItem('onglet_seances') as 'programmes' | 'seances') || 'programmes'
-    } catch {
-      return 'programmes'
-    }
-  })
-  const [deplies, setDeplies] = useState<Record<string, boolean>>(() => ({ [catalogue.actif.id]: true }))
-
-  const changerOnglet = (o: 'programmes' | 'seances') => {
-    setOnglet(o)
-    try {
-      localStorage.setItem('onglet_seances', o)
-    } catch {}
-  }
 
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
-  const fermer = (f?: (pile: Vue[]) => Vue[]) =>
-    (transition(() => setPile((x) => (f ? f(x.slice(0, -1)) : x.slice(0, -1))), 'arriere'), window.scrollTo({ top: 0 }))
-  const ouvrirProgramme = (p: Programme, nouveau = false) => ouvrir({ type: 'programme', p: structuredClone(p), initial: structuredClone(p), nouveau })
-  const ouvrirSeance = (m: SeanceModele, nouvelle = false, pourProgramme = false) =>
-    ouvrir({ type: 'seance', m: structuredClone(m), nouvelle, pourProgramme })
-  const nouvelleSeance = (pourProgramme = false) => ouvrirSeance({ id: 'm_' + uid(), nom: '', sousTitre: '', exercices: [] }, true, pourProgramme)
-  const nouveauProgramme = () => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)
+  const fermer = () => (transition(() => setPile((x) => x.slice(0, -1)), 'arriere'), window.scrollTo({ top: 0 }))
+  useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'autresSeances', fermer)
+  const ouvrirSeance = (m: SeanceModele, pourProgramme = true, choisirExos = false) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle: false, pourProgramme, choisirExos })
+  const nouveauProgramme = async () => {
+    const noms = new Set(catalogue.programmes.map((x) => x.nom))
+    let nom = 'Mon programme'
+    for (let k = 2; noms.has(nom); k++) nom = `Mon programme ${k}`
+    const p: Programme = { id: 'p_' + uid(), nom, seances: [] }
+    await sauverProgramme(p, catalogue)
+    // Le tout premier programme devient celui de la page ; les autres s'ouvrent par-dessus.
+    if (catalogue.sansProgramme) setPile([])
+    else ouvrir({ type: 'programme', p })
+  }
   useEffect(() => {
     if (!creer) return
-    nouveauProgramme()
+    void nouveauProgramme()
     onCreerOuvert?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [creer])
@@ -110,518 +105,501 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
   if (vue?.type === 'seance')
     return (
       <>
-      <AvisCycle catalogue={catalogue} fixe />
-      <Editeur
-        key={vue.m.id}
-        catalogue={catalogue}
-        initial={vue.m}
-        nouvelle={vue.nouvelle}
-        // Ouverte depuis un programme : c'est lui qui gère son contenu.
-        pourProgramme={pile[pile.length - 2]?.type === 'programme'}
-        onFermer={(enregistree) =>
-          fermer((reste) => {
-            // Séance créée depuis un programme : on l'ajoute au brouillon du programme.
-            const dessous = reste[reste.length - 1]
-            if (enregistree && vue.pourProgramme && dessous?.type === 'programme')
-              return [...reste.slice(0, -1), { ...dessous, p: { ...dessous.p, seances: [...dessous.p.seances, { modeleId: enregistree.id }] } }]
-            return reste
-          })
-        }
-      />
+        <AvisCycle catalogue={catalogue} fixe />
+        <Editeur key={vue.m.id} catalogue={catalogue} initial={vue.m} nouvelle={vue.nouvelle} pourProgramme={!!vue.pourProgramme} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
       </>
     )
-  if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={() => fermer()} />
-  if (vue?.type === 'programme')
+  if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={fermer} />
+  if (vue?.type === 'volume') return <PageVolume catalogue={catalogue} p={programmeVivant(catalogue, vue.p)} onFermer={fermer} />
+  if (vue?.type === 'changer')
     return (
-      <>
-      <AvisCycle catalogue={catalogue} fixe />
-      <EditeurProgramme
-        key={vue.initial.id}
+      <PageChanger
         catalogue={catalogue}
-        vue={vue}
-        terminees={terminees}
-        setP={(p) => setPile((x) => x.map((v) => (v === vue ? { ...vue, p } : v)))}
-        onOuvrirSeance={(m) => ouvrirSeance(m)}
-        onNouvelleSeance={() => nouvelleSeance(true)}
-        onFermer={() => fermer()}
+        onFermer={fermer}
+        onOuvrir={(p) => ouvrir({ type: 'programme', p })}
+        onCreer={() => void nouveauProgramme()}
+        onAutresSeances={() => ouvrir({ type: 'autresSeances' })}
       />
-      </>
     )
-
-  const utilisations = (m: SeanceModele) => catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === m.id)).map((p) => p.nom)
-
-  return (
-    <div>
-      <div className="entete">
-        <h1>Programmes</h1>
-      </div>
-      <AvisCycle catalogue={catalogue} />
-
-      <div className="segments" role="tablist">
-        <button
-          role="tab"
-          aria-selected={onglet === 'programmes'}
-          className={onglet === 'programmes' ? 'actif' : ''}
-          onClick={() => changerOnglet('programmes')}
-        >
-          Planning ({catalogue.programmes.length})
-        </button>
-        <button
-          role="tab"
-          aria-selected={onglet === 'seances'}
-          className={onglet === 'seances' ? 'actif' : ''}
-          onClick={() => changerOnglet('seances')}
-        >
-          Bibliothèque ({catalogue.modeles.length})
-        </button>
-      </div>
-
-      {onglet === 'programmes' && catalogue.sansProgramme && (
+  if (vue?.type === 'autresSeances') return <PageAutresSeances catalogue={catalogue} terminees={terminees} onFermer={fermer} onOuvrir={(m, nouvelle) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle })} />
+  if (!vue && catalogue.sansProgramme)
+    return (
+      <div>
+        <div className="entete">
+          <h1>Programme</h1>
+        </div>
         <div className="carte pile">
           <strong>Pas encore de programme</strong>
           <div className="faible">Réponds à quelques questions et Cran t’en propose un. Tu peux aussi créer le tien.</div>
           <button className="btn primaire plein" onClick={onChoisirProgramme}>
             Choisis ton programme
           </button>
-          <button className="btn plein" onClick={nouveauProgramme}>
+          <button className="btn plein" onClick={() => void nouveauProgramme()}>
             Créer le mien
           </button>
         </div>
-      )}
+      </div>
+    )
 
-      {onglet === 'programmes' && !catalogue.sansProgramme && (
-        <>
-          {catalogue.cycle ? (
-            (() => {
-              const e = etatCycle(catalogue.cycle)
-              return (
-                <button className="liste-btn bandeau-cycle" style={{ borderColor: 'var(--accent)' }} onClick={() => ouvrir({ type: 'cycle' })}>
-                  <span>
-                    <span className="faible">{e.n <= 0 ? 'Cycle à venir' : e.fini ? 'Cycle' : 'Cycle en cours'}</span>
-                    <strong>🔁 {nomCycle(catalogue.cycle)}</strong>
-                    <span className="faible">
-                      {e.fini ? 'terminé : voir le bilan' : e.n <= 0 ? 'commence la semaine prochaine' : e.pause ? 'semaine en pause' : `semaine ${e.n}/${e.total}${e.deload ? ' · 🧘 déload' : ''}`}
-                    </span>
-                  </span>
-                  <span className="muted">›</span>
-                </button>
-              )
-            })()
-          ) : (
-            <div className="carte pile">
+  // La page : le programme en service, ou un autre ouvert depuis « Changer de programme ».
+  const p = programmeVivant(catalogue, vue?.type === 'programme' ? vue.p : catalogue.actif)
+  return (
+    <PageProgramme
+      key={p.id}
+      catalogue={catalogue}
+      p={p}
+      terminees={terminees}
+      onRetour={vue ? fermer : undefined}
+      onSeance={ouvrirSeance}
+      onCycle={() => ouvrir({ type: 'cycle' })}
+      onVolume={() => ouvrir({ type: 'volume', p })}
+      onChanger={() => ouvrir({ type: 'changer' })}
+      onOuvrirProgramme={(x) => ouvrir({ type: 'programme', p: x })}
+    />
+  )
+}
+
+/** Sept jours sur une ligne : un appui choisit, ou retire le jour déjà choisi. */
+function ChoixJours({ jour, onJour }: { jour?: number; onJour: (j: number | undefined) => void }) {
+  return (
+    <div className="jours-semaine" role="group" aria-label="Jour de la séance">
+      {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((nom, i) => (
+        <button key={i} type="button" className={jour === i + 1 ? 'actif' : ''} aria-label={JOURS[i + 1]} aria-pressed={jour === i + 1} onClick={() => onJour(jour === i + 1 ? undefined : i + 1)}>
+          {nom}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** La page Programme : où j'en suis, quelle séance quel jour, le reste à un appui. Tout s'enregistre au fil de l'eau. */
+function PageProgramme({
+  catalogue,
+  p,
+  terminees,
+  onRetour,
+  onSeance,
+  onCycle,
+  onVolume,
+  onChanger,
+  onOuvrirProgramme,
+}: {
+  catalogue: Catalogue
+  p: Programme
+  terminees: Seance[] | undefined
+  /** Absent : c'est le programme en service, la page de l'onglet. */
+  onRetour?: () => void
+  onSeance: (m: SeanceModele, pourProgramme?: boolean, choisirExos?: boolean) => void
+  onCycle: () => void
+  onVolume: () => void
+  onChanger: () => void
+  onOuvrirProgramme: (p: Programme) => void
+}) {
+  const [lancer, setLancer] = useState(false)
+  const [message, setMessage] = useState('')
+  const [menu, setMenu] = useState(false)
+  const [renommer, setRenommer] = useState(false)
+  /** Position, dans le programme, de la séance dont on choisit le jour. */
+  const [choixJour, setChoixJour] = useState<number | null>(null)
+  const [ajout, setAjout] = useState<{ nom: string; jour?: number; existantes?: boolean } | null>(null)
+  useRetour(menu, () => setMenu(false))
+  useRetour(renommer, () => setRenommer(false))
+  useRetour(choixJour !== null, () => setChoixJour(null))
+  useRetour(!!ajout, () => setAjout(null))
+
+  const maj = (f: (x: Programme) => void) => {
+    const c = structuredClone(p)
+    f(c)
+    void sauverProgramme(c, catalogue)
+  }
+  const entrees = p.seances
+    .map((e, i) => ({ e, i, m: catalogue.modele(e.modeleId) }))
+    .filter((x) => x.m)
+    .sort((a, b) => (a.e.jour ?? 8) - (b.e.jour ?? 8))
+  const enService = catalogue.actif.id === p.id
+  const cycle = enService ? catalogue.cycle : undefined
+  const etat = cycle && etatCycle(cycle)
+  const autreCycle = !enService && catalogue.cycle && !etatCycle(catalogue.cycle).fini
+  const nomSeance = (x: number) => catalogue.modele(p.seances[x]?.modeleId)?.nom ?? ''
+
+  const dupliquer = async () => {
+    setMenu(false)
+    const copie = { ...structuredClone(p), id: 'p_' + uid(), nom: `${p.nom.trim()} (copie)` }
+    await sauverProgramme(copie, catalogue)
+    onOuvrirProgramme(copie)
+  }
+  const supprimer = async () => {
+    setMenu(false)
+    if (catalogue.programmes.length <= 1) return informer('Il faut garder au moins un programme.')
+    if (!(await confirmer('Ses séances restent disponibles dans « Autres séances ».', { titre: `Supprimer le programme « ${p.nom} » ?`, oui: 'Supprimer le programme', danger: true }))) return
+    if ((await db.programmes.count()) === 0) await db.programmes.bulkPut(catalogue.programmes)
+    await db.programmes.delete(p.id)
+    if (enService) await setReglage('programmeActif', catalogue.programmes.find((x) => x.id !== p.id)!.id)
+    onRetour?.()
+  }
+  const creerSeance = async () => {
+    const m: SeanceModele = { id: 'm_' + uid(), nom: ajout!.nom.trim() || `Séance ${entrees.length + 1}`, sousTitre: '', exercices: [] }
+    const jour = ajout!.jour
+    await db.modeles.put(m)
+    await sauverProgramme({ ...p, seances: [...p.seances, { modeleId: m.id, jour }] }, catalogue)
+    setAjout(null)
+    onSeance(m, true, true)
+  }
+
+  const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
+  const etats = MUSCLES.map((m) => etatVolume(m.id, volume[m.id], catalogue.cibles[m.id]))
+  const legers = etats.filter((e) => e === 'leger').length
+  const beaucoup = etats.filter((e) => e === 'beaucoup').length
+  const prochainDeload = cycle && etat ? cycle.deloads.find((d) => d >= etat.n) : undefined
+
+  return (
+    <div>
+      <div className="entete">
+        {onRetour && (
+          <button className="btn" onClick={onRetour} aria-label="Retour">
+            ←
+          </button>
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="faible">{enService ? 'Ton programme' : 'Programme'}</div>
+          <h1>{p.nom}</h1>
+        </div>
+        <button className="icone" onClick={() => setMenu(true)} aria-label="Plus d’actions">
+          <MoreHorizontal size={22} />
+        </button>
+      </div>
+
+      {message && (
+        <div className="avis-cycle" role="status">
+          ✓ {message}
+        </div>
+      )}
+      <AvisCycle catalogue={catalogue} />
+
+      {entrees.length > 0 &&
+        (cycle && etat && !etat.fini ? (
+          <button className="liste-btn" onClick={onCycle}>
+            <span>
+              {etat.n <= 0 ? 'Cycle à venir' : `Cycle · semaine ${etat.n} sur ${etat.total}`}
+              <span className="faible prog-sous">
+                {etat.n <= 0
+                  ? `Commence le ${new Date(cycle.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                  : etat.pause
+                    ? 'Cette semaine est en pause'
+                    : etat.deload
+                      ? 'Cette semaine est allégée (déload)'
+                      : prochainDeload
+                        ? `Semaine allégée (déload) : la ${prochainDeload}e`
+                        : 'Pas de semaine allégée de prévue'}
+              </span>
+            </span>
+            <ChevronRight size={20} className="muted" />
+          </button>
+        ) : (
+          <div className="carte pile">
+            {cycle ? (
+              <button type="button" className="prog-lien" onClick={onCycle}>
+                <strong>Cycle terminé</strong>
+                <span className="faible">
+                  Voir le bilan <ChevronRight size={14} className="ico-texte" />
+                </span>
+              </button>
+            ) : (
               <div className="ligne entre">
-                <strong>Pas de cycle en cours</strong>
+                <span className="faible">Suis-le semaine par semaine pendant 6 semaines : la dernière est allégée pour récupérer.</span>
                 <Aide texte={AIDE_CYCLE} />
               </div>
-              <div className="faible">Lance ton programme pour 6 semaines avec un déload à la fin : l’appli suit les semaines et allège le déload toute seule.</div>
-              <button className="btn primaire plein" onClick={() => setLancer(true)}>
-                Lancer un cycle
+            )}
+            <button className="btn primaire plein" onClick={() => setLancer(true)}>
+              {cycle ? 'Relancer sur 6 semaines' : 'Lancer sur 6 semaines'}
+            </button>
+            {!enService && !autreCycle && (
+              <button className="btn plein" onClick={() => void setReglage('programmeActif', p.id)}>
+                Utiliser sans cycle
               </button>
-            </div>
-          )}
-          {lancer && <LancerCycle catalogue={catalogue} onFermer={() => setLancer(false)} />}
-          {catalogue.programmes.map((p) => {
-            const estActif = p.id === catalogue.actif.id
-            const ouvert = deplies[p.id] ?? estActif
-            const seances = p.seances.map((e) => ({ ...e, m: catalogue.modele(e.modeleId) })).filter((e) => !!e.m)
-            const jours = seances.filter((e) => e.jour).sort((a, b) => a.jour! - b.jour!)
-            return (
-              <div key={p.id} className={'carte pile' + (estActif ? ' carte-programme-actif' : '')} style={estActif ? { borderColor: 'var(--accent)' } : undefined}>
-                <div className="ligne entre" style={{ gap: 8 }}>
-                  <button
-                    type="button"
-                    className="texte"
-                    style={{ flex: 1, textAlign: 'left', minWidth: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                    onClick={() => setDeplies((d) => ({ ...d, [p.id]: !ouvert }))}
-                  >
-                    <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
-                      <strong style={{ fontSize: 'var(--t-texte)' }}>{p.nom}</strong>
-                      {estActif && <span className="pastille accent">actif</span>}
-                    </div>
-                    <div className="faible" style={{ marginTop: 2 }}>
-                      {seances.length} séance{seances.length > 1 ? 's' : ''}
-                      {jours.length > 0 && ' · ' + jours.map((e) => jourCourt(e.jour)).join(', ')}
-                    </div>
-                  </button>
-                  <div className="ligne" style={{ gap: 6 }}>
-                    <button
-                      type="button"
-                      className="btn petit discret"
-                      onClick={() => ouvrirProgramme(p)}
-                      aria-label={`Modifier le programme ${p.nom}`}
-                    >
-                      ⚙️ Planning
-                    </button>
-                    <button
-                      type="button"
-                      className="icone"
-                      onClick={() => setDeplies((d) => ({ ...d, [p.id]: !ouvert }))}
-                      aria-label={ouvert ? 'Replier les séances' : 'Déplier les séances'}
-                    >
-                      <span className={'chevron-accordeon' + (ouvert ? ' ouvert' : '')}>▸</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className={'accordeon-tiroir' + (ouvert ? ' ouvert' : '')}>
-                  <div className="accordeon-contenu">
-                    <div className="pile" style={{ gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bord)' }}>
-                      {seances.length === 0 ? (
-                        <div className="faible" style={{ fontStyle: 'italic', padding: '6px 0' }}>
-                          Aucune séance dans ce programme pour l’instant.
-                        </div>
-                      ) : (
-                        seances.map(({ m, jour }, sIdx) => (
-                          <button
-                            key={m!.id + sIdx}
-                            type="button"
-                            className="sous-seance-item"
-                            onClick={() => ouvrirSeance(m!)}
-                          >
-                            <span style={{ minWidth: 0 }}>
-                              <div className="ligne" style={{ gap: 8, alignItems: 'center' }}>
-                                {jour ? (
-                                  <span className="badge-jour">{jourCourt(jour)}</span>
-                                ) : (
-                                  <span className="badge-jour libre">Libre</span>
-                                )}
-                                <strong style={{ flex: '0 0 auto', maxWidth: '60%', overflowWrap: 'anywhere' }}>{m!.nom}</strong>
-                                {m!.sousTitre && <span className="muted petit" style={{ minWidth: 0 }}>— {m!.sousTitre}</span>}
-                              </div>
-                              <div className="faible" style={{ marginTop: 3, paddingLeft: 46 }}>
-                                {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)}
-                              </div>
-                            </span>
-                            <span className="muted">›</span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-          <button className="btn plein" style={{ marginBottom: 12 }} onClick={nouveauProgramme}>
-            + Nouveau programme
-          </button>
-          <button type="button" className="groupe-repli" style={{ marginBottom: 14 }} onClick={() => setVoirTypes(!voirTypes)} aria-expanded={voirTypes}>
-            <span>
-              Programmes tout prêts <span className="faible">· full body, haut / bas…</span>
-            </span>
-            <span className={'muted chevron-accordeon' + (voirTypes ? ' ouvert' : '')}>▸</span>
-          </button>
-          <div className={'accordeon-tiroir' + (voirTypes ? ' ouvert' : '')}>
-            <div className="accordeon-contenu">
-              <ChoixProgramme catalogue={catalogue} titre="Programmes tout prêts" intro="Choisir un programme le copie dans tes programmes (modifiable) et en fait ton programme actif." onChoisi={() => setVoirTypes(false)} />
-            </div>
+            )}
           </div>
-          <button
-            type="button"
-            className="btn texte lien-discret"
-            style={{ width: '100%', justifyContent: 'center', marginTop: 4, marginBottom: 20 }}
-            onClick={() => changerOnglet('seances')}
-          >
-            📚 Voir toutes les séances dans la Bibliothèque ({catalogue.modeles.length}) ›
+        ))}
+
+      {entrees.map(({ e, i, m }) => (
+        <div key={e.modeleId + i} className="prog-seance">
+          <button type="button" className={'prog-jour' + (e.jour ? '' : ' sans')} aria-label={`Jour de ${m!.nom} : ${e.jour ? JOURS[e.jour] : 'aucun'}`} onClick={() => setChoixJour(i)}>
+            {e.jour ? jourCourt(e.jour) : 'sans jour'}
           </button>
-        </>
+          <button type="button" className="prog-ligne" onClick={() => onSeance(m!)}>
+            <span>
+              {m!.nom}
+              {m!.sousTitre && <span className="faible prog-sous">{m!.sousTitre}</span>}
+              <span className="faible prog-sous">{[`${m!.exercices.length} exercice${m!.exercices.length > 1 ? 's' : ''}`, m!.exercices.length ? dureeTexte(m!, terminees, true) : ''].filter(Boolean).join(' · ')}</span>
+            </span>
+            <ChevronRight size={20} className="muted" />
+          </button>
+        </div>
+      ))}
+      <button className={'btn plein' + (entrees.length ? '' : ' primaire')} style={{ marginBottom: 'var(--e4)' }} onClick={() => setAjout({ nom: `Séance ${'ABCDEFGHIJ'[entrees.length] ?? entrees.length + 1}` })}>
+        + Ajouter une séance
+      </button>
+
+      {entrees.length > 0 && (
+        <button className="liste-btn" onClick={onVolume}>
+          <span>
+            Volume par semaine
+            <span className="faible prog-sous">
+              {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles sont dans la zone utile'}
+            </span>
+          </span>
+          <ChevronRight size={20} className="muted" />
+        </button>
+      )}
+      {!onRetour && (
+        <button className="liste-btn" onClick={onChanger}>
+          <span>Changer de programme</span>
+          <ChevronRight size={20} className="muted" />
+        </button>
       )}
 
-      {onglet === 'seances' && (
-        <>
-          <button className="btn primaire plein" style={{ marginBottom: 12 }} onClick={() => nouvelleSeance()}>
-            + Nouvelle séance
-          </button>
-          {[...catalogue.modeles]
-            .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
-            .map((m) => {
-              const progs = utilisations(m)
-              return (
-                <button key={m.id} className="liste-btn" onClick={() => ouvrirSeance(m)}>
-                  <span>
-                    <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
-                    <div className="faible">
-                      {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {dureeTexte(m, terminees)}
-                      {m.varianteDe ? ` · variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : ''}
-                      {progs.length ? ` · ${progs.join(', ')}` : ' · dans aucun programme'}
-                    </div>
-                  </span>
-                  <span className="muted">›</span>
-                </button>
-              )
-            })}
-          {masquees.length > 0 && (
-            <div className="carte pile" style={{ marginTop: 16 }}>
-              <div className="faible">Séances préchargées supprimées</div>
-              {masquees.map((m) => (
-                <div key={m.id} className="ligne entre">
-                  <span>{m.nom}</span>
-                  <button className="btn petit" onClick={() => db.modeles.delete(m.id)}>
-                    Restaurer
+      {lancer && (
+        <LancerCycle
+          catalogue={catalogue}
+          programme={p}
+          onFermer={() => setLancer(false)}
+          onLance={(t) => {
+            setMessage(t)
+            setTimeout(() => setMessage(''), 3000)
+          }}
+        />
+      )}
+      {menu && (
+        <div className="modal-fond" onClick={() => setMenu(false)}>
+          <div className="modal pile" onClick={(ev) => ev.stopPropagation()}>
+            <h3>{p.nom}</h3>
+            <button className="liste-btn" onClick={() => (setMenu(false), setRenommer(true))}>
+              <span>Renommer</span>
+            </button>
+            <button className="liste-btn" onClick={() => void dupliquer()}>
+              <span>Dupliquer</span>
+            </button>
+            <button className="liste-btn" onClick={() => void supprimer()}>
+              <span style={{ color: 'var(--danger)' }}>Supprimer ce programme</span>
+            </button>
+            <button className="btn discret plein" onClick={() => setMenu(false)}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+      {renommer && <FenetreRenommer nom={p.nom} onFin={(nom) => (setRenommer(false), nom !== p.nom && maj((x) => (x.nom = nom)))} />}
+      {choixJour !== null && (
+        <div className="modal-fond" onClick={() => setChoixJour(null)}>
+          <div className="modal pile" onClick={(ev) => ev.stopPropagation()}>
+            <h2>Quel jour pour {nomSeance(choixJour)} ?</h2>
+            <ChoixJours
+              jour={p.seances[choixJour]?.jour}
+              onJour={(j) => {
+                const i = choixJour
+                setChoixJour(null)
+                maj((x) => (x.seances[i].jour = j))
+              }}
+            />
+            <button
+              className="btn plein"
+              onClick={() => {
+                const i = choixJour
+                setChoixJour(null)
+                maj((x) => (x.seances[i].jour = undefined))
+              }}
+            >
+              Sans jour : séance au choix
+            </button>
+            <button
+              className="btn discret plein"
+              onClick={() => {
+                const i = choixJour
+                setChoixJour(null)
+                maj((x) => x.seances.splice(i, 1))
+              }}
+            >
+              Retirer de ce programme
+            </button>
+          </div>
+        </div>
+      )}
+      {ajout && (
+        <div className="modal-fond" onClick={() => setAjout(null)}>
+          <div className="modal pile" onClick={(ev) => ev.stopPropagation()}>
+            {ajout.existantes ? (
+              <>
+                <h2>Reprendre une séance</h2>
+                {catalogue.modeles.map((m) => (
+                  <button
+                    key={m.id}
+                    className="liste-btn"
+                    onClick={() => {
+                      setAjout(null)
+                      maj((x) => x.seances.push({ modeleId: m.id, jour: ajout.jour }))
+                    }}
+                  >
+                    <span>
+                      {m.nom}
+                      <span className="faible prog-sous">{p.seances.some((e) => e.modeleId === m.id) ? 'Déjà dans le programme : l’ajouter encore = 2 fois par semaine' : `${m.exercices.length} exercices`}</span>
+                    </span>
                   </button>
+                ))}
+                <button className="btn discret plein" onClick={() => setAjout({ ...ajout, existantes: false })}>
+                  Retour
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>Nouvelle séance</h2>
+                <label className="champ">
+                  <span>Nom</span>
+                  <input value={ajout.nom} onChange={(ev) => setAjout({ ...ajout, nom: ev.target.value })} />
+                </label>
+                <div className="champ">
+                  <span>Quel jour ?</span>
+                  <ChoixJours jour={ajout.jour} onJour={(jour) => setAjout({ ...ajout, jour })} />
                 </div>
-              ))}
-            </div>
-          )}
-        </>
+                <button className="btn primaire plein" onClick={() => void creerSeance()}>
+                  Choisir les exercices
+                </button>
+                {catalogue.modeles.length > 0 && (
+                  <button className="btn discret plein" onClick={() => setAjout({ ...ajout, existantes: true })}>
+                    Reprendre une séance existante
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
-function EditeurProgramme({
-  catalogue,
-  terminees,
-  vue,
-  setP,
-  onOuvrirSeance,
-  onNouvelleSeance,
-  onFermer,
-}: {
-  catalogue: Catalogue
-  terminees: Seance[] | undefined
-  vue: Extract<Vue, { type: 'programme' }>
-  setP: (p: Programme) => void
-  onOuvrirSeance: (m: SeanceModele) => void
-  onNouvelleSeance: () => void
-  onFermer: () => void
-}) {
-  const { p, initial, nouveau } = vue
-  const [choix, setChoix] = useState(false)
-  const [lancer, setLancer] = useState(false)
-  const [voirVolume, setVoirVolume] = useState(false)
-  // Comparé à la dernière version écrite (pas à celle d'ouverture) : revenir en arrière s'enregistre aussi.
-  const ecrit = useRef(JSON.stringify(initial))
-  const modifie = JSON.stringify(p) !== ecrit.current
-  const actif = catalogue.actif.id === p.id
-  const enBase = catalogue.programmes.some((x) => x.id === p.id)
-  useRetour(choix, () => setChoix(false))
-
-  // Enregistrement automatique : chaque changement est écrit peu après (dès que le programme a un nom).
-  const finaleDe = (x: Programme) => ({ ...x, nom: x.nom.trim(), description: x.description?.trim() || undefined, seances: x.seances.filter((e) => catalogue.modele(e.modeleId)) })
-  const [enregistre, setEnregistre] = useState(false)
-  const ecrire = () => {
-    ecrit.current = JSON.stringify(p)
-    return sauverProgramme(finaleDe(p), catalogue).then(() => setEnregistre(true))
-  }
-  useEffect(() => {
-    if (!modifie || !p.nom.trim()) return
-    const t = setTimeout(() => void ecrire(), 400)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p])
-  // Quitté aussitôt après un changement (barre du bas) : il est écrit quand même.
-  const enAttente = useRef(() => {})
-  enAttente.current = () => {
-    if (modifie && p.nom.trim()) void ecrire()
-  }
-  useEffect(() => () => enAttente.current(), [])
-
-  // En quittant : dernier enregistrement. La question du cycle est posée par AvisCycle, dès l'enregistrement.
-  const quitter = async () => {
-    if (modifie && p.nom.trim()) await ecrire()
-    onFermer()
-  }
-  useRetour(true, () => {
-    void quitter()
-    return 'rester'
-  })
-
-  const maj = (f: (x: Programme) => void) => {
-    const c = structuredClone(p)
-    f(c)
-    setP(c)
-  }
-  const entrees = p.seances.map((e, i) => ({ e, i, m: catalogue.modele(e.modeleId) })).filter((x) => x.m)
-  // Les positions de la liste affichée renvoient aux indices du programme (séances disparues ignorées).
-  const glisser = useGlisser('.exo-ligne', (de, vers) =>
-    maj((x) => {
-      const s = x.seances[entrees[de].i]
-      const avant = vers < entrees.length ? x.seances[entrees[vers].i] : null
-      x.seances.splice(entrees[de].i, 1)
-      x.seances.splice(avant ? x.seances.indexOf(avant) : x.seances.length, 0, s)
-    })
+/** Un appui à côté ou le retour gardent le nom saisi ; vide, on garde l'ancien. */
+function FenetreRenommer({ nom, onFin }: { nom: string; onFin: (nom: string) => void }) {
+  const [texte, setTexte] = useState(nom)
+  const finir = () => onFin(texte.trim() || nom)
+  return (
+    <div className="modal-fond" onClick={finir}>
+      <div className="modal pile" onClick={(ev) => ev.stopPropagation()}>
+        <h2>Renommer</h2>
+        <input value={texte} autoFocus onChange={(ev) => setTexte(ev.target.value)} />
+        <button className="btn plein" onClick={finir}>
+          Terminé
+        </button>
+      </div>
+    </div>
   )
-  const valide = p.nom.trim() !== '' && entrees.length > 0
+}
 
-  const activer = async () => {
-    await sauverProgramme(finaleDe(p), catalogue)
-    await setReglage('programmeActif', p.id)
-  }
-  const dupliquer = async () => {
-    await sauverProgramme({ ...structuredClone(p), id: 'p_' + uid(), nom: `${p.nom.trim()} (copie)` }, catalogue)
-    onFermer()
-  }
-  const supprimer = async () => {
-    if (catalogue.programmes.length <= 1) return informer('Il faut garder au moins un programme.')
-    if (!(await confirmer('Ses séances restent dans ta bibliothèque.', { titre: `Supprimer le programme « ${p.nom} » ?`, oui: 'Supprimer le programme', danger: true }))) return
-    if ((await db.programmes.count()) === 0) await db.programmes.bulkPut(catalogue.programmes)
-    await db.programmes.delete(p.id)
-    if (actif) await setReglage('programmeActif', catalogue.programmes.find((x) => x.id !== p.id)!.id)
-    onFermer()
-  }
-
+/** Ce que le programme donne à chaque muscle : les jauges, et les cibles à ajuster. */
+function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Programme; onFermer: () => void }) {
+  const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={() => void quitter()}>
+        <button className="btn" onClick={onFermer} aria-label="Retour">
           ←
         </button>
-        <h2 style={{ flex: 1 }}>{nouveau ? 'Nouveau programme' : 'Programme'}</h2>
-        {actif && <span className="pastille accent">actif</span>}
-        <EtatEnregistrement nom={p.nom} enregistre={enregistre} />
+        <h2 style={{ flex: 1 }}>Volume par semaine</h2>
       </div>
-
-      <div className="carte pile">
-        <label className="champ">
-          <span>Nom</span>
-          <input value={p.nom} placeholder="ex. Recompo 4 jours" onChange={(e) => maj((x) => (x.nom = e.target.value))} />
-        </label>
-        <label className="champ">
-          <span>Description (optionnel)</span>
-          <input value={p.description ?? ''} placeholder="ex. pecs et dos prioritaires" onChange={(e) => maj((x) => (x.description = e.target.value))} />
-        </label>
+      <div className="faible" style={{ marginBottom: 'var(--e3)' }}>
+        Ce que {p.nom} donne à chaque muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, en séries dures : des séries proches de l’échec, à 7/10 d’effort ou plus. La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle.
       </div>
-
       <div className="carte">
-        <h3>Séances et planning</h3>
-        <div className="faible" style={{ marginTop: 4 }}>
-          Le jour sert à proposer la séance du jour. Sans jour : séance au choix (variante maison, séance d’appoint…).
-        </div>
-        {entrees.length === 0 && <div className="muted petit" style={{ marginTop: 10 }}>Aucune séance pour l’instant.</div>}
-        <div ref={glisser.liste}>
-        {entrees.map(({ e, i, m }, k) => (
-          <div key={e.modeleId + i} className={'seance-plan-carte' + glisser.classes(k, entrees.length)}>
-            <div className="ligne entre" style={{ gap: 8 }}>
-              {entrees.length > 1 && (
-                <button type="button" className="poignee" aria-label={`Déplacer ${m!.nom}`} {...glisser.poignee(k)}>
-                  ⠿
-                </button>
-              )}
-              <button type="button" className="texte" style={{ flex: 1, textAlign: 'left', minWidth: 0, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }} onClick={() => onOuvrirSeance(m!)}>
-                <strong>{m!.nom}</strong>
-                <div className="faible">
-                  {m!.sousTitre ? m!.sousTitre + ' · ' : ''}
-                  {m!.exercices.length} exo{m!.exercices.length > 1 ? 's' : ''} · {dureeTexte(m!, terminees)} ›
-                </div>
-              </button>
-              <button type="button" className="icone" aria-label={`Retirer ${m!.nom} de ce programme`} onClick={() => maj((x) => x.seances.splice(i, 1))}>
-                ✕
-              </button>
-            </div>
-            <div className="ligne pastilles-jours" role="group" aria-label={`Jour pour ${m!.nom}`}>
-              {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((nomJour, idxJour) => {
-                const jNum = idxJour + 1
-                const estActif = e.jour === jNum
-                return (
-                  <button
-                    key={nomJour + idxJour}
-                    type="button"
-                    className={'btn-jour' + (estActif ? ' actif' : '')}
-                    aria-label={`${JOURS[jNum]}${estActif ? ' (sélectionné)' : ''}`}
-                    onClick={() => maj((x) => (x.seances[i].jour = estActif ? undefined : jNum))}
-                  >
-                    {nomJour}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        ))}
-        </div>
-        {entrees.length > 1 && <div className="faible" style={{ marginTop: 6 }}>Pour changer l’ordre, maintiens la poignée ⠿ d’une séance puis fais-la glisser.</div>}
-        <button className="btn plein" style={{ marginTop: 12 }} onClick={() => setChoix(true)}>
-          + Ajouter une séance
-        </button>
+        <VolumeMuscles volume={volume} cibles={catalogue.cibles} perso={catalogue.ciblesPerso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
       </div>
+    </div>
+  )
+}
 
-      {entrees.length > 0 &&
-        (() => {
-          // Replié par défaut : une ligne de résumé, le détail (et le réglage des objectifs) à la demande.
-          const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
-          const c = catalogue.cibles
-          const etats = MUSCLES.map((m) => etatVolume(m.id, volume[m.id], c[m.id]))
-          const retard = etats.filter((e) => e === 'leger').length
-          const dessus = etats.filter((e) => e === 'beaucoup').length
-          return (
-            <div className="carte">
-              <button type="button" className="groupe-repli" onClick={() => setVoirVolume(!voirVolume)} aria-expanded={voirVolume}>
-                <span>
-                  <strong>Volume par semaine</strong>
-                  <div className="faible">
-                    {retard || dessus
-                      ? [retard ? `${retard} muscle${retard > 1 ? 's' : ''} un peu léger${retard > 1 ? 's' : ''}` : '', dessus ? `${dessus} avec beaucoup` : ''].filter(Boolean).join(' · ')
-                      : 'Tous les muscles sont dans la zone utile'}
-                  </div>
+/** Tout ce qui n'est pas le programme en service : les autres, les tout prêts, créer le sien. */
+function PageChanger({ catalogue, onFermer, onOuvrir, onCreer, onAutresSeances }: { catalogue: Catalogue; onFermer: () => void; onOuvrir: (p: Programme) => void; onCreer: () => void; onAutresSeances: () => void }) {
+  const autres = catalogue.programmes.filter((x) => x.id !== catalogue.actif.id)
+  return (
+    <div>
+      <div className="entete">
+        <button className="btn" onClick={onFermer} aria-label="Retour">
+          ←
+        </button>
+        <h2 style={{ flex: 1 }}>Changer de programme</h2>
+      </div>
+      {autres.length > 0 && (
+        <>
+          <h3 className="prog-groupe">Mes autres programmes</h3>
+          {autres.map((x) => (
+            <button key={x.id} className="liste-btn" onClick={() => onOuvrir(x)}>
+              <span>
+                {x.nom}
+                <span className="faible prog-sous">
+                  {x.seances.length} séance{x.seances.length > 1 ? 's' : ''}
                 </span>
-                <span className="muted">{voirVolume ? '▾' : '▸'}</span>
-              </button>
-              {voirVolume && (
-                <>
-                  <div className="faible" style={{ margin: '4px 0 10px' }}>
-                    Ce que ce programme donne à chaque muscle par semaine{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, en séries dures : des séries proches de l’échec (RPE 7 ou plus).
-                    La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle.
-                  </div>
-                  <VolumeMuscles volume={volume} cibles={c} perso={catalogue.ciblesPerso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
-                </>
-              )}
-            </div>
-          )
-        })()}
-
-      {!valide && <div className="faible" style={{ marginTop: 6 }}>Donne-lui un nom et ajoute au moins une séance : tout s’enregistre au fur et à mesure.</div>}
-      {(enBase || enregistre) && (
-        <div className="ligne wrap" style={{ marginTop: 12 }}>
-          {catalogue.cycle?.programmeId !== p.id && (
-            <button className="btn primaire" disabled={!valide} onClick={() => setLancer(true)}>
-              Lancer un cycle
+              </span>
+              <ChevronRight size={20} className="muted" />
             </button>
-          )}
-          {!actif && !catalogue.cycle && (
-            <button className="btn" disabled={!valide} onClick={() => void activer()}>
-              Activer sans cycle
-            </button>
-          )}
-          <button className="btn" onClick={dupliquer}>
-            Dupliquer
-          </button>
-          <button className="btn danger" onClick={supprimer}>
-            Supprimer
-          </button>
-        </div>
+          ))}
+        </>
       )}
+      <ChoixProgramme catalogue={catalogue} titre="Tout prêts" intro="Choisir un programme le copie dans tes programmes, modifiable." onChoisi={onFermer} />
+      <button className="liste-btn" onClick={onCreer}>
+        <span>Créer le mien</span>
+        <ChevronRight size={20} className="muted" />
+      </button>
+      <button className="liste-btn" onClick={onAutresSeances}>
+        <span>
+          Autres séances
+          <span className="faible prog-sous">Toutes tes séances, même hors programme</span>
+        </span>
+        <ChevronRight size={20} className="muted" />
+      </button>
+    </div>
+  )
+}
 
-      {lancer && <LancerCycle catalogue={catalogue} programme={p} onFermer={() => setLancer(false)} />}
-      {choix && (
-        <div className="modal-fond" onClick={() => setChoix(false)}>
-          <div className="modal" onClick={(ev) => ev.stopPropagation()}>
-            <h2 style={{ marginBottom: 12 }}>Ajouter une séance</h2>
-            <button className="btn primaire plein" style={{ marginBottom: 12 }} onClick={() => (setChoix(false), onNouvelleSeance())}>
-              + Créer une nouvelle séance
+/** Ce qui reste de la Bibliothèque : les séances, y compris celles qui ne sont dans aucun programme. */
+function PageAutresSeances({ catalogue, terminees, onFermer, onOuvrir }: { catalogue: Catalogue; terminees: Seance[] | undefined; onFermer: () => void; onOuvrir: (m: SeanceModele, nouvelle: boolean) => void }) {
+  const masquees = useLiveQuery(() => db.modeles.filter((m) => !!m.supprime).toArray(), [], [])
+  const utilisations = (m: SeanceModele) => catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === m.id)).map((p) => p.nom)
+  return (
+    <div>
+      <div className="entete">
+        <button className="btn" onClick={onFermer} aria-label="Retour">
+          ←
+        </button>
+        <h2 style={{ flex: 1 }}>Autres séances</h2>
+      </div>
+      <button className="btn plein" style={{ marginBottom: 'var(--e3)' }} onClick={() => onOuvrir({ id: 'm_' + uid(), nom: '', sousTitre: '', exercices: [] }, true)}>
+        + Nouvelle séance
+      </button>
+      {[...catalogue.modeles]
+        .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
+        .map((m) => {
+          const progs = utilisations(m)
+          return (
+            <button key={m.id} className="liste-btn" onClick={() => onOuvrir(m, false)}>
+              <span>
+                {m.nom}
+                <span className="faible prog-sous">
+                  {[m.sousTitre, `${m.exercices.length} exercice${m.exercices.length > 1 ? 's' : ''}`, dureeTexte(m, terminees, true), m.varianteDe ? `variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : '', progs.length ? progs.join(', ') : 'dans aucun programme'].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              <ChevronRight size={20} className="muted" />
             </button>
-            {catalogue.modeles.map((m) => {
-              const deja = p.seances.some((e) => e.modeleId === m.id)
-              return (
-                <button
-                  key={m.id}
-                  className="liste-btn"
-                  onClick={() => {
-                    setChoix(false)
-                    maj((x) => x.seances.push({ modeleId: m.id }))
-                  }}
-                >
-                  <span>
-                    <strong>{m.nom}</strong> {m.sousTitre && <span className="muted">— {m.sousTitre}</span>}
-                    {deja && <div className="faible">déjà dans le programme (l’ajouter encore = 2 fois par semaine)</div>}
-                  </span>
-                  <span className="muted">+</span>
-                </button>
-              )
-            })}
-            <button className="btn discret plein" onClick={() => setChoix(false)}>
-              Annuler
-            </button>
-          </div>
+          )
+        })}
+      {masquees.length > 0 && (
+        <div className="carte pile" style={{ marginTop: 'var(--e4)' }}>
+          <div className="faible">Séances préchargées supprimées</div>
+          {masquees.map((m) => (
+            <div key={m.id} className="ligne entre">
+              <span>{m.nom}</span>
+              <button className="btn petit" onClick={() => db.modeles.delete(m.id)}>
+                Restaurer
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -633,6 +611,7 @@ function Editeur({
   initial,
   nouvelle,
   pourProgramme,
+  choisirExos,
   onFermer,
 }: {
   catalogue: Catalogue
@@ -640,11 +619,12 @@ function Editeur({
   nouvelle: boolean
   /** Ouverte depuis un programme : pas de choix de programme ici. */
   pourProgramme: boolean
-  /** Reçoit la séance quand elle vient d'être enregistrée. */
-  onFermer: (enregistree?: SeanceModele) => void
+  /** Séance à peine créée : on ouvre tout de suite le choix des exercices. */
+  choisirExos: boolean
+  onFermer: () => void
 }) {
   const [m, setM] = useState(initial)
-  const [choix, setChoix] = useState(false)
+  const [choix, setChoix] = useState(choisirExos)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [infos, setInfos] = useState<Exercice | null>(null)
   // Programmes qui contiennent la séance ; une nouvelle séance va par défaut dans le programme actif.
@@ -687,8 +667,8 @@ function Editeur({
 
   // En quittant : dernier enregistrement. La question du cycle est posée par AvisCycle, dès l'enregistrement.
   const quitter = async () => {
-    if (!m.nom.trim() || (!modifie && !enregistre)) return onFermer()
-    onFermer(await ecrire())
+    if (m.nom.trim() && modifie) await ecrire()
+    onFermer()
   }
   useRetour(true, () => {
     void quitter()
@@ -786,7 +766,7 @@ function Editeur({
             <span className="faible">
               {progs.length === 0
                 ? 'Dans aucun programme : tu la retrouveras dans « Autre séance → Hors programme ».'
-                : 'Le jour de la semaine se règle dans le programme (onglet Programmes).'}
+                : 'Le jour de la semaine se règle dans le programme (onglet Programme).'}
             </span>
           </div>
         )}

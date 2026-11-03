@@ -37,7 +37,7 @@ export const PROGRAMME: SeanceModele[] = [
   {
     id: 'bas',
     nom: 'Bas',
-    sousTitre: 'maintien',
+    sousTitre: 'jambes en entretien',
     jour: 2,
     exercices: [
       exo('presse', 180, s(8, 10, [7, 8, 8]), 67, { chauffes: ['30×10', '45×5'] }),

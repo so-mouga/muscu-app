@@ -5150,3 +5150,69 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-petit);
   line-height: 1.25;
 }
+
+/* Page Programme : le jour et la séance sur une ligne, deux appuis distincts. */
+.prog-seance {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: var(--e2);
+  border-radius: var(--rayon-2);
+  background: var(--surface);
+  overflow: hidden;
+}
+.prog-jour {
+  flex: none;
+  width: 56px;
+  background: var(--controle);
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.prog-jour.sans {
+  font-size: var(--t-legende);
+  font-weight: 400;
+  color: var(--texte-2);
+  line-height: 1.2;
+}
+.prog-ligne {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--cible);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e2);
+  padding: var(--e3);
+  text-align: left;
+  background: none;
+}
+.prog-sous {
+  display: block;
+  margin-top: 2px;
+}
+.prog-lien {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  text-align: left;
+}
+.prog-groupe {
+  margin: var(--e4) 0 var(--e2);
+}
+.jours-semaine {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--e1);
+}
+.jours-semaine button {
+  min-height: var(--cible);
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+  font-size: var(--t-petit);
+}
+.jours-semaine button.actif {
+  background: var(--texte);
+  color: var(--bg);
+  font-weight: 600;
+}

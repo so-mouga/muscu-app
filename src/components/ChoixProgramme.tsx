@@ -31,7 +31,7 @@ export default function ChoixProgramme({ catalogue, titre, intro, onChoisi }: { 
             <div className="pour">{t.pour}</div>
             <div className="faible">{t.description}</div>
           </div>
-          <button className="btn primaire" disabled={enCours !== null} onClick={() => void choisir(t.id)}>
+          <button className="btn" disabled={enCours !== null} onClick={() => void choisir(t.id)}>
             {enCours === t.id ? '…' : 'Choisir'}
           </button>
         </div>

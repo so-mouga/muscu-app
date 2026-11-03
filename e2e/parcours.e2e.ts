@@ -151,14 +151,14 @@ test('programme modifié pendant un cycle : la question ne se perd pas, et le cy
   await p.goto('/')
   await premierProgramme(p)
   await onglet(p, 'Programme')
-  await p.getByRole('button', { name: 'Lancer un cycle' }).click()
+  await p.getByRole('button', { name: 'Lancer sur 6 semaines' }).click()
   await p.getByRole('button', { name: 'Lancer le cycle' }).click()
   const joursDuCycle = async () => ((await lireTable(p, 'cycles')) as { programme: { seances: { jour?: number }[] } }[])[0].programme.seances.map((e) => e.jour)
   const avant = await joursDuCycle()
 
   // Un jour change, puis on sort par la barre du bas et on ferme l'appli, sans passer par ←.
-  await p.getByRole('button', { name: /Modifier le programme/ }).click()
-  await p.locator('.seance-plan-carte').first().getByRole('button', { name: 'dimanche' }).click()
+  await p.locator('.prog-jour').first().click()
+  await p.getByRole('button', { name: 'dimanche' }).click()
   await expect(p.getByText('Ton cycle garde l’ancienne version')).toBeVisible()
   await onglet(p, 'Accueil')
   await expect(p.getByText('Programme modifié : appliquer au cycle ?')).toBeVisible()
