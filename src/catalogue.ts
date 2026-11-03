@@ -7,7 +7,7 @@ import { db, setReglage, uid } from './db'
 import { dateISO, lundi } from './lib/calc'
 import { avecPriorites, cibles, DUREE_DEFAUT, ecartCycle, etatCycle, nouveauCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
-import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
+import { CLE_OBJECTIFS, CLE_PHASES, CLE_SANS_OBJECTIF, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
 
 export const ID_PROGRAMME_DEFAUT = 'principal'
@@ -37,6 +37,8 @@ export interface Catalogue {
   ecart?: EcartCycle
   /** Objectifs dans le temps (phase, fin prévue, volume), les mêmes pour tous les programmes. */
   objectifs: EtapeObjectifs[]
+  /** La personne a dit qu'elle ne vise rien pour l'instant. */
+  sansObjectif?: boolean
   /** Objectifs de séries dures par semaine, par muscle, en vigueur aujourd'hui (priorités du cycle comprises). */
   cibles: Record<Muscle, number>
   /** Les mêmes, sans les priorités du cycle : ce que l'utilisateur a réglé dans Objectifs. */
@@ -117,11 +119,12 @@ export function useCatalogue(): Catalogue | null {
   const objectifs = useLiveQuery(() => db.reglages.bulkGet([CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME]), [], null)
   const nbSeances = useLiveQuery(() => db.seances.count(), [], null)
   const demarrageVu = useLiveQuery(() => db.reglages.get(CLE_DEMARRAGE).then((r) => !!r), [], null)
+  const sansObjectif = useLiveQuery(() => db.reglages.get(CLE_SANS_OBJECTIF).then((r) => !!r?.valeur), [], null)
   return useMemo(() => {
-    if (!modeles || !exercices || !programmes || !cycles || actif === null || objectifs === null || nbSeances === null || demarrageVu === null) return null
+    if (!modeles || !exercices || !programmes || !cycles || actif === null || objectifs === null || nbSeances === null || demarrageVu === null || sansObjectif === null) return null
     const sansProgramme = estSansProgramme(programmes.length, cycles.length, nbSeances, demarrageVu, modeles.some((m) => PROGRAMME.some((b) => b.id === m.id)))
-    return construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])), cycles, sansProgramme)
-  }, [modeles, exercices, programmes, actif, cycles, objectifs, nbSeances, demarrageVu])
+    return { ...construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])), cycles, sansProgramme), sansObjectif }
+  }, [modeles, exercices, programmes, actif, cycles, objectifs, nbSeances, demarrageVu, sansObjectif])
 }
 
 /**

@@ -71,7 +71,7 @@ const REGLES: [string, string[]][] = [
     'Volume et objectifs',
     [
       'Volume par muscle : Léger (sous la cible), Optimal, Beaucoup. Seules les séries dures comptent (effort de 7 ou plus), les muscles secondaires pour une demi-série.',
-      'Poids visé d’une phase : un mot si le rythme sort de +0,15 à +0,4 kg par semaine en prise, ou de −0,2 à −1 kg par semaine en sèche.',
+      'Poids visé d’une phase : dès que tu le choisis, l’appli donne le rythme par semaine et dit s’il est bon. Un mot si le rythme sort de +0,15 à +0,4 kg par semaine en prise, ou de −0,2 à −1 kg par semaine en sèche. Rien à viser en maintien.',
     ],
   ],
 ]

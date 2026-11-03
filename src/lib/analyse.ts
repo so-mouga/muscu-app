@@ -248,11 +248,11 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
   for (const s of a.stagnations.slice(0, 2))
     r.push(`${s.exo.nom} : pas de progrès depuis ${s.semaines} semaines (${s.seances} séances). ${s.pistes.length ? `Pistes : ${s.pistes.join(', ')}.` : 'Tente +1 rep ou un cran de charge, ou une variante.'}`)
 
-  // Recompo : la taille baisse pendant que la force monte
+  // La taille baisse pendant que la force monte
   const taille = a.mesures.find((m) => m.cle === 'taille')
   const force = moyenne(a.progressions.map((p) => p.pct))
   if (taille && taille.fin <= taille.debut - 0.5 && force !== null && force > 0)
-    r.push(`Taille ${kg(arrondi(taille.fin - taille.debut))} cm pendant que tes charges montent (+${kg(arrondi(force))} % en moyenne) : ta recompo fonctionne.`)
+    r.push(`Taille ${kg(arrondi(taille.fin - taille.debut))} cm pendant que tes charges montent (+${kg(arrondi(force))} % en moyenne) : tu perds du tour de taille en gagnant en force.`)
 
   // Fatigue : RPE en hausse et sensations en baisse par rapport à la période d'avant
   if (avant && a.rpe !== null && avant.rpe !== null && a.energie !== null && avant.energie !== null && a.rpe >= avant.rpe + 0.5 && a.energie <= avant.energie - 0.5)

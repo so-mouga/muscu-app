@@ -15,7 +15,7 @@ import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { PlanchePhotos, POSES } from './Photos'
 import Bilan from './Bilan'
 import { SaisieMesures, type PageCorps } from './Corps'
-import { finAffichee, nomPhase, periodes, type EtapeObjectifs } from '../lib/objectifs'
+import { finAffichee, nomCourtPhase, periodes, type EtapeObjectifs } from '../lib/objectifs'
 import { prevuLe } from '../lib/cycle'
 import { objectifDuJour } from '../lib/nutrition'
 
@@ -200,7 +200,7 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
             <span>
               {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
               {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
-              {phaseMois ? ` · ${nomPhase(phaseMois).split(' /')[0]}` : ''}
+              {phaseMois ? ` · ${nomCourtPhase(phaseMois)}` : ''}
             </span>
             {pasAujourdhui && (
               <button

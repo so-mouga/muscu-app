@@ -81,6 +81,8 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Démarrage d'un nouvel utilisateur** (3 nov. 2026, après inventaire et maquette cliquable validée) : accueil et onglet Programme sans programme, Full body 2 jours, questions avec croix et reprise, proposition. Le détail est dans `AGENTS.md`.
 
+- **Phases** (3 nov. 2026, retours de l'utilisateur) : conseil de rythme en direct, calories propres à chaque phase, « Prise de muscle » à la place de « Prise / recomposition », « Pas d'objectif pour l'instant » sans 4e type de phase. Le détail est dans `AGENTS.md`.
+
 - **Programme modifié pendant un cycle** (3 nov. 2026) : la question ne se perd plus, un refus est respecté. Le détail est dans `AGENTS.md`.
 
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**

@@ -135,6 +135,16 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
             </span>
           )}
         </button>
+      ) : catalogue.sansObjectif ? (
+        <button type="button" className="carte corps-carte corps-phase" onClick={() => onPage('phases')}>
+          <span className="ligne entre">
+            <strong className="corps-titre">Phase</strong>
+            <span className="corps-detail-droite">
+              Pas d’objectif pour l’instant
+              <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+            </span>
+          </span>
+        </button>
       ) : (
         <section className="carte corps-carte">
           <strong className="corps-titre">Phase</strong>

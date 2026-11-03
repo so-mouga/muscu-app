@@ -9,6 +9,8 @@ export const CLE_OBJECTIFS = 'objectifs'
 /** Anciens réglages (avant la frise) : repris tant que la frise est vide. */
 export const CLE_VOLUME = 'objectifsVolume'
 export const CLE_PHASES = 'phases'
+/** Vrai si la personne a dit qu'elle ne vise rien pour l'instant : on ne lui demande plus d'objectif. */
+export const CLE_SANS_OBJECTIF = 'sansObjectif'
 
 export type Phase = 'seche' | 'maintien' | 'prise'
 
@@ -34,14 +36,16 @@ export interface PeriodePhase {
   fin?: string
   finPrevue?: string
   ecartVise?: number
+  calories?: number
 }
 
 export const PHASES: { id: Phase; nom: string; court: string; explication: string }[] = [
   { id: 'seche', nom: 'Sèche', court: 'Sèche', explication: 'Tu manges un peu moins pour perdre du gras. Garder tes charges, c’est déjà réussir : une baisse de force est le signal à surveiller.' },
-  { id: 'maintien', nom: 'Maintien', court: 'Maintien', explication: 'Poids stable : tu progresses tranquillement, sans viser de prise ni de perte.' },
-  { id: 'prise', nom: 'Prise / recomposition', court: 'Prise / recomp.', explication: 'Construire du muscle tout en optimisant sa silhouette : monter régulièrement en force tout en maîtrisant son poids.' },
+  { id: 'maintien', nom: 'Maintien', court: 'Maintien', explication: 'Poids stable : tu peux quand même gagner en force et perdre du tour de taille.' },
+  { id: 'prise', nom: 'Prise de muscle', court: 'Prise', explication: 'Tu manges un peu plus pour construire du muscle : le poids monte doucement, les charges aussi.' },
 ]
 export const nomPhase = (p: Phase) => PHASES.find((x) => x.id === p)!.nom
+export const nomCourtPhase = (p: Phase) => PHASES.find((x) => x.id === p)!.court
 
 const JOUR = 86400000
 const veille = (iso: string) => new Date(Date.parse(iso + 'T12:00:00') - JOUR).toISOString().slice(0, 10)
@@ -94,11 +98,12 @@ export function periodes(frise: EtapeObjectifs[]): PeriodePhase[] {
     const der = res[res.length - 1]
     if (der && !der.fin && der.phase === e.phase) {
       der.finPrevue = e.finPrevue
-      der.ecartVise = e.ecartVise
+      der.ecartVise = e.phase === 'maintien' ? undefined : e.ecartVise
+      der.calories = e.calories
       continue
     }
     if (der && !der.fin) der.fin = veille(e.depuis)
-    if (e.phase) res.push({ phase: e.phase, debut: e.depuis, ...(e.finPrevue && { finPrevue: e.finPrevue }), ...(e.ecartVise && { ecartVise: e.ecartVise }) })
+    if (e.phase) res.push({ phase: e.phase, debut: e.depuis, ...(e.finPrevue && { finPrevue: e.finPrevue }), ...(e.ecartVise && e.phase !== 'maintien' && { ecartVise: e.ecartVise }), ...(e.calories && { calories: e.calories }) })
   }
   return res
 }
@@ -198,8 +203,13 @@ export const deplacerPhase = (frise: EtapeObjectifs[], debut: string, vers: stri
 export const ecartPhase = (frise: EtapeObjectifs[], debut: string, ecart: number | undefined, aujourdhui: string) =>
   debut <= aujourdhui ? modifier(frise, aujourdhui, { ecartVise: ecart }) : enPlace(frise, debut, (e) => ({ ...e, ecartVise: ecart }))
 
-/** Type d'une phase à venir (sèche, maintien, prise). */
-export const typePhase = (frise: EtapeObjectifs[], debut: string, phase: Phase) => enPlace(frise, debut, (e) => ({ ...e, phase }))
+/** Calories par jour visées pendant une phase (undefined = aucune) ; elles prennent effet le jour où la phase commence. */
+export const caloriesPhase = (frise: EtapeObjectifs[], debut: string, calories: number | undefined, aujourdhui: string) =>
+  debut <= aujourdhui ? modifier(frise, aujourdhui, { calories }) : enPlace(frise, debut, (e) => ({ ...e, calories }))
+
+/** Type d'une phase à venir (sèche, maintien, prise). Le poids et les calories visés appartenaient à l'ancien type : on les oublie. */
+export const typePhase = (frise: EtapeObjectifs[], debut: string, phase: Phase) =>
+  enPlace(frise, debut, ({ ecartVise: _ecart, calories: _calories, ...e }) => ({ ...e, phase }))
 
 /** Nouvelle phase à la suite de la dernière (qui doit avoir une fin prévue). */
 export function ajouterApres(frise: EtapeObjectifs[], phase: Phase, semaines: number, base: Partial<Record<Muscle, number>> = {}): EtapeObjectifs[] {
@@ -236,6 +246,9 @@ export function poidsDepart(pesees: PeseeSimple[], debut: string): number | null
 
 /** Moyenne des pesées des 7 jours qui finissent à `date`. */
 export const poidsSemaine = (pesees: PeseeSimple[], date: string) => moyennePoids(pesees.filter((p) => p.date > plusJours(date, -7) && p.date <= date))
+
+/** Variation visée ramenée à la semaine. */
+export const rythmeParSemaine = (ecart: number, semaines: number) => Math.round((ecart / semaines) * 100) / 100
 
 /** Rythme d'une variation visée : un mot si c'est trop lent ou trop rapide pour la phase. La zone citée est exactement celle où l'on ne dit rien. */
 export function avisRythme(phase: Phase, ecart: number, semaines: number): string | null {

@@ -7,7 +7,9 @@ import { dateCourte, dateISO, kg } from '../lib/calc'
 import {
   ajouterApres,
   avisRythme,
+  caloriesPhase,
   CLE_OBJECTIFS,
+  CLE_SANS_OBJECTIF,
   deplacerPhase,
   dureePhase,
   ecartPhase,
@@ -20,6 +22,7 @@ import {
   PHASES,
   poidsDepart,
   poidsSemaine,
+  rythmeParSemaine,
   supprimerPhase,
   terminerPhase,
   typePhase,
@@ -40,7 +43,7 @@ const ECARTS: Record<Phase, number[]> = { prise: [1, 2, 3], seche: [-2, -4, -6],
 type Pesees = { date: string; poids: number }[]
 
 /**
- * Phases en blocs (Corps → Objectifs) : dashboard épuré pour la phase en cours,
+ * Phases en blocs (Corps → Phases) : dashboard épuré pour la phase en cours,
  * timeline pour les phases à venir, et historique des phases passées.
  */
 export default function Phases({ catalogue }: { catalogue: Catalogue }) {
@@ -59,8 +62,11 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
   const derniere = toutes.at(-1)
   const peutAjouter = !!derniere && !derniere.fin && !!derniere.finPrevue && derniere.finPrevue > aujourdhui
   const finie = enCours?.finPrevue && enCours.finPrevue <= aujourdhui && !aVenir.length
-  const commencer = (phase: Phase, date = aujourdhui) =>
+  const commencer = (phase: Phase, date = aujourdhui) => {
     enregistrer(modifier(frise, date, { phase, finPrevue: finApres(date, DUREE_DEFAUT[phase]) }, catalogue.ciblesPerso))
+    if (catalogue.sansObjectif) void setReglage(CLE_SANS_OBJECTIF, false)
+    setEditionEnCours(true)
+  }
 
   // Métriques pour la phase en cours
   const totalEnCours = enCours?.finPrevue ? semainesEntre(enCours.debut, enCours.finPrevue) : undefined
@@ -206,6 +212,10 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                     <span>Rythme {avisEnCours}</span>
                   </div>
                 )}
+
+                <div style={{ marginTop: 12 }}>
+                  <ChampCalories p={enCours} frise={frise} aujourdhui={aujourdhui} enregistrer={enregistrer} />
+                </div>
               </div>
             ) : (
               /* Vue Édition de la phase en cours */
@@ -263,7 +273,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
         {!enCours && (
           <div style={{ marginBottom: 14 }}>
             <div className="faible" style={{ marginBottom: 8 }}>
-              Aucune phase en cours. Choisis ta phase :
+              Qu’est-ce que tu vises en ce moment ? C’est facultatif.
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {PHASES.map((x) => (
@@ -282,10 +292,32 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   }}
                   onClick={() => commencer(x.id)}
                 >
-                  + {x.court}
+                  {x.nom}
                 </button>
               ))}
+              <button
+                type="button"
+                aria-pressed={!!catalogue.sansObjectif}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 'var(--rayon-2)',
+                  background: catalogue.sansObjectif ? 'var(--voile-fort)' : 'var(--voile)',
+                  border: '1px solid var(--bord)',
+                  color: 'var(--texte)',
+                  fontSize: 'var(--t-petit)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+                onClick={() => void setReglage(CLE_SANS_OBJECTIF, !catalogue.sansObjectif)}
+              >
+                Pas d’objectif pour l’instant
+              </button>
             </div>
+            {catalogue.sansObjectif && (
+              <div className="faible petit-texte" style={{ marginTop: 8 }}>
+                Tu t’entraînes, c’est tout : l’appli ne te demande rien de plus.
+              </div>
+            )}
           </div>
         )}
 
@@ -362,6 +394,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                           </div>
                           <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 2 }}>
                             Du {jour(p.debut)} {p.finPrevue ? `au ${jour(plusJours(p.finPrevue, -1))}` : ''}
+                            {p.calories ? <div>{p.calories.toLocaleString('fr-FR')} kcal par jour</div> : null}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -446,7 +479,10 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
-                  onClick={() => enregistrer(ajouterApres(frise, x.id, DUREE_DEFAUT[x.id], catalogue.ciblesPerso))}
+                  onClick={() => {
+                    enregistrer(ajouterApres(frise, x.id, DUREE_DEFAUT[x.id], catalogue.ciblesPerso))
+                    setOuverte(derniere!.finPrevue!)
+                  }}
                 >
                   + {x.court}
                 </button>
@@ -490,6 +526,38 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
   )
 }
 
+/** Calories par jour d'une phase : l'objectif de l'accueil suit la phase, sans rien à refaire le jour du changement. */
+function ChampCalories({
+  p,
+  frise,
+  aujourdhui,
+  enregistrer,
+}: {
+  p: PeriodePhase
+  frise: EtapeObjectifs[]
+  aujourdhui: string
+  enregistrer: (f: EtapeObjectifs[]) => void
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Calories par jour</span>
+        <span style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>Facultatif</span>
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flex: '0 0 auto' }}>
+        <ChampNombre
+          key={p.debut + p.phase}
+          valeur={p.calories}
+          placeholder="—"
+          largeur={75}
+          onChange={(v) => enregistrer(caloriesPhase(frise, p.debut, v ? Math.round(v) : undefined, aujourdhui))}
+        />
+        <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>kcal</span>
+      </span>
+    </div>
+  )
+}
+
 /** Formulaire d'édition d'une phase (déplié sur demande). */
 function EditeurPhase({
   p,
@@ -515,8 +583,13 @@ function EditeurPhase({
   onFermer?: () => void
 }) {
   const total = p.finPrevue ? semainesEntre(p.debut, p.finPrevue) : undefined
+  // Le conseil suit le poids pendant qu'on le tape ; l'enregistrement, lui, se fait à la fin de la saisie.
+  const [frappe, setFrappe] = useState<{ v?: number } | null>(null)
+  const signe = (v: number) => Math.round((p.phase === 'seche' ? -Math.abs(v) : Math.abs(v)) * 10) / 10
+  const ecart = frappe ? (frappe.v ? signe(frappe.v) : undefined) : p.ecartVise
+  const avis = ecart && total ? avisRythme(p.phase, ecart, total) : null
   const depart = enCours ? poidsDepart(pesees, p.debut) : null
-  const vise = depart !== null && p.ecartVise ? Math.round((depart + p.ecartVise) * 10) / 10 : null
+  const vise = depart !== null && ecart ? Math.round((depart + ecart) * 10) / 10 : null
   const k = frise.findIndex((e) => e.depuis === p.debut)
   const minDebut = k > 0 ? plusJours(frise[k - 1].depuis, 1) : undefined
 
@@ -642,20 +715,17 @@ function EditeurPhase({
       {p.phase !== 'maintien' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Objectif de variation</span>
+            <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>{p.phase === 'seche' ? 'Poids à perdre' : 'Poids à gagner'}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <ChampNombre
                 valeur={p.ecartVise}
-                placeholder="±"
+                placeholder="—"
                 largeur={60}
                 signe
+                onSaisie={(v) => setFrappe({ v })}
                 onChange={(v) => {
-                  if (v === undefined) {
-                    enregistrer(ecartPhase(frise, p.debut, undefined, aujourdhui))
-                    return
-                  }
-                  const signed = p.phase === 'seche' ? -Math.abs(v) : Math.abs(v)
-                  enregistrer(ecartPhase(frise, p.debut, Math.round(signed * 10) / 10, aujourdhui))
+                  setFrappe(null)
+                  enregistrer(ecartPhase(frise, p.debut, v === undefined ? undefined : signe(v), aujourdhui))
                 }}
               />
               <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>kg</span>
@@ -665,7 +735,7 @@ function EditeurPhase({
           {/* Raccourcis +1, +2, +3 kg en petits tags fins */}
           <div style={{ display: 'flex', gap: 6 }}>
             {ECARTS[p.phase].map((x) => {
-              const actif = p.ecartVise === x
+              const actif = ecart === x
               return (
                 <button
                   key={x}
@@ -680,7 +750,10 @@ function EditeurPhase({
                     color: actif ? 'var(--texte)' : 'var(--texte-2)',
                     cursor: 'pointer',
                   }}
-                  onClick={() => enregistrer(ecartPhase(frise, p.debut, p.ecartVise === x ? undefined : x, aujourdhui))}
+                  onClick={() => {
+                    setFrappe(null)
+                    enregistrer(ecartPhase(frise, p.debut, p.ecartVise === x ? undefined : x, aujourdhui))
+                  }}
                 >
                   {ecartTexte(x)}
                 </button>
@@ -688,14 +761,26 @@ function EditeurPhase({
             })}
           </div>
 
-          {p.ecartVise && depart !== null && (
-            <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
-              Départ {kg(depart)} kg → visé {vise !== null ? `${kg(vise)} kg` : ''} ({ecartTexte(p.ecartVise)})
-              {total ? ` en ${total} sem.` : ''}
+          {!!ecart && (
+            <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }} aria-live="polite">
+              {vise !== null && depart !== null && <div>{kg(depart)} kg → {kg(vise)} kg visés</div>}
+              {total ? (
+                <>
+                  <div>
+                    {ecartTexte(ecart)} en {total} sem., soit {ecartTexte(rythmeParSemaine(ecart, total))} par semaine
+                    {!avis && <span style={{ color: 'var(--ok)', fontWeight: 600 }}> : bon rythme</span>}
+                  </div>
+                  {avis && <div style={{ color: 'var(--alerte)', fontWeight: 500, marginTop: 2 }}>Rythme {avis}</div>}
+                </>
+              ) : (
+                <div>Choisis une durée pour savoir si ce rythme est bon.</div>
+              )}
             </div>
           )}
         </div>
       )}
+
+      <ChampCalories p={p} frise={frise} aujourdhui={aujourdhui} enregistrer={enregistrer} />
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--voile)' }}>

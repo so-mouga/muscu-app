@@ -1,4 +1,4 @@
-import { ajouterApres, avancePoids, avisRythme, dureePhase, ecartPhase, finApres, lireFrise, modifier, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase } from './objectifs'
+import { ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -133,5 +133,42 @@ describe('fin de phase affichée', () => {
   it('le texte donne le dernier jour de la phase, comme Objectifs (12 semaines du 1 nov. : jusqu’au 23 janv.)', () => {
     const f = modifier([], '2026-11-01', { phase: 'prise', finPrevue: finApres('2026-11-01', 12) })
     expect(textePhase(f, '2026-11-01', (iso) => iso)).toMatch(/fin prévue le 2027-01-23/)
+  })
+})
+
+describe('objectifs propres à chaque phase', () => {
+  const base: EtapeObjectifs[] = [
+    { depuis: '2026-10-01', phase: 'prise', finPrevue: '2026-12-01', volume: {}, calories: 3000 },
+    { depuis: '2026-12-01', phase: 'seche', finPrevue: '2027-02-01', volume: {} },
+  ]
+
+  it('chaque phase garde ses calories, et le jour du changement elles prennent le relais', () => {
+    const f = caloriesPhase(base, '2026-12-01', 2500, '2026-11-03')
+    expect(periodes(f).map((p) => p.calories)).toEqual([3000, 2500])
+    expect(objectifsA(f, '2026-11-30')?.calories).toBe(3000)
+    expect(objectifsA(f, '2026-12-01')?.calories).toBe(2500)
+  })
+
+  it('changer les calories de la phase en cours ne réécrit pas le passé', () => {
+    const f = caloriesPhase(base, '2026-10-01', 2800, '2026-11-03')
+    expect(objectifsA(f, '2026-11-02')?.calories).toBe(3000)
+    expect(objectifsA(f, '2026-11-03')?.calories).toBe(2800)
+    expect(periodes(f)[0].calories).toBe(2800)
+  })
+
+  it('changer le type d’une phase à venir oublie son poids et ses calories', () => {
+    const f = caloriesPhase(ecartPhase(base, '2026-12-01', -4, '2026-11-03'), '2026-12-01', 2500, '2026-11-03')
+    const p = periodes(typePhase(f, '2026-12-01', 'maintien'))[1]
+    expect(p.ecartVise).toBeUndefined()
+    expect(p.calories).toBeUndefined()
+  })
+
+  it('un maintien n’a jamais de poids visé, même dans une ancienne frise', () => {
+    expect(periodes([{ depuis: '2026-10-01', phase: 'maintien', ecartVise: 2, volume: {} }])[0].ecartVise).toBeUndefined()
+  })
+
+  it('la prise s’appelle « Prise de muscle », « Prise » quand la place manque', () => {
+    expect(nomPhase('prise')).toBe('Prise de muscle')
+    expect(nomCourtPhase('prise')).toBe('Prise')
   })
 })

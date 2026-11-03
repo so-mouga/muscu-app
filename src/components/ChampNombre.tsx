@@ -10,6 +10,7 @@ export default function ChampNombre({
   placeholder,
   largeur = 80,
   signe = false,
+  onSaisie,
 }: {
   valeur?: number
   onChange: (v: number | undefined) => void
@@ -17,13 +18,17 @@ export default function ChampNombre({
   largeur?: number
   /** Accepte les nombres négatifs (ex: −4 kg en sèche). */
   signe?: boolean
+  /** Suit la frappe (pour un conseil en direct) ; la valeur reste enregistrée à la fin de la saisie. */
+  onSaisie?: (v: number | undefined) => void
 }) {
   const [texte, setTexte] = useState<string | null>(null)
+  const lire = (t: string) => {
+    const v = parseFloat(t.replace('−', '-').replace(',', '.'))
+    return t.trim() === '' || isNaN(v) || (!signe && v <= 0) || v === 0 ? undefined : v
+  }
   const valider = () => {
     if (texte === null) return
-    const propre = texte.replace('−', '-').replace(',', '.')
-    const v = parseFloat(propre)
-    const n = texte.trim() === '' || isNaN(v) || (!signe && v <= 0) || v === 0 ? undefined : v
+    const n = lire(texte)
     if (n !== valeur) onChange(n)
     setTexte(null)
   }
@@ -35,7 +40,10 @@ export default function ChampNombre({
       style={{ width: largeur, textAlign: 'center', flex: '0 0 auto' }}
       value={texte ?? (valeur !== undefined ? String(valeur).replace('.', ',') : '')}
       onFocus={(e) => e.target.select()}
-      onChange={(e) => setTexte(e.target.value)}
+      onChange={(e) => {
+        setTexte(e.target.value)
+        onSaisie?.(lire(e.target.value))
+      }}
       onBlur={valider}
       onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
     />

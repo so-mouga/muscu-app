@@ -6,7 +6,7 @@ import { dateISO, dureeEstimee, jourSemaine, minutes } from '../lib/calc'
 import { debutCycle } from '../lib/cycle'
 import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, pourquoi, quand, recommande, seSuivent, type EtatDemarrage, type Etape, type Niveau, type Objectif } from '../lib/demarrage'
 import { transition, useRetour } from '../lib/nav'
-import { objectifsA } from '../lib/objectifs'
+import { CLE_SANS_OBJECTIF, objectifsA } from '../lib/objectifs'
 import { setReglage } from '../db'
 
 /** parcours : 1re ouverture ; programme : rouvert depuis l'accueil ; objectif : la question de l'objectif, seule. */
@@ -16,7 +16,7 @@ const OBJECTIFS: { id: Objectif; nom: string; aide?: string }[] = [
   { id: 'seche', nom: 'Perdre du gras' },
   { id: 'prise', nom: 'Prendre du muscle' },
   { id: 'maintien', nom: 'Progresser, poids stable', aide: 'Gagner en force sans viser le poids' },
-  { id: 'aucun', nom: 'Je ne sais pas encore', aide: 'Tu pourras choisir plus tard' },
+  { id: 'aucun', nom: 'Pas d’objectif pour l’instant', aide: 'Tu t’entraînes, c’est tout. Tu pourras en choisir un plus tard' },
 ]
 const NIVEAUX: { id: Niveau; nom: string; aide?: string }[] = [
   { id: 'debut', nom: 'Je débute ou je reprends' },
@@ -64,6 +64,7 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
   const repondreObjectif = async (objectif: Objectif) => {
     if (objectif !== 'aucun') await changerObjectifs(catalogue, { phase: objectif })
     else if (objectifsA(catalogue.objectifs, dateISO())?.phase) await changerObjectifs(catalogue, { phase: undefined })
+    await setReglage(CLE_SANS_OBJECTIF, objectif === 'aucun')
     if (seul) {
       await setReglage(CLE_DEMARRAGE, { ...etat, objectif, quitte: true })
       onFermer()

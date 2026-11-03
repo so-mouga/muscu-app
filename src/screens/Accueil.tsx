@@ -6,7 +6,7 @@ import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
 import { creneauxFaits } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
-import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
+import { nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
@@ -242,13 +242,6 @@ export default function Accueil({
     }
   }
 
-  const nomCourtPhase = (p: Phase) => {
-    if (p === 'prise') return 'Prise'
-    if (p === 'seche') return 'Sèche'
-    if (p === 'maintien') return 'Maintien'
-    return nomPhase(p)
-  }
-
   const dateAffichee = (() => {
     const d = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })
     return d.charAt(0).toUpperCase() + d.slice(1)
@@ -431,7 +424,7 @@ export default function Accueil({
             )}
           </button>
         ) : (
-          !periodes(catalogue.objectifs).length && (
+          !periodes(catalogue.objectifs).length && !catalogue.sansObjectif && (
             <button type="button" onClick={onObjectif}>
               + Ton objectif
             </button>
