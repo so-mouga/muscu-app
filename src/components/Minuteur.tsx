@@ -22,6 +22,9 @@ export interface EtatMinuteur {
 /** Secondes restantes d'un repos (en pause : le temps figé). */
 export const resteRepos = (e: EtatMinuteur, maintenant: number) => (e.pause ?? e.fin - maintenant) / 1000
 
+/** Repos terminé depuis plus de 15 min : il ne veut plus rien dire. */
+export const reposOublie = (e: EtatMinuteur, maintenant: number) => e.pause === undefined && maintenant - e.fin > 15 * 60000
+
 export const BIPS_DEFAUT = 5
 
 interface Props {

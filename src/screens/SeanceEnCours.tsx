@@ -11,7 +11,7 @@ import EditeurObjectif, { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
 import Vignette from '../components/Vignette'
-import Minuteur, { BIPS_DEFAUT, resteRepos, type EtatMinuteur } from '../components/Minuteur'
+import Minuteur, { BIPS_DEFAUT, reposOublie, resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
@@ -120,7 +120,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [idxBrut, setIdxEtat] = useState<number>(() => stocke(`idx:${seance.id}`, 0))
   const [minuteur, setMinuteurEtat] = useState<EtatMinuteur | null>(() => {
     const m = stocke<EtatMinuteur | null>('minuteur', null)
-    return m?.seanceId === seance.id ? m : null
+    return m?.seanceId === seance.id && !reposOublie(m, Date.now()) ? m : null
   })
   const [toast, setToast] = useState<string | null>(null)
   // Mode plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
@@ -307,6 +307,12 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       return seance.deload ? suggestionDeload(exos[i], sugg) : sugg
     })
   }, [terminees, reglages, exos, plans, seance.deload])
+
+  // Repos fini depuis longtemps (séance oubliée, longue coupure) : plus de « +898:00 ».
+  useEffect(() => {
+    if (minuteur && reposOublie(minuteur, maintenant)) setMinuteur(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maintenant])
 
   if (!terminees || !reglages) return null
 
