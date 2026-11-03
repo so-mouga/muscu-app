@@ -8,7 +8,7 @@ import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
 import { BONUS_PRIORITE, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { analyser, aRetenir, essentiel, type Analyse } from '../lib/analyse'
+import { analyser, aRetenir, essentiel, semainesFinies, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
 import { depuisDebut, semainesTenues } from '../lib/motivation'
@@ -216,7 +216,14 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
         </p>
       </section>
 
-      {muscles.length > 0 && (
+      {muscles.length > 0 && semainesFinies(seances.map((s) => s.date), cetteSemaine) < 2 && (
+        <section className="carte bilan-carte bilan-regularite">
+          <h3>Muscles</h3>
+          <p className="faible petit-texte">Tes muscles apparaîtront ici après 2 semaines d’entraînement.</p>
+        </section>
+      )}
+
+      {muscles.length > 0 && semainesFinies(seances.map((s) => s.date), cetteSemaine) >= 2 && (
         <section className="carte bilan-carte">
           <div className="ligne entre">
             <h3 className="avec-aide">

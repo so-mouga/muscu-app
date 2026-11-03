@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, aRetenir, essentiel, lecturePhase, libelleMesure, type Analyse } from './analyse'
+import { analyser, aRetenir, essentiel, lecturePhase, libelleMesure, semainesFinies, type Analyse } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -237,5 +237,17 @@ describe('semaine en pause dans le Bilan', () => {
   it('une séance faite pendant la pause compte en plus, pas dans le prévu', () => {
     const b = analyser({ ...donnees([...l, seance('p', '2026-10-13', [50])]), cycles }, '2026-10-05', '2026-11-01', 2)
     expect([b.prevues, b.faites, b.enPlus]).toEqual([6, 5, 1])
+  })
+})
+
+describe('semaines finies pour les jauges de muscles', () => {
+  it('compte depuis la semaine de la première séance, la semaine en cours n’en fait pas partie', () => {
+    // Première séance le vendredi 30 oct., semaine du lundi 26 oct.
+    expect(semainesFinies(['2026-11-03', '2026-10-30'], '2026-11-02')).toBe(1)
+    expect(semainesFinies(['2026-10-30'], '2026-11-09')).toBe(2)
+    expect(semainesFinies(['2026-11-03'], '2026-11-02')).toBe(0)
+  })
+  it('sans séance : zéro', () => {
+    expect(semainesFinies([], '2026-11-02')).toBe(0)
   })
 })

@@ -194,6 +194,13 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   }
 }
 
+/** Semaines finies depuis la semaine de la première séance : les jauges de muscles attendent d'en avoir 2, une seule semaine ne juge rien. */
+export function semainesFinies(dates: string[], lundiCetteSemaine: string): number {
+  if (!dates.length) return 0
+  const premiere = semaineDe(dates.reduce((x, d) => (d < x ? d : x)))
+  return Math.max(0, Math.round((Date.parse(lundiCetteSemaine) - Date.parse(premiere)) / SEMAINE))
+}
+
 /**
  * « À retenir » : quelques phrases qui disent quoi faire, par des règles simples et sûres.
  * `avant` : la période précédente de même durée, pour les tendances.
