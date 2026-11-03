@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
+import { ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
+import BoutonRetour from '../components/BoutonRetour'
 import Aide from '../components/Aide'
 import Courbe from '../components/Courbe'
 import { FenetreJour } from '../components/JournalMatin'
@@ -42,9 +43,7 @@ export default function Corps({ catalogue, page, onPage }: { catalogue: Catalogu
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={() => onPage(null)} aria-label="Retour à Corps">
-          <ArrowLeft size={20} strokeWidth={2} />
-        </button>
+        <BoutonRetour onClick={() => onPage(null)} label="Retour à Corps" />
         <h2 style={{ flex: 1 }}>{TITRES[page]}</h2>
       </div>
       {page === 'phases' && <Objectifs catalogue={catalogue} />}
@@ -641,21 +640,7 @@ export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure
   return (
     <div style={{ paddingBottom: 24 }}>
       <div className="entete" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <button
-          type="button"
-          onClick={fermer}
-          aria-label="Retour"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 6,
-            color: 'var(--texte)',
-            cursor: 'pointer',
-            display: 'flex',
-          }}
-        >
-          <ArrowLeft size={20} strokeWidth={2} />
-        </button>
+        <BoutonRetour onClick={fermer} />
         <h2 style={{ flex: 1, margin: 0, fontSize: 'var(--t-titre)', fontWeight: 600 }}>
           {initial ? 'Modifier la prise' : 'Mensurations'}
         </h2>

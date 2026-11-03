@@ -3,6 +3,7 @@ import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, L
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
+import BoutonRetour from '../components/BoutonRetour'
 import Anneau from '../components/Anneau'
 import { cibleSerie, Editeur, majSeance, Photo } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
@@ -1360,9 +1361,7 @@ function FinSeance({
   return (
     <div className="apparait">
       <div className="entete">
-        <button className="btn" onClick={onRetour} aria-label="Reprendre la séance">
-          ←
-        </button>
+        <BoutonRetour onClick={onRetour} label="Reprendre la séance" />
         <div style={{ flex: 1 }}>
           <h1>Fin de séance</h1>
         </div>

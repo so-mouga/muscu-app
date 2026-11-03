@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
+import BoutonRetour from '../components/BoutonRetour'
 import { confirmer } from '../components/Dialogues'
 import { db } from '../db'
 import Aide from '../components/Aide'
@@ -141,9 +142,7 @@ export function Detail({
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={onRetour} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={onRetour} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2>{exo.nom}</h2>
           <div className="faible">

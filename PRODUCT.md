@@ -133,7 +133,8 @@ Limites connues du parcours :
 
 À traiter en refaisant ces écrans :
 
-- Détail de séance : « + Ajouter une série oubliée » répété sous chaque exercice, icônes ℹ et émojis du détail à reprendre.
+- Détail de séance : « + Ajouter une série oubliée » répété sous chaque exercice.
+- Reste de la revue visuelle du 3 nov. 2026 : « Supprimer » trop proche d'« Enregistrer » sur une séance courte, 7 boutons de même poids dans la liste dépliée, « Pecs · machine / barre » dans la liste d'ajout, texte du réglage d'un exercice et sa ligne qui passe sous le bouton, silhouettes orange.
 
 - La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.

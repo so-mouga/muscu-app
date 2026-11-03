@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Mail } from 'lucide-react'
+import { ChevronRight, Mail } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -6,6 +6,7 @@ import { db, setReglage } from '../db'
 import { CLE_RAPPEL, natif, RAPPEL_DEFAUT, rappelDisponible, type Rappel } from '../lib/natif'
 import { transition, useRetour } from '../lib/nav'
 import { apercu, CATEGORIES, CATEGORIES_COURANTES, clesTelephone, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type ClesTelephone, type Fichier } from '../lib/sauvegarde'
+import BoutonRetour from '../components/BoutonRetour'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
 import { confirmer, informer } from '../components/Dialogues'
@@ -45,9 +46,7 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
     <div>
       <div className="entete">
         {retour && (
-          <button className="btn" onClick={retour} aria-label="Retour">
-            <ArrowLeft size={20} strokeWidth={2} />
-          </button>
+          <BoutonRetour onClick={retour} />
         )}
         {page ? <h2 className="titre-souple">{titre}</h2> : <h1 className="titre-souple">{titre}</h1>}
       </div>

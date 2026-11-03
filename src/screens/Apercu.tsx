@@ -2,10 +2,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Flame, Info, Link2, Pause, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
+import BoutonRetour from '../components/BoutonRetour'
 import { ObjectifApres } from '../components/EditeurObjectif'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
-import { chargeQte, cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
+import { cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
 import { hausse, suggestionPour } from '../lib/progression'
@@ -57,9 +58,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={onFermer} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={onFermer} />
         <div className="apercu-titre">
           <h2>{modele.nom}</h2>
           {modele.sousTitre && <div className="faible">{modele.sousTitre}</div>}
@@ -153,8 +152,9 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
                 {sugg &&
                   (battre ? (
                     <div className="faible apercu-plan">
-                      {hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
-                      {derniere && <> · dernière fois {derniere.map((x) => chargeQte(exo, x.charge, x.reps)).join(', ')}</>}
+                      {/* Une même hausse partout se dit une fois ; sinon, série par série. */}
+                      {hausses.every((h) => h && h === hausses[0]) ? `${hausses[0]} sur chaque série` : hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
+                      {derniere && <> · dernière fois {cibleTexte(exo, derniere.map((x) => x.charge), derniere.map((x) => x.reps))}</>}
                     </div>
                   ) : bloque ? (
                     <div className="faible apercu-plan">

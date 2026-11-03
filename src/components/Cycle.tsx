@@ -1,4 +1,5 @@
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
+import BoutonRetour from './BoutonRetour'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type ReactNode } from 'react'
 import { lancerCycle, type Catalogue } from '../catalogue'
@@ -268,9 +269,7 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={onFermer} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={onFermer} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1>{etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h1>
           <div className="faible">

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Clock, Sparkles } from 'lucide-react'
+import { BarChart3, CalendarDays, Clock, Info, Sparkles, StickyNote, TriangleAlert, Trophy } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
 import { duree, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, serieTexte, tempsParExo } from '../lib/calc'
@@ -102,7 +102,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                 aria-label={`Détails pour ${exo.nom}`}
                 aria-expanded={ouvert}
               >
-                ℹ <span className={'chevron-accordeon' + (ouvert ? ' ouvert' : '')} style={{ fontSize: 11 }}>▸</span>
+                <Info size={14} /> <span className={'chevron-accordeon' + (ouvert ? ' ouvert' : '')} style={{ fontSize: 11 }}>▸</span>
               </button>
             </div>
 
@@ -110,28 +110,28 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                 <div className="pile" style={{ gap: 6, padding: '8px 0 4px', borderTop: '1px solid var(--bord)', fontSize: 'var(--t-petit)' }}>
                   {seance.notes[exo.id] && (
                     <div>
-                      📝 <strong>Réglage / note :</strong> {seance.notes[exo.id]}
+                      <StickyNote size={14} className="ico-texte" /> <strong>Réglage / note :</strong> {seance.notes[exo.id]}
                     </div>
                   )}
                   {meilleur > 0 && (
                     <div>
-                      🏆 <strong>Force estimée :</strong> {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}
-                      {record && meilleur > record ? ' · record battu 🏆' : ''}
+                      <Trophy size={14} className="ico-texte" /> <strong>Force estimée :</strong> {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}
+                      {record && meilleur > record ? ' · record battu' : ''}
                     </div>
                   )}
                   {volumeExo > 0 && (
                     <div>
-                      📊 <strong>Volume :</strong> {kg(Math.round(volumeExo))} kg soulevés
+                      <BarChart3 size={14} className="ico-texte" /> <strong>Volume :</strong> {kg(Math.round(volumeExo))} kg soulevés
                     </div>
                   )}
                   {ms > 0 && (
                     <div>
-                      ⏱ <strong>Durée :</strong> {duree(ms)}
+                      <Clock size={14} className="ico-texte" /> <strong>Durée :</strong> {duree(ms)}
                     </div>
                   )}
                   {precedente.length > 0 && (
                     <div className="faible" style={{ marginTop: 2 }}>
-                      🗓 <strong>Séance précédente :</strong> {precedente.map((s) => `${serieTexte(exo, s, true)} (effort ${kg(s.rpe)}/10)`).join(' · ')}
+                      <CalendarDays size={14} className="ico-texte" /> <strong>Séance précédente :</strong> {precedente.map((s) => `${serieTexte(exo, s, true)} (effort ${kg(s.rpe)}/10)`).join(' · ')}
                     </div>
                   )}
                 </div>
@@ -146,7 +146,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                       <span className="faible" style={{ minWidth: 26, display: 'inline-block' }}>S{k + 1}</span>
                       <strong>{serieTexte(exo, x, true)}</strong>
                       <span className="faible" style={{ whiteSpace: 'nowrap' }}> · effort {kg(x.rpe)}/10</span>
-                      {x.douleur ? ' ⚠️' : ''}
+                      {x.douleur && <TriangleAlert size={14} className="ico-texte" aria-label="Douleur signalée" style={{ marginLeft: 4, color: 'var(--alerte)' }} />}
                     </span>
                     {e ? (
                       <span className={'avant ' + e.sens} style={{ display: 'inline', marginLeft: 'auto', textAlign: 'right', fontSize: 'var(--t-petit)' }}>

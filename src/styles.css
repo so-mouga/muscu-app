@@ -5748,3 +5748,52 @@ button.semaine-cycle.courante {
   font-size: var(--t-legende);
   font-weight: 600;
 }
+
+/* Pages avec un retour : même bouton, même titre partout. */
+.btn-retour {
+  flex: none;
+  width: var(--cible);
+  height: var(--cible);
+  min-height: var(--cible);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.entete:has(> .btn-retour) h1,
+.entete:has(> .btn-retour) h2 {
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+/* Page Photos sans photo : à quoi ça sert, et comment faire. */
+.photos-vide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  font-size: var(--t-petit);
+  color: var(--texte-2);
+}
+.photos-vide strong {
+  color: var(--texte);
+  font-size: var(--t-texte);
+}
+.photos-vide-prive {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+.photos-vide-prive svg {
+  flex: none;
+  color: var(--ok);
+}
+/* Détail d'une séance faite : neutre, une seule ligne de repères. */
+.pastille-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  padding: var(--e1) 10px;
+  border-radius: 999px;
+  background: var(--voile);
+  color: var(--texte-salle);
+  font-size: var(--t-legende);
+}

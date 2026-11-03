@@ -64,7 +64,7 @@ export default function ChronoTenue({ objectif, nom, onStop, onAnnuler }: Props)
         <>
           <Anneau valeur={Math.min(1, tenu / Math.max(1, objectif))} taille={240} epaisseur={12} couleur={atteint ? 'var(--ok)' : 'var(--accent)'}>
             <div className="temps-grand">{chrono(tenu)}</div>
-            <div className="libelle">{atteint ? `Objectif ${objectif} s atteint 💪` : `objectif ${objectif} s`}</div>
+            <div className="libelle">{atteint ? `Objectif ${objectif} s atteint` : `objectif ${objectif} s`}</div>
           </Anneau>
           <div className="faible">{atteint ? 'Continue si tu peux, puis Stop.' : 'Tiens bon : appuie sur Stop quand tu lâches.'}</div>
         </>

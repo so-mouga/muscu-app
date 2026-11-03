@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, CloudUpload, Download, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, X, Zap } from 'lucide-react'
+import { Check, ChevronRight, Clock, CloudUpload, Download, Flame, Info, Moon, RefreshCw, Ruler, Scale, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
@@ -724,33 +724,27 @@ export default function Accueil({
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="icone"
-                  onClick={() => setSeanceFaiteModal(null)}
-                  aria-label="Fermer"
-                  style={{ fontSize: 18, padding: 4 }}
-                >
-                  ✕
+                <button type="button" className="btn-fermer" onClick={() => setSeanceFaiteModal(null)} aria-label="Fermer">
+                  <X size={22} />
                 </button>
               </div>
 
               {/* Badges récapitulatifs */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte)' }}>
-                  ⏱️ {t}
+                <span className="pastille-detail">
+                  <Clock size={14} /> {t}
                 </span>
                 {dures > 0 && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--accent-voile)', border: '1px solid var(--accent-bord)', fontSize: 'var(--t-legende)', color: 'var(--accent)', fontWeight: 600 }}>
-                    💪 {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
+                  <span className="pastille-detail">
+                    <Flame size={14} /> {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
                   </span>
                 )}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
-                  🎯 {exosMap.size} exercice{exosMap.size > 1 ? 's' : ''}
+                <span className="pastille-detail">
+                  <Target size={14} /> {exosMap.size} exercice{exosMap.size > 1 ? 's' : ''}
                 </span>
                 {s.poidsCorps && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 'var(--rayon)', background: 'var(--voile)', border: '1px solid var(--bord)', fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
-                    ⚖️ {kg(s.poidsCorps)} kg
+                  <span className="pastille-detail">
+                    <Scale size={14} /> {kg(s.poidsCorps)} kg
                   </span>
                 )}
               </div>

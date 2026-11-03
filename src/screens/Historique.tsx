@@ -3,6 +3,7 @@ import Exercices from './Exercices'
 import { useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Pencil, Ruler, Smile, Trophy, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
+import BoutonRetour from '../components/BoutonRetour'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import { db, exoAvecReglages } from '../db'
@@ -642,9 +643,7 @@ function DetailSeance({
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={onRetour} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={onRetour} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2>{seance.nom}</h2>
           <div className="faible" style={{ textTransform: 'capitalize' }}>

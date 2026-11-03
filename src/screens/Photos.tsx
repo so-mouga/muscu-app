@@ -2,7 +2,6 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowLeftRight, Camera, Image, Layers, Maximize2, Pencil, Plus, RefreshCw, ShieldCheck, Timer, Trash2, X } from 'lucide-react'
-import Aide from '../components/Aide'
 import { MESURES, nomCle } from '../data/mesures'
 import { db, uid } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
@@ -116,15 +115,14 @@ export default function Photos() {
         </button>
       </div>
 
-      {/* Confidentialité : utile une fois, à la première photo. */}
+      {/* Rien encore : à quoi ça sert, et comment faire des photos comparables. */}
       {dates.length === 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--texte-2)', marginBottom: 14 }}>
-          <ShieldCheck size={14} strokeWidth={2} style={{ color: 'var(--ok)', flexShrink: 0 }} />
-          <span>Stockées uniquement sur cet appareil</span>
-          <Aide
-            titre="Conseils photo de progression"
-            texte="3 poses : face, profil, dos. Même endroit, même lumière, même heure (idéalement le matin à jeun) : c’est ce qui rend la comparaison fiable dans le temps."
-          />
+        <div className="carte photos-vide">
+          <strong>Compare tes photos dans le temps</strong>
+          <span>3 poses : face, profil, dos. Même endroit, même lumière, même heure, idéalement le matin à jeun : c’est ce qui rend la comparaison fiable.</span>
+          <span className="photos-vide-prive">
+            <ShieldCheck size={14} strokeWidth={2} /> Elles restent sur ce téléphone, nulle part ailleurs.
+          </span>
         </div>
       )}
 

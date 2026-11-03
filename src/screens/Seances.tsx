@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { changerObjectifs, ID_PROGRAMME_DEFAUT, installerProgramme, lancerCycle, type Catalogue } from '../catalogue'
 import { PROGRAMMES_TYPES, type ProgrammeType } from '../data/programmesTypes'
+import BoutonRetour from '../components/BoutonRetour'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
@@ -313,9 +314,7 @@ function PageProgramme({
     <div>
       <div className="entete">
         {onRetour && (
-          <button className="btn" onClick={onRetour} aria-label="Retour">
-            ←
-          </button>
+          <BoutonRetour onClick={onRetour} />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="faible">{enService ? 'Ton programme' : 'Programme'}</div>
@@ -576,9 +575,7 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={onFermer} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={onFermer} />
         <h2 style={{ flex: 1 }}>Volume par semaine</h2>
       </div>
       <div className="faible volume-intro">
@@ -659,9 +656,7 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={onFermer} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={onFermer} />
         <h2 style={{ flex: 1 }}>Changer de programme</h2>
       </div>
       {autres.length > 0 && <h3 className="prog-groupe">Mes autres programmes</h3>}
@@ -739,9 +734,7 @@ function PageAutresSeances({ catalogue, terminees, onFermer, onOuvrir }: { catal
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={onFermer} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={onFermer} />
         <h2 style={{ flex: 1 }}>Autres séances</h2>
       </div>
       <button className="btn plein" style={{ marginBottom: 'var(--e3)' }} onClick={() => onOuvrir({ id: 'm_' + uid(), nom: nomSeanceLibre(catalogue.modeles.map((m) => m.nom)), sousTitre: '', exercices: [] }, true)}>
@@ -896,9 +889,7 @@ function Editeur({
   return (
     <div>
       <div className="entete">
-        <button className="btn" onClick={() => void quitter()} aria-label="Retour">
-          ←
-        </button>
+        <BoutonRetour onClick={() => void quitter()} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2>{m.nom.trim() || 'Nouvelle séance'}</h2>
           <div className="faible">
