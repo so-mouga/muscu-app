@@ -5,7 +5,7 @@ import { PROGRAMME } from './data/programme'
 import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
 import { dateISO, lundi } from './lib/calc'
-import { avecPriorites, cibles, DUREE_DEFAUT, ecartCycle, etatCycle, nouveauCycle, type EcartCycle } from './lib/cycle'
+import { avecPriorites, cibles, DUREE_DEFAUT, ecartCycle, etatCycle, finReelle, nouveauCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_SANS_OBJECTIF, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
@@ -159,7 +159,7 @@ export async function lancerCycle(c: Catalogue, p: Programme, o: { debut: string
     ...(o.priorites?.length && { priorites: o.priorites }),
   }
   await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
-    if (c.cycle) await db.cycles.update(c.cycle.id, { fin: dateISO() })
+    if (c.cycle) await db.cycles.update(c.cycle.id, { fin: finReelle(c.cycle) })
     await db.cycles.put(cycle)
     await setReglage('programmeActif', p.id)
     // Cycle lancé cette semaine : les séances déjà faites cette semaine en font partie (semaine 1).

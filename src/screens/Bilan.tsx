@@ -7,7 +7,7 @@ import { informer } from '../components/Dialogues'
 import { NiveauJauge } from '../components/VolumeMuscles'
 import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
-import { BONUS_PRIORITE, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
+import { BONUS_PRIORITE, cycleDuBilan, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { analyser, aRetenir, essentiel, semainesFinies, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
@@ -69,8 +69,8 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
     : undefined
 
   const cetteSemaine = lundi()
-  // Le cycle en cours, sinon le dernier terminé : son bilan reste consultable.
-  const cycle = catalogue.cycle ?? [...cycles].sort((x, y) => y.debut.localeCompare(x.debut))[0]
+  // Le cycle en cours, sinon le dernier terminé, y compris quand un nouveau vient d'être lancé : son bilan reste consultable.
+  const cycle = cycleDuBilan(cycles, cetteSemaine)
   const cycleDispo = !!cycle && cycle.debut < cetteSemaine
   const cycleFini = !!cycle && etatCycle(cycle).fini
   const periode: Periode = periodeChoisie === 'cycle' && !cycleDispo ? '4' : periodeChoisie

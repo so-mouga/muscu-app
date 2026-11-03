@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { appliquerEcart, avecPriorites, changerSemaine, debutCycle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
+import { appliquerEcart, avecPriorites, changerSemaine, cycleDuBilan, debutCycle, finReelle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -234,5 +234,31 @@ describe('changer une semaine', () => {
   it('même régime : rien ne change', () => {
     const a = c0()
     expect(changerSemaine(a, '2026-11-02', 'normale')).toBe(a)
+  })
+})
+
+describe('fin d’un cycle remplacé', () => {
+  it('fini depuis longtemps : sa vraie date de fin, pas le jour de la relance', () => {
+    expect(finReelle(cycle({ debut: '2026-10-12', semaines: 6 }), '2026-12-29')).toBe('2026-11-22')
+  })
+  it('encore en cours : le jour même', () => {
+    expect(finReelle(cycle({ debut: '2026-11-02', semaines: 6 }), '2026-11-10')).toBe('2026-11-10')
+  })
+  it('déjà terminé à la main : sa date reste', () => {
+    expect(finReelle(cycle({ debut: '2026-10-12', semaines: 6, fin: '2026-10-30' }), '2026-12-29')).toBe('2026-10-30')
+  })
+})
+
+describe('cycle proposé par le Bilan', () => {
+  const a = cycle({ id: 'a', debut: '2026-10-12', fin: '2026-11-22' })
+  const b = cycle({ id: 'b', debut: '2026-12-28' })
+  it('un cycle lancé cette semaine laisse voir le précédent', () => {
+    expect(cycleDuBilan([a, b], '2026-12-28')?.id).toBe('a')
+  })
+  it('une fois commencé, c’est le nouveau', () => {
+    expect(cycleDuBilan([a, b], '2027-01-04')?.id).toBe('b')
+  })
+  it('aucun cycle commencé', () => {
+    expect(cycleDuBilan([b], '2026-12-28')).toBeUndefined()
   })
 })

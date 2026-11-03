@@ -57,6 +57,18 @@ export function lundiDe(c: Cycle, n: number): string {
 /** Nom affiché d'un cycle : le sien, sinon celui du programme. */
 export const nomCycle = (c: Cycle) => c.nom?.trim() || c.programme.nom
 
+/** Date de fin à écrire quand un nouveau cycle remplace celui-ci : le jour même s'il tournait encore, sinon son vrai dernier jour. */
+export function finReelle(c: Cycle, date = dateISO()): string {
+  if (c.fin) return c.fin
+  const prevue = dateISO(new Date(jours(lundiDe(c, c.semaines)) + 6 * 86400000))
+  return prevue < date ? prevue : date
+}
+
+/** Le cycle que le Bilan peut montrer : le dernier commencé avant cette semaine (un cycle à peine lancé n'a pas encore de semaine finie). */
+export function cycleDuBilan(cycles: Cycle[], cetteSemaine: string): Cycle | undefined {
+  return [...cycles].sort((a, b) => b.debut.localeCompare(a.debut)).find((c) => c.debut < cetteSemaine)
+}
+
 /** Séries dures de plus par semaine pour un muscle prioritaire du cycle. */
 export const BONUS_PRIORITE = 4
 export const MAX_PRIORITES = 2
