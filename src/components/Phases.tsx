@@ -419,8 +419,8 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
           </div>
         )}
 
-        {/* --- PLANIFIER LA SUITE --- */}
-        {peutAjouter && (
+        {/* --- PLANIFIER LA SUITE : pas pendant qu'on règle une phase, il revient en fermant --- */}
+        {peutAjouter && !editionEnCours && !ouverte && (
           <div
             style={{
               display: 'flex',
@@ -463,7 +463,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
           </div>
         )}
 
-        {derniere && !derniere.fin && !derniere.finPrevue && (
+        {derniere && !derniere.fin && !derniere.finPrevue && !editionEnCours && !ouverte && (
           <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 8 }}>
             Fixe une durée à la dernière phase pour pouvoir en ajouter une après.
           </div>
