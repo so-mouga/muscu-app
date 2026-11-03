@@ -44,6 +44,28 @@ const seances = [
   seance('d', '2026-10-26', [57.5, 57.5]),
 ]
 
+describe('force du Bilan : ce qui a vraiment été soulevé', () => {
+  const serie = (id: string, charge: number, reps: number, rpe = 8) => ({ id, exoId: 'smith_incline', type: 'normale' as const, charge, reps, rpe, heure: 0 })
+  const avec = (id: string, date: string, s: ReturnType<typeof serie>) => ({ ...seance(id, date, []), series: [s] })
+  const pctDe = (l: Seance[]) => analyser(donnees(l), '2026-10-05', '2026-11-01', 2).progressions.find((p) => p.exo.id === 'smith_incline')!.pct
+  it('monter la charge alors que les reps repartent au bas : hausse, jamais une baisse de force', () => {
+    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 12)), avec('b', '2026-10-26', serie('b', 52.5, 8))])).toBeCloseTo(5)
+  })
+  it('mêmes charge et reps avec un autre effort noté : 0 %', () => {
+    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 7)), avec('b', '2026-10-26', serie('b', 50, 10, 9))])).toBe(0)
+  })
+  it('moins de reps à la même charge reste une baisse', () => {
+    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10)), avec('b', '2026-10-26', serie('b', 50, 8))])).toBeLessThan(0)
+  })
+  it('en prise, une charge montée ne fait plus dire « tes charges ne montent pas »', () => {
+    const deux = (id: string, date: string, c: number, reps: number) => ({ ...seance(id, date, []), series: [serie(id, c, reps), { ...serie(id + 't', c + 10, reps), exoId: 'tirage_large' }] })
+    const a = analyser(donnees([deux('a', '2026-10-05', 50, 12), deux('b', '2026-10-12', 50, 12), deux('c', '2026-10-19', 52.5, 8), deux('d', '2026-10-26', 52.5, 8)]), '2026-10-05', '2026-11-01', 2, 'prise')
+    expect(a.progressions).toHaveLength(2)
+    expect(a.progressions.every((p) => p.pct > 0)).toBe(true)
+    expect(lecturePhase(a, 'prise').join()).not.toContain('ne montent pas')
+  })
+})
+
 describe('analyse d’une période', () => {
   const a = analyser(donnees(seances), '2026-10-05', '2026-11-01', 2)
   it('assiduité, volume, records, progressions, stagnations', () => {

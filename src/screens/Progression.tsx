@@ -14,7 +14,7 @@ import { LEXIQUE } from '../data/lexique'
 import { blocage, type Blocage } from '../lib/blocages'
 import type { EtapeObjectifs } from '../lib/objectifs'
 import { chargeQte, chargeTexte, dateCourte, dateISO, e1rm, enTemps, kg, qte, serieTexte } from '../lib/calc'
-import { evolutionForce, meilleureSerie } from '../lib/historique'
+import { evolutionForce, meilleureSerie, sensPerf } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import type { Exercice, Seance, Serie } from '../types'
 
@@ -46,14 +46,17 @@ export function lectureExo(exo: Exercice, chrono: Seance[], enSeche = false, obj
   const premiere = recentes.length >= 2 ? recentes[0] : travail[0]
   const semaines = Math.max(1, Math.round((dernier - Date.parse(premiere.date)) / (7 * JOUR)))
   const duree = `en ${semaines} semaine${semaines > 1 ? 's' : ''}`
-  const monte = ev.apres.score > ev.avant.score * (exo.suivreE1rm && !enTemps(exo) ? 1.01 : 1)
+  // Même mesure que les blocages : charge plus dure ou reps en plus. La force estimée ne sert qu'au cas d'une charge baissée qui rapporte plus de reps.
+  const sens = sensPerf(exo, ev.avant.serie, ev.apres.serie)
+  const seuilForce = exo.suivreE1rm && !enTemps(exo) && exo.mode !== 'poids_corps' ? 1.01 : 1
+  const monte = sens > 0 || (sens < 0 && ev.apres.score > ev.avant.score * seuilForce)
   if (monte)
     return {
       texte: 'Ça monte',
       classe: 'tenue',
-      detail: ev.avant.e1rm && ev.apres.e1rm ? `force estimée +${kg(Math.round((ev.apres.e1rm - ev.avant.e1rm) * 2) / 2)} kg ${duree}` : `${chargeQte(exo, ev.avant.serie.charge, ev.avant.serie.reps)} → ${chargeQte(exo, ev.apres.serie.charge, ev.apres.serie.reps)} ${duree}`,
+      detail: ev.avant.e1rm && ev.apres.e1rm && ev.apres.e1rm > ev.avant.e1rm ? `force estimée +${kg(Math.round((ev.apres.e1rm - ev.avant.e1rm) * 2) / 2)} kg ${duree}` : `${chargeQte(exo, ev.avant.serie.charge, ev.avant.serie.reps)} → ${chargeQte(exo, ev.apres.serie.charge, ev.apres.serie.reps)} ${duree}`,
     }
-  return { texte: ev.apres.score < ev.avant.score * 0.98 ? 'Un peu en dessous' : 'Stable', classe: 'faible', detail: `sur les ${semaines} dernière${semaines > 1 ? 's' : ''} semaine${semaines > 1 ? 's' : ''}` }
+  return { texte: sens < 0 && ev.apres.score < ev.avant.score * 0.98 ? 'Un peu en dessous' : 'Stable', classe: 'faible', detail: `sur les ${semaines} dernière${semaines > 1 ? 's' : ''} semaine${semaines > 1 ? 's' : ''}` }
 }
 
 /** Fiche d'un exercice sur une page : où j'en suis, la courbe, puis le détail à un appui. */

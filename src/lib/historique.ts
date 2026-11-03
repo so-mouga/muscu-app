@@ -130,6 +130,27 @@ export function evolutionForce(exo: Exercice, seances: Seance[]) {
   return avant && apres ? { avant, apres } : null
 }
 
+/**
+ * Ce qui a vraiment changé entre deux séries : +1 charge plus dure, ou plus de reps à la même charge ; −1 l'inverse ; 0 pareil.
+ * La force estimée baisse quand on monte la charge et que les reps repartent au bas : ce n'est pas une baisse.
+ */
+export function sensPerf(exo: Exercice, avant: Serie, apres: Serie): -1 | 0 | 1 {
+  const dur = (c: number) => (exo.assistance ? -c : c)
+  const d = dur(apres.charge) - dur(avant.charge) || apres.reps - avant.reps
+  return d > 0 ? 1 : d < 0 ? -1 : 0
+}
+
+/**
+ * Évolution en % d'après la force estimée, corrigée par ce qui a vraiment été soulevé : une charge plus dure ou
+ * des reps en plus ne font jamais un chiffre négatif, et mêmes charge et reps font 0, quel que soit l'effort noté.
+ */
+export function evolutionPct(exo: Exercice, avant: Serie, apres: Serie, pct: number): number {
+  const sens = sensPerf(exo, avant, apres)
+  if (sens === 0) return 0
+  if (sens < 0 || pct > 0) return pct
+  return avant.charge !== apres.charge && avant.charge ? (Math.abs(apres.charge - avant.charge) / Math.abs(avant.charge)) * 100 : avant.reps ? ((apres.reps - avant.reps) / avant.reps) * 100 : 0
+}
+
 /** Meilleure série d'un exercice dans une séance : la plus lourde (la moins assistée), puis le plus de reps. */
 export function meilleureSerie(series: Serie[], assistance = false): Serie | undefined {
   const dur = (s: Serie) => (assistance ? -s.charge : s.charge)

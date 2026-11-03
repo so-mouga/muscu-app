@@ -3,7 +3,7 @@ import { nomCle } from '../data/mesures'
 import type { Exercice, Muscle, Serie } from '../types'
 import { chargeQte, dateISO, estDure, heuresMinutes, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
-import { dureeReelle, evolutionForce, scoreSerie, semaineDe } from './historique'
+import { dureeReelle, evolutionForce, evolutionPct, scoreSerie, semaineDe } from './historique'
 import { nomPhase, phaseA, type Phase } from './objectifs'
 import { diagnostic } from './blocages'
 
@@ -106,7 +106,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
       if (ev.avant.e1rm && ev.apres.e1rm) {
         const avant = ev.avant.e1rm
         const apres = ev.apres.e1rm
-        progressions.push({ exo, avant, apres, pct: ((apres - avant) / avant) * 100 })
+        progressions.push({ exo, avant, apres, pct: evolutionPct(exo, ev.avant.serie, ev.apres.serie, ((apres - avant) / avant) * 100) })
       } else {
         const mAvant = ev.avant.serie
         const mApres = ev.apres.serie
