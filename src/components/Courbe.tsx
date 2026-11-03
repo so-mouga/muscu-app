@@ -16,11 +16,14 @@ export default function Courbe({
   const [actif, setActif] = useState(points.length - 1)
   const L = 320
   const H = 145
-  // Marge droite dédiée (42px) pour les labels Y afin d'éviter tout chevauchement avec la courbe
-  const m = { g: 8, d: 42, h: 16, b: 24 }
+  // Marge droite dédiée pour les labels Y, assez large pour « 83,6 cm » sans le couper
+  const m = { g: 8, d: 48, h: 16, b: 24 }
   const vals = points.map((p) => p.valeur)
   let min = Math.min(...vals)
   let max = Math.max(...vals)
+  // Les graduations écrites restent les vraies valeurs, même quand l'échelle est élargie.
+  const plusBas = min
+  const plusHaut = max
   if (max - min < 1) {
     min -= 0.5
     max += 0.5
@@ -68,26 +71,14 @@ export default function Courbe({
         ))}
 
         {/* Graduations Y placées dans la marge droite dédiée (pas de collision avec la courbe) */}
-        <text
-          x={L - m.d + 6}
-          y={y(max) + 3}
-          fill="var(--texte-2)"
-          fontSize="10"
-          fontWeight="500"
-          textAnchor="start"
-        >
-          {format(max)}
+        <text x={L - m.d + 6} y={y(plusHaut) + 3} fill="var(--texte-2)" fontSize="10" fontWeight="500" textAnchor="start">
+          {format(plusHaut)}
         </text>
-        <text
-          x={L - m.d + 6}
-          y={y(min) + 3}
-          fill="var(--texte-2)"
-          fontSize="10"
-          fontWeight="500"
-          textAnchor="start"
-        >
-          {format(min)}
-        </text>
+        {y(plusBas) - y(plusHaut) >= 12 && (
+          <text x={L - m.d + 6} y={y(plusBas) + 3} fill="var(--texte-2)" fontSize="10" fontWeight="500" textAnchor="start">
+            {format(plusBas)}
+          </text>
+        )}
 
         {/* Aire dégradée sous la courbe */}
         <polygon points={airePoints} fill="url(#orangeGradient)" />
