@@ -8,6 +8,7 @@ import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJo
 import Accueil from './screens/Accueil'
 import Corps, { type PageCorps } from './screens/Corps'
 import Exercices from './screens/Exercices'
+import IconeOnglet from './components/IconeOnglet'
 import Historique, { type VueProgression } from './screens/Historique'
 import Reglages from './screens/Reglages'
 import SeanceEnCours from './screens/SeanceEnCours'
@@ -139,6 +140,7 @@ export default function App() {
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
           <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setPageCorps(null), setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
+            <IconeOnglet nom={id} />
             {nom}
           </button>
         ))}

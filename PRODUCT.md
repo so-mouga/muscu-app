@@ -87,7 +87,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 Rien depuis `f591d41` n'a encore été confirmé sur le téléphone, sauf que la photo depuis la galerie fonctionne.
 
-- Accueil : la taille réelle de l'écran, les trois cases du matin sans texte coupé, la barre du bas en mots seuls, la montée des fenêtres de saisie, l'envie ou non de retrouver la frise de la semaine.
+- Accueil : la taille réelle de l'écran, les trois cases du matin sans texte coupé, la barre du bas entière à 360 px de large, la montée des fenêtres de saisie, l'envie ou non de retrouver la frise de la semaine.
 
 - Fenêtres : fluidité de la montée et du flou ; clavier dans « Ajouter un mouvement » et dans les réglages de la machine.
 - Bouton retour réel : liste (replier, puis revenir), réglages depuis la fiche, fenêtre de correction.

@@ -98,8 +98,8 @@
   /* Cibles tactiles minimales */
   --cible: 44px;
   /* Accueil : hauteur de la barre d'onglets et petit écart au-dessus. */
-  --barre-onglets: 50px;
-  --bas-accueil: 62px;
+  --barre-onglets: 68px;
+  --bas-accueil: 84px;
   --cible-salle: 44px;
 
   /* Mouvement */
@@ -380,10 +380,10 @@ button:active:not(:disabled),
   flex: 1 1 auto;
   min-width: 0;
   background: none;
-  min-height: var(--barre-onglets);
-  padding: 0 1px;
+  padding: 12px 1px 14px;
   color: var(--texte-2);
-  font-size: var(--t-petit);
+  font-size: var(--t-legende);
+  letter-spacing: -0.1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -392,6 +392,10 @@ button:active:not(:disabled),
 }
 .onglets button.actif {
   color: var(--accent);
+}
+.onglets .ico {
+  display: block;
+  margin: 0 auto 3px;
 }
 
 /* Barres de volume */
