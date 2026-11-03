@@ -1,6 +1,7 @@
 import type { Table } from 'dexie'
 import { MODELES } from '../data/programme'
 import { db, setReglage } from '../db'
+import { natif, partageFichierDisponible, partagerFichierNatif } from './natif'
 import type { Seance } from '../types'
 
 export type Categorie = 'programmes' | 'historique' | 'exercices' | 'corps' | 'photos' | 'reglages'
@@ -58,8 +59,16 @@ function telecharger(nom: string, contenu: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-/** Menu de partage Android (Drive, mail…), sinon téléchargement. Lève `AbortError` si l'utilisateur annule. */
+/**
+ * Menu de partage (Drive, mail…), sinon téléchargement. Lève `AbortError` si l'utilisateur annule, et une
+ * erreur si aucun fichier n'a pu être créé : l'appli Android ne doit jamais annoncer une sauvegarde qui n'existe pas.
+ */
 export async function partagerOuTelecharger(nom: string, contenu: string, type: string) {
+  if (natif) {
+    if (!(await partageFichierDisponible())) throw new Error('Ta version de l’appli ne sait pas créer de fichier : rien n’a été sauvegardé. Installe la nouvelle version depuis le bandeau de l’accueil, tes données sont gardées.')
+    if (!(await partagerFichierNatif(nom, contenu, type))) throw new DOMException('Partage annulé', 'AbortError')
+    return
+  }
   const fichier = new File([contenu], nom, { type })
   try {
     if (navigator.canShare?.({ files: [fichier] })) {

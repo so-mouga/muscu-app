@@ -7,7 +7,7 @@ import { useRetour } from '../lib/nav'
 import { CATEGORIES, CATEGORIES_COURANTES, compter, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type Categorie, type Fichier } from '../lib/sauvegarde'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
-import { confirmer } from '../components/Dialogues'
+import { confirmer, informer } from '../components/Dialogues'
 import { ListeLexique } from '../components/Lexique'
 import ReglesConseils from '../components/ReglesConseils'
 import Interrupteur from '../components/Interrupteur'
@@ -28,13 +28,18 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
   const [choixExport, setChoixExport] = useState(false)
   const [fichier, setFichier] = useState<Fichier | null>(null)
 
+  /** Partage annulé : rien à dire. Sinon, on dit que rien n'a été sauvegardé. */
+  const signalerEchec = (e: unknown) => {
+    if ((e as Error).name !== 'AbortError') void informer((e as Error).message, 'Sauvegarde impossible')
+  }
+
   const exporter = async (cats: Categorie[]) => {
     try {
       await sauvegarder(cats)
       setChoixExport(false)
-      setMessage('Export prêt ✓')
-    } catch {
-      /* partage annulé */
+      setMessage('Fichier créé ✓ Vérifie qu’il est bien arrivé.')
+    } catch (e) {
+      signalerEchec(e)
     }
   }
 
@@ -52,8 +57,8 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
     }
     try {
       await partagerOuTelecharger(`muscu-series-${jour}.csv`, lignes.join('\n'), 'text/csv')
-    } catch {
-      /* partage annulé */
+    } catch (e) {
+      signalerEchec(e)
     }
   }
 

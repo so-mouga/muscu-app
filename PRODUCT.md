@@ -93,6 +93,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ### À vérifier sur le téléphone (S25)
 
+- Export (APK 1.9) : le menu de partage s'ouvre, le fichier arrive dans Drive et se réimporte ; après le choix d'une appli, le message et la date se mettent à jour (sinon le menu de partage de Samsung ne signale pas le choix : la date reste fausse, mais sans danger). La date « Dernier export » notée avant la 1.9 était fausse : elle reste affichée jusqu'au prochain export.
 - Programme et Exercices : barre à 4 onglets avec sa police ; est-ce que l'onglet Exercices manque ; l'appui sur le jour se trouve-t-il ; la carte du cycle gêne-t-elle en modifiant ; clavier qui reste ouvert dans la recherche d'exercices ; poignée pour réordonner ; vrai bouton retour dans les fenêtres, l'aperçu, le ⋯ et depuis une fiche ; dépliables et courbe au doigt ; constats « ça monte / stable / bloqué » sur ses vraies séances. À essayer avec sa famille : « lance ce programme pour 6 semaines, puis change le jour d'une séance ».
 - Démarrage : vrai bouton retour Android à chaque question (depuis la 1re, l'appli se ferme), largeur des 7 jours et du titre « Ton programme » + « Faire une séance › » avec sa police, flash éventuel au chargement. À essayer avec sa famille : leurs vraies hésitations avant d'ajouter d'autres cas.
 - Bilan et Corps : place en largeur avec sa police, retour Android depuis une fiche (même période, même position), « Noter mon poids », photos réelles dans Corps (poids en mémoire, fluidité).

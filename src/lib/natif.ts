@@ -30,6 +30,8 @@ interface PluginMinuteur {
   version(): Promise<{ versionName: string }>
   rappel(o: { actif: boolean; heure: string; jours: Record<string, string> }): Promise<{ autorise: boolean }>
   seanceDuJour(o: { date: string }): Promise<void>
+  fichierAjouter(o: { nom: string; texte: string; debut: boolean }): Promise<void>
+  partagerFichier(o: { nom: string; type: string }): Promise<{ choisi: boolean }>
   addListener(evenement: 'action', f: (e: EtatNatif) => void): Promise<PluginListenerHandle>
 }
 
@@ -102,6 +104,32 @@ async function versionInstallee(): Promise<string | null> {
   } catch {
     return '1.1'
   }
+}
+
+/** Découpe un texte sans couper un caractère en deux (un émoji tient sur deux unités). */
+export function morceaux(texte: string, taille: number): string[] {
+  const r: string[] = []
+  for (let i = 0; i < texte.length; ) {
+    let fin = Math.min(i + taille, texte.length)
+    const c = texte.charCodeAt(fin - 1)
+    if (fin < texte.length && c >= 0xd800 && c <= 0xdbff) fin--
+    r.push(texte.slice(i, fin))
+    i = fin
+  }
+  return r.length ? r : ['']
+}
+
+/** L'APK installé sait créer un fichier et ouvrir le menu de partage (1.9 et plus) : la WebView ne sait faire ni l'un ni l'autre. */
+export const partageFichierDisponible = async () => {
+  const v = await versionInstallee()
+  return !!v && !plusRecente('1.9', v)
+}
+
+/** Écrit le fichier côté Android, par morceaux, puis ouvre le menu de partage. Vrai si une appli a été choisie. */
+export async function partagerFichierNatif(nom: string, contenu: string, type: string): Promise<boolean> {
+  const parties = morceaux(contenu, 500_000)
+  for (let i = 0; i < parties.length; i++) await MinuteurRepos.fichierAjouter({ nom, texte: parties[i], debut: i === 0 })
+  return (await MinuteurRepos.partagerFichier({ nom, type })).choisi
 }
 
 /**

@@ -1,23 +1,41 @@
 package io.github.somouga.muscu;
 
 import android.Manifest;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import androidx.activity.result.ActivityResult;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /** Pont entre l'appli (src/lib/natif.ts) et la notification de séance tenue par Android. */
 @CapacitorPlugin(name = "MinuteurRepos", permissions = @Permission(alias = "notifications", strings = { Manifest.permission.POST_NOTIFICATIONS }))
 public class MinuteurReposPlugin extends Plugin {
 
     private static MinuteurReposPlugin instance;
+    private static final String APPLI_CHOISIE = "io.github.somouga.muscu.APPLI_CHOISIE";
+
+    private BroadcastReceiver surChoix;
+    private boolean appliChoisie;
 
     @Override
     public void load() {
@@ -166,6 +184,68 @@ public class MinuteurReposPlugin extends Plugin {
     public void seanceDuJour(PluginCall call) {
         RappelSeance.fait(getContext(), call.getString("date", ""));
         call.resolve();
+    }
+
+    /** Dossier du fichier à partager, dans le cache de l'appli : seul le dernier est gardé. */
+    private File fichierPartage(String nom) {
+        return new File(new File(getContext().getCacheDir(), "partage"), new File(nom).getName());
+    }
+
+    /** Écrit un morceau du fichier à partager (la WebView ne sait pas le faire, et un gros fichier ne passe pas d'un coup). */
+    @PluginMethod
+    public void fichierAjouter(PluginCall call) {
+        File f = fichierPartage(call.getString("nom", "sauvegarde.json"));
+        boolean debut = Boolean.TRUE.equals(call.getBoolean("debut", false));
+        File dossier = f.getParentFile();
+        if (debut) {
+            File[] anciens = dossier.listFiles();
+            if (anciens != null) for (File a : anciens) a.delete();
+        }
+        dossier.mkdirs();
+        try (FileOutputStream o = new FileOutputStream(f, !debut)) {
+            o.write(call.getString("texte", "").getBytes(StandardCharsets.UTF_8));
+            call.resolve();
+        } catch (IOException e) {
+            call.reject("Le fichier n’a pas pu être écrit sur le téléphone.");
+        }
+    }
+
+    /** Menu de partage Android pour le fichier écrit. `choisi` : faux si on l'a fermé sans choisir d'appli. */
+    @PluginMethod
+    public void partagerFichier(PluginCall call) {
+        Context c = getContext();
+        File f = fichierPartage(call.getString("nom", "sauvegarde.json"));
+        if (!f.exists()) {
+            call.reject("Le fichier à partager est introuvable.");
+            return;
+        }
+        Uri lien = FileProvider.getUriForFile(c, c.getPackageName() + ".fileprovider", f);
+        Intent envoi = new Intent(Intent.ACTION_SEND).setType(call.getString("type", "application/json")).putExtra(Intent.EXTRA_STREAM, lien).putExtra(Intent.EXTRA_SUBJECT, f.getName()).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        envoi.setClipData(ClipData.newRawUri(f.getName(), lien));
+        appliChoisie = false;
+        arreterEcoute();
+        surChoix = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ctx, Intent i) {
+                appliChoisie = true;
+            }
+        };
+        ContextCompat.registerReceiver(c, surChoix, new IntentFilter(APPLI_CHOISIE), ContextCompat.RECEIVER_NOT_EXPORTED);
+        PendingIntent choix = PendingIntent.getBroadcast(c, 0, new Intent(APPLI_CHOISIE).setPackage(c.getPackageName()), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        startActivityForResult(call, Intent.createChooser(envoi, f.getName(), choix.getIntentSender()), "apresPartage");
+    }
+
+    @ActivityCallback
+    private void apresPartage(PluginCall call, ActivityResult resultat) {
+        arreterEcoute();
+        JSObject r = new JSObject();
+        r.put("choisi", appliChoisie);
+        call.resolve(r);
+    }
+
+    private void arreterEcoute() {
+        if (surChoix != null) getContext().unregisterReceiver(surChoix);
+        surChoix = null;
     }
 
     /** Où en est la séance côté Android : mode (seance, repos, pause), fin du repos, temps restant en pause. */
