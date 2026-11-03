@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { kg, lireChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
@@ -82,6 +82,8 @@ interface Props {
   plan: ExoPlan
   /** Reçoit le plan à la fermeture (OK, appui à côté, retour) : rien ne se perd. */
   onValider: (p: ExoPlan) => void
+  /** Écrit le plan au fil de l'eau, fenêtre encore ouverte : rien ne se perd si l'appli se ferme. */
+  onModifie?: (p: ExoPlan) => void
   /** Enregistrer puis ouvrir l'exercice suivant de la séance (absent pour le dernier). */
   onSuivant?: (p: ExoPlan) => void
   /** Enregistrer puis ouvrir l'exercice précédent (absent pour le premier). */
@@ -93,7 +95,7 @@ interface Props {
   onRetirer?: () => void
 }
 
-export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrecedent, onRemplacer, onInfos, onRetirer }: Props) {
+export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuivant, onPrecedent, onRemplacer, onInfos, onRetirer }: Props) {
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
   // Charge de chaque série (texte saisi) : celle de la série, sinon la charge de départ générale.
   const [charges, setCharges] = useState(() => plan.series.map((s) => kg(s.charge ?? plan.charge ?? undefined).replace('—', '')))
@@ -172,6 +174,17 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
   const resultatRef = useRef(resultat)
   resultatRef.current = resultat
   useRetour(true, valider)
+  // Pas à l'ouverture : un exercice seulement regardé n'est pas réécrit.
+  const ouvert = useRef(false)
+  useEffect(() => {
+    if (!ouvert.current) {
+      ouvert.current = true
+      return
+    }
+    const t = setTimeout(() => onModifie?.(resultatRef.current()), 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p, charges, chauffes, fourchette])
 
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const chargeBase = lireCharge(charges[0] ?? '')

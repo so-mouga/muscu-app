@@ -1101,6 +1101,7 @@ function Editeur({
             maj((x) => (x.exercices[editIdx] = p))
             setEditIdx(null)
           }}
+          onModifie={(p) => maj((x) => (x.exercices[editIdx] = p))}
           onPrecedent={
             editIdx > 0
               ? (p) => {
