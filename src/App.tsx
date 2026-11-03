@@ -5,7 +5,6 @@ import { db } from './db'
 import { transition, useRetour } from './lib/nav'
 import { dateISO } from './lib/calc'
 import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJourNatif, type Rappel } from './lib/natif'
-import IconeOnglet from './components/IconeOnglet'
 import Accueil from './screens/Accueil'
 import Corps, { type PageCorps } from './screens/Corps'
 import Exercices from './screens/Exercices'
@@ -17,7 +16,7 @@ import Seances from './screens/Seances'
 // Réglages n'est plus un onglet : ⚙ en haut à droite de l'accueil.
 const ONGLETS = [
   ['accueil', 'Accueil'],
-  ['historique', 'Progression'],
+  ['historique', 'Progrès'],
   ['corps', 'Corps'],
   ['seances', 'Programme'],
   ['exercices', 'Exercices'],
@@ -35,10 +34,10 @@ export default function App() {
   const [exoInitial, setExoInitial] = useState<string | null>(null)
   /** Page de détail ouverte dans Corps (phases, pesées, mensurations, photos). */
   const [pageCorps, setPageCorps] = useState<PageCorps | null>(null)
-  /** Partie de Progression affichée (mémorisée d'une ouverture à l'autre). */
+  /** Partie de Progrès affichée (mémorisée d'une ouverture à l'autre). */
   const [vue, setVueEtat] = useState<VueProgression>(() => {
     try {
-      // Anciens noms : « seances » = Journal ; Corps et Objectifs sont sortis de Progression.
+      // Anciens noms : « seances » = Journal ; Corps et Objectifs sont sortis de Progrès.
       const v = localStorage.getItem('vueProgression')
       return v === 'journal' || v === 'seances' ? 'journal' : 'bilan'
     } catch {
@@ -140,7 +139,6 @@ export default function App() {
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
           <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setPageCorps(null), setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
-            <IconeOnglet nom={id} />
             {nom}
           </button>
         ))}

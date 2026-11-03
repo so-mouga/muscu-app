@@ -83,7 +83,7 @@ export default function Accueil({
   onReglages: () => void
   /** Ouvre Corps → Objectifs (phase). */
   onObjectifs: () => void
-  /** Ouvre Progression → Journal. */
+  /** Ouvre Progrès → Journal. */
   onJournal: () => void
   /** Ouvre l'onglet Programmes (gestion du cycle). */
   onProgrammes: () => void

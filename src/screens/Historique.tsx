@@ -97,7 +97,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   const haut = (
     <>
       <div className="entete">
-        <h1>Progression</h1>
+        <h1>Progrès</h1>
       </div>
       <div className="segments" role="tablist">
         {VUES.map(([id, nom]) => (
