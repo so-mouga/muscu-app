@@ -262,7 +262,7 @@ select {
 
 .sous-carte {
   background: var(--sous-carte);
-  border: 1px solid var(--voile);
+  border: 1px solid transparent;
   border-radius: var(--rayon-2);
 }
 
@@ -288,7 +288,7 @@ button,
 .chauffes button,
 .pastille-jour,
 .frise-jour-rond,
-.sous-seance-item,
+.choix-seance,
 .carte-seance,
 .fermer-rappel,
 .icone {
@@ -306,7 +306,7 @@ button:active:not(:disabled),
 .chauffes button:active,
 .pastille-jour:active,
 .frise-jour-rond:active,
-.sous-seance-item:active,
+.choix-seance:active,
 .carte-seance:active {
   transform: scale(0.98);
   filter: brightness(0.94);
@@ -344,6 +344,12 @@ button:active:not(:disabled),
 .btn:disabled {
   opacity: 0.4;
   box-shadow: none;
+}
+/* Inactif : neutre, sinon l'orange atténué vire au brun et son texte se lit mal. */
+.btn.primaire:disabled {
+  background: var(--controle);
+  color: var(--texte-3);
+  opacity: 1;
 }
 
 .pastille {
@@ -686,7 +692,7 @@ button:active:not(:disabled),
   padding: 14px 12px;
   border-radius: var(--rayon-2);
   background: var(--surface);
-  border: 1px solid var(--bord);
+  border: 1px solid transparent;
   margin-bottom: 8px;
 }
 
@@ -2142,54 +2148,6 @@ body:has(.focus) {
 }
 
 /* Planning / Programmes : cartes de programme dépliables et sous-séances */
-.carte-programme-actif {
-  border-width: 1.5px;
-}
-.badge-jour {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 38px;
-  width: auto;
-  padding: 0 6px;
-  height: 24px;
-  border-radius: var(--rayon-2);
-  background: var(--surface);
-  color: var(--accent);
-  font-weight: 600;
-  font-size: var(--t-legende);
-  border: 1px solid var(--bord);
-}
-.badge-jour.aujourdhui {
-  background: var(--accent);
-  color: var(--accent-texte);
-  border-color: var(--accent);
-}
-.badge-jour.libre {
-  color: var(--texte-3);
-  font-weight: 500;
-  font-size: var(--t-legende);
-}
-.sous-seance-item {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon-2);
-  padding: 10px 12px;
-  text-align: left;
-  margin-bottom: 0;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-  transition: border-color var(--duree-appui) ease;
-}
-.sous-seance-item:hover,
-.sous-seance-item:active {
-  border-color: var(--texte-3);
-}
 
 /* Éditeur de planning : carte de séance et bande 7 jours */
 .semaines-cycle > span {
@@ -3056,6 +3014,9 @@ button.phase-accueil:active {
   border-radius: 3px;
   background: var(--accent);
 }
+.jauge .niveau.leger {
+  background: var(--info);
+}
 .jauge .niveau.optimal {
   background: var(--ok);
 }
@@ -3067,7 +3028,7 @@ button.phase-accueil:active {
   color: var(--texte-3);
 }
 .etat-volume.leger {
-  color: var(--accent);
+  color: var(--info);
 }
 .etat-volume.optimal {
   color: var(--ok);
@@ -4021,9 +3982,6 @@ html[data-sens='fondu']::view-transition-new(root) {
   padding: 0;
   margin-bottom: var(--e2);
 }
-.ligne-seance.en-cours {
-  background: var(--accent-voile);
-}
 .ligne-seance-tete {
   display: flex;
   align-items: center;
@@ -4523,11 +4481,6 @@ html[data-sens='fondu']::view-transition-new(root) {
 .exos-jour-autres {
   color: var(--texte-3);
   font-size: var(--t-legende);
-}
-.seance-libre {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e1);
 }
 
 /* Journal : en-tête du mois et détail du jour */
@@ -5189,7 +5142,7 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-petit);
 }
 .seance-muscles span.fort {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--voile-fort);
 }
 .seance-muscles span.fort strong {
   color: var(--accent);
@@ -5224,7 +5177,7 @@ html[data-sens='fondu']::view-transition-new(root) {
   padding: var(--e2);
   border-bottom: 0;
   border-radius: var(--rayon-2);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: var(--controle);
 }
 .semaine-allegee {
   color: var(--texte-2);
@@ -5380,10 +5333,9 @@ button.semaine-cycle.courante {
   font-weight: 700;
 }
 .prog-seance.du-jour {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-uni));
+  background: var(--controle);
 }
 .prog-seance.du-jour .prog-jour {
-  background: color-mix(in srgb, var(--accent) 28%, transparent);
   color: var(--accent);
 }
 .prog-jour.faite {
@@ -5406,9 +5358,6 @@ button.semaine-cycle.courante {
 }
 .semaine-allegee {
   color: var(--finisseur);
-}
-button.semaine-cycle.courante {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 /* Programme déplié sur place, dans Changer de programme */
@@ -5693,4 +5642,85 @@ button.semaine-cycle.courante {
   from {
     width: 0;
   }
+}
+
+/* Choisir une séance : une liste, pas de cartes dans des cartes. */
+.choix-seance-titre {
+  margin-bottom: var(--e3);
+}
+.choix-groupe {
+  margin-bottom: var(--e3);
+}
+.choix-groupe-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  width: 100%;
+  min-height: var(--cible);
+  padding: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+.choix-groupe-nom {
+  flex: 1;
+  min-width: 0;
+}
+.choix-groupe .depliable-chevron.ouvert {
+  transform: rotate(90deg);
+}
+.choix-seances {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.choix-seance {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--e2) var(--e3);
+  border-radius: var(--rayon-2);
+  background: var(--surface-2);
+  color: inherit;
+  text-align: left;
+}
+.choix-seance.du-jour {
+  background: var(--controle);
+}
+.choix-seance-jour {
+  flex: none;
+  width: 36px;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  font-weight: 600;
+  text-align: center;
+}
+.choix-seance.du-jour .choix-seance-jour {
+  color: var(--accent);
+}
+.choix-seance-corps {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.choix-seance-nom {
+  font-weight: 600;
+}
+.choix-seance-sous {
+  overflow: hidden;
+  font-size: var(--t-legende);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.choix-seance-faite {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  color: var(--ok);
+  font-size: var(--t-legende);
+  font-weight: 600;
 }

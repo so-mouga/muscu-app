@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { Check, CloudUpload, Download, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, X, Zap } from 'lucide-react'
+import { Check, ChevronRight, CloudUpload, Download, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
@@ -608,178 +608,84 @@ export default function Accueil({
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ligne entre" style={{ marginBottom: 16 }}>
-              <h2 style={{ margin: 0 }}>Choisir une séance</h2>
-              <button
-                type="button"
-                className="icone"
-                onClick={() => setChoix(false)}
-                aria-label="Fermer"
-                style={{ fontSize: 18 }}
-              >
-                ✕
+            <div className="ligne entre choix-seance-titre">
+              <h2>Choisir une séance</h2>
+              <button type="button" className="btn-fermer" onClick={() => setChoix(false)} aria-label="Fermer">
+                <X size={22} />
               </button>
             </div>
 
-            {[
-              ...programmes.map((p) => ({
-                id: p.id,
-                nom: p.nom,
-                actif: p.id === actif.id,
-                prog: p,
-                seances: seancesDe(p),
-              })),
-              ...(horsProgramme.length
-                ? [{ id: 'hors', nom: 'Hors programme', actif: false, prog: null, seances: horsProgramme }]
-                : []),
-            ].map((g) => {
-              const ouvert = groupeOuvert === g.id
-              return (
-                <div
-                  key={g.id}
-                  className={'carte pile' + (g.actif ? ' carte-programme-actif' : '')}
-                  style={{
-                    marginBottom: 12,
-                    padding: 12,
-                    background: 'var(--surface)',
-                    border: g.actif ? '1.5px solid var(--accent)' : '1px solid var(--bord)',
-                    borderRadius: 'var(--rayon-2)',
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="ligne entre"
-                    style={{
-                      width: '100%',
-                      background: 'none',
-                      border: 'none',
-                      padding: '4px 2px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      alignItems: 'center',
-                    }}
-                    onClick={() => setOuvert(ouvert ? '' : g.id)}
-                    aria-expanded={ouvert}
-                  >
-                    <div className="ligne wrap" style={{ gap: 8, alignItems: 'center' }}>
-                      <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>{g.nom}</strong>
-                      {g.actif && <span className="pastille ok">actif</span>}
-                      <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>
-                        ({g.seances.length} séance{g.seances.length > 1 ? 's' : ''})
-                      </span>
-                    </div>
-                    <span className={'muted chevron-accordeon' + (ouvert ? ' ouvert' : '')} style={{ fontSize: 16 }}>▸</span>
-                  </button>
-
-                  <Deplie ouvert={ouvert}>
-                      <div
-                        className="pile"
-                        style={{
-                          gap: 8,
-                          marginTop: 10,
-                          paddingTop: 10,
-                          borderTop: '1px solid var(--bord)',
-                        }}
-                      >
+            {(() => {
+              const groupes = [
+                ...programmes.map((p) => ({ id: p.id, nom: p.nom, actif: p.id === actif.id, prog: p, seances: seancesDe(p) })),
+                ...(horsProgramme.length ? [{ id: 'hors', nom: 'Hors programme', actif: false, prog: null, seances: horsProgramme }] : []),
+              ]
+              // Un seul programme : rien à replier, ses séances sont tout de suite là.
+              const plusieurs = groupes.length > 1
+              return groupes.map((g) => {
+                const ouvert = !plusieurs || groupeOuvert === g.id
+                const tete = (
+                  <>
+                    <span className="choix-groupe-nom">
+                      <strong>{g.nom}</strong>
+                      {g.actif && plusieurs && <span className="faible"> · en cours</span>}
+                    </span>
+                    <span className="faible">{g.seances.length} séance{g.seances.length > 1 ? 's' : ''}</span>
+                  </>
+                )
+                return (
+                  <section key={g.id} className="choix-groupe">
+                    {plusieurs ? (
+                      <button type="button" className="choix-groupe-tete" onClick={() => setOuvert(ouvert ? '' : g.id)} aria-expanded={ouvert}>
+                        {tete}
+                        <ChevronRight size={18} className={'muted depliable-chevron' + (ouvert ? ' ouvert' : '')} />
+                      </button>
+                    ) : (
+                      <div className="choix-groupe-tete">{tete}</div>
+                    )}
+                    <Deplie ouvert={ouvert}>
+                      <div className="choix-seances">
                         {g.seances.length === 0 ? (
-                          <div className="faible" style={{ fontStyle: 'italic', padding: '6px 2px' }}>
-                            Aucune séance dans ce programme.
-                          </div>
+                          <div className="faible">Aucune séance dans ce programme.</div>
                         ) : (
                           g.seances.map((m) => {
-                            const creneauxJours = g.prog
-                              ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => e.jour!)
-                              : []
-                            const estAujourdhui = creneauxJours.includes(jour)
-                            const faiteSemaine = realisees(m) > 0
-
+                            const jours = g.prog ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => e.jour!) : []
+                            const duJour = jours.includes(jour)
                             return (
-                              <button
-                                key={m.id}
-                                type="button"
-                                className="sous-seance-item"
-                                style={{
-                                  padding: '12px 14px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  gap: 12,
-                                }}
-                                onClick={() => voir(m)}
-                              >
-                                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                                  <div className="ligne wrap" style={{ gap: 6, alignItems: 'center' }}>
-                                    <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>{m.nom}</strong>
-                                    {creneauxJours.map((j) => (
-                                      <span key={j} className={'badge-jour' + (j === jour ? ' aujourdhui' : '')}>
-                                        {['', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][j]}
-                                      </span>
-                                    ))}
-                                  </div>
-                                  {m.sousTitre && (
-                                    <div
-                                      className="muted petit"
-                                      style={{
-                                        marginTop: 2,
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                      }}
-                                    >
-                                      {m.sousTitre}
-                                    </div>
-                                  )}
-                                  <div className="faible" style={{ marginTop: 4, fontSize: 'var(--t-legende)' }}>
-                                    {dureeTexte(m, terminees)}
-                                  </div>
-                                </div>
-
-                                <div className="ligne" style={{ gap: 6, alignItems: 'center', flexShrink: 0 }}>
-                                  {faiteSemaine ? (
-                                    <span className="pastille ok" style={{ fontSize: 'var(--t-legende)', fontWeight: 600 }}>
-                                      ✓ Faite
-                                    </span>
-                                  ) : estAujourdhui ? (
-                                    <span className="pastille accent" style={{ fontSize: 'var(--t-legende)', fontWeight: 600 }}>
-                                      Aujourd'hui
-                                    </span>
-                                  ) : null}
-                                  <span className="muted" style={{ fontSize: 'var(--t-texte)', marginLeft: 2 }}>›</span>
-                                </div>
+                              <button key={m.id} type="button" className={'choix-seance' + (duJour ? ' du-jour' : '')} onClick={() => voir(m)}>
+                                <span className="choix-seance-jour">{duJour ? 'auj.' : jours.map((j) => ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'][j]).join(' ')}</span>
+                                <span className="choix-seance-corps">
+                                  <span className="choix-seance-nom">{m.nom}</span>
+                                  {m.sousTitre && <span className="faible choix-seance-sous">{m.sousTitre}</span>}
+                                  <span className="faible choix-seance-sous">{dureeTexte(m, terminees)}</span>
+                                </span>
+                                {realisees(m) > 0 && (
+                                  <span className="choix-seance-faite">
+                                    <Check size={16} /> Faite
+                                  </span>
+                                )}
+                                <ChevronRight size={20} className="muted" />
                               </button>
                             )
                           })
                         )}
                       </div>
-                  </Deplie>
-                </div>
-              )
-            })}
+                    </Deplie>
+                  </section>
+                )
+              })
+            })()}
 
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--bord)' }}>
-              <button
-                type="button"
-                className="sous-seance-item"
-                style={{
-                  padding: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  width: '100%',
-                }}
-                onClick={() => lancer()}
-              >
-                <div style={{ textAlign: 'left' }}>
-                  <strong className="seance-libre" style={{ fontSize: 'var(--t-texte)' }}>
-                    <Zap size={16} strokeWidth={2} /> Séance libre
-                  </strong>
-                  <div className="faible" style={{ marginTop: 2, fontSize: 'var(--t-legende)' }}>
-                    Exercices ajoutés au fur et à mesure sans modèle
-                  </div>
-                </div>
-                <span className="pastille accent" style={{ fontSize: 'var(--t-texte)', padding: '2px 8px' }}>+</span>
-              </button>
-            </div>
+            <button type="button" className="choix-seance" onClick={() => lancer()}>
+              <span className="choix-seance-jour">
+                <Zap size={18} />
+              </span>
+              <span className="choix-seance-corps">
+                <span className="choix-seance-nom">Séance libre</span>
+                <span className="faible choix-seance-sous">Tu ajoutes les exercices au fur et à mesure</span>
+              </span>
+              <ChevronRight size={20} className="muted" />
+            </button>
 
             <button className="btn discret plein" style={{ marginTop: 10 }} onClick={() => setChoix(false)}>
               Annuler
