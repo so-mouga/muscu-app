@@ -58,7 +58,10 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Repères : sur la page Programme, frise du cycle, séance du jour en teinte orange (« auj. »), ✓ vert sur les séances faites cette semaine ; en haut du cycle, séances faites et semaines tenues.
 - Page du cycle : un appui sur une semaine en cours ou à venir propose Normale, Allégée ou En pause, y compris pour annuler et pour une semaine future ; en pause, « Reprendre cette semaine » sur l'Accueil et la page Programme, pas de « Démarrer » ; ⋯ (modifier, terminer) ; « Voir le bilan de ce cycle » ouvre le Bilan sur « Cycle » ; après la fin, « Dernier cycle » reste dans le Bilan et « Relancer sur 6 semaines » sur la page Programme.
 - « Volume par semaine » : une ligne qui donne la réponse, un appui pour les jauges Léger / Optimal / Beaucoup, sur un écran ; un appui sur un muscle ouvre sa cible (« Annuler » ne garde rien) ; « Revenir à mes cibles d'avant » si une ancienne version existe.
-- Supprimer un programme, une séance (au moins un programme reste).
+- Supprimer un programme, une séance (au moins un programme reste). Le programme d'un cycle en cours ne se supprime pas : l'appli dit de terminer d'abord le cycle. Supprimer une séance dit de quel programme elle sort, et elle n'y reste pas.
+- Dupliquer un programme, puis modifier une séance de la copie : le programme d'origine ne change pas, et aucune carte « Ton cycle garde l'ancienne version » n'apparaît.
+- Nouvelle séance : un nom libre est proposé. Le vider, ajouter des exercices et quitter : la séance est gardée sous le nom proposé.
+- Superset A puis B : retirer B. A n'est plus lié à l'exercice suivant et retrouve un vrai repos.
 
 ### 5. Exercices (dans Progrès, plus d'onglet)
 - Barre du bas à 4 onglets. Progrès → Exercices : tes exercices d'abord avec leur dernière performance et « ça monte », « stable » ou « bloqué » ; les autres par la recherche, les filtres ou « Voir les n autres ». « Voir tous les exercices » du Bilan y mène ; retour d'une fiche à la même position.
