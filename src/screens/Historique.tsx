@@ -17,7 +17,7 @@ import { PlanchePhotos, POSES } from './Photos'
 import Bilan from './Bilan'
 import { SaisieMesures, type PageCorps } from './Corps'
 import { finAffichee, nomCourtPhase, periodes, type EtapeObjectifs } from '../lib/objectifs'
-import { prevuLe } from '../lib/cycle'
+import { etatCycle, prevuLe } from '../lib/cycle'
 import { objectifDuJour } from '../lib/nutrition'
 
 type Prevu = ReturnType<typeof prevuLe>
@@ -85,7 +85,9 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
 
   if (!terminees) return null
   // Prévu à venir (et aujourd'hui tant que rien n'est fait) : planning du cycle en cours ou du programme actif.
-  const prevu = (iso: string) => (iso > dateISO() || (iso === dateISO() && !terminees.some((s) => s.date === iso)) ? prevuLe(catalogue.planning, catalogue.cycle, iso) : null)
+  // Cycle arrivé au bout de ses semaines : on suit de nouveau le programme, comme l'accueil.
+  const cycleEnService = catalogue.cycle && !etatCycle(catalogue.cycle).fini ? catalogue.cycle : undefined
+  const prevu = (iso: string) => (iso > dateISO() || (iso === dateISO() && !terminees.some((s) => s.date === iso)) ? prevuLe(catalogue.planning, cycleEnService, iso) : null)
   const ouverte = detail ? terminees.find((s) => s.id === detail) : undefined
   if (ouverte)
     return (
