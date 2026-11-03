@@ -3438,6 +3438,16 @@ button.phase-accueil {
   padding: 4px 0 10px;
   font-size: var(--t-petit);
 }
+.fin-relier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  margin-bottom: var(--e3);
+}
+.fin-relier .btn {
+  flex: none;
+}
 .fin-non-faits {
   margin-top: var(--e3);
 }

@@ -148,6 +148,8 @@ export interface Seance {
   passes?: string[]
   /** Séries ajoutées (+) ou retirées (−) par rapport au modèle, pour aujourd'hui. */
   ajustSeries: Record<string, number>
+  /** Exercices remplacés aujourd'hui : on propose de les relier en fin de séance, pas en pleine série. */
+  aRelier?: { a: string; b: string }[]
   /** Objectifs fixés à la main en fin de séance pour la prochaine fois, par exercice. */
   objectifs?: Record<string, Objectif>
   ressenti?: number

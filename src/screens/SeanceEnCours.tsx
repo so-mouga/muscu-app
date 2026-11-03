@@ -146,8 +146,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [machineDe, setMachineDe] = useState<number | null>(null)
   /** Vue liste : exercice déplié (un seul à la fois). */
   const [ouvert, setOuvert] = useState<number | null>(null)
-  /** Après un remplacement : proposer de relier les deux exercices. */
-  const [lien, setLien] = useState<{ a: string; b: string } | null>(null)
   const [verrou, setVerrou] = useState(false)
   const maintenant = useHorloge(1000)
   const derniereTouche = useRef(0)
@@ -405,7 +403,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         range(`idx:${seance.id}`, c.i + 1)
       }
       setToast(`${nomAncien} → ${exo.nom}${chargeAncien ? ` (${kg(chargeAncien)} kg)` : ''}`)
-      if (!(equivalents[ancien.exoId] ?? []).includes(exoId)) setLien({ a: ancien.exoId, b: exoId })
+      if (!(equivalents[ancien.exoId] ?? []).includes(exoId))
+        await majSeance(seance.id, (s) => {
+          s.aRelier = [...(s.aRelier ?? []), { a: ancien.exoId, b: exoId }]
+        })
     } else {
       await majSeance(seance.id, (s) => {
         s.exercices.push(planParDefaut(exo))
@@ -598,32 +599,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onChoix={choisir}
           onFermer={() => setChoix(null)}
         />
-      )}
-      {lien && (
-        <div className="modal-fond" onClick={() => setLien(null)}>
-          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-            <h2>Relier ces deux exercices ?</h2>
-            <div>
-              <strong>{catalogue.exo(lien.a).nom}</strong> ⇄ <strong>{catalogue.exo(lien.b).nom}</strong>
-            </div>
-            <div className="faible">
-              La prochaine fois que l’un est pris, l’autre te sera proposé en premier, et tu verras ta dernière perf sur l’un la première fois que tu fais
-              l’autre. Chacun garde sa propre progression.
-            </div>
-            <button
-              className="btn primaire grand"
-              onClick={() => {
-                void modifierEquivalents((eq) => relies(eq, lien.a, lien.b))
-                setLien(null)
-              }}
-            >
-              Relier
-            </button>
-            <button className="btn discret plein" onClick={() => setLien(null)}>
-              Pas cette fois
-            </button>
-          </div>
-        </div>
       )}
     </>
   )
@@ -1232,6 +1207,7 @@ function FinSeance({
   const [ressenti, setRessenti] = useState<number | undefined>(seance.ressenti)
   const [energie, setEnergie] = useState<number | undefined>(seance.energie)
   const [garder, setGarder] = useState(false)
+  const [reliesIci, setReliesIci] = useState<string[]>([])
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
   const [ajuste, setAjuste] = useState<string | null>(null)
@@ -1495,6 +1471,22 @@ function FinSeance({
         </>
       )}
 
+      {(seance.aRelier ?? []).filter((l) => !reliesIci.includes(l.b)).map((l) => (
+        <div key={l.a + l.b} className="fin-relier">
+          <span className="faible petit">
+            {catalogue.exo(l.a).nom} remplacé par {catalogue.exo(l.b).nom}. Les relier ? Chacun garde sa progression, l’autre sera proposé en premier.
+          </span>
+          <button
+            className="btn petit"
+            onClick={() => {
+              void modifierEquivalents((eq) => relies(eq, l.a, l.b))
+              setReliesIci((x) => [...x, l.b])
+            }}
+          >
+            Relier
+          </button>
+        </div>
+      ))}
       {seance.series.length > 0 && nonFaits.length > 0 && (
         <div className="faible petit fin-non-faits">
           Pas fait aujourd’hui : {nonFaits.map((p) => catalogue.exo(p.exoId).nom).join(', ')}
