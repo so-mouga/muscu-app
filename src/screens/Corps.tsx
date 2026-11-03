@@ -404,7 +404,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
               </h3>
               <Aide titre={def.nom} texte={def.consigne} />
             </div>
-            <ValeursMesure def={def} mesures={mesures} />
+            <ValeursMesure def={def} mesures={mesures} depuis={depuis} />
           </div>
         </div>
 
@@ -490,8 +490,8 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
   )
 }
 
-/** Dernière valeur de la mesure (par côté) et écart avec la prise d'avant. */
-function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) {
+/** Dernière valeur de la mesure (par côté) et son écart, avec le même repère que la liste en dessous. */
+function ValeursMesure({ def, mesures, depuis }: { def: DefMesure; mesures: Mesure[]; depuis?: string }) {
   const lignes = clesDe(def)
     .map((c) => ({ c, s: serie(mesures, c) }))
     .filter((x) => x.s.length)
@@ -501,7 +501,7 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {lignes.map(({ c, s }) => {
         const der = s[s.length - 1]
-        const d = s.length > 1 ? der.valeur - s[s.length - 2].valeur : null
+        const d = s.length > 1 ? der.valeur - auRepere(s, depuis).valeur : null
         return (
           <div key={c}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>

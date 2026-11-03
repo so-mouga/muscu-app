@@ -361,7 +361,7 @@ function FenetreMesures({
                           style={{
                             fontSize: 'var(--t-legende)',
                             fontWeight: 600,
-                            color: e.texte.startsWith('+') ? 'var(--ok)' : e.texte.startsWith('−') ? 'var(--info)' : 'var(--texte-2)',
+                            color: 'var(--texte-2)',
                           }}
                         >
                           ({e.texte})
