@@ -2,12 +2,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { AlertTriangle, ChevronDown, ChevronRight, Pencil, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
-import Aide from './Aide'
 import { db, setReglage } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import {
   ajouterApres,
-  avancePoids,
   avisRythme,
   CLE_OBJECTIFS,
   deplacerPhase,
@@ -67,9 +65,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
   // Métriques pour la phase en cours
   const totalEnCours = enCours?.finPrevue ? semainesEntre(enCours.debut, enCours.finPrevue) : undefined
   const departEnCours = enCours ? poidsDepart(pesees, enCours.debut) : null
-  const actuelEnCours = enCours ? poidsSemaine(pesees, aujourdhui) : null
   const viseEnCours = departEnCours !== null && enCours?.ecartVise ? Math.round((departEnCours + enCours.ecartVise) * 10) / 10 : null
-  const avanceEnCours = viseEnCours !== null && actuelEnCours !== null ? avancePoids(enCours!.phase, actuelEnCours, viseEnCours, aujourdhui, enCours!.finPrevue) : null
   const avisEnCours = enCours?.ecartVise && totalEnCours ? avisRythme(enCours.phase, enCours.ecartVise, totalEnCours) : null
 
   return (
@@ -96,13 +92,6 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
       )}
 
       <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>Phases</h3>
-            <Aide titre="Phases d'entraînement" texte="Planifie tes cycles de Prise de masse, Sèche ou Maintien avec un objectif de durée et d'évolution de poids." />
-          </div>
-        </div>
-
         {/* --- PHASE EN COURS --- */}
         {enCours && (
           <div>
@@ -170,7 +159,6 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                     <div style={{ fontSize: 'var(--t-petit)', color: 'var(--texte)', fontWeight: 500 }}>
                       {kg(departEnCours)} kg → {viseEnCours !== null ? `${kg(viseEnCours)} kg` : ''} ({ecartTexte(enCours.ecartVise)})
                       {totalEnCours && ` · ${ecartTexte(Math.round((enCours.ecartVise / totalEnCours) * 100) / 100)}/sem`}
-                      {avanceEnCours?.atteint && ' 🎉'}
                     </div>
                   )}
                 </div>
