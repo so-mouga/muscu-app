@@ -127,7 +127,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
           })
       }
     }
-    const b = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase, debutPhase: d.objectifs && phaseA(d.objectifs, fin)?.debut }, fin)
+    const b = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase, debutPhase: d.objectifs && phaseA(d.objectifs, fin)?.debut, objectifs: d.objectifs }, fin)
     if (b) stagnations.push({ exo, semaines: b.semaines, seances: b.seances, pistes: b.pistes })
   }
   progressions.sort((a, b) => b.pct - a.pct)

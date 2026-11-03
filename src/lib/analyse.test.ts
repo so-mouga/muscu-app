@@ -53,8 +53,14 @@ describe('analyse d’une période', () => {
     expect(a.volume.pecs).toBe(2)
     expect(a.records.map((r) => r.exo.id)).toEqual(['smith_incline', 'smith_incline', 'smith_incline'])
     expect(a.progressions[0].exo.id).toBe('smith_incline')
-    expect(a.stagnations.map((s) => s.exo.id)).toEqual(['tirage_large'])
+    expect(a.stagnations).toEqual([])
     expect(a.poids).toEqual({ debut: 74, fin: 73.5, semaines: 3 })
+  })
+  it('stagnation : tirage identique pendant 6 semaines d’entraînement, le smith qui monte n’y est pas', () => {
+    const l = Array.from({ length: 7 }, (_, i) => seance(`s${i}`, new Date(Date.parse('2026-09-21T12:00:00') + i * 7 * 86400000).toISOString().slice(0, 10), [50 + i * 2.5]))
+    const b = analyser(donnees(l), '2026-10-05', '2026-11-08', 2)
+    expect(b.stagnations.map((s) => s.exo.id)).toEqual(['tirage_large'])
+    expect(aRetenir(b, null, cibles()).join('\n')).toContain('Tirage poitrine prise large : pas de progrès depuis 6 semaines')
   })
   it('à retenir : assiduité, muscles, stagnation, recompo, records', () => {
     const t = aRetenir(a, null, cibles()).join('\n')
@@ -62,7 +68,6 @@ describe('analyse d’une période', () => {
     expect(t).toContain('aucune série dure')
     expect(t).toContain('Dos un peu léger : 1 série dure par semaine, la zone utile commence à 10')
     expect(t).toContain('et 3 autres : aucune série dure')
-    expect(t).toContain('Tirage poitrine prise large : pas de progrès depuis 3 semaines')
     // 5 phrases au plus : la recompo et les records passent après
     expect(aRetenir(a, null, cibles()).length).toBeLessThanOrEqual(5)
   })

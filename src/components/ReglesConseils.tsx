@@ -54,8 +54,9 @@ const REGLES: [string, string[]][] = [
   [
     'Exercice bloqué',
     [
-      'Bloqué : pas de progrès d’au moins 1 % de ta force estimée (meilleure série pour un exercice d’isolation) depuis 3 semaines et 3 séances, comparé à ton dernier vrai progrès. Il faut 4 séances au moins et l’exercice fait dans les 14 derniers jours. Déloads exclus. Jamais en sèche (y garder ses charges, c’est déjà réussir).',
-      'Pistes affichées seulement si tu as noté la donnée : sommeil moyen sous 6 h 30, calories « pas assez » au moins 30 % des jours, en prise poids qui monte de moins de 0,1 kg par semaine depuis le début de la phase, effort moyen de 9 ou plus, pas de déload depuis plus de 6 semaines.',
+      'Bloqué : ni charge plus lourde, ni rep de plus à une charge déjà faite, sur 6 semaines d’entraînement et au moins 3 séances, avec l’exercice fait dans les 14 derniers jours. Monter la charge ou ajouter une rep sur une seule série, c’est un progrès. L’effort noté ne compte pas ici.',
+      'Ne comptent pas : les semaines sans cet exercice, les déloads et la sèche (y garder ses charges, c’est déjà réussir). Après une sèche ou 3 semaines d’arrêt, on repart de zéro. À la charge maximale du matériel, on ne parle pas de blocage.',
+      'Pistes affichées seulement si tu as noté la donnée : sommeil moyen sous 6 h 30, calories « pas assez » au moins 30 % des jours, en prise poids qui monte de moins de 0,1 kg par semaine depuis le début de la phase, effort moyen de 9 ou plus, pas de déload ni d’arrêt depuis plus de 6 semaines.',
     ],
   ],
   [

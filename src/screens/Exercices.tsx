@@ -71,7 +71,7 @@ export default function Exercices({ catalogue, haut, initial, onRetourInitial }:
         const e = catalogue.exo(id)
         const derniere = l.find((s) => !s.deload) ?? l[0]
         const m = meilleureSerie(derniere.series.filter((x) => x.exoId === id), e.assistance)
-        return [id, { perf: m ? chargeQte(e, m.charge, m.reps) : '', lecture: lectureExo(e, [...l].reverse(), enSeche) }]
+        return [id, { perf: m ? chargeQte(e, m.charge, m.reps) : '', lecture: lectureExo(e, [...l].reverse(), enSeche, catalogue.objectifs) }]
       })
     )
   }, [seances, catalogue, enSeche])
@@ -155,7 +155,8 @@ export default function Exercices({ catalogue, haut, initial, onRetourInitial }:
           copieDe={copieDe?.id === exo.id ? copieDe.nom : undefined}
           equivalents={liste}
           enSeche={enSeche}
-          pistes={diagnostic(exo, { seances, journal, pesees, phase, debutPhase: phaseEnCours?.debut }, dateISO())?.pistes}
+          objectifs={catalogue.objectifs}
+          pistes={diagnostic(exo, { seances, journal, pesees, phase, debutPhase: phaseEnCours?.debut, objectifs: catalogue.objectifs }, dateISO())?.pistes}
           suggestions={tous
             .filter((e) => e.muscle === exo.muscle && e.id !== exo.id && !e.supprime && !(eq[exo.id] ?? []).includes(e.id))
             .sort((a, b) => Number(b.type === exo.type) - Number(a.type === exo.type) || (historique.get(b.id)?.n ?? 0) - (historique.get(a.id)?.n ?? 0))

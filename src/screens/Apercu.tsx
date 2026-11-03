@@ -42,7 +42,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const aujourdhui = dateISO()
-  const contexte = terminees && { seances: [...terminees, ...deloads], journal, pesees, phase: phaseA(catalogue.objectifs, aujourdhui)?.phase, debutPhase: phaseA(catalogue.objectifs, aujourdhui)?.debut }
+  const contexte = terminees && { seances: [...terminees, ...deloads], journal, pesees, phase: phaseA(catalogue.objectifs, aujourdhui)?.phase, debutPhase: phaseA(catalogue.objectifs, aujourdhui)?.debut, objectifs: catalogue.objectifs }
   // En-tête : la séance telle qu'elle sera faite (allégée en déload).
   const prevu = deload ? { ...modele, exercices: modele.exercices.map(planDeload) } : modele
   const series = prevu.exercices.reduce((a, p) => a + p.series.length, 0)

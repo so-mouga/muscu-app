@@ -889,7 +889,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               derniere={histo[0]}
               repere={repereDe(p.exoId)}
               noteAvant={noteAvant(p.exoId)}
-              bloque={seance.deload || phaseA(catalogue.objectifs, seance.date)?.phase === 'seche' ? 0 : (blocage(exos[i], terminees, seance.date)?.semaines ?? 0)}
+              bloque={seance.deload || phaseA(catalogue.objectifs, seance.date)?.phase === 'seche' ? 0 : (blocage(exos[i], terminees, seance.date, catalogue.objectifs)?.semaines ?? 0)}
               ouvert={ouvert === i}
               onBasculer={() => setOuvert(ouvert === i ? null : i)}
               onContinuer={() => allerSaisir(i)}

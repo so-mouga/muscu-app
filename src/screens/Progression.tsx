@@ -12,6 +12,7 @@ import { consigne } from '../data/consignes'
 import { EXERCICES } from '../data/exercices'
 import { LEXIQUE } from '../data/lexique'
 import { blocage, type Blocage } from '../lib/blocages'
+import type { EtapeObjectifs } from '../lib/objectifs'
 import { chargeQte, chargeTexte, dateCourte, dateISO, e1rm, enTemps, kg, qte, serieTexte } from '../lib/calc'
 import { evolutionForce, meilleureSerie } from '../lib/historique'
 import { useRetour } from '../lib/nav'
@@ -32,11 +33,11 @@ const effortDe = (series: Serie[]) => {
 }
 
 /** Est-ce que je progresse ? Le constat, chiffré, sur les 8 dernières semaines : les mêmes règles que le Bilan et les blocages. */
-export function lectureExo(exo: Exercice, chrono: Seance[], enSeche = false): { texte: string; classe: string; detail?: string } | null {
+export function lectureExo(exo: Exercice, chrono: Seance[], enSeche = false, objectifs: EtapeObjectifs[] = []): { texte: string; classe: string; detail?: string } | null {
   const travail = chrono.filter((s) => !s.deload)
   if (travail.length < 2) return null
   // En sèche, on ne parle pas de blocage : la force qui tient est déjà un bon résultat.
-  const bloque: Blocage | null = enSeche ? null : blocage(exo, travail, dateISO())
+  const bloque: Blocage | null = enSeche ? null : blocage(exo, travail, dateISO(), objectifs)
   if (bloque) return { texte: `Bloqué depuis ${bloque.semaines} semaines`, classe: 'alerte-texte', detail: `pas de progrès sur ${bloque.seances} séances` }
   const dernier = Date.parse(travail[travail.length - 1].date)
   const recentes = travail.filter((s) => dernier - Date.parse(s.date) <= 56 * JOUR)
@@ -70,6 +71,7 @@ export function Detail({
   onRelierExo,
   onDelier,
   enSeche,
+  objectifs,
   pistes,
 }: {
   exo: Exercice
@@ -89,6 +91,8 @@ export function Detail({
   onRelierExo: (id: string) => void
   onDelier: (id: string) => void
   enSeche?: boolean
+  /** Frise des phases : les semaines de sèche ne comptent pas dans un blocage. */
+  objectifs?: EtapeObjectifs[]
   /** Exercice bloqué : pistes chiffrées, jamais une cause. */
   pistes?: string[]
 }) {
@@ -116,7 +120,7 @@ export function Detail({
 
   const derniere = avec.find((s) => !s.deload) ?? avec[0]
   const meilleure = derniere && meilleureSerie(seriesDe(derniere), exo.assistance)
-  const verdict = lectureExo(exo, chrono, enSeche)
+  const verdict = lectureExo(exo, chrono, enSeche, objectifs)
 
   const toutes = avec.flatMap((s) => seriesDe(s))
   const repsParCharge = new Map<number, number>()

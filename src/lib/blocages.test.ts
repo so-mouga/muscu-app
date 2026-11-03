@@ -1,6 +1,8 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
 import { blocage, deloadConseille, diagnostic, pistes, texteBlocage } from './blocages'
+import { historiqueDe } from './historique'
+import { conseil, suggestionPour } from './progression'
 
 type S = [exoId: string, charge: number, reps: number, rpe: number]
 const seance = (date: string, series: S[], extra: Partial<Seance> = {}): Seance =>
@@ -23,30 +25,113 @@ const smith = EXERCICES.smith_incline
 const butterfly = EXERCICES.butterfly
 const exo = (id: string) => EXERCICES[id]
 
+const semaines = (n: number, depart = '2026-09-07') => Array.from({ length: n }, (_, i) => new Date(Date.parse(depart + 'T12:00:00') + i * 7 * 86400000).toISOString().slice(0, 10))
+const finDe = (d: string[]) => d[d.length - 1]
+
 describe('blocage', () => {
-  it('mêmes perfs depuis 4 semaines : bloqué', () => {
-    const l = DATES.map((d) => seance(d, [['smith_incline', 52.5, 8, 8]]))
-    expect(blocage(smith, l, FIN)).toEqual({ semaines: 4, seances: 4, depuis: '2026-10-01' })
+  it('mêmes charge et reps sur 6 semaines d’entraînement : bloqué ; sur 5 : pas encore', () => {
+    const d = semaines(7)
+    const l = d.map((x) => seance(x, [['smith_incline', 52.5, 8, 8]]))
+    expect(blocage(smith, l, finDe(d))).toEqual({ semaines: 6, seances: 6, depuis: d[0] })
+    expect(blocage(smith, l.slice(0, 6), d[5])).toBeNull()
   })
-  it('même charge mais RPE qui baisse : c’est un progrès', () => {
-    const l = DATES.map((d, i) => seance(d, [['smith_incline', 52.5, 8, [9, 9, 9, 8, 7][i]]]))
-    expect(blocage(smith, l, FIN)).toBeNull()
+  it('monter la charge est un progrès, même si les reps repartent au bas', () => {
+    const d = semaines(7)
+    const l = d.map((x, i) => seance(x, [['smith_incline', i < 6 ? 50 : 52.5, i < 6 ? 12 : 8, 8]]))
+    expect(blocage(smith, l, finDe(d))).toBeNull()
   })
-  it('isolation : une rep de plus compte', () => {
-    const l = DATES.map((d, i) => seance(d, [['butterfly', 30, [12, 12, 13, 13, 13][i], 8]]))
-    expect(blocage(butterfly, l, FIN)).toBeNull()
-    expect(blocage(butterfly, DATES.map((d) => seance(d, [['butterfly', 30, 12, 8]])), FIN)?.semaines).toBe(4)
+  it('une rep de plus sur une seule série, comme le conseille l’appli, est un progrès', () => {
+    const d = semaines(7)
+    const l = d.map((x, i) => seance(x, [['smith_incline', 50, 10, 8], ['smith_incline', 50, 9, 8], ['smith_incline', 50, i < 6 ? 8 : 9, 8]]))
+    expect(blocage(smith, l, finDe(d))).toBeNull()
   })
-  it('trop peu de séances, exercice abandonné ou déloads : rien', () => {
-    expect(blocage(smith, DATES.slice(0, 3).map((d) => seance(d, [['smith_incline', 52.5, 8, 8]])), FIN)).toBeNull()
-    expect(blocage(smith, DATES.map((d) => seance(d, [['smith_incline', 52.5, 8, 8]])), '2026-11-20')).toBeNull()
-    const avecDeloads = DATES.map((d, i) => seance(d, [['smith_incline', i >= 3 ? 47.5 : 52.5, 8, 8]], { deload: i >= 3 }))
-    expect(blocage(smith, avecDeloads, FIN)).toBeNull()
+  it('une note d’effort ne compte ni comme un progrès ni comme une référence à battre', () => {
+    const d = semaines(7)
+    const l = d.map((x, i) => seance(x, [['smith_incline', 52.5, 8, i === 2 ? 6 : 8]]))
+    expect(blocage(smith, l, finDe(d))?.depuis).toBe(d[0])
+  })
+  it('isolation et poids du corps : même règle, avec ou sans pesée', () => {
+    const d = semaines(7)
+    expect(blocage(butterfly, d.map((x) => seance(x, [['butterfly', 30, 12, 8]])), finDe(d))?.semaines).toBe(6)
+    const tractions = d.map((x, i) => seance(x, [['tractions', 5 + i * 2.5, 6, 8]], i >= 3 ? { poidsCorps: 80 } : {}))
+    expect(blocage(EXERCICES.tractions, tractions, finDe(d))).toBeNull()
+  })
+  it('exercice assisté : moins d’assistance est un progrès', () => {
+    const d = semaines(7)
+    const l = d.map((x, i) => seance(x, [['tractions_assistees', i < 6 ? 30 : 25, 8, 8]]))
+    expect(blocage(EXERCICES.tractions_assistees, l, finDe(d))).toBeNull()
+  })
+  it('baisser la charge n’est pas un progrès', () => {
+    const d = semaines(8)
+    const l = d.map((x, i) => seance(x, [['smith_incline', i === 1 ? 50 : 52.5, 8, 8]]))
+    expect(blocage(smith, l, finDe(d))?.depuis).toBe(d[0])
+  })
+  it('à la charge maximale du matériel : pas de blocage', () => {
+    const d = semaines(7)
+    const l = d.map((x) => seance(x, [['elevation_machine', 35, 15, 8]]))
+    expect(blocage(EXERCICES.elevation_machine, l, finDe(d))).not.toBeNull()
+    expect(blocage({ ...EXERCICES.elevation_machine, chargeMax: 35 }, l, finDe(d))).toBeNull()
+  })
+  it('trop peu de séances ou exercice abandonné : rien', () => {
+    const d = semaines(3)
+    expect(blocage(smith, d.map((x) => seance(x, [['smith_incline', 52.5, 8, 8]])), finDe(d))).toBeNull()
+    const e = semaines(7)
+    expect(blocage(smith, e.map((x) => seance(x, [['smith_incline', 52.5, 8, 8]])), '2026-12-20')).toBeNull()
+  })
+  it('les semaines de déload ne comptent pas', () => {
+    const d = semaines(7)
+    const l = d.map((x, i) => seance(x, [['smith_incline', i === 3 ? 47.5 : 52.5, 8, 8]], { deload: i === 3 }))
+    expect(blocage(smith, l, finDe(d))).toBeNull()
+    expect(blocage(smith, [...l, seance('2026-10-26', [['smith_incline', 52.5, 8, 8]])], '2026-10-26')?.semaines).toBe(6)
+  })
+  it('un arrêt de 3 semaines ne compte pas, et on repart de zéro', () => {
+    const avant = semaines(5)
+    const apres = semaines(4, '2026-11-02')
+    const l = [...avant, ...apres].map((x, i) => seance(x, [['smith_incline', 52.5, i < 5 ? 10 : 8, 8]]))
+    expect(blocage(smith, l, finDe(apres))).toBeNull()
+    const longue = semaines(7, '2026-11-02')
+    const m = [...avant, ...longue].map((x, i) => seance(x, [['smith_incline', 52.5, i < 5 ? 10 : 8, 8]]))
+    expect(blocage(smith, m, finDe(longue))?.depuis).toBe('2026-11-02')
   })
   it('en sèche, garder ses charges n’est pas un blocage', () => {
-    const l = DATES.map((d) => seance(d, [['smith_incline', 52.5, 8, 8]]))
-    expect(diagnostic(smith, { seances: l, phase: 'seche' }, FIN)).toBeNull()
-    expect(diagnostic(smith, { seances: l, phase: 'prise' }, FIN)).not.toBeNull()
+    const d = semaines(7)
+    const l = d.map((x) => seance(x, [['smith_incline', 52.5, 8, 8]]))
+    expect(diagnostic(smith, { seances: l, phase: 'seche' }, finDe(d))).toBeNull()
+    expect(diagnostic(smith, { seances: l, phase: 'prise' }, finDe(d))).not.toBeNull()
+  })
+  it('le 1er jour après une sèche : rien, ses semaines ne comptent pas', () => {
+    const avant = semaines(8)
+    const apres = semaines(4, '2026-11-02')
+    const frise = [
+      { depuis: '2026-09-07', phase: 'seche' as const, volume: {} },
+      { depuis: '2026-11-02', phase: 'maintien' as const, volume: {} },
+    ]
+    const l = [...avant, ...apres].map((x) => seance(x, [['smith_incline', 52.5, 8, 8]]))
+    expect(blocage(smith, l, '2026-11-02', frise)).toBeNull()
+    expect(blocage(smith, l, finDe(apres), frise)).toBeNull()
+    expect(blocage(smith, l, finDe(apres))).not.toBeNull()
+  })
+  it('suivre les conseils de l’appli, avec une force qui monte, n’est jamais « bloqué »', () => {
+    for (const parSemaine of [0.005, 0.01, 0.02]) {
+      const plan = { exoId: 'smith_incline', repos: 90, series: [1, 2, 3].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })), charge: 50, chauffes: [], finisseur: false }
+      const faites: Seance[] = []
+      for (const d of semaines(52, '2026-01-05')) {
+        const force = 70 * (1 + parSemaine * faites.length)
+        const avant = [...faites].reverse()
+        const obj = suggestionPour(smith, plan, avant)
+        const series: S[] = plan.series.map((_, i) => {
+          const c = obj.charges[i] ?? 50
+          const max = Math.max(1, Math.floor(30 * ((force * (1 - 0.02 * i)) / c - 1)))
+          const reps = Math.min(obj.reps[i], max)
+          return ['smith_incline', c, reps, Math.min(10, Math.max(6, 10 - (max - reps)))]
+        })
+        const s = seance(d, series, { exercices: [plan] })
+        const k = conseil(smith, plan, historiqueDe([s, ...avant], smith.id))
+        if (k) s.objectifs = { [smith.id]: { charges: k.charges, reps: k.reps } }
+        faites.push(s)
+        expect(blocage(smith, faites, d)).toBeNull()
+      }
+    }
   })
 })
 
@@ -64,8 +149,12 @@ describe('pistes', () => {
   })
   it('rien quand la donnée manque ; pas de déload depuis plus de 6 semaines', () => {
     expect(pistes(smith, '2026-10-01', FIN, { seances: l.map((s) => ({ ...s, series: s.series.map((x) => ({ ...x, rpe: 8 })) })) })).toEqual([])
-    const long = [seance('2026-09-01', [['smith_incline', 50, 8, 8]]), ...l]
+    const long = [...semaines(4, '2026-09-01'), ...l.map((s) => s.date)].map((d) => seance(d, [['smith_incline', 50, 8, 8]]))
     expect(pistes(smith, '2026-10-01', FIN, { seances: long })).toContain('pas de déload depuis 8 semaines')
+  })
+  it('un arrêt de 3 semaines vaut un repos : pas de « pas de déload depuis 16 semaines » à la reprise', () => {
+    const l = [...semaines(10, '2026-06-01'), ...semaines(3, '2026-09-14')].map((d) => seance(d, [['smith_incline', 50, 8, 8]]))
+    expect(pistes(smith, '2026-09-14', '2026-10-01', { seances: l }).join()).not.toContain('déload')
   })
 })
 
