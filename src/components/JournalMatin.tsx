@@ -84,7 +84,7 @@ export function FenetreJour({
     if (!(val > 30 && val < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
     const arr = Math.round(val * 10) / 10
     await db.pesees.put({ date, poids: arr })
-    await db.seances.filter((s) => !s.poidsCorps && (s.date === date || date === aujourdhui)).modify((s) => {
+    await db.seances.filter((s) => !s.poidsCorps && (s.date === date || (date === aujourdhui && s.enCours))).modify((s) => {
       s.poidsCorps = arr
     })
     onFermer()
