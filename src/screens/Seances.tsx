@@ -23,7 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
-import { copieProgramme, nomSeanceLibre, reposParDefaut } from '../lib/programme'
+import { copieProgramme, nomSeanceLibre, programmesSansSeance, reposParDefaut } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -587,6 +587,8 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
   const [occupe, setOccupe] = useState(false)
   const [lancer, setLancer] = useState<Programme | null>(null)
   const autres = catalogue.programmes.filter((x) => x.id !== catalogue.actif.id)
+  // Sans les séances supprimées avant que le programme ne soit nettoyé.
+  const nbSeances = (x: Programme) => x.seances.filter((e) => catalogue.modele(e.modeleId)).length
   const enCours = catalogue.cycle && !etatCycle(catalogue.cycle).fini ? catalogue.cycle : undefined
   // Un tout prêt déjà pris se retrouve dans ses programmes : le reprendre ne ferait qu'une copie de plus.
   const noms = new Set(catalogue.programmes.map((x) => x.nom))
@@ -643,18 +645,18 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
         depliable(
           x.id,
           x.nom,
-          `${x.seances.length} séance${x.seances.length > 1 ? 's' : ''}`,
+          `${nbSeances(x)} séance${nbSeances(x) > 1 ? 's' : ''}`,
           x.seances.flatMap((e) => {
             const m = catalogue.modele(e.modeleId)
             return m ? [{ jour: e.jour, nom: m.nom, exos: m.exercices.map((p) => catalogue.exo(p.exoId).nom) }] : []
           }),
           <>
-            {x.seances.length > 0 && (
+            {nbSeances(x) > 0 && (
               <button className="btn primaire plein" onClick={() => setLancer(x)}>
                 Lancer sur 6 semaines
               </button>
             )}
-            {!enCours && x.seances.length > 0 && (
+            {!enCours && nbSeances(x) > 0 && (
               <button
                 className="btn plein"
                 onClick={() => {
@@ -854,7 +856,10 @@ function Editeur({
   }
   const supprimer = async () => {
     setPlus(false)
-    if (!(await confirmer('L’historique des séances faites est conservé.', { titre: `Supprimer « ${m.nom} » ?`, oui: 'Supprimer la séance', danger: true }))) return
+    const concernes = programmesSansSeance(catalogue.programmes, m.id)
+    const avertissement = concernes.length ? `Elle sera retirée de ${concernes.map((p) => `« ${p.nom} »`).join(' et de ')}. ` : ''
+    if (!(await confirmer(`${avertissement}L’historique des séances faites est conservé.`, { titre: `Supprimer « ${m.nom} » ?`, oui: 'Supprimer la séance', danger: true }))) return
+    for (const p of concernes) await sauverProgramme(p, catalogue)
     ecrit.current = JSON.stringify(m)
     if (prechargee) await db.modeles.put({ ...initial, supprime: true })
     else await db.modeles.delete(m.id)
