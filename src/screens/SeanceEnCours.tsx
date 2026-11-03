@@ -1261,6 +1261,8 @@ function FinSeance({
     const p = seance.exercices.find((x) => x.exoId === exoId)!
     const exo = exoAvecReglages(catalogue.exo(exoId), reglages)
     const histo = historiqueDe(avecCelleCi, exoId)
+    // Semaine allégée : rien à juger ni à conseiller, et l'historique ne contient que la séance normale d'avant.
+    if (seance.deload) return { exo, s: pareil(exo, p, histo), conseil: null, raison: null }
     return { exo, s: pareil(exo, p, histo), conseil: conseil(exo, p, histo), raison: raisonPareil(exo, p, histo) }
   }
   const faits = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
@@ -1285,6 +1287,7 @@ function FinSeance({
   }
   /** Une ligne : objectif fixé, raison de refaire pareil, ou comparaison avec la dernière fois. */
   const statut = (exo: Exercice, raison: string | null, c: Suggestion | null) => {
+    if (seance.deload) return ''
     const o = objectifs[exo.id]
     if (o) return `prochaine fois ${cibleTexte(exo, o.charges, o.reps, true)}`
     if (raison) return raison
