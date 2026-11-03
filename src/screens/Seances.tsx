@@ -239,7 +239,8 @@ function PageProgramme({
     .filter((x) => x.m)
     .sort((a, b) => (a.e.jour ?? 8) - (b.e.jour ?? 8))
   const enService = catalogue.actif.id === p.id
-  const cycle = enService ? catalogue.cycle : undefined
+  // Un cycle arrivé au bout reste enregistré après un changement de programme : il ne concerne que le sien.
+  const cycle = enService && catalogue.cycle?.programmeId === p.id ? catalogue.cycle : undefined
   const etat = cycle && etatCycle(cycle)
   const autreCycle = !enService && catalogue.cycle && !etatCycle(catalogue.cycle).fini
   const nomSeance = (x: number) => catalogue.modele(p.seances[x]?.modeleId)?.nom ?? ''
