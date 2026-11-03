@@ -23,7 +23,6 @@ import {
   phaseA,
   PHASES,
   poidsDepart,
-  poidsSemaine,
   rythmeParSemaine,
   supprimerPhase,
   terminerPhase,
@@ -32,6 +31,7 @@ import {
   type PeriodePhase,
   type Phase,
 } from '../lib/objectifs'
+import { recapPoids } from '../lib/recap'
 import ChampNombre from './ChampNombre'
 import { confirmer } from './Dialogues'
 import Deplie from './Deplie'
@@ -40,21 +40,65 @@ const JOUR = 86400000
 const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 const plusJours = (iso: string, n: number) => dateISO(new Date(Date.parse(iso + 'T12:00:00') + n * JOUR))
 const semainesEntre = (a: string, b: string) => Math.max(1, Math.round((Date.parse(b) - Date.parse(a)) / (7 * JOUR)))
+/** Ce qu'on retrouve au retour du récap d'une phase ; `edition` : la phase vient d'être choisie depuis le récap, son formulaire s'ouvre. */
+const memoire = { voirAvant: false, edition: false }
 const DUREES = [4, 8, 12, 16]
 const DUREE_DEFAUT: Record<Phase, number> = { prise: 12, seche: 8, maintien: 4 }
 const ECARTS: Record<Phase, number[]> = { prise: [1, 2, 3], seche: [-2, -4, -6], maintien: [] }
 type Pesees = { date: string; poids: number }[]
 
+/** Phase finie : prolonger, ou passer à une autre. Depuis le récap comme depuis la page Phases, c'est le même choix. `type` : une autre phase a été choisie. */
+export function SuitePhase({ catalogue, onChoix }: { catalogue: Catalogue; onChoix: (type?: Phase) => void }) {
+  const frise = catalogue.objectifs
+  const aujourdhui = dateISO()
+  const enCours = phaseA(frise, aujourdhui)
+  if (!enCours?.finPrevue) return null
+  return (
+    <div className="ligne wrap" style={{ gap: 8, marginTop: 8 }}>
+      <button
+        className="btn petit"
+        onClick={() => {
+          void setReglage(CLE_OBJECTIFS, dureePhase(frise, enCours.debut, dureeProlongee(enCours.debut, enCours.finPrevue!, aujourdhui), aujourdhui))
+          onChoix()
+        }}
+      >
+        Prolonger de 4 semaines
+      </button>
+      {PHASES.filter((x) => x.id !== enCours.phase).map((x) => (
+        <button
+          key={x.id}
+          className="btn petit"
+          onClick={() => {
+            void setReglage(CLE_OBJECTIFS, modifier(frise, aujourdhui, { phase: x.id, finPrevue: finNouvellePhase(frise, aujourdhui, DUREE_DEFAUT[x.id]) }, catalogue.ciblesPerso))
+            memoire.edition = true
+            onChoix(x.id)
+          }}
+        >
+          Passer en {x.court.toLowerCase()}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /**
  * Phases en blocs (Corps → Phases) : dashboard épuré pour la phase en cours,
  * timeline pour les phases à venir, et historique des phases passées.
  */
-export default function Phases({ catalogue }: { catalogue: Catalogue }) {
+export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /** Ouvre le récap d'une phase. */ onRecap: (debut: string) => void }) {
   const frise = catalogue.objectifs
   const aujourdhui = dateISO()
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
-  const [voirAvant, setVoirAvant] = useState(false)
-  const [editionEnCours, setEditionEnCours] = useState(false)
+  const [voirAvant, setVoirAvantEtat] = useState(memoire.voirAvant)
+  const setVoirAvant = (v: boolean) => {
+    memoire.voirAvant = v
+    setVoirAvantEtat(v)
+  }
+  const [editionEnCours, setEditionEnCours] = useState(() => {
+    const e = memoire.edition
+    memoire.edition = false
+    return e
+  })
   const [ouverte, setOuverte] = useState<string | null>(null)
 
   const enregistrer = (f: EtapeObjectifs[]) => void setReglage(CLE_OBJECTIFS, f)
@@ -84,19 +128,15 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
           <strong>
             Ta {nomPhase(enCours.phase).toLowerCase()} prévue jusqu’au {jour(plusJours(enCours.finPrevue!, -1))} est finie.
           </strong>
-          <div className="ligne wrap" style={{ gap: 8, marginTop: 8 }}>
-            <button
-              className="btn petit"
-              onClick={() => enregistrer(dureePhase(frise, enCours.debut, dureeProlongee(enCours.debut, enCours.finPrevue!, aujourdhui), aujourdhui))}
-            >
-              Prolonger de 4 semaines
-            </button>
-            {PHASES.filter((x) => x.id !== enCours.phase).map((x) => (
-              <button key={x.id} className="btn petit" onClick={() => commencer(x.id)}>
-                Passer en {x.court.toLowerCase()}
-              </button>
-            ))}
-          </div>
+          <button type="button" className="bilan-tous" onClick={() => onRecap(enCours.debut)}>
+            <span>Voir le récap de cette phase</span>
+            <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+          </button>
+          <SuitePhase catalogue={catalogue} onChoix={(type) => {
+            if (!type) return
+            memoire.edition = false
+            setEditionEnCours(true)
+          }} />
         </div>
       )}
 
@@ -489,7 +529,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
             <Deplie ouvert={voirAvant}>
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {passees.map((p) => (
-                  <LignePassee key={p.debut} p={p} pesees={pesees} />
+                  <LignePassee key={p.debut} p={p} pesees={pesees} onOuvrir={() => onRecap(p.debut)} />
                 ))}
               </div>
             </Deplie>
@@ -794,20 +834,26 @@ function EditeurPhase({
 }
 
 /** Une phase passée : ligne compacte dans l'accordéon des phases archivées. */
-function LignePassee({ p, pesees }: { p: PeriodePhase; pesees: Pesees }) {
-  const depart = poidsDepart(pesees, p.debut)
-  const arrivee = poidsSemaine(pesees, p.fin!)
-  const fait = depart !== null && arrivee !== null ? Math.round((arrivee - depart) * 10) / 10 : null
+function LignePassee({ p, pesees, onOuvrir }: { p: PeriodePhase; pesees: Pesees; onOuvrir: () => void }) {
+  const poids = recapPoids(pesees, p.debut, p.fin!)
+  const autreAnnee = p.fin!.slice(0, 4) !== dateISO().slice(0, 4)
   return (
-    <div
+    <button
+      type="button"
+      onClick={onOuvrir}
       style={{
+        width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: 8,
         padding: '8px 12px',
+        minHeight: 'var(--cible)',
         borderRadius: 'var(--rayon-2)',
         background: 'var(--surface-2)',
         border: '1px solid var(--voile)',
+        color: 'inherit',
+        textAlign: 'left',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -815,17 +861,14 @@ function LignePassee({ p, pesees }: { p: PeriodePhase; pesees: Pesees }) {
         <div>
           <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>{nomPhase(p.phase)}</span>
           <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
-            {jour(p.debut)} → {jour(p.fin!)} · {semainesEntre(p.debut, plusJours(p.fin!, 1))} sem.
+            {jour(p.debut)} → {jour(p.fin!)}{autreAnnee ? ` ${p.fin!.slice(0, 4)}` : ''} · {semainesEntre(p.debut, plusJours(p.fin!, 1))} sem.
           </div>
         </div>
       </div>
-      <div style={{ fontSize: 'var(--t-legende)', textAlign: 'right', color: 'var(--texte-2)' }}>
-        {fait !== null
-          ? `${kg(depart!)} → ${kg(arrivee!)} kg (${ecartTexte(fait)})`
-          : p.ecartVise
-            ? `visé ${ecartTexte(p.ecartVise)}`
-            : ''}
-      </div>
-    </div>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--t-legende)', textAlign: 'right', color: 'var(--texte-2)' }}>
+        {poids ? `${kg(poids.depart)} → ${kg(poids.arrivee)} kg` : ''}
+        <ChevronRight size={16} strokeWidth={1.75} className="muted" style={{ flex: 'none' }} />
+      </span>
+    </button>
   )
 }

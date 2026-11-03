@@ -154,6 +154,12 @@ describe('lecture selon la phase', () => {
     expect(t).toMatch(/charges baissent/)
     expect(t).toMatch(/Tu perds vite \(−1 kg par semaine/)
   })
+  it('sèche : charges en baisse et poids immobile, jamais deux conseils opposés', () => {
+    const t = lecturePhase(base([-6, -8], [80, 80.3, 4]), 'seche')
+    expect(t).toHaveLength(1)
+    expect(t[0]).toMatch(/le déficit n’explique pas/)
+    expect(t[0]).not.toMatch(/Mange un peu plus|réduis/)
+  })
   it('sèche réussie : poids qui baisse, charges tenues', () => {
     expect(lecturePhase(base([1, -1], [80, 78.4, 4]), 'seche')[0]).toMatch(/Sèche qui marche : −0,4 kg par semaine/)
   })

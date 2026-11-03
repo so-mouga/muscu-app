@@ -172,6 +172,7 @@ export default function App() {
             onVoirSeance={(id) => setDetail(id, 'accueil')}
             onMesures={() => ouvrirCorps('mensurations')}
             onObjectifs={() => ouvrirCorps('phases')}
+            onCorps={ouvrirCorps}
             onObjectif={() => setDemarrageOuvert('objectif')}
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onJournal={() => (setVue('journal'), setOnglet('historique'))}
@@ -195,7 +196,7 @@ export default function App() {
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={(p) => transition(() => setPageCorps(p), p ? 'avant' : 'arriere')} />}
-        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} seanceAOuvrir={seanceAOuvrir} onSeanceOuverte={() => setSeanceAOuvrir(null)} onBilanCycle={ouvrirBilanCycle} />}
+        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} seanceAOuvrir={seanceAOuvrir} onSeanceOuverte={() => setSeanceAOuvrir(null)} onBilanCycle={ouvrirBilanCycle} onSeance={(id) => setDetail(id, 'seances')} />}
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (

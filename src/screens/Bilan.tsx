@@ -1,18 +1,21 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Check, ChevronDown, ChevronRight } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import Aide from '../components/Aide'
 import { informer } from '../components/Dialogues'
 import { NiveauJauge } from '../components/VolumeMuscles'
 import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
-import { BONUS_PRIORITE, cycleDuBilan, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
+import { arretCycle, BONUS_PRIORITE, cycleDuBilan, etatCycle, finReelle, finSemaineCycle, lundiDe, nomCycle } from '../lib/cycle'
+import BoutonRetour from '../components/BoutonRetour'
+import { VueCycle } from '../components/Cycle'
+import { transition, useRetour } from '../lib/nav'
 import { MUSCLES } from '../data/exercices'
 import { analyser, aRetenir, essentiel, semainesFinies, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
-import { depuisDebut, semainesTenues } from '../lib/motivation'
+import { depuisDebut, exercicesDuBloc, semainesTenues, suiviCycle, type LigneBloc } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { etatVolume, LIBELLE_VOLUME, zone } from '../lib/volume'
 import type { Muscle } from '../types'
@@ -26,20 +29,43 @@ const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 const ecart = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(arrondi(d)))} ${u}`
 
 /** Ce qu'on retrouve au retour d'une fiche d'exercice : le Bilan est démonté pendant qu'elle est ouverte. */
-const memoire = { periode: '4' as Periode, defilement: 0 }
+const memoire = { periode: '4' as Periode, defilement: 0, cycleId: undefined as string | undefined, sous: null as SousVue | null }
+/** Détail du cycle affiché : ses exercices, ou ses séances. */
+type SousVue = 'exercices' | 'seances'
 
 /** « Voir le bilan » d'un cycle : le Bilan s'ouvrira sur sa période. */
 export const voirPeriodeCycle = () => {
   memoire.periode = 'cycle'
   memoire.defilement = 0
+  memoire.cycleId = undefined
 }
 
 /**
  * Bilan des semaines finies : la réponse d'abord (À retenir), puis les exercices, la régularité, les
  * muscles et la forme. La semaine en cours n'y entre pas : l'accueil s'en occupe, et un lundi ne juge rien.
  */
-export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onTousExos?: () => void; onCorps?: () => void }) {
+export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onSeance }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onTousExos?: () => void; onCorps?: () => void; /** Ouvre le détail d'une séance : le retour revient ici. */ onSeance: (id: string) => void }) {
   const [periodeChoisie, setPeriodeChoisie] = useState(memoire.periode)
+  const [cycleChoisi, setCycleChoisi] = useState(memoire.cycleId)
+  const [choixCycle, setChoixCycle] = useState(false)
+  const [sous, setSous] = useState<SousVue | null>(() => {
+    const s = memoire.sous
+    memoire.sous = null
+    return s
+  })
+  const defilementAvantSous = useRef(0)
+  const ouvrirSous = (s: SousVue) => {
+    defilementAvantSous.current = window.scrollY
+    transition(() => setSous(s), 'avant')
+    window.scrollTo({ top: 0 })
+  }
+  const fermerSous = () => {
+    transition(() => setSous(null), 'arriere')
+    requestAnimationFrame(() => window.scrollTo({ top: defilementAvantSous.current }))
+  }
+  useRetour(choixCycle, () => setChoixCycle(false))
+  // La page du cycle a son propre retour.
+  useRetour(sous === 'exercices', fermerSous)
   const seances = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
@@ -70,12 +96,19 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
 
   const cetteSemaine = lundi()
   // Le cycle en cours, sinon le dernier terminé, y compris quand un nouveau vient d'être lancé : son bilan reste consultable.
-  const cycle = cycleDuBilan(cycles, cetteSemaine)
+  const cycleParDefaut = cycleDuBilan(cycles, cetteSemaine)
+  const cycle = cycles.find((c) => c.id === cycleChoisi && c.debut < cetteSemaine) ?? cycleParDefaut
+  const seancesDe = (id: string) => seances.filter((s) => s.cycleId === id)
+  // Tous les cycles qui ont eu des séances, du plus récent au plus ancien.
+  const cyclesPasses = [...cycles].filter((c) => c.debut < cetteSemaine && seancesDe(c.id).length).sort((a, b) => b.debut.localeCompare(a.debut))
+  const arret = cycle ? arretCycle(cycle, seances) : null
   const cycleDispo = !!cycle && cycle.debut < cetteSemaine
-  const cycleFini = !!cycle && etatCycle(cycle).fini
+  const cycleFini = !!cycleParDefaut && etatCycle(cycleParDefaut).fini
   const periode: Periode = periodeChoisie === 'cycle' && !cycleDispo ? '4' : periodeChoisie
   const finSemaines = decaler(cetteSemaine, -1)
-  const finCycle = cycle?.fin ?? (cycle ? decaler(lundiDe(cycle, cycle.semaines), 6) : finSemaines)
+  const finPrevueCycle = cycle?.fin ?? (cycle ? decaler(lundiDe(cycle, cycle.semaines), 6) : finSemaines)
+  // Arrêté en route : on le juge sur les semaines qu'il a vraiment duré.
+  const finCycle = cycle && arret ? finSemaineCycle(cycle, arret) : finPrevueCycle
   const fin = periode === 'cycle' && finCycle < finSemaines ? finCycle : finSemaines
   const debut = periode === 'cycle' && cycle ? cycle.debut : decaler(cetteSemaine, periode === '12' ? -91 : -28)
 
@@ -91,9 +124,77 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
   const longueur = Math.round((Date.parse(fin) - Date.parse(a.debut)) / JOUR)
   const finAvant = decaler(a.debut, -1)
   const avant = analyser(donnees, decaler(finAvant, -longueur), finAvant, prevues, phaseA(catalogue.objectifs, finAvant)?.phase)
-  const lignes = essentiel(a, avant.seances > 0 ? avant : null, phaseFin, depuisPhase)
+  const surCycle = periode === 'cycle' && !!cycle
+  const lignes = essentiel(a, avant.seances > 0 ? avant : null, phaseFin, depuisPhase, surCycle && !!arret)
   // Sur un cycle : ce qui monte se lit en charges, de la 1re séance à la dernière.
-  const parCharges = periode === 'cycle' && cycle ? depuisDebut(seances.filter((s) => s.date <= fin), catalogue.exo, cycle.debut, 8) : []
+  const parCharges = surCycle ? depuisDebut(seances.filter((s) => s.date <= fin), catalogue.exo, cycle.debut, 8) : []
+  const seancesCycle = surCycle ? seancesDe(cycle.id).filter((s) => !s.enCours) : []
+  const blocCycle = surCycle ? exercicesDuBloc(seancesCycle.filter((s) => s.date <= fin), catalogue.exo) : null
+  const nbExosCycle = blocCycle ? Object.values(blocCycle).reduce((n, l) => n + l.length, 0) : 0
+  const tenuesCycle = surCycle ? suiviCycle(cycle, seances, dateISO()).tenues : 0
+
+  if (sous === 'seances' && cycle)
+    return (
+      <VueCycle
+        catalogue={catalogue}
+        cycle={cycle}
+        onFermer={fermerSous}
+        onSeance={(id) => {
+          memoire.sous = 'seances'
+          memoire.cycleId = cycle.id
+          onSeance(id)
+        }}
+      />
+    )
+  if (sous === 'exercices' && blocCycle)
+    return (
+      <div>
+        <div className="entete">
+          <BoutonRetour onClick={fermerSous} label="Retour au Bilan" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2>Exercices du cycle</h2>
+            <div className="faible">De la 1re séance à la dernière</div>
+          </div>
+        </div>
+        <section className="carte bilan-carte">
+          {(
+            [
+              ['Ça monte', blocCycle.monte],
+              ['Stable', blocCycle.stable],
+              ['Un peu en dessous', blocCycle.baisse],
+              ['Fait une seule fois', blocCycle.uneFois],
+            ] as [string, LigneBloc[]][]
+          ).map(
+            ([titre, liste]) =>
+              liste.length > 0 && (
+                <div key={titre}>
+                  <div className="bilan-intertitre">{titre}</div>
+                  {liste.map((l) => {
+                    const avant = chargeQte(l.exo, l.avant.charge, l.avant.reps)
+                    const apres = chargeQte(l.exo, l.apres.charge, l.apres.reps)
+                    return (
+                      <LigneExo
+                        key={l.exo.id}
+                        id={l.exo.id}
+                        nom={l.exo.nom}
+                        detail={avant === apres ? apres : `${avant} → ${apres}`}
+                        onClick={
+                          onExo &&
+                          (() => {
+                            memoire.sous = 'exercices'
+                            memoire.cycleId = cycle?.id
+                            onExo(l.exo.id)
+                          })
+                        }
+                      />
+                    )
+                  })}
+                </div>
+              )
+          )}
+        </section>
+      </div>
+    )
   const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}`, valeur: p.pct !== undefined ? `+${kg(arrondi(p.pct))} %` : undefined })))
 
   const partager = async () => {
@@ -141,9 +242,54 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
           </button>
         ))}
       </div>
-      <p className="faible bilan-periode">
-        Du {jour(a.debut)} au {jour(fin)}
-      </p>
+      {surCycle && cyclesPasses.length >= 2 ? (
+        <button type="button" className="liste-btn bilan-choix-cycle" aria-label="Choisir un autre cycle" onClick={() => setChoixCycle(true)}>
+          <span>
+            {nomCycle(cycle)}
+            <span className="faible prog-sous">
+              {arret ? `Arrêté après ${arret} semaine${arret > 1 ? 's' : ''} · ` : ''}
+              {jour(a.debut)} → {jour(fin)}
+            </span>
+          </span>
+          <ChevronDown size={18} className="muted" />
+        </button>
+      ) : (
+        <p className="faible bilan-periode">
+          {surCycle && arret ? `Cycle arrêté après ${arret} semaine${arret > 1 ? 's' : ''}, du ` : 'Du '}
+          {jour(a.debut)} au {jour(fin)}
+        </p>
+      )}
+      {choixCycle && (
+        <div className="modal-fond" onClick={() => setChoixCycle(false)}>
+          <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
+            <h2>Choisir un cycle</h2>
+            <div className="modal-defile pile">
+              {cyclesPasses.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="liste-btn"
+                  aria-pressed={c.id === cycle?.id}
+                  onClick={() => {
+                    memoire.cycleId = c.id
+                    setCycleChoisi(c.id)
+                    setChoixCycle(false)
+                    window.scrollTo({ top: 0 })
+                  }}
+                >
+                  <span>
+                    {nomCycle(c)}
+                    <span className="faible prog-sous">
+                      {etatCycle(c).fini ? `${jour(c.debut)} → ${jour(arretCycle(c, seances) ? finSemaineCycle(c, arretCycle(c, seances)!) : finReelle(c))}${c.debut.slice(0, 4) !== cetteSemaine.slice(0, 4) ? ` ${c.debut.slice(0, 4)}` : ''}` : `Depuis le ${jour(c.debut)}`} · {seancesDe(c.id).length} séance{seancesDe(c.id).length > 1 ? 's' : ''}
+                    </span>
+                  </span>
+                  {c.id === cycle?.id && <Check size={20} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 
@@ -201,7 +347,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
           {exercices.bloques.slice(0, 2).map((l) => (
             <LigneExo key={l.id} {...l} onClick={ouvrirExo && (() => ouvrirExo(l.id))} />
           ))}
-          {exercices.montent.length + exercices.bloques.length > 2 && (
+          {!surCycle && exercices.montent.length + exercices.bloques.length > 2 && (
             <button type="button" className="bilan-tous" onClick={() => onTousExos?.()}>
               <span>Voir tous les exercices</span>
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
@@ -210,14 +356,33 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
         </section>
       )}
 
+      {surCycle && nbExosCycle > 0 && (
+        <button type="button" className="liste-btn bilan-lien-detail" onClick={() => ouvrirSous('exercices')}>
+          <span>
+            Voir {nbExosCycle > 1 ? `les ${nbExosCycle} exercices` : 'l’exercice'}
+          </span>
+          <ChevronRight size={18} className="muted" />
+        </button>
+      )}
+
       <section className="carte bilan-carte bilan-regularite">
         <h3>Régularité</h3>
         <p>
           <strong>{a.prevues ? `${a.faites} séance${a.faites > 1 ? 's' : ''} sur ${a.prevues}` : `${a.seances} séance${a.seances > 1 ? 's' : ''}`}</strong>
           {a.enPlus > 0 && <span className="faible"> (+{a.enPlus} en plus)</span>}
-          {tenues >= 2 && <span className="tenue"> · {tenues}e semaine tenue</span>}
+          {surCycle ? tenuesCycle >= 2 && <span className="tenue"> · {tenuesCycle} semaines tenues</span> : tenues >= 2 && <span className="tenue"> · {tenues}e semaine tenue</span>}
         </p>
       </section>
+
+      {seancesCycle.length > 0 && (
+        <button type="button" className="liste-btn bilan-lien-detail" onClick={() => ouvrirSous('seances')}>
+          <span>
+            {/* Cycle en cours : le compte de « Régularité » s'arrête à la dernière semaine finie, pas celui de sa page. */}
+            {!etatCycle(cycle!).fini ? 'Voir les séances du cycle' : seancesCycle.length > 1 ? `Voir les ${seancesCycle.length} séances` : 'Voir la séance'}
+          </span>
+          <ChevronRight size={18} className="muted" />
+        </button>
+      )}
 
       {muscles.length > 0 && semainesFinies(seances.map((s) => s.date), cetteSemaine) < 2 && (
         <section className="carte bilan-carte bilan-regularite">

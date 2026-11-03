@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react'
 import { lancerCycle, type Catalogue } from '../catalogue'
 import { db } from '../db'
 import { dateCourte, dateISO, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
-import { appliquerEcart, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, garderEcart, lignesCycle, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
+import { appliquerEcart, arretCycle, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, finReelle, finSemaineCycle, garderEcart, lignesCycle, lundiDe, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { useRetour } from '../lib/nav'
 import { suiviCycle } from '../lib/motivation'
@@ -239,7 +239,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
 }
 
 /** Le cycle : où j'en suis, semaine par semaine. Le rare (déload, pause, modifier, terminer) est dans ⋯. */
-export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: Catalogue; cycle: Cycle; onFermer: () => void; onBilan: () => void }) {
+export function VueCycle({ catalogue, cycle, onFermer, onBilan, onSeance }: { catalogue: Catalogue; cycle: Cycle; onFermer: () => void; /** Absent quand on vient déjà du Bilan. */ onBilan?: () => void; onSeance: (id: string) => void }) {
   const [modifier, setModifier] = useState(false)
   const [menu, setMenu] = useState(false)
   useRetour(!modifier, onFermer)
@@ -253,7 +253,10 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
   }
   const prevues = semaineType(cycle.programme).map((e) => cycle.modeles.find((m) => m.id === e.modeleId)).filter((m) => !!m)
 
-  const lignes = lignesCycle(cycle)
+  const arret = arretCycle(cycle, seances)
+  // Arrêté en route : les semaines jamais commencées ne sont plus à l'écran.
+  const lignes = lignesCycle(cycle).filter((x) => !arret || ('pause' in x ? x.pause : x.lundi) <= lundiDe(cycle, arret))
+  const [ouverte, setOuverte] = useState<string | null>(null)
   const suivi = suiviCycle(cycle, seances, dateISO())
   /** Semaine ouverte : son lundi et son numéro, s'il n'est pas en pause. */
   const [semaine, setSemaine] = useState<string | null>(null)
@@ -271,9 +274,9 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
       <div className="entete">
         <BoutonRetour onClick={onFermer} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1>{etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h1>
+          <h1>{arret ? `Cycle arrêté après ${arret} semaine${arret > 1 ? 's' : ''}` : etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h1>
           <div className="faible">
-            {nomCycle(cycle)} · {etat.n <= 0 ? 'commence le' : 'depuis le'} {debutSemaine(cycle.debut)}
+            {nomCycle(cycle)} · {etat.fini ? `${debutSemaine(cycle.debut)} → ${debutSemaine(arret ? finSemaineCycle(cycle, arret) : finReelle(cycle))}` : `${etat.n <= 0 ? 'commence le' : 'depuis le'} ${debutSemaine(cycle.debut)}`}
             {cycle.priorites?.length ? ` · priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}` : ''}
           </div>
         </div>
@@ -360,26 +363,46 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
               </SemaineCycle>
             )
           }
-          const passee = x.lundi < lundi()
+          const passee = x.lundi < lundi() || etat.fini
+          // Semaine passée : un appui montre ses séances ; elle-même reste figée.
+          const estOuverte = ouverte === x.lundi
           return (
-            <SemaineCycle key={x.n} surAppui={surAppui}>
-              <div className="ligne entre">
-                {titre}
-                {passee || faites.length ? (
-                  <span className={faites.length >= prevues.length ? 'tenue' : 'faible'}>
-                    {faites.length >= prevues.length ? '✓ ' : ''}
-                    {faites.length} sur {prevues.length}
-                  </span>
-                ) : (
-                  <span className="faible">{debutSemaine(x.lundi)}</span>
-                )}
-              </div>
-            </SemaineCycle>
+            <div key={x.n}>
+              <SemaineCycle surAppui={passee && faites.length ? () => setOuverte(estOuverte ? null : x.lundi) : surAppui} deplie={passee && faites.length ? estOuverte : undefined}>
+                <div className="ligne entre">
+                  {titre}
+                  {passee || faites.length ? (
+                    <span className={faites.length >= prevues.length ? 'tenue' : 'faible'}>
+                      {faites.length >= prevues.length ? '✓ ' : ''}
+                      {faites.length} sur {prevues.length}
+                    </span>
+                  ) : (
+                    <span className="faible">{debutSemaine(x.lundi)}</span>
+                  )}
+                </div>
+              </SemaineCycle>
+              {passee && faites.length > 0 && (
+                <Deplie ouvert={estOuverte}>
+                  <div className="semaine-seances">
+                    {[...faites]
+                      .sort((a, b) => a.debut - b.debut)
+                      .map((s) => (
+                        <button key={s.id} type="button" onClick={() => onSeance(s.id)}>
+                          <span>
+                            {dateCourte(s.date)} · {s.nom}
+                          </span>
+                          <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+                        </button>
+                      ))}
+                  </div>
+                </Deplie>
+              )}
+            </div>
           )
         })}
       </div>
 
-      {cycle.debut < lundi() && (
+      {cycle.debut < lundi() && onBilan && (
         <button className="liste-btn" onClick={onBilan}>
           <span>Voir le bilan de ce cycle</span>
           <ChevronRight size={20} className="muted" />
@@ -433,12 +456,12 @@ export function FriseCycle({ cycle, seances }: { cycle: Cycle; seances: Seance[]
 }
 
 /** Une ligne de semaine : un appui l'ouvre si elle est en cours ou à venir ; les semaines passées restent figées. */
-function SemaineCycle({ classe = '', surAppui, children }: { classe?: string; surAppui?: () => void; children: ReactNode }) {
+function SemaineCycle({ classe = '', surAppui, deplie, children }: { classe?: string; surAppui?: () => void; /** Semaine passée : ses séances dépliées ou non. */ deplie?: boolean; children: ReactNode }) {
   if (!surAppui) return <div className={'semaine-cycle ' + classe}>{children}</div>
   return (
-    <button type="button" className={'semaine-cycle ' + classe} onClick={surAppui}>
+    <button type="button" className={'semaine-cycle ' + classe} onClick={surAppui} aria-expanded={deplie}>
       <span className="semaine-cycle-corps">{children}</span>
-      <ChevronRight size={18} className="muted" />
+      <ChevronRight size={18} className={'muted' + (deplie === undefined ? '' : ' depliable-chevron' + (deplie ? ' ouvert' : ''))} />
     </button>
   )
 }

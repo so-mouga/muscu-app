@@ -67,6 +67,8 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   /** Jour choisi dans le calendrier (aujourd'hui par défaut). */
   const [jourChoisi, setJourChoisi] = useState(dateISO())
+  /** Séance ouverte depuis le Bilan d'un cycle : le retour y ramène, pas au Journal. */
+  const [seanceBilan, setSeanceBilan] = useState<string | null>(null)
   const mesuresJour = useLiveQuery(() => db.mesures.toArray(), [], [])
   const peseesJour = useLiveQuery(() => db.pesees.toArray(), [], [])
   const journalJour = useLiveQuery(() => db.journal.get(jourChoisi), [jourChoisi])
@@ -89,7 +91,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   // Cycle arrivé au bout de ses semaines : on suit de nouveau le programme, comme l'accueil.
   const cycleEnService = catalogue.cycle && !etatCycle(catalogue.cycle).fini ? catalogue.cycle : undefined
   const prevu = (iso: string) => (iso > dateISO() || (iso === dateISO() && !terminees.some((s) => s.date === iso)) ? prevuLe(catalogue.planning, cycleEnService, iso) : null)
-  const ouverte = detail ? terminees.find((s) => s.id === detail) : undefined
+  const ouverte = terminees.find((s) => s.id === (seanceBilan ?? detail))
   if (ouverte)
     return (
       <DetailSeance
@@ -98,7 +100,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
         records={records[ouverte.id] ?? 0}
         reglages={reglages}
         catalogue={catalogue}
-        onRetour={() => onDetail(null)}
+        onRetour={() => (seanceBilan ? setSeanceBilan(null) : onDetail(null))}
       />
     )
 
@@ -116,7 +118,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
       </div>
     </>
   )
-  if (vue === 'bilan') return <Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => onVue('exercices')} onCorps={onCorps} />
+  if (vue === 'bilan') return <Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => onVue('exercices')} onCorps={onCorps} onSeance={setSeanceBilan} />
   if (vue === 'exercices') return <Exercices catalogue={catalogue} haut={haut} initial={exoInitial} onRetourInitial={onRetourExo} />
 
   return (

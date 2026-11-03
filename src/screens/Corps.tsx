@@ -15,6 +15,9 @@ import { ecartPesees, nomPhase, phaseA, phaseAffichee, poidsDepart, poidsSemaine
 import { objectifDuJour } from '../lib/nutrition'
 import type { Mesure, PhotoCorps } from '../types'
 import { confirmer } from '../components/Dialogues'
+import PhotoDatee from '../components/PhotoDatee'
+import RecapPhase from '../components/RecapPhase'
+import { repere } from '../lib/recap'
 import Photos from './Photos'
 import Objectifs from './Objectifs'
 import type { Catalogue } from '../catalogue'
@@ -26,27 +29,30 @@ const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(
 /** Valeurs d'une clé dans le temps (prises qui la contiennent, de la plus ancienne à la plus récente). */
 const serie = (mesures: Mesure[], cle: string) => mesures.filter((m) => m.valeurs[cle] !== undefined).map((m) => ({ date: m.date, valeur: m.valeurs[cle] }))
 
-export type PageCorps = 'phases' | 'pesees' | 'mensurations' | 'photos'
+export type PageCorps = 'phases' | 'pesees' | 'mensurations' | 'photos' | `recap:${string}`
 
-const TITRES: Record<PageCorps, string> = { phases: 'Phases', pesees: 'Toutes les pesées', mensurations: 'Mensurations', photos: 'Photos' }
+const TITRES: Record<'phases' | 'pesees' | 'mensurations' | 'photos', string> = { phases: 'Phases', pesees: 'Toutes les pesées', mensurations: 'Mensurations', photos: 'Photos' }
 
 /**
  * Onglet Corps (barre du bas) : une seule page dit si le corps change. La phase, le poids, les
  * mensurations et les photos, lus ensemble ; un appui ouvre le détail de chacun.
  */
 export default function Corps({ catalogue, page, onPage }: { catalogue: Catalogue; page: PageCorps | null; onPage: (p: PageCorps | null) => void }) {
-  useRetour(page !== null, () => onPage(null))
+  const debutRecap = page?.startsWith('recap:') ? page.slice(6) : null
+  useRetour(page !== null && !debutRecap, () => onPage(null))
+  useRetour(!!debutRecap, () => onPage('phases'))
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [page])
   if (!page) return <AccueilCorps catalogue={catalogue} onPage={onPage} />
+  if (debutRecap) return <RecapPhase catalogue={catalogue} debut={debutRecap} onRetour={() => onPage('phases')} onSuite={() => onPage('phases')} />
   return (
     <div>
       <div className="entete">
         <BoutonRetour onClick={() => onPage(null)} label="Retour à Corps" />
-        <h2 style={{ flex: 1 }}>{TITRES[page]}</h2>
+        <h2 style={{ flex: 1 }}>{TITRES[page as keyof typeof TITRES]}</h2>
       </div>
-      {page === 'phases' && <Objectifs catalogue={catalogue} />}
+      {page === 'phases' && <Objectifs catalogue={catalogue} onRecap={(debut) => onPage(`recap:${debut}`)} />}
       {page === 'pesees' && <ListePesees catalogue={catalogue} />}
       {page === 'mensurations' && <Mesures catalogue={catalogue} />}
       {page === 'photos' && <Photos />}
@@ -54,8 +60,14 @@ export default function Corps({ catalogue, page, onPage }: { catalogue: Catalogu
   )
 }
 
-/** Valeur d'une série de mesures au repère : la dernière prise à cette date ou avant, sinon la première. */
-const auRepere = (s: { date: string; valeur: number }[], depuis?: string) => (depuis ? [...s].reverse().find((x) => x.date <= depuis) : undefined) ?? s[0]
+/** Valeur d'une série de mesures au début de la phase, sinon la toute première. Rien si elle n'a aucune prise près du début : pas de faux écart. */
+const auRepere = (s: { date: string; valeur: number }[], depuis?: string) => (depuis ? repere(s, depuis) : s[0])
+/** Écart entre la dernière prise et le repère ; null s'il n'y a rien à comparer. */
+const ecartRepere = (s: { date: string; valeur: number }[], depuis?: string) => {
+  const r = auRepere(s, depuis)
+  const der = s[s.length - 1]
+  return r && r.date < der.date ? der.valeur - r.valeur : null
+}
 
 const signeCm = (d: number) => (Math.abs(d) < 0.05 ? '±0' : signe(d))
 
@@ -213,16 +225,16 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           <>
             <div className="ligne entre">
               <strong className="corps-titre">Mensurations</strong>
-              {mesures.length > 1 && <span className="faible petit-texte">{enCours ? 'depuis le début de la phase' : 'depuis la première prise'}</span>}
+              {principalesTriees.some((c) => ecartRepere(serie(mesures, c), enCours?.debut) !== null) && <span className="faible petit-texte">{enCours ? 'depuis le début de la phase' : 'depuis la première prise'}</span>}
             </div>
             {principalesTriees.map((c) => {
               const s = serie(mesures, c)
-              const d = s[s.length - 1].valeur - auRepere(s, enCours?.debut).valeur
+              const d = ecartRepere(s, enCours?.debut)
               return (
                 <div key={c} className="ligne entre corps-mesure">
                   <span>{nomCle(c)}</span>
                   <span>
-                    <strong>{cm(s[s.length - 1].valeur)}</strong> {s.length > 1 && <span className="faible">{signeCm(d)}</span>}
+                    <strong>{cm(s[s.length - 1].valeur)}</strong> {d !== null && <span className="faible">{signeCm(d)}</span>}
                   </span>
                 </div>
               )
@@ -268,15 +280,6 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
 
       {noter && <FenetreJour saisie="poids" date={aujourdhui} catalogue={catalogue} journal={journal} poidsDuJour={pesees.find((p) => p.date === aujourdhui)?.poids} poidsRepere={pesees[pesees.length - 1]?.poids} onFermer={() => setNoter(false)} />}
     </div>
-  )
-}
-
-function PhotoDatee({ photo }: { photo: PhotoCorps }) {
-  return (
-    <figure>
-      <img src={photo.image} alt={`Photo du ${dateCourte(photo.date)}`} />
-      <figcaption>{dateCourte(photo.date).replace(/^\S+ /, '')}</figcaption>
-    </figure>
   )
 }
 
@@ -338,7 +341,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
   const ligne = (c: string) => {
     const s = serie(mesures, c)
     const der = s[s.length - 1]
-    const d = der.valeur - auRepere(s, depuis).valeur
+    const d = ecartRepere(s, depuis)
     const def = MESURES.find((m) => clesDe(m).includes(c))!
     const estOuverte = c === ouverte
     return (
@@ -347,7 +350,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
           <span>{nomCle(c)}</span>
           <span>
             <strong>{cm(der.valeur)}</strong>
-            {s.length > 1 && <span className="ecart-mesure"> {signe(d)}</span>}
+            {d !== null && <span className="ecart-mesure"> {signe(d)}</span>}
             <ChevronRight size={16} strokeWidth={1.75} className={'muted depliable-chevron' + (estOuverte ? ' ouvert' : '')} />
           </span>
         </button>

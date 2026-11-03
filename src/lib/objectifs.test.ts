@@ -1,4 +1,15 @@
-import { phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
+import { derniereSemainePhase, phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
+
+describe('dernière semaine d’une phase', () => {
+  it('les 7 derniers jours, pas avant, pas après', () => {
+    const p = { finPrevue: '2026-11-09' }
+    expect(derniereSemainePhase(p, '2026-11-01')).toBe(false)
+    expect(derniereSemainePhase(p, '2026-11-02')).toBe(true)
+    expect(derniereSemainePhase(p, '2026-11-08')).toBe(true)
+    expect(derniereSemainePhase(p, '2026-11-09')).toBe(false)
+    expect(derniereSemainePhase({}, '2026-11-08')).toBe(false)
+  })
+})
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })

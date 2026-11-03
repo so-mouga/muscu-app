@@ -125,6 +125,12 @@ export function phaseA(frise: EtapeObjectifs[], date: string): (PeriodePhase & {
   return { ...p, semaine: semaines(p.debut, date), depassee: !!p.finPrevue && date >= p.finPrevue, ...(p.finPrevue && { total: Math.max(1, Math.round((Date.parse(p.finPrevue) - Date.parse(p.debut)) / (7 * JOUR))) }) }
 }
 
+/** C'est sa dernière semaine : les 7 derniers jours avant sa fin (vraie, sinon prévue). */
+export function derniereSemainePhase(p: { fin?: string; finPrevue?: string }, date: string): boolean {
+  const dernier = p.fin ?? (p.finPrevue ? veille(p.finPrevue) : undefined)
+  return !!dernier && date <= dernier && plusJours(date, 6) >= dernier
+}
+
 /** Dernier jour d'une phase pour l'affichage : sa vraie fin, sinon sa fin prévue (ou aujourd'hui si elle est dépassée), sinon sans fin. */
 export const finAffichee = (p: PeriodePhase, aujourdhui: string) => p.fin ?? (p.finPrevue ? (p.finPrevue > aujourdhui ? p.finPrevue : aujourdhui) : '9999-12-31')
 

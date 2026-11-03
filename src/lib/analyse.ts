@@ -288,12 +288,13 @@ export interface LigneEssentielle {
  * phase, sommeil court, régularité en baisse, blocages (résumés), fatigue. Les muscles, les records et la
  * bonne régularité ont leur carte dans le Bilan. Le texte partagé garde tout (`aRetenir`).
  */
-export function essentiel(a: Analyse, avant: Analyse | null, phase?: Phase, depuisPhase?: Analyse): LigneEssentielle[] {
+export function essentiel(a: Analyse, avant: Analyse | null, phase?: Phase, depuisPhase?: Analyse, arrete = false): LigneEssentielle[] {
   if (a.seances < 2) return []
   const r: LigneEssentielle[] = a.douleurs.slice(0, 2).map((d) => ({ texte: `Douleur signalée sur ${d.exo.nom}${d.n > 1 ? ` (${d.n} séances)` : ''} : adapte la charge ou remplace l’exercice si ça persiste.`, exoId: d.exo.id }))
   if (phase) for (const texte of lecturePhase(depuisPhase ?? a, phase)) r.push({ texte })
   if (a.sommeil && a.sommeil.nuits >= 3 && a.sommeil.moyenne < 6.5) r.push({ texte: `Sommeil moyen ${heuresMinutes(a.sommeil.moyenne)} sur ${a.sommeil.nuits} nuits : sous 6 h 30, la récupération et les perfs en pâtissent.` })
-  if (a.prevues && a.faites < a.prevues * 0.75) r.push({ texte: `${a.faites} séance${a.faites > 1 ? 's' : ''} sur ${a.prevues} prévues : mieux vaut chaque semaine que des semaines chargées.` })
+  // Cycle arrêté en route : pas de remarque sur les séances manquées, l'écran dit déjà qu'il s'est arrêté.
+  if (!arrete && a.prevues && a.faites < a.prevues * 0.75) r.push({ texte: `${a.faites} séance${a.faites > 1 ? 's' : ''} sur ${a.prevues} prévues : mieux vaut chaque semaine que des semaines chargées.` })
   const bloques = a.stagnations
   if (bloques.length === 1) r.push({ texte: `${bloques[0].exo.nom} : pas de progrès depuis ${bloques[0].semaines} semaines.${bloques[0].pistes.length ? ` Piste : ${bloques[0].pistes[0]}.` : ''}`, exoId: bloques[0].exo.id })
   else if (bloques.length > 1) {
@@ -323,6 +324,11 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
   const notes = c.ok + c.trop + c.pasAssez
   const tenues = notes >= 4 && c.ok / notes >= 0.7
   if (phase === 'seche') {
+    // Charges en baisse et poids immobile : manger plus et manger moins seraient deux conseils opposés. Une seule phrase.
+    if (force !== null && force <= -5 && pctSemaine !== null && pctSemaine >= -0.1) {
+      r.push(`En sèche, tes charges baissent (${forceTxt} en moyenne) et ton poids ne baisse pas (${kgSem(parSemaine!)}) : le déficit n’explique pas cette baisse. Regarde d’abord ton sommeil et ta fatigue, sans changer encore ce que tu manges.`)
+      return r
+    }
     if (force !== null && force <= -5) r.push(`En sèche, tes charges baissent (${forceTxt} en moyenne) : ton déficit est peut-être trop fort, ou tu dors trop peu. Mange un peu plus autour des séances.`)
     if (pctSemaine !== null && pctSemaine < -1) r.push(`Tu perds vite (${kgSem(parSemaine!)}, plus de 1 % de ton poids) : risque de perdre du muscle, ralentis un peu.`)
     else if (pctSemaine !== null && pctSemaine >= -0.1)

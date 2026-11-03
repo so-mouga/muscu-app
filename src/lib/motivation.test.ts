@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle, Seance } from '../types'
-import { depuisDebut, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle } from './motivation'
+import { depuisDebut, exercicesDuBloc, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle } from './motivation'
 import { nouveauCycle } from './cycle'
 
 type S = [exoId: string, charge: number, reps: number, rpe?: number]
@@ -114,5 +114,25 @@ describe('suivi du cycle', () => {
     const r = suiviCycle(c, seances as never, '2026-11-04')
     expect(r.semaines.map((x) => x.etat)).toEqual(['tenue', 'tenue', 'manquee', 'pause', 'courante', 'avenir', 'allegee'])
     expect(r).toMatchObject({ prevues: 4, faites: 6, tenues: 2, cetteSemaine: 1 })
+  })
+})
+
+describe('exercices du bloc', () => {
+  const ids = Object.keys(EXERCICES).slice(0, 4)
+  const exo = (id: string) => EXERCICES[id]
+  it('classe chaque exercice, ce qui baisse compris ; un déload ne compte pas', () => {
+    const r = exercicesDuBloc(
+      [
+        seance('1', '2026-10-05', [[ids[0], 40, 10], [ids[1], 30, 10], [ids[2], 20, 10], [ids[3], 15, 10]]),
+        seance('2', '2026-10-12', [[ids[0], 50, 10], [ids[1], 27.5, 10], [ids[2], 20, 10]]),
+        seance('3', '2026-10-19', [[ids[0], 10, 10]], { deload: true }),
+      ],
+      exo
+    )
+    expect(r.monte.map((l) => l.exo.id)).toEqual([ids[0]])
+    expect(r.monte[0].apres.charge).toBe(50)
+    expect(r.baisse.map((l) => l.exo.id)).toEqual([ids[1]])
+    expect(r.stable.map((l) => l.exo.id)).toEqual([ids[2]])
+    expect(r.uneFois.map((l) => l.exo.id)).toEqual([ids[3]])
   })
 })

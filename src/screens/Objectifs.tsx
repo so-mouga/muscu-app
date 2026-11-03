@@ -5,12 +5,12 @@ import { dateISO } from '../lib/calc'
 import { objectifsA } from '../lib/objectifs'
 
 /** Page Phases (depuis Corps) : les phases en blocs, chacune avec ses calories ; le champ seul reste pour qui n'a pas de phase en cours. */
-export default function Objectifs({ catalogue }: { catalogue: Catalogue }) {
+export default function Objectifs({ catalogue, onRecap }: { catalogue: Catalogue; onRecap: (debut: string) => void }) {
   const aujourdhui = objectifsA(catalogue.objectifs, dateISO())
   const calories = aujourdhui?.calories
   return (
     <div>
-      <Phases catalogue={catalogue} />
+      <Phases catalogue={catalogue} onRecap={onRecap} />
       {!aujourdhui?.phase && (
       <div className="carte ligne entre calories-visees">
         <span>

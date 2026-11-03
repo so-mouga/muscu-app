@@ -91,6 +91,8 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Réglages** (3 nov. 2026, après inventaire et maquette cliquable validés) : export réparé dans l'APK 1.9, récupération sécurisée, page rangée. Le détail est dans `AGENTS.md`.
 
+- **Fins de cycle et de phase, récaps** (3 nov. 2026, après maquettes et captures validées) : dernière semaine annoncée, rappels de fin qui ne reviennent plus, récap de phase, anciens cycles dans le Bilan, cycle arrêté en route. Le détail est dans `AGENTS.md`. À vérifier sur le téléphone : largeur de « dernière semaine » avec sa police, zoom des photos, vrai bouton retour.
+
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)

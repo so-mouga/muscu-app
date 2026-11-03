@@ -2,16 +2,18 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import { Check, ChevronRight, Clock, CloudUpload, Download, Flame, Info, Moon, RefreshCw, Ruler, Scale, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
-import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
+import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
 import { creneauxFaits } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
-import { nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
+import { derniereSemainePhase, nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
+import { phaseFinie, reperesAPrendre } from '../lib/recap'
+import type { PageCorps } from './Corps'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
-import { etatCycle, lundiDe, planDeload, reprendreSemaine } from '../lib/cycle'
+import { arretCycle, etatCycle, lundiDe, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
@@ -24,6 +26,7 @@ import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 import Deplie from '../components/Deplie'
 
+const CLE_RAPPELS_FAITS = 'rappelsFaits'
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
@@ -78,6 +81,7 @@ export default function Accueil({
   onProgrammes,
   onAjouterExercices,
   onBilanCycle,
+  onCorps,
   onChoisirProgramme,
   onObjectif,
 }: {
@@ -95,6 +99,8 @@ export default function Accueil({
   /** Séance sans exercice : ouvre son éditeur au lieu de la démarrer. */
   onAjouterExercices: (modeleId: string) => void
   onBilanCycle: () => void
+  /** Ouvre l'onglet Corps, éventuellement sur une page (récap d'une phase). */
+  onCorps: (page?: PageCorps) => void
   /** Sans programme : ouvre le choix du programme. */
   onChoisirProgramme: () => void
   /** Sans objectif : ouvre la question de l'objectif. */
@@ -115,6 +121,8 @@ export default function Accueil({
     }
   })
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
+  // Dernière mesure et dernière photo ; null pendant le chargement, pour ne pas demander des repères déjà pris.
+  const dernieresPrises = useLiveQuery(async () => [(await db.mesures.orderBy('date').last())?.date, ((await db.photos.orderBy('date').uniqueKeys()) as string[]).at(-1)], [], null)
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
     try {
@@ -237,6 +245,16 @@ export default function Accueil({
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
   const mesuresEnRetard = nbSeances > 0 && (joursMesure === null || joursMesure > 21)
 
+  // Fins de cycle et de phase, repères de départ : une fois vus ou masqués, ils ne reviennent plus (réglage `rappelsFaits`).
+  const faits = (reglages.find((r) => r.cle === CLE_RAPPELS_FAITS)?.valeur as string[] | undefined) ?? []
+  const fait = (cle: string) => faits.includes(cle)
+  const marquer = (cle: string) => void setReglage(CLE_RAPPELS_FAITS, [...new Set([...faits, cle])])
+  const seancesDuCycle = cycle && terminees ? terminees.filter((s) => s.cycleId === cycle.id).length : 0
+  const arret = cycle && terminees ? arretCycle(cycle, terminees) : null
+  const finDePhase = phaseFinie(catalogue.objectifs, dateISO())
+  const debutReperes = dernieresPrises ? reperesAPrendre(catalogue.objectifs, dateISO(), dernieresPrises) : null
+  const reperes = !!debutReperes && !fait(`reperes:${debutReperes}`)
+
   const joursExport = dernierExport ? Math.floor((Date.now() - (dernierExport.valeur as number)) / 86400000) : null
   const exportVieux = nbSeances > 0 && (joursExport === null || joursExport >= 7)
   // Déload à avancer : seulement pendant une semaine de travail du cycle (le bouton est dans le cycle).
@@ -254,8 +272,11 @@ export default function Accueil({
     return d.charAt(0).toUpperCase() + d.slice(1)
   })()
 
+  const phaseDerniere = !!phase && !phase.aVenir && derniereSemainePhase(phase, dateISO())
   const textePhase = phase
-    ? phase.aVenir
+    ? phaseDerniere
+      ? `${nomCourtPhase(phase.phase)} · dernière semaine`
+      : phase.aVenir
       ? `${nomCourtPhase(phase.phase)} (dès ${
           phase.debut === dateISO(new Date(Date.now() + 86400000))
             ? 'demain'
@@ -269,7 +290,9 @@ export default function Accueil({
   const texteCycle =
     cycle && etat
       ? etat.fini
-        ? 'Cycle terminé'
+        ? arret
+          ? 'Cycle arrêté'
+          : 'Cycle terminé'
         : etat.n <= 0
         ? `Cycle · ${
             cycle.debut === dateISO(new Date(Date.now() + 86400000))
@@ -278,10 +301,22 @@ export default function Accueil({
           }`
         : etat.pause
         ? 'Cycle en pause'
+        : etat.n === etat.total
+        ? `${etat.deload ? 'Allégée' : 'Cycle'} · dernière semaine`
         : etat.deload
         ? `Allégée · sem. ${etat.n}/${etat.total}`
         : `Cycle · sem. ${etat.n}/${etat.total}`
       : ''
+  // « dernière semaine » ressort : c'est le moment de penser à la suite.
+  const avecFin = (texte: string) => {
+    const i = texte.indexOf('dernière semaine')
+    return i < 0 ? texte : (
+      <>
+        {texte.slice(0, i)}
+        <span className="repere-fin">dernière semaine</span>
+      </>
+    )
+  }
 
   // Au plus deux rappels à la fois (un seul sur un écran peu haut), par ordre d'importance : « Démarrer » doit rester à l'écran.
   const rappels = [
@@ -300,11 +335,25 @@ export default function Accueil({
         </button>
       </div>
     ),
-    etat?.fini && (
+    cycle && etat?.fini && seancesDuCycle > 0 && !fait(`cycle:${cycle.id}`) && (
       <div key="cycle" className="rappel-ligne">
-        <button type="button" className="texte" onClick={onBilanCycle}>
+        <button type="button" className="texte" onClick={() => (marquer(`cycle:${cycle.id}`), onBilanCycle())}>
           <RefreshCw size={16} strokeWidth={2} className="rappel-ico ok" />
-          <span className="rappel-texte">Cycle terminé : voir le bilan</span>
+          <span className="rappel-texte">{arret ? 'Cycle arrêté' : 'Cycle terminé'} : voir le bilan</span>
+        </button>
+        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel" onClick={() => marquer(`cycle:${cycle.id}`)}>
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
+    ),
+    finDePhase && !fait(`phase:${finDePhase.debut}`) && (
+      <div key="phase" className="rappel-ligne">
+        <button type="button" className="texte" onClick={() => (marquer(`phase:${finDePhase.debut}`), onCorps(`recap:${finDePhase.debut}`))}>
+          <Target size={16} strokeWidth={2} className="rappel-ico ok" />
+          <span className="rappel-texte">Phase finie : voir le récap</span>
+        </button>
+        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel" onClick={() => marquer(`phase:${finDePhase.debut}`)}>
+          <X size={15} strokeWidth={2} />
         </button>
       </div>
     ),
@@ -344,7 +393,17 @@ export default function Accueil({
         </button>
       </div>
     ),
-    mesuresEnRetard && !masque('mesures') && (
+    reperes ? (
+      <div key="reperes" className="rappel-ligne">
+        <button type="button" className="texte" onClick={() => onCorps()}>
+          <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
+          <span className="rappel-texte">Début de phase : note tes repères</span>
+        </button>
+        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cette phase" onClick={() => (masquer('mesures'), marquer(`reperes:${debutReperes}`))}>
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
+    ) : mesuresEnRetard && !masque('mesures') && (
       <div key="mesures" className="rappel-ligne">
         <button type="button" className="texte" onClick={onMesures}>
           <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
@@ -429,7 +488,7 @@ export default function Accueil({
             ) : (
               <>
                 <span className="repere-fort">{nomCourtPhase(phase.phase)}</span>
-                {textePhase.slice(nomCourtPhase(phase.phase).length)}
+                {avecFin(textePhase.slice(nomCourtPhase(phase.phase).length))}
               </>
             )}
           </button>
@@ -442,7 +501,7 @@ export default function Accueil({
         )}
         {cycle && etat && (
           <button type="button" onClick={onProgrammes} aria-label={`Cycle d'entraînement : ${texteCycle}`}>
-            {texteCycle}
+            {avecFin(texteCycle)}
           </button>
         )}
       </div>

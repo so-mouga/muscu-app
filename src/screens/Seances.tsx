@@ -12,7 +12,7 @@ import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '
 import { suiviCycle } from '../lib/motivation'
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
-import { debutCycle, ecartCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
+import { arretCycle, debutCycle, ecartCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
 import { ciblesPrecedentes } from '../lib/objectifs'
@@ -78,8 +78,15 @@ async function sauverProgramme(p: Programme, catalogue: Catalogue) {
 /** Le programme tel qu'on le modifie : jamais la copie du cycle. */
 const programmeVivant = (catalogue: Catalogue, p: Programme) => catalogue.programmes.find((x) => x.id === p.id) ?? p
 
-export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert, seanceAOuvrir, onSeanceOuverte, onBilanCycle }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre le Bilan sur la période du cycle. */ onBilanCycle: () => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void; /** Séance à ouvrir tout de suite (séance vide, depuis l'Accueil). */ seanceAOuvrir?: string | null; onSeanceOuverte?: () => void }) {
-  const [pile, setPile] = useState<Vue[]>([])
+/** Une séance ouverte depuis la page du cycle : au retour, on y revient. */
+let retourCycle = false
+
+export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert, seanceAOuvrir, onSeanceOuverte, onBilanCycle, onSeance }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre le Bilan sur la période du cycle. */ onBilanCycle: () => void; /** Ouvre le détail d'une séance faite. */ onSeance: (id: string) => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void; /** Séance à ouvrir tout de suite (séance vide, depuis l'Accueil). */ seanceAOuvrir?: string | null; onSeanceOuverte?: () => void }) {
+  const [pile, setPile] = useState<Vue[]>(() => {
+    const r = retourCycle
+    retourCycle = false
+    return r ? [{ type: 'cycle' }] : []
+  })
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
   /** Message de confirmation, en haut de la page Programme. */
@@ -137,7 +144,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
         <Editeur key={vue.m.id} catalogue={catalogue} terminees={terminees} initial={vue.m} nouvelle={vue.nouvelle} entree={vue.entree} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
       </>
     )
-  if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={fermer} onBilan={onBilanCycle} />
+  if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={fermer} onBilan={onBilanCycle} onSeance={(id) => ((retourCycle = true), onSeance(id))} />
   if (vue?.type === 'volume') return <PageVolume catalogue={catalogue} p={programmeVivant(catalogue, vue.p)} onFermer={fermer} />
   if (vue?.type === 'changer')
     return (
@@ -261,6 +268,7 @@ function PageProgramme({
   // Un cycle arrivé au bout reste enregistré après un changement de programme : il ne concerne que le sien.
   const cycle = enService && catalogue.cycle?.programmeId === p.id ? catalogue.cycle : undefined
   const etat = cycle && etatCycle(cycle)
+  const arret = cycle && terminees ? arretCycle(cycle, terminees) : null
   const autreCycle = !enService && catalogue.cycle && !etatCycle(catalogue.cycle).fini
   const nomSeance = (x: number) => catalogue.modele(p.seances[x]?.modeleId)?.nom ?? ''
 
@@ -371,7 +379,7 @@ function PageProgramme({
           <div className="carte pile">
             {cycle ? (
               <button type="button" className="prog-lien" onClick={onBilan}>
-                <strong>Cycle terminé</strong>
+                <strong>{arret ? `Cycle arrêté après ${arret} semaine${arret > 1 ? 's' : ''}` : 'Cycle terminé'}</strong>
                 <span className="faible">
                   Voir le bilan <ChevronRight size={14} className="ico-texte" />
                 </span>

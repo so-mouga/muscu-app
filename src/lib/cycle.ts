@@ -64,6 +64,18 @@ export function finReelle(c: Cycle, date = dateISO()): string {
   return prevue < date ? prevue : date
 }
 
+/** Cycle fini sans ses dernières semaines (au moins 2 sans séance) : le numéro de la dernière semaine faite ; null s'il est allé au bout, ou s'il n'a rien eu. */
+export function arretCycle(c: Cycle, seances: { cycleId?: string; date: string; enCours?: boolean }[], date = dateISO()): number | null {
+  if (!etatCycle(c, date).fini) return null
+  const dernier = seances.filter((s) => s.cycleId === c.id && !s.enCours).reduce<string | null>((a, s) => (!a || s.date > a ? s.date : a), null)
+  if (!dernier) return null
+  const { n } = etatCycle(c, dernier)
+  return n <= c.semaines - 2 ? Math.max(1, n) : null
+}
+
+/** Dernier jour (dimanche) de la semaine `n` du cycle. */
+export const finSemaineCycle = (c: Cycle, n: number) => dateISO(new Date(jours(lundiDe(c, n)) + 6 * 86400000))
+
 /** Le cycle que le Bilan peut montrer : le dernier commencé avant cette semaine (un cycle à peine lancé n'a pas encore de semaine finie). */
 export function cycleDuBilan(cycles: Cycle[], cetteSemaine: string): Cycle | undefined {
   return [...cycles].sort((a, b) => b.debut.localeCompare(a.debut)).find((c) => c.debut < cetteSemaine)

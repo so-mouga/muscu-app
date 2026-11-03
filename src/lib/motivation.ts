@@ -1,7 +1,7 @@
 import type { Cycle, Exercice, Seance, Serie } from '../types'
 import { dateISO, e1rm, semaineType } from './calc'
 import { couvre, etatCycle, lignesCycle } from './cycle'
-import { mieuxParSeance, recordsParSeance, scoreSerie, semaineDe } from './historique'
+import { mieuxParSeance, recordsParSeance, scoreSerie, semaineDe, sensPerf } from './historique'
 
 /**
  * Ce qui aide à continuer, sans pression : des faits tirés des séances (semaines tenues, progrès du
@@ -81,6 +81,30 @@ export function depuisDebut(seances: Seance[], exo: (id: string) => Exercice, de
     })
     .slice(0, max)
 }
+
+/**
+ * Tous les exercices d'un bloc, de la 1re séance à la dernière (déloads exclus) : ce qui monte, ce qui ne bouge pas, ce
+ * qui baisse, et ce qui n'a été fait qu'une fois. Plus lourd ou plus de reps à la même charge = monte (`sensPerf`).
+ */
+export function exercicesDuBloc(seances: Seance[], exo: (id: string) => Exercice) {
+  const bloc = seances.filter((s) => !s.enCours && !s.deload).sort((a, b) => a.debut - b.debut)
+  const res = { monte: [] as LigneBloc[], stable: [] as LigneBloc[], baisse: [] as LigneBloc[], uneFois: [] as LigneBloc[] }
+  for (const id of new Set(bloc.flatMap((s) => s.series.map((x) => x.exoId)))) {
+    const e = exo(id)
+    const avec = bloc.flatMap((s) => {
+      const m = meilleure(e, s)
+      return m ? [m.serie] : []
+    })
+    if (!avec.length) continue
+    const [avant, apres] = [avec[0], avec[avec.length - 1]]
+    const ligne = { exo: e, avant, apres, seances: avec.length }
+    const sens = sensPerf(e, avant, apres)
+    res[avec.length < 2 ? 'uneFois' : sens > 0 ? 'monte' : sens < 0 ? 'baisse' : 'stable'].push(ligne)
+  }
+  for (const l of Object.values(res)) l.sort((a, b) => b.seances - a.seances)
+  return res
+}
+export type LigneBloc = { exo: Exercice; avant: Serie; apres: Serie; seances: number }
 
 /** Fin de séance : exercices mieux que la dernière fois, et records battus (`avant` : séances terminées d'avant). */
 export function resumeSeance(seance: Seance, avant: Seance[], exo: (id: string) => Exercice): { mieux: number; records: number } {

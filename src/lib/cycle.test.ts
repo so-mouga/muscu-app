@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { appliquerEcart, avecPriorites, changerSemaine, cycleDuBilan, debutCycle, finReelle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
+import { appliquerEcart, arretCycle, finSemaineCycle, avecPriorites, changerSemaine, cycleDuBilan, debutCycle, finReelle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -260,5 +260,25 @@ describe('cycle proposé par le Bilan', () => {
   })
   it('aucun cycle commencé', () => {
     expect(cycleDuBilan([b], '2026-12-28')).toBeUndefined()
+  })
+})
+
+describe('cycle arrêté en route', () => {
+  const c = { id: 'c', debut: '2026-09-14', semaines: 6, deloads: [6], pauses: [] } as unknown as Parameters<typeof arretCycle>[0]
+  const s = (date: string) => ({ cycleId: 'c', date })
+  it('arrêt en semaine 3 sur 6 : 3, et sa fin est le dimanche de cette semaine', () => {
+    expect(arretCycle(c, [s('2026-09-14'), s('2026-10-02')], '2026-11-03')).toBe(3)
+    expect(finSemaineCycle(c, 3)).toBe('2026-10-04')
+  })
+  it('allé au bout, ou seulement la semaine allégée manquée : pas un arrêt', () => {
+    expect(arretCycle(c, [s('2026-10-20')], '2026-11-03')).toBeNull()
+    expect(arretCycle(c, [s('2026-10-14')], '2026-11-03')).toBeNull()
+  })
+  it('encore en cours, ou sans aucune séance : rien à dire', () => {
+    expect(arretCycle(c, [s('2026-09-14')], '2026-10-01')).toBeNull()
+    expect(arretCycle(c, [], '2026-11-03')).toBeNull()
+  })
+  it('terminé à la main en semaine 2', () => {
+    expect(arretCycle({ ...c, fin: '2026-09-25' }, [s('2026-09-22')], '2026-09-25')).toBe(2)
   })
 })
