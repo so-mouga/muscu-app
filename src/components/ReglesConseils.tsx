@@ -21,7 +21,7 @@ const REGLES: [string, string[]][] = [
       '« Monte d’un cran » : ta série d’avant dépasse le haut de la fourchette de 3 reps ou plus. Proposé : la charge + un pas de l’exercice (sauf au maximum du matériel).',
       '« Faute de frappe ? » : une charge bien plus lourde que d’habitude (plus de 1,5 fois et au moins 20 kg de plus).',
       'Exercice bloqué : une ligne sur la carte de l’exercice (voir « Exercice bloqué »).',
-      'Séance ouverte depuis plus de 4 h : un avertissement (séance oubliée).',
+      'Séance ouverte depuis plus de 4 h : un avertissement ; si rien n’a été fait depuis 2 h, l’appli demande à la réouverture s’il faut l’enregistrer.',
     ],
   ],
   [

@@ -244,6 +244,12 @@ export function dureeHabituelle(modeleId: string, terminees: Seance[]): number |
 /** « 55 min », « 1 h 05 ». */
 export const minutes = (n: number) => (n < 60 ? `${n} min` : `${Math.floor(n / 60)} h ${String(n % 60).padStart(2, '0')}`)
 
+/** Quatre heures après le début et plus rien depuis 2 h : la séance a été oubliée, pas juste longue. */
+export function seanceOubliee(s: Pick<Seance, 'debut' | 'series'>, maintenant: number): boolean {
+  const derniere = Math.max(s.debut, ...s.series.map((x) => x.heure).filter((h) => h > 0))
+  return maintenant - s.debut > 4 * 3600000 && maintenant - derniere > 2 * 3600000
+}
+
 /** Durée affichée sur une séance : la durée réelle habituelle, dite comme telle, sinon l'estimation du plan. Rien pour une séance vide. */
 export function dureeTexte(m: SeanceModele, terminees: Seance[] | undefined): string {
   if (!m.exercices.length) return ''

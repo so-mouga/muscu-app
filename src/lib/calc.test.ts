@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance, Serie } from '../types'
-import { calories, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import { calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -121,6 +121,14 @@ describe('durée habituelle et calories', () => {
     expect(dureeEstimee({ id: 'a', nom: 'A', sousTitre: '', exercices: [] })).toBe(0)
     const longue = { id: 'a', nom: 'A', sousTitre: '', exercices: Array.from({ length: 4 }, () => ({ ...plan, series: [...plan.series, ...plan.series, ...plan.series] })) }
     expect(dureeEstimee({ ...longue, echauffement: ['cardio', 'jumping', 'moulinets', 'balances_jambes', 'chevilles', 'hanches_9090'] })).toBeGreaterThan(dureeEstimee(longue))
+  })
+  it('séance oubliée : plus de 4 h et plus rien depuis 2 h, pas une longue séance encore active', () => {
+    const h = 3600000
+    const avec = (heure: number) => ({ debut: 0, series: [{ heure }] as Serie[] })
+    expect(seanceOubliee(avec(h), 3 * h)).toBe(false)
+    expect(seanceOubliee(avec(h), 15 * h)).toBe(true)
+    expect(seanceOubliee(avec(4.5 * h), 5 * h)).toBe(false)
+    expect(seanceOubliee({ debut: 0, series: [] }, 5 * h)).toBe(true)
   })
   it('une séance au plafond de 4 h ne compte pas dans la durée habituelle', () => {
     expect(dureeHabituelle('a', [s(1, 300)])).toBeNull()

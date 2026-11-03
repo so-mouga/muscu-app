@@ -16,7 +16,7 @@ import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { chrono, ecartSerie, lireChauffe, chargeQte, chargeTexte, chargesTexte, cibleTexte, e1rm, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, serieTexte } from '../lib/calc'
+import { chargeQte, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, e1rm, ecartSerie, enTemps, kg, lireChauffe, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -58,6 +58,30 @@ function range(cle: string, v: unknown) {
 async function annulerSeance(seanceId: string) {
   await db.seances.delete(seanceId)
   oublierEtatLocal(seanceId, true)
+}
+
+/** À la réouverture d'une séance oubliée : l'enregistrer telle quelle (ou l'annuler si rien n'a été fait), ou la continuer. */
+function SeanceOubliee({ seance, onContinuer, onEnregistrer, onAnnuler }: { seance: Seance; onContinuer: () => void; onEnregistrer: () => void; onAnnuler: () => void }) {
+  useRetour(true, onContinuer)
+  const n = seance.series.length
+  const hier = dateISO(new Date(Date.now() - 86400000))
+  const quand = seance.date === hier ? 'd’hier' : seance.date === dateISO() ? '' : `du ${dateCourte(seance.date)}`
+  const derniere = n ? new Date(Math.max(...seance.series.map((x) => x.heure))).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
+  return createPortal(
+    <div className="modal-fond" onClick={onContinuer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <h2>Ta séance {quand} est restée ouverte</h2>
+        <div className="faible">{n ? `${seance.nom} : ${n} série${n > 1 ? 's' : ''}, la dernière à ${derniere}.` : `${seance.nom} : aucune série validée.`}</div>
+        <button className="btn primaire grand" onClick={n ? onEnregistrer : onAnnuler}>
+          {n ? 'Enregistrer' : 'Annuler cette séance'}
+        </button>
+        <button className="btn grand" onClick={onContinuer}>
+          Continuer la séance
+        </button>
+      </div>
+    </div>,
+    document.body
+  )
 }
 
 /** Fenêtre du retour quand des séries sont déjà faites : continuer (le plus probable), terminer, supprimer. */
@@ -147,6 +171,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   /** Vue liste : exercice déplié (un seul à la fois). */
   const [ouvert, setOuvert] = useState<number | null>(null)
   const [verrou, setVerrou] = useState(false)
+  const [oubliee, setOubliee] = useState(() => seanceOubliee(seance, Date.now()))
   const maintenant = useHorloge(1000)
   const derniereTouche = useRef(0)
   const repriseAuto = useRef<((finRepos: number) => void) | null>(null)
@@ -563,6 +588,18 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   // Fenêtres communes à la vue normale et au plein écran (Machine prise, remplacement, lien d'équivalents).
   const fenetres = (
     <>
+      {oubliee && (
+        <SeanceOubliee
+          seance={seance}
+          onContinuer={() => setOubliee(false)}
+          onAnnuler={() => void annulerSeance(seance.id)}
+          onEnregistrer={() => {
+            // Heure de la dernière série : la nuit ne compte pas dans la durée. « Comme aujourd'hui » pour la prochaine fois.
+            void db.seances.update(seance.id, { enCours: false, fin: Math.max(...seance.series.map((x) => x.heure)) })
+            oublierEtatLocal(seance.id)
+          }}
+        />
+      )}
       {sortie && (
         <SortieSeance
           series={seance.series.length}
