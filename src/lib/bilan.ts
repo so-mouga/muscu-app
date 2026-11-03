@@ -1,6 +1,6 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
-import type { Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
+import type { Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
 import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, sensationSeance, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, evolutionForce, recordsParSeance, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
@@ -22,6 +22,8 @@ export interface DonneesBilan {
   objectifs?: EtapeObjectifs[]
   /** « Cycle Recompo 4 jours, semaine 3/6 » */
   cycle?: string
+  /** Tous les cycles : leurs semaines en pause ne comptent ni dans le prévu, ni dans le volume. */
+  cycles?: Cycle[]
 }
 
 const SEMAINE = 7 * 86400000
@@ -91,7 +93,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
   for (const l of semaines) {
     const ss = periode.filter((s) => semaineDe(s.date) === l)
     if (!ss.length) {
-      lignes.push(`Sem. du ${jour(l)} : aucune séance`)
+      lignes.push(`Sem. du ${jour(l)} : ${d.cycles?.some((c) => c.pauses.includes(l)) ? 'en pause' : 'aucune séance'}`)
       continue
     }
     const ssSens = ss.map(sensationSeance).filter((x): x is NonNullable<typeof x> => x !== null)
@@ -108,7 +110,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
   titre('Volume par muscle (séries dures par semaine, hors déload)')
   const parSemaine = semaines.map((l) => volumeParMuscle(travail.filter((s) => semaineDe(s.date) === l), d.exercices))
   // Moyenne sur les semaines de la période, sauf celles de déload (une semaine sans séance compte pour 0).
-  const semainesTravail = semaines.filter((l) => !periode.some((s) => semaineDe(s.date) === l && s.deload))
+  const semainesTravail = semaines.filter((l) => !periode.some((s) => semaineDe(s.date) === l && s.deload) && !(d.cycles?.some((c) => c.pauses.includes(l)) && !periode.some((s) => semaineDe(s.date) === l)))
   for (const m of MUSCLES) {
     const valeurs = semaines.map((_, k) => parSemaine[k][m.id])
     const total = valeurs.reduce((a, b) => a + b, 0)

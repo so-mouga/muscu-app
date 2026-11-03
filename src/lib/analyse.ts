@@ -64,7 +64,9 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const semaines: string[] = []
   for (let l = depart; l <= semaineDe(fin); l = dateISO(new Date(Date.parse(l + 'T12:00:00') + SEMAINE))) semaines.push(l)
   const semainesDeload = new Set(periode.filter((s) => s.deload).map((s) => semaineDe(s.date)))
-  const nbTravail = Math.max(1, semaines.filter((l) => !semainesDeload.has(l)).length)
+  // Une semaine mise en pause ne compte ni dans le prévu, ni dans la moyenne de volume (sauf si on s'est entraîné quand même).
+  const pausees = new Set((d.cycles ?? []).flatMap((c) => c.pauses))
+  const nbTravail = Math.max(1, semaines.filter((l) => !semainesDeload.has(l) && !(pausees.has(l) && !periode.some((s) => semaineDe(s.date) === l))).length)
 
   // Volume moyen par semaine (hors déload)
   const total = volumeParMuscle(travail, d.exercices)
@@ -157,12 +159,12 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     semaines,
     seances: periode.length,
     deloads: periode.length - travail.length,
-    prevues: prevuesParSemaine ? prevuesParSemaine * semaines.length : null,
+    prevues: prevuesParSemaine ? prevuesParSemaine * semaines.filter((l) => !pausees.has(l)).length : null,
     ...(() => {
       // Par semaine : 5 séances une semaine ne rattrapent pas une semaine sautée.
-      const parSem = semaines.map((l) => periode.filter((s) => semaineDe(s.date) === l).length)
       if (!prevuesParSemaine) return { faites: periode.length, enPlus: 0 }
-      return { faites: parSem.reduce((a, n) => a + Math.min(n, prevuesParSemaine), 0), enPlus: parSem.reduce((a, n) => a + Math.max(0, n - prevuesParSemaine), 0) }
+      const parSem = semaines.map((l) => ({ n: periode.filter((s) => semaineDe(s.date) === l).length, prevu: pausees.has(l) ? 0 : prevuesParSemaine }))
+      return { faites: parSem.reduce((a, x) => a + Math.min(x.n, x.prevu), 0), enPlus: parSem.reduce((a, x) => a + Math.max(0, x.n - x.prevu), 0) }
     })(),
     temps: periode.reduce((a, s) => a + dureeReelle(s), 0),
     dures: travail.reduce((a, s) => a + s.series.filter(estDure).length, 0),

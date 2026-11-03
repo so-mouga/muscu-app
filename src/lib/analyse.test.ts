@@ -218,3 +218,24 @@ describe('force du Bilan : les exercices d’isolation comptent aussi', () => {
     expect(lignes.join(' ')).not.toContain('−0')
   })
 })
+
+describe('semaine en pause dans le Bilan', () => {
+  const l = ['2026-10-05', '2026-10-07', '2026-10-19', '2026-10-21', '2026-10-26'].map((d) => seance(d, d, [50, 50, 50]))
+  const cycles = [{ pauses: ['2026-10-12'] }] as never
+  const a = analyser({ ...donnees(l), cycles }, '2026-10-05', '2026-11-01', 2)
+
+  it('elle ne compte pas dans le prévu : 5 séances sur 6, pas sur 8', () => {
+    expect(a.prevues).toBe(6)
+    expect(a.faites).toBe(5)
+    expect(essentiel(a, null).some((x) => x.texte.includes('prévues'))).toBe(false)
+  })
+
+  it('le volume est la moyenne des 3 semaines réelles', () => {
+    expect(a.volume.pecs).toBe(5)
+  })
+
+  it('une séance faite pendant la pause compte en plus, pas dans le prévu', () => {
+    const b = analyser({ ...donnees([...l, seance('p', '2026-10-13', [50])]), cycles }, '2026-10-05', '2026-11-01', 2)
+    expect([b.prevues, b.faites, b.enPlus]).toEqual([6, 5, 1])
+  })
+})
