@@ -1,5 +1,5 @@
 import type { Cycle, Exercice, Seance, Serie } from '../types'
-import { dateISO, semaineType } from './calc'
+import { dateISO, e1rm, semaineType } from './calc'
 import { couvre, etatCycle, lignesCycle } from './cycle'
 import { mieuxParSeance, recordsParSeance, scoreSerie, semaineDe } from './historique'
 
@@ -60,7 +60,7 @@ function meilleure(exo: Exercice, s: Seance): { serie: Serie; score: number } | 
  * pratiqués, `max` au plus), la meilleure série de la 1re séance du bloc face à celle de la dernière, en
  * charge × reps. Seulement ceux qui ont progressé ; déloads exclus ; il faut deux séances dans le bloc.
  */
-export function depuisDebut(seances: Seance[], exo: (id: string) => Exercice, depuis: string, max = 3): { exo: Exercice; avant: Serie; apres: Serie }[] {
+export function depuisDebut(seances: Seance[], exo: (id: string) => Exercice, depuis: string, max = 3): { exo: Exercice; avant: Serie; apres: Serie; pct?: number }[] {
   const bloc = seances.filter((s) => !s.enCours && !s.deload && s.date >= depuis).sort((a, b) => a.debut - b.debut)
   const nb = new Map<string, number>()
   for (const s of bloc) for (const id of new Set(s.series.map((x) => x.exoId))) nb.set(id, (nb.get(id) ?? 0) + 1)
@@ -72,7 +72,11 @@ export function depuisDebut(seances: Seance[], exo: (id: string) => Exercice, de
       const avec = bloc.filter((s) => s.series.some((x) => x.exoId === id))
       const a = meilleure(e, avec[0])
       const b = meilleure(e, avec[avec.length - 1])
-      return a && b && b.score > a.score ? [{ exo: e, avant: a.serie, apres: b.serie }] : []
+      if (!a || !b || b.score <= a.score) return []
+      // Le pourcentage décrit ces deux mêmes séries (force estimée) ; sans force estimée, pas de pourcentage.
+      const fa = e1rm(e, a.serie, avec[0].poidsCorps)
+      const fb = e1rm(e, b.serie, avec[avec.length - 1].poidsCorps)
+      return [{ exo: e, avant: a.serie, apres: b.serie, ...(fa && fb && { pct: ((fb - fa) / fa) * 100 }) }]
     })
     .slice(0, max)
 }

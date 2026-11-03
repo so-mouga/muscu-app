@@ -63,6 +63,11 @@ describe('depuis le début du bloc', () => {
   it('meilleure série de la 1re séance du bloc face à la dernière, déloads exclus', () => {
     expect(r[0]).toMatchObject({ exo: { id: 'smith_incline' }, avant: { charge: 45, reps: 10 }, apres: { charge: 52.5, reps: 8 } })
   })
+  it('le pourcentage décrit les deux séries affichées', () => {
+    const [p] = depuisDebut([seance('a', '2026-09-28', [['smith_incline', 75, 10, 8]]), seance('b', '2026-10-05', [['smith_incline', 77.5, 10, 8]]), seance('c', '2026-11-01', [['smith_incline', 80, 10, 8]])], exo, '2026-09-28')
+    expect([p.avant.charge, p.apres.charge]).toEqual([75, 80])
+    expect(Math.round(p.pct! * 10) / 10).toBe(6.7)
+  })
   it('seulement les exercices composés qui ont progressé, 3 au plus', () => {
     // Tirage en baisse : rien ; butterfly (isolation) : pas un exercice principal.
     expect(r.map((x) => x.exo.id)).toEqual(['smith_incline'])

@@ -87,7 +87,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
   const lignes = essentiel(a, avant.seances > 0 ? avant : null, phaseFin, depuisPhase)
   // Sur un cycle : ce qui monte se lit en charges, de la 1re séance à la dernière.
   const parCharges = periode === 'cycle' && cycle ? depuisDebut(seances.filter((s) => s.date <= fin), catalogue.exo, cycle.debut, 8) : []
-  const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}` })))
+  const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}`, valeur: p.pct !== undefined ? `+${kg(arrondi(p.pct))} %` : undefined })))
 
   const partager = async () => {
     const texte = genererBilan(donnees, a.debut, fin, aRetenir(a, avant.seances > 0 ? avant : null, cibles, false, phaseFin, depuisPhase))
@@ -294,8 +294,8 @@ function lectureExercices(a: Analyse, parCharges: LigneExercice[] = []) {
   // Sur un cycle : avant → après en tête, et à la place de la force estimée.
   for (const l of [...parCharges].reverse()) {
     const i = montent.findIndex((x) => x.id === l.id)
-    const ancienne = i >= 0 ? montent.splice(i, 1)[0] : undefined
-    montent.unshift({ ...l, detail: records.has(l.id) ? `${l.detail} · record` : l.detail, valeur: ancienne?.valeur })
+    if (i >= 0) montent.splice(i, 1)
+    montent.unshift({ ...l, detail: records.has(l.id) ? `${l.detail} · record` : l.detail })
   }
   const pisteCommune = a.stagnations.length >= 2 ? a.stagnations[0].pistes.find((p) => a.stagnations.every((s) => s.pistes.includes(p))) : undefined
   const bloques: LigneExercice[] = a.stagnations.map((s) => ({
