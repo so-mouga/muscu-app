@@ -3925,7 +3925,13 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-petit);
   color: var(--texte-2);
 }
+.apercu-carte {
+  padding: var(--e3);
+  margin-bottom: var(--e2);
+}
 .apercu-exo {
+  display: flex;
+  align-items: center;
   gap: var(--e3);
 }
 .apercu-exo-texte {
@@ -3933,8 +3939,11 @@ html[data-sens='fondu']::view-transition-new(root) {
   min-width: 0;
 }
 .apercu-cible {
-  flex: 1;
-  min-width: 0;
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.apercu-plan {
+  font-size: var(--t-legende);
 }
 .texte-finisseur {
   color: var(--finisseur);
@@ -4498,20 +4507,35 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .mois-infos {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 2px var(--e2);
+  gap: var(--e2);
+  min-height: 28px;
+  margin-bottom: var(--e2);
+  white-space: nowrap;
   color: var(--texte-2);
   font-size: var(--t-legende);
 }
+.mois-infos > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .mois-retour {
+  flex: none;
+  position: relative;
   padding: var(--e1) var(--e2);
   border: none;
   border-radius: 999px;
   background: var(--controle);
   color: var(--texte);
   font-size: var(--t-legende);
+}
+/* La pastille reste petite, la zone à toucher non. */
+.mois-retour::after {
+  content: '';
+  position: absolute;
+  inset: -10px 0;
 }
 .jour-choisi > .jour-titre {
   display: block;

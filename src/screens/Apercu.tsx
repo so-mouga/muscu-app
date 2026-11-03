@@ -114,14 +114,14 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
           <div
             key={p.exoId + i}
             className={
-              'carte pile' +
+              'carte apercu-carte' +
               (dansSuperset ? ' en-superset' : '') +
               (enchaine ? ' enchaine-vers-suivant' : '') +
               (precEnchaine && !enchaine ? ' suite-superset' : '')
             }
           >
-            <div className="ligne apercu-exo">
-              <Vignette exo={exo} taille={44} />
+            <div className="apercu-exo">
+              <Vignette exo={exo} taille={36} />
               <div className="apercu-exo-texte">
                 <strong>
                   {i + 1}. {exo.nom}
@@ -134,48 +134,45 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
                     </span>
                   </div>
                 )}
-                <div className="faible">
-                  {schemaPlan(exo, p)}
-                  {/* Effort seulement s'il s'écarte du réglage par défaut (8) */}
-                  {p.series.some((x) => x.rpe !== 8) && !(p.finisseur && p.series.slice(0, -1).every((x) => x.rpe === 8)) ? ` · effort ${[...new Set(p.series.map((x) => kg(x.rpe)))].join(', ')}/10` : ''} · repos {reposTexte(p)}
-                  {p.finisseur && <span className="texte-finisseur"> · finisseur</span>}
-                </div>
-              </div>
-            </div>
-            {sugg && (
-              <div className={'suggestion petit' + (battre ? ' a-battre' : '')}>
-                <div className="ligne entre">
+                {sugg && (
                   <div className="apercu-cible">
-                    <strong>{cibleTexte(exo, sugg.charges, sugg.reps)}</strong>
+                    {cibleTexte(exo, sugg.charges, sugg.reps)}
                     {battre && (
                       <span className="badge-hausse">
                         <Flame size={12} className="ico-texte" /> À battre
                       </span>
                     )}
                   </div>
-                  {derniere && !deload && (
-                    <button type="button" className="btn-infos" aria-label="Modifier l’objectif" onClick={() => setObjectif(i)}>
-                      <Pencil size={20} />
-                    </button>
-                  )}
-                </div>
-                {battre ? (
-                  <div className="muted">
-                    {hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
-                    {derniere && <> · dernière fois {derniere.map((x) => chargeQte(exo, x.charge, x.reps)).join(', ')}</>}
-                  </div>
-                ) : bloque ? (
-                  <div className="muted">
-                    <Pause size={14} fill="currentColor" className="ico-texte" /> {texteBlocage(bloque)}
-                  </div>
-                ) : (
-                  /* « Comme la dernière fois » n'apprend rien : la cible suffit. */
-                  sugg.decision !== 'pareil' && sugg.decision !== 'calibrer' && <div className="muted">{sugg.message}</div>
                 )}
+                <div className="faible apercu-plan">
+                  {schemaPlan(exo, p)}
+                  {/* Effort seulement s'il s'écarte du réglage par défaut (8) */}
+                  {p.series.some((x) => x.rpe !== 8) && !(p.finisseur && p.series.slice(0, -1).every((x) => x.rpe === 8)) ? ` · effort ${[...new Set(p.series.map((x) => kg(x.rpe)))].join(', ')}/10` : ''} · repos {reposTexte(p)}
+                  {p.finisseur && <span className="texte-finisseur"> · finisseur</span>}
+                </div>
+                {sugg &&
+                  (battre ? (
+                    <div className="faible apercu-plan">
+                      {hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
+                      {derniere && <> · dernière fois {derniere.map((x) => chargeQte(exo, x.charge, x.reps)).join(', ')}</>}
+                    </div>
+                  ) : bloque ? (
+                    <div className="faible apercu-plan">
+                      <Pause size={14} fill="currentColor" className="ico-texte" /> {texteBlocage(bloque)}
+                    </div>
+                  ) : (
+                    /* « Comme la dernière fois » n'apprend rien : la cible suffit. */
+                    sugg.decision !== 'pareil' && sugg.decision !== 'calibrer' && <div className="faible apercu-plan">{sugg.message}</div>
+                  ))}
+                {p.chauffes.length > 0 && <div className="faible apercu-plan">Chauffe : {p.chauffes.join(' · ')}</div>}
+                {(p.note || exo.notes) && <div className="faible apercu-plan">{p.note ?? exo.notes}</div>}
               </div>
-            )}
-            {p.chauffes.length > 0 && <div className="faible">Chauffe : {p.chauffes.join(' · ')}</div>}
-            {(p.note || exo.notes) && <div className="faible">{p.note ?? exo.notes}</div>}
+              {sugg && derniere && !deload && (
+                <button type="button" className="btn-infos" aria-label="Modifier l’objectif" onClick={() => setObjectif(i)}>
+                  <Pencil size={20} />
+                </button>
+              )}
+            </div>
           </div>
         )
       })}

@@ -198,36 +198,37 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
 
   return (
     <div className="carte calendrier" style={{ padding: '16px', borderRadius: 'var(--rayon)' }} {...glisse}>
-      <div className="ligne entre" style={{ marginBottom: 6 }}>
+      <div className="ligne entre">
         <button className="icone" onClick={() => aller(-1)} aria-label="Mois précédent" style={{ color: 'var(--texte-2)' }}>
           <ChevronLeft size={22} strokeWidth={2} />
         </button>
         <div className="mois-tete">
           <strong>{mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</strong>
-          <div className="mois-infos">
-            <span>
-              {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
-              {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
-              {phaseMois ? ` · ${nomCourtPhase(phaseMois)}` : ''}
-            </span>
-            {pasAujourdhui && (
-              <button
-                type="button"
-                className="mois-retour"
-                onClick={() => {
-                  setSens(mois < auj ? 'avant' : 'arriere')
-                  setMois(new Date(auj.getFullYear(), auj.getMonth(), 1))
-                  onChoix(aujourdhui)
-                }}
-              >
-                Aujourd’hui
-              </button>
-            )}
-          </div>
         </div>
         <button className="icone" onClick={() => aller(1)} disabled={dernierMois} aria-label="Mois suivant" style={{ color: 'var(--texte-2)' }}>
           <ChevronRight size={22} strokeWidth={2} />
         </button>
+      </div>
+      {/* Toute la largeur, hauteur fixe : « Aujourd’hui » qui apparaît ne décale pas la grille. */}
+      <div className="mois-infos">
+        <span>
+          {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
+          {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
+          {phaseMois ? ` · ${nomCourtPhase(phaseMois)}` : ''}
+        </span>
+        {pasAujourdhui && (
+          <button
+            type="button"
+            className="mois-retour"
+            onClick={() => {
+              setSens(mois < auj ? 'avant' : 'arriere')
+              setMois(new Date(auj.getFullYear(), auj.getMonth(), 1))
+              onChoix(aujourdhui)
+            }}
+          >
+            Aujourd’hui
+          </button>
+        )}
       </div>
       <div key={dateISO(mois)} className={'grille-mois' + (sens ? ` glisse-${sens}` : '')}>
         {JOURS.map((j, i) => (
