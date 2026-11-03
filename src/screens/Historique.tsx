@@ -511,7 +511,7 @@ function JourChoisi({
         </div>
       ))}
 
-      {vide && !prevu?.seances.length && !prevu?.pause && <div className="faible jour-repos">{aVenir ? 'Rien de prévu ce jour-là.' : date === dateISO() ? 'Pas encore d’entraînement aujourd’hui.' : 'Repos ce jour-là.'}</div>}
+      {vide && !prevu?.seances.length && !prevu?.pause && <div className="faible jour-repos">{aVenir ? 'Rien de prévu ce jour-là.' : date === dateISO() ? (catalogue.planning.length ? 'Repos aujourd’hui.' : 'Pas encore d’entraînement aujourd’hui.') : 'Repos ce jour-là.'}</div>}
 
       {!aVenir && (
         <div className="journal-matin">

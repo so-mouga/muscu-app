@@ -54,6 +54,10 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
 
   if (!seances) return null
 
+  const ouvrirCorps = () => {
+    memoire.defilement = window.scrollY
+    onCorps?.()
+  }
   const ouvrirExo = onExo
     ? (id: string) => {
         memoire.defilement = window.scrollY
@@ -248,12 +252,12 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
             <div className="ligne entre bilan-forme">
               <span>Calories tenues</span>
               <strong>
-                {a.calories.ok} jours sur {notesCalories}
+                {a.calories.ok} jour{a.calories.ok > 1 ? 's' : ''} sur {notesCalories}
               </strong>
             </div>
           )}
           {a.poids && (
-            <button type="button" className="ligne entre bilan-forme bilan-lien" onClick={() => onCorps?.()}>
+            <button type="button" className="ligne entre bilan-forme bilan-lien" onClick={ouvrirCorps}>
               <span>Poids moyen</span>
               <span>
                 <strong>{kg(arrondi(a.poids.fin))} kg</strong> <span className="faible">{ecart(a.poids.fin - a.poids.debut, 'kg')}</span>

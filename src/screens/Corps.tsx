@@ -834,7 +834,10 @@ export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure
         </div>
         <div>
           {MESURES.map((m) => carteSaisie(m, clesDe(m).filter((c) => PRINCIPALES.includes(c))))}
-          <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!autresOuvertes)} aria-expanded={autresOuvertes} style={{ marginBottom: 8 }}>
+          <button type="button" className="groupe-repli" onClick={() => {
+              setVoirAutres(!autresOuvertes)
+              if (autresOuvertes && !clesDe(MESURES.find((m) => m.id === active)!).some((c) => PRINCIPALES.includes(c))) setActive('poitrine')
+            }} aria-expanded={autresOuvertes} style={{ marginBottom: 8 }}>
             <span>
               Autres mesures <span className="faible">(cou, épaules, côté droit…)</span>
             </span>

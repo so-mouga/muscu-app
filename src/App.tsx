@@ -73,6 +73,8 @@ export default function App() {
   const faiteAujourdhui = useLiveQuery(() => db.seances.where('date').equals(dateISO()).count(), [], 0)
   useEffect(() => void (natif && faiteAujourdhui > 0 && seanceDuJourNatif(dateISO())), [faiteAujourdhui])
 
+  /** Corps ouvert depuis Progrès (Poids moyen, Toutes les mensurations) : le retour y ramène. */
+  const [corpsDepuisProgres, setCorpsDepuisProgres] = useState(false)
   const ouvrirCorps = (page?: PageCorps) => {
     setPageCorps(page ?? null)
     setOnglet('corps')
@@ -107,6 +109,11 @@ export default function App() {
   }
   // Retour Android : depuis un autre onglet, on revient à l'accueil ; depuis l'accueil, on quitte.
   useRetour(!enCours && onglet !== 'accueil', () => transition(() => setOngletEtat('accueil'), 'arriere'))
+  useRetour(!enCours && corpsDepuisProgres && onglet === 'corps', () => {
+    setCorpsDepuisProgres(false)
+    setPageCorps(null)
+    transition(() => setOngletEtat('historique'), 'arriere')
+  })
   const fermerReglages = () => (transition(() => setReglages(false), 'arriere'), window.scrollTo({ top: 0 }))
   useRetour(!enCours && reglages, fermerReglages)
 
@@ -156,7 +163,7 @@ export default function App() {
             onExo={(id) => (setExoInitial(id), setVue('exercices'))}
             exoInitial={exoInitial}
             onRetourExo={() => (setExoInitial(null), setVue('bilan'))}
-            onCorps={ouvrirCorps}
+            onCorps={(page) => (setCorpsDepuisProgres(true), ouvrirCorps(page))}
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={setPageCorps} />}
@@ -164,7 +171,7 @@ export default function App() {
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
-          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setPageCorps(null), setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
+          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setCorpsDepuisProgres(false), setPageCorps(null), setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
             <IconeOnglet nom={id} />
             {nom}
           </button>
