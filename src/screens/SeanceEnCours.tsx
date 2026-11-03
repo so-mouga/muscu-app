@@ -514,7 +514,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       </Anneau>
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong>
-          {exosRestants > 1 ? `Reste ${exosRestants} exercices` : exosRestants === 1 ? `Dernier exercice, ${restantes} série${restantes > 1 ? 's' : ''}` : plans.length ? 'Tout est fait' : 'Rien pour l’instant'}
+          {exosRestants > 1 ? `Reste ${exosRestants} exercices` : exosRestants === 1 ? `Dernier exercice, ${restantes} série${restantes > 1 ? 's' : ''}` : plans.length ? (seance.passes?.length ? 'Plus rien à faire' : 'Tout est fait') : 'Rien pour l’instant'}
           {seance.deload && <span className="texte-finisseur"> · allégée</span>}
         </strong>
         <div className="faible ligne" style={{ gap: 'var(--e1)' }}>
@@ -741,7 +741,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     })()
     const blocTerminer = (
       <div className="focus-bloc pile">
-        <h2>Toutes les séries sont faites</h2>
+        <h2>{seance.passes?.length ? 'Plus rien à faire' : 'Toutes les séries sont faites'}</h2>
+        {!!seance.passes?.length && <div className="faible">Sauté : {seance.passes.map((id) => catalogue.exo(id).nom).join(', ')}. Pour en reprendre un, passe par « Voir la séance ».</div>}
         <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
           Terminer la séance
         </button>
