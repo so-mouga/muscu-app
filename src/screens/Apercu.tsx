@@ -21,6 +21,8 @@ interface Props {
   modele: SeanceModele
   catalogue: Catalogue
   onDemarrer: () => void
+  /** Séance sans exercice : rien à démarrer, on va en ajouter. */
+  onAjouter?: () => void
   /** Active ou coupe l'échauffement de cette séance (enregistré sur la séance, comme dans Programmes). */
   onEchauffement?: (v: SeanceModele['echauffement']) => void
   onFermer: () => void
@@ -28,7 +30,7 @@ interface Props {
   deload?: boolean
 }
 
-export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, onFermer, deload = false }: Props) {
+export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEchauffement, onFermer, deload = false }: Props) {
   useRetour(true, onFermer)
   useEffect(() => {
     document.body.classList.add('sans-onglets')
@@ -64,25 +66,27 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
         </div>
       </div>
 
-      <div className="apercu-resume">
-        <div className="ligne">
-          <span>
-            ≈ {minutes(dureeEstimee(prevu))} prévues{habituelle ? ` · ${minutes(habituelle)} d’habitude` : ''}
-          </span>
-          <button
-            type="button"
-            className="btn-infos"
-            aria-label="Comment la durée est calculée"
-            onClick={() => void informer(`Prévu : 1 min par série et par échauffement, plus les repos.${habituelle ? (nbHabituelles > 1 ? ` D’habitude : tes ${nbHabituelles} dernières séances.` : ' D’habitude : ta dernière séance.') : ''}`, 'Durée de la séance')}
-          >
-            <Info size={20} />
-          </button>
+      {modele.exercices.length > 0 && (
+        <div className="apercu-resume">
+          <div className="ligne">
+            <span>
+              ≈ {minutes(dureeEstimee(prevu))} prévues{habituelle ? ` · ${minutes(habituelle)} d’habitude` : ''}
+            </span>
+            <button
+              type="button"
+              className="btn-infos"
+              aria-label="Comment la durée est calculée"
+              onClick={() => void informer(`Prévu : 1 min par série et par échauffement, plus les repos.${habituelle ? (nbHabituelles > 1 ? ` D’habitude : tes ${nbHabituelles} dernières séances.` : ' D’habitude : ta dernière séance.') : ''}`, 'Durée de la séance')}
+            >
+              <Info size={20} />
+            </button>
+          </div>
+          <div className="faible">
+            {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''} · {series} séries
+            {finisseurs > 0 && <span className="texte-finisseur"> · {finisseurs} finisseur{finisseurs > 1 ? 's' : ''}</span>}
+          </div>
         </div>
-        <div className="faible">
-          {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''} · {series} séries
-          {finisseurs > 0 && <span className="texte-finisseur"> · {finisseurs} finisseur{finisseurs > 1 ? 's' : ''}</span>}
-        </div>
-      </div>
+      )}
 
       {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} />}
 
@@ -188,9 +192,15 @@ export default function Apercu({ modele, catalogue, onDemarrer, onEchauffement, 
       <BoutonLexique />
 
       <div className="barre-demarrer">
-        <button className="btn primaire grand" onClick={onDemarrer}>
-          Démarrer
-        </button>
+        {modele.exercices.length || !onAjouter ? (
+          <button className="btn primaire grand" onClick={onDemarrer}>
+            Démarrer
+          </button>
+        ) : (
+          <button className="btn primaire grand" onClick={onAjouter}>
+            Ajouter des exercices
+          </button>
+        )}
       </div>
     </div>
   )

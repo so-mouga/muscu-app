@@ -79,7 +79,7 @@ async function sauverProgramme(p: Programme, catalogue: Catalogue) {
 /** Le programme tel qu'on le modifie : jamais la copie du cycle. */
 const programmeVivant = (catalogue: Catalogue, p: Programme) => catalogue.programmes.find((x) => x.id === p.id) ?? p
 
-export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert, onBilanCycle }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre le Bilan sur la période du cycle. */ onBilanCycle: () => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void }) {
+export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert, seanceAOuvrir, onSeanceOuverte, onBilanCycle }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre le Bilan sur la période du cycle. */ onBilanCycle: () => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void; /** Séance à ouvrir tout de suite (séance vide, depuis l'Accueil). */ seanceAOuvrir?: string | null; onSeanceOuverte?: () => void }) {
   const [pile, setPile] = useState<Vue[]>([])
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
@@ -114,6 +114,15 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
     onCreerOuvert?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [creer])
+
+  useEffect(() => {
+    if (!seanceAOuvrir) return
+    const m = catalogue.modele(seanceAOuvrir)
+    const index = catalogue.actif.seances.findIndex((e) => e.modeleId === seanceAOuvrir)
+    if (m) ouvrir({ type: 'seance', m: structuredClone(m), nouvelle: false, entree: index >= 0 ? { programmeId: catalogue.actif.id, index } : undefined, choisirExos: !m.exercices.length })
+    onSeanceOuverte?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seanceAOuvrir])
 
   if (vue?.type === 'seance')
     return (

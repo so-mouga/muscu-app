@@ -76,6 +76,7 @@ export default function Accueil({
   onObjectifs,
   onJournal,
   onProgrammes,
+  onAjouterExercices,
   onBilanCycle,
   onChoisirProgramme,
   onObjectif,
@@ -91,6 +92,8 @@ export default function Accueil({
   onJournal: () => void
   /** Ouvre l'onglet Programmes (gestion du cycle). */
   onProgrammes: () => void
+  /** Séance sans exercice : ouvre son éditeur au lieu de la démarrer. */
+  onAjouterExercices: (modeleId: string) => void
   onBilanCycle: () => void
   /** Sans programme : ouvre le choix du programme. */
   onChoisirProgramme: () => void
@@ -226,7 +229,7 @@ export default function Accueil({
     if (c?.modeles.some((m) => m.id === apercu.id)) void db.cycles.update(c.id, { modeles: c.modeles.map((m) => (m.id === apercu.id ? avec(m) : m)) })
     setApercuEtat(avec(apercu))
   }
-  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu, true)} onEchauffement={changerEchauffement} onFermer={() => voir(null)} />
+  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu, true)} onEchauffement={changerEchauffement} onAjouter={() => onAjouterExercices(apercu.id)} onFermer={() => voir(null)} />
 
   // Rappel des mensurations : seulement après 3 semaines sans en prendre.
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
@@ -398,8 +401,8 @@ export default function Accueil({
       </div>
       <ListeExosJour lignes={lignesDe(e.modele, false)} entiere />
       <div className="seance-jour-actions">
-        <button type="button" className="btn" onClick={() => voir(e.modele)}>
-          Voir la séance
+        <button type="button" className="btn" onClick={() => (e.modele.exercices.length ? voir(e.modele) : onAjouterExercices(e.modele.id))}>
+          {e.modele.exercices.length ? 'Voir la séance' : 'Ajouter des exercices'}
         </button>
       </div>
     </>
@@ -522,15 +525,29 @@ export default function Accueil({
                 </button>
               )}
               {joursSans !== null && joursSans >= 10 && <div className="faible seance-jour-retour">Première séance depuis {joursSans} jours : mêmes charges que la dernière fois, baisse un peu si c’est trop dur.</div>}
-              <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload)} />
-              <div className="seance-jour-actions">
-                <button type="button" className="btn primaire" onClick={() => lancer(proposee.modele)}>
-                  Démarrer
-                </button>
-                <button type="button" className="btn" onClick={() => voir(proposee.modele)}>
-                  Voir
-                </button>
-              </div>
+              {proposee.modele.exercices.length ? (
+                <>
+                  <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload)} />
+                  <div className="seance-jour-actions">
+                    <button type="button" className="btn primaire" onClick={() => lancer(proposee.modele)}>
+                      Démarrer
+                    </button>
+                    <button type="button" className="btn" onClick={() => voir(proposee.modele)}>
+                      Voir
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="faible seance-jour-retour">Cette séance n’a pas encore d’exercice.</div>
+                  <div className="seance-jour-espace" />
+                  <div className="seance-jour-actions">
+                    <button type="button" className="btn primaire" onClick={() => onAjouterExercices(proposee.modele.id)}>
+                      Ajouter des exercices
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           ) : (duJour && faite(duJour)) || faiteAuj ? (
             <>

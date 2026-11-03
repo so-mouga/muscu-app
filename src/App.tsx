@@ -62,6 +62,7 @@ export default function App() {
   const [demarrageOuvert, setDemarrageOuvert] = useState<ModeDemarrage | null>(null)
   /** « Créer le mien » : ouvre un nouveau programme dans l'onglet Programme. */
   const [creerProgramme, setCreerProgramme] = useState(false)
+  const [seanceAOuvrir, setSeanceAOuvrir] = useState<string | null>(null)
 
   // Rappel de séance (appli Android) : Android garde le planning et l'heure ; on les lui renvoie quand ils changent.
   const rappel = useLiveQuery(() => db.reglages.get(CLE_RAPPEL), [], null)
@@ -175,6 +176,7 @@ export default function App() {
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onJournal={() => (setVue('journal'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
+            onAjouterExercices={(id) => (setSeanceAOuvrir(id), setOnglet('seances'))}
             onBilanCycle={ouvrirBilanCycle}
             onChoisirProgramme={() => setDemarrageOuvert('programme')}
           />
@@ -193,7 +195,7 @@ export default function App() {
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={(p) => transition(() => setPageCorps(p), p ? 'avant' : 'arriere')} />}
-        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} onBilanCycle={ouvrirBilanCycle} />}
+        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} seanceAOuvrir={seanceAOuvrir} onSeanceOuverte={() => setSeanceAOuvrir(null)} onBilanCycle={ouvrirBilanCycle} />}
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
