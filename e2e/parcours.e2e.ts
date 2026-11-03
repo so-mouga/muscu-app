@@ -151,8 +151,6 @@ test('programme modifié pendant un cycle : la question ne se perd pas, et le cy
   await p.goto('/')
   await premierProgramme(p)
   await onglet(p, 'Programme')
-  await p.getByRole('button', { name: 'Lancer sur 6 semaines' }).click()
-  await p.getByRole('button', { name: 'Lancer le cycle' }).click()
   const joursDuCycle = async () => ((await lireTable(p, 'cycles')) as { programme: { seances: { jour?: number }[] } }[])[0].programme.seances.map((e) => e.jour)
   const avant = await joursDuCycle()
 

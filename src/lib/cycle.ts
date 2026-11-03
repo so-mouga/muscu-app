@@ -154,6 +154,13 @@ export function garderEcart(c: Cycle, e: EcartCycle, programme: Programme | unde
   return { refus }
 }
 
+/** Lundi où commencer un cycle : cette semaine s'il reste un jour de séance, sinon la suivante (une 1re semaine vide compterait pour rien). */
+export function debutCycle(jours: number[], date = dateISO()): string {
+  const j = ((new Date(date + 'T12:00:00').getDay() + 6) % 7) + 1
+  const ce = lundi(new Date(date + 'T12:00:00'))
+  return jours.length && jours.every((x) => x < j) ? plusSemaines(ce, 1) : ce
+}
+
 /** Met la semaine en cours en pause : la suite du cycle (déload compris) glisse d'une semaine. */
 export function mettreEnPause(c: Cycle, date = dateISO()): Cycle {
   const l = lundi(new Date(date + 'T12:00:00'))

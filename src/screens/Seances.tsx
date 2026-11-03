@@ -1,20 +1,20 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
-import { changerObjectifs, ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
+import { changerObjectifs, ID_PROGRAMME_DEFAUT, installerProgramme, lancerCycle, type Catalogue } from '../catalogue'
+import { PROGRAMMES_TYPES, type ProgrammeType } from '../data/programmesTypes'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
-import ChoixProgramme from '../components/ChoixProgramme'
 import { Aide, AIDE_CYCLE, AvisCycle, LancerCycle, VueCycle } from '../components/Cycle'
 import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
-import { etatCycle } from '../lib/cycle'
+import { debutCycle, etatCycle, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dureeEstimee, dureeTexte, kg, lundi, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
@@ -62,6 +62,7 @@ type Vue =
   | { type: 'cycle' }
   | { type: 'volume'; p: Programme }
   | { type: 'changer' }
+  | { type: 'apercu'; t: ProgrammeType }
   | { type: 'autresSeances' }
 
 export const jourCourt = (j?: number) => (j ? JOURS[j].slice(0, 3) : '')
@@ -79,10 +80,16 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
   const [pile, setPile] = useState<Vue[]>([])
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
+  /** Message de confirmation, en haut de la page Programme. */
+  const [annonce, setAnnonce] = useState('')
+  const annoncer = (t: string) => {
+    setAnnonce(t)
+    setTimeout(() => setAnnonce(''), 3000)
+  }
 
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
   const fermer = () => (transition(() => setPile((x) => x.slice(0, -1)), 'arriere'), window.scrollTo({ top: 0 }))
-  useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'autresSeances', fermer)
+  useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'apercu' || vue?.type === 'autresSeances', fermer)
   const ouvrirSeance = (m: SeanceModele, entree: { programmeId: string; index: number }, choisirExos = false) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle: false, entree, choisirExos })
   const nouveauProgramme = async () => {
     const noms = new Set(catalogue.programmes.map((x) => x.nom))
@@ -116,10 +123,12 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
         catalogue={catalogue}
         onFermer={fermer}
         onOuvrir={(p) => ouvrir({ type: 'programme', p })}
+        onApercu={(t) => ouvrir({ type: 'apercu', t })}
         onCreer={() => void nouveauProgramme()}
         onAutresSeances={() => ouvrir({ type: 'autresSeances' })}
       />
     )
+  if (vue?.type === 'apercu') return <PageApercu catalogue={catalogue} t={vue.t} onFermer={fermer} onPris={(message) => (annoncer(message), transition(() => setPile([]), 'arriere'), window.scrollTo({ top: 0 }))} />
   if (vue?.type === 'autresSeances') return <PageAutresSeances catalogue={catalogue} terminees={terminees} onFermer={fermer} onOuvrir={(m, nouvelle) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle })} />
   if (!vue && catalogue.sansProgramme)
     return (
@@ -154,6 +163,8 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
       onVolume={() => ouvrir({ type: 'volume', p })}
       onChanger={() => ouvrir({ type: 'changer' })}
       onOuvrirProgramme={(x) => ouvrir({ type: 'programme', p: x })}
+      annonce={annonce}
+      onAnnonce={annoncer}
     />
   )
 }
@@ -182,6 +193,8 @@ function PageProgramme({
   onVolume,
   onChanger,
   onOuvrirProgramme,
+  annonce,
+  onAnnonce,
 }: {
   catalogue: Catalogue
   p: Programme
@@ -193,9 +206,10 @@ function PageProgramme({
   onVolume: () => void
   onChanger: () => void
   onOuvrirProgramme: (p: Programme) => void
+  annonce: string
+  onAnnonce: (message: string) => void
 }) {
   const [lancer, setLancer] = useState(false)
-  const [message, setMessage] = useState('')
   const [menu, setMenu] = useState(false)
   const [renommer, setRenommer] = useState(false)
   /** Position, dans le programme, de la séance dont on choisit le jour. */
@@ -268,9 +282,9 @@ function PageProgramme({
         </button>
       </div>
 
-      {message && (
+      {annonce && (
         <div className="avis-cycle" role="status">
-          ✓ {message}
+          ✓ {annonce}
         </div>
       )}
       <AvisCycle catalogue={catalogue} />
@@ -362,10 +376,7 @@ function PageProgramme({
           catalogue={catalogue}
           programme={p}
           onFermer={() => setLancer(false)}
-          onLance={(t) => {
-            setMessage(t)
-            setTimeout(() => setMessage(''), 3000)
-          }}
+          onLance={onAnnonce}
         />
       )}
       {menu && (
@@ -505,8 +516,10 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
 }
 
 /** Tout ce qui n'est pas le programme en service : les autres, les tout prêts, créer le sien. */
-function PageChanger({ catalogue, onFermer, onOuvrir, onCreer, onAutresSeances }: { catalogue: Catalogue; onFermer: () => void; onOuvrir: (p: Programme) => void; onCreer: () => void; onAutresSeances: () => void }) {
+function PageChanger({ catalogue, onFermer, onOuvrir, onApercu, onCreer, onAutresSeances }: { catalogue: Catalogue; onFermer: () => void; onOuvrir: (p: Programme) => void; onApercu: (t: ProgrammeType) => void; onCreer: () => void; onAutresSeances: () => void }) {
   const autres = catalogue.programmes.filter((x) => x.id !== catalogue.actif.id)
+  // Un tout prêt déjà pris se retrouve dans ses programmes : le reprendre ne ferait qu'une copie de plus.
+  const noms = new Set(catalogue.programmes.map((x) => x.nom))
   return (
     <div>
       <div className="entete">
@@ -531,7 +544,17 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onCreer, onAutresSeances }
           ))}
         </>
       )}
-      <ChoixProgramme catalogue={catalogue} titre="Tout prêts" intro="Choisir un programme le copie dans tes programmes, modifiable." onChoisi={onFermer} />
+      <h3 className="prog-groupe">Tout prêts</h3>
+      {PROGRAMMES_TYPES.filter((t) => !noms.has(t.nom)).map((t) => (
+        <button key={t.id} className="liste-btn" onClick={() => onApercu(t)}>
+          <span>
+            {t.nom}
+            <span className="faible prog-sous">{t.pour}</span>
+          </span>
+          <ChevronRight size={20} className="muted" />
+        </button>
+      ))}
+      <h3 className="prog-groupe">Sur mesure</h3>
       <button className="liste-btn" onClick={onCreer}>
         <span>Créer le mien</span>
         <ChevronRight size={20} className="muted" />
@@ -542,6 +565,70 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onCreer, onAutresSeances }
           <span className="faible prog-sous">Toutes tes séances, même hors programme</span>
         </span>
         <ChevronRight size={20} className="muted" />
+      </button>
+    </div>
+  )
+}
+
+/** Un programme tout prêt : on voit ce qu'il contient avant de le prendre. */
+function PageApercu({ catalogue, t, onFermer, onPris }: { catalogue: Catalogue; t: ProgrammeType; onFermer: () => void; onPris: (message: string) => void }) {
+  const [occupe, setOccupe] = useState(false)
+  const seances = [...t.seances].sort((a, b) => (a.jour ?? 8) - (b.jour ?? 8))
+  const enCours = catalogue.cycle && !etatCycle(catalogue.cycle).fini ? catalogue.cycle : undefined
+  const debut = debutCycle(t.seances.flatMap((m) => m.jour ?? []))
+  const prendre = async (avecCycle: boolean) => {
+    if (occupe) return
+    if (avecCycle && enCours && !(await confirmer(`Le cycle « ${nomCycle(enCours)} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer ce programme ?', oui: 'Lancer le nouveau cycle' }))) return
+    setOccupe(true)
+    try {
+      const p = await installerProgramme(t, catalogue)
+      if (avecCycle) await lancerCycle(catalogue, p, { debut })
+      onPris(!avecCycle ? (enCours ? `${t.nom} est dans tes programmes. Ton cycle continue.` : `${t.nom} est ton programme`) : debut === lundi() ? 'Programme pris : semaine 1 sur 6' : 'Programme pris : il commence la semaine prochaine')
+    } finally {
+      setOccupe(false)
+    }
+  }
+  return (
+    <div>
+      <div className="entete">
+        <button className="btn" onClick={onFermer} aria-label="Retour">
+          ←
+        </button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2>{t.nom}</h2>
+          <div className="faible">{t.pour}</div>
+        </div>
+      </div>
+      <div className="faible" style={{ marginBottom: 'var(--e3)' }}>
+        {t.description}
+      </div>
+      {seances.map((m) => (
+        <details key={m.id} className="apercu-seance">
+          <summary>
+            <span>
+              {m.jour ? `${jourCourt(m.jour)} · ` : ''}
+              {m.nom}
+              <span className="faible prog-sous">
+                {m.exercices.length} exercices{m.sousTitre ? ` · ${m.sousTitre}` : ''}
+              </span>
+            </span>
+            <ChevronRight size={20} className="muted apercu-chevron" />
+          </summary>
+          <ul>
+            {m.exercices.map((e) => (
+              <li key={e.exoId}>{catalogue.exo(e.exoId).nom}</li>
+            ))}
+          </ul>
+        </details>
+      ))}
+      <div className="faible" style={{ margin: 'var(--e4) 0 var(--e2)' }}>
+        Sur 6 semaines, la dernière allégée pour récupérer{debut === lundi() ? '' : ', à partir de la semaine prochaine'}. Tu peux tout modifier ensuite.
+      </div>
+      <button className="btn primaire plein" disabled={occupe} onClick={() => void prendre(true)}>
+        Prendre ce programme
+      </button>
+      <button className="btn discret plein" disabled={occupe} onClick={() => void prendre(false)}>
+        Le prendre sans lancer de cycle
       </button>
     </div>
   )

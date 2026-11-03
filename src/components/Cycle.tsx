@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import type { Catalogue } from '../catalogue'
+import { lancerCycle, type Catalogue } from '../catalogue'
 import { nomCle } from '../data/mesures'
-import { db, setReglage, uid } from '../db'
+import { db } from '../db'
 import { chargeQte, dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle, volumePrevu } from '../lib/calc'
 import { depuisDebut } from '../lib/motivation'
-import { appliquerEcart, BONUS_PRIORITE, deloadMaintenant, DUREE_DEFAUT, etatCycle, garderEcart, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle, nouveauCycle } from '../lib/cycle'
+import { appliquerEcart, BONUS_PRIORITE, debutCycle, deloadMaintenant, DUREE_DEFAUT, etatCycle, garderEcart, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
@@ -61,7 +61,8 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
   const [regler, setRegler] = useState(false)
   const cetteSemaine = lundi()
   const prochaine = dateISO(new Date(Date.parse(cetteSemaine + 'T12:00:00') + 7 * 86400000))
-  const [debut, setDebut] = useState(cetteSemaine)
+  // Tous les jours de séance déjà passés cette semaine : on propose de commencer la suivante.
+  const [debut, setDebut] = useState(() => (cycle ? cetteSemaine : debutCycle((programme?.seances ?? []).flatMap((e) => e.jour ?? []))))
   const [semaines, setSemaines] = useState(cycle?.semaines ?? DUREE_DEFAUT)
   const [deloads, setDeloads] = useState<number[]>(cycle?.deloads ?? [DUREE_DEFAUT])
   const [nom, setNom] = useState(cycle?.nom ?? '')
@@ -93,22 +94,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
       !(await confirmer(`Le cycle « ${nomCycle(enCours)} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer un nouveau cycle ?', oui: 'Lancer le nouveau cycle' }))
     )
       return
-    const c = { ...nouveauCycle('c_' + uid(), p, catalogue.modele, debut, semaines, [...deloads].sort((a, b) => a - b)), ...(nom.trim() && { nom: nom.trim() }), ...(priorites.length && { priorites }) }
-    await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
-      if (enCours) await db.cycles.update(enCours.id, { fin: dateISO() })
-      await db.cycles.put(c)
-      await setReglage('programmeActif', p.id)
-      // Cycle lancé cette semaine : les séances déjà faites cette semaine en font partie (semaine 1).
-      if (debut === cetteSemaine)
-        await db.seances
-          .where('date')
-          .aboveOrEqual(cetteSemaine)
-          .filter((s) => !s.cycleId)
-          .modify((s) => {
-            s.cycleId = c.id
-            s.semaine = 1
-          })
-    })
+    await lancerCycle(catalogue, p, { debut, semaines, deloads, nom, priorites })
     onFermer()
     onLance?.(debut === cetteSemaine ? `Cycle lancé : semaine 1 sur ${semaines}` : `Cycle lancé : il commence la semaine prochaine`)
   }

@@ -4,8 +4,8 @@ import { EXERCICES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
 import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
-import { dateISO } from './lib/calc'
-import { avecPriorites, cibles, ecartCycle, etatCycle, type EcartCycle } from './lib/cycle'
+import { dateISO, lundi } from './lib/calc'
+import { avecPriorites, cibles, DUREE_DEFAUT, ecartCycle, etatCycle, nouveauCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
@@ -141,8 +141,36 @@ export async function installerProgramme(t: ProgrammeType, c: Catalogue, jours?:
     if (!t.deBase) await db.modeles.bulkPut(seances)
     await db.programmes.put(p)
   })
-  if (!c.cycle) await setReglage('programmeActif', p.id)
+  if (!c.cycle || etatCycle(c.cycle).fini) await setReglage('programmeActif', p.id)
   return p
+}
+
+/** Lance un cycle : il termine celui d'avant (historique et bilan conservés) et fait du programme le programme en service. */
+export async function lancerCycle(c: Catalogue, p: Programme, o: { debut: string; semaines?: number; deloads?: number[]; nom?: string; priorites?: Muscle[] }) {
+  const semaines = o.semaines ?? DUREE_DEFAUT
+  // Lu dans la base : un programme tout juste installé n'est pas encore dans le catalogue.
+  const enBase = new Map((await db.modeles.toArray()).map((m) => [m.id, m]))
+  const cycle: Cycle = {
+    ...nouveauCycle('c_' + uid(), p, (id) => enBase.get(id) ?? c.modele(id), o.debut, semaines, [...(o.deloads ?? [semaines])].sort((a, b) => a - b)),
+    ...(o.nom?.trim() && { nom: o.nom.trim() }),
+    ...(o.priorites?.length && { priorites: o.priorites }),
+  }
+  await db.transaction('rw', db.cycles, db.reglages, db.seances, async () => {
+    if (c.cycle) await db.cycles.update(c.cycle.id, { fin: dateISO() })
+    await db.cycles.put(cycle)
+    await setReglage('programmeActif', p.id)
+    // Cycle lancé cette semaine : les séances déjà faites cette semaine en font partie (semaine 1).
+    if (cycle.debut === lundi())
+      await db.seances
+        .where('date')
+        .aboveOrEqual(cycle.debut)
+        .filter((s) => !s.cycleId)
+        .modify((s) => {
+          s.cycleId = cycle.id
+          s.semaine = 1
+        })
+  })
+  return cycle
 }
 
 /** Change les objectifs à partir d'une date (aujourd'hui par défaut) : une étape de plus dans la frise. */

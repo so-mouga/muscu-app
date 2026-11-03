@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { appliquerEcart, avecPriorites, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
+import { appliquerEcart, avecPriorites, debutCycle, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -156,5 +156,19 @@ describe('programme modifié pendant le cycle', () => {
     const autre = { ...base, seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'n', jour: 3 }] }
     const r = appliquerEcart(c, ecartCycle(c, autre, lire(l))!, autre, lire(l))
     expect(r.modeles.map((m) => m.id)).toEqual(['a', 'n'])
+  })
+})
+
+describe('début d’un cycle', () => {
+  // Mardi 3 novembre 2026 : le lundi de la semaine est le 2.
+  it('cette semaine s’il reste un jour de séance, aujourd’hui compris', () => {
+    expect(debutCycle([1, 3, 5], '2026-11-03')).toBe('2026-11-02')
+    expect(debutCycle([1, 2], '2026-11-03')).toBe('2026-11-02')
+  })
+  it('la semaine suivante si tous les jours sont passés', () => {
+    expect(debutCycle([1, 3], '2026-11-07')).toBe('2026-11-09')
+  })
+  it('sans jour : cette semaine', () => {
+    expect(debutCycle([], '2026-11-08')).toBe('2026-11-02')
   })
 })

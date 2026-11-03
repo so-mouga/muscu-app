@@ -1,8 +1,9 @@
 import { ArrowLeft, X } from 'lucide-react'
 import { useState } from 'react'
-import { changerObjectifs, installerProgramme, type Catalogue } from '../catalogue'
+import { changerObjectifs, installerProgramme, lancerCycle, type Catalogue } from '../catalogue'
 import { PROGRAMMES_TYPES, type ProgrammeType } from '../data/programmesTypes'
 import { dateISO, dureeEstimee, jourSemaine, minutes } from '../lib/calc'
+import { debutCycle } from '../lib/cycle'
 import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, pourquoi, quand, recommande, seSuivent, type EtatDemarrage, type Etape, type Niveau, type Objectif } from '../lib/demarrage'
 import { transition, useRetour } from '../lib/nav'
 import { objectifsA } from '../lib/objectifs'
@@ -75,7 +76,8 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
   const idPropose = recommande(n, etat.niveau)
   const prendre = async (t: ProgrammeType, jours: number[]) => {
     await setReglage(CLE_DEMARRAGE, { ...etat, quitte: true, installeLe: dateISO() })
-    await installerProgramme(t, catalogue, jours)
+    const p = await installerProgramme(t, catalogue, jours)
+    await lancerCycle(catalogue, p, { debut: debutCycle(jours) })
     onInstalle()
   }
   const creer = (
@@ -222,7 +224,10 @@ function Proposition({ etat, idPropose, onPrendre, onAutres }: { etat: EtatDemar
         </div>
         {t.id.startsWith('full_body') && etat.jours.length === aJour.length && seSuivent(etat.jours) && <p className="faible">Ces jours se suivent : un jour de repos entre deux séances aide à récupérer.</p>}
         <p className="faible">
-          Environ {minutes(moyenne)} par séance. Le premier jour, commence léger : tu notes la charge qui te convient. Tout se modifie ensuite{etat.jours.length ? '' : ', jours compris'}.
+          Environ {minutes(moyenne)} par séance. Le premier jour, commence léger : tu notes la charge qui te convient.
+        </p>
+        <p>
+          <strong>Sur 6 semaines</strong>, la dernière allégée pour récupérer. Tout se modifie ensuite{etat.jours.length ? '' : ', jours compris'}.
         </p>
       </div>
       <div className="demarrage-bas">
