@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import Aide from '../components/Aide'
 import { informer } from '../components/Dialogues'
+import { NiveauJauge } from '../components/VolumeMuscles'
 import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
 import { BONUS_PRIORITE, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
@@ -345,7 +346,7 @@ function JaugeMuscle({ muscle, nom, valeur, cible }: { muscle: Muscle; nom: stri
       </div>
       <div className="jauge">
         <span className="zone-utile" style={{ left: `${(z.bas / max) * 100}%`, width: `${((z.haut - z.bas) / max) * 100}%` }} />
-        <span className={`niveau ${etat}`} style={{ width: `${Math.min(100, (valeur / max) * 100)}%` }} />
+        <NiveauJauge muscle={muscle} etat={etat} valeur={valeur} max={max} />
       </div>
     </div>
   )

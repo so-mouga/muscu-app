@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { premiereFois } from '../lib/animations'
 import { dateCourte } from '../lib/calc'
 
 /** Courbe d'évolution datée ; un appui sur un point affiche sa valeur. */
@@ -14,6 +15,7 @@ export default function Courbe({
   sansEnTete?: boolean
 }) {
   const [actif, setActif] = useState(points.length - 1)
+  const [trace] = useState(() => premiereFois('courbe:' + label + ':' + points.map((q) => q.date + q.valeur).join()))
   const L = 320
   const H = 145
   // Marge droite dédiée pour les labels Y, assez large pour « 83,6 cm » sans le couper
@@ -81,7 +83,7 @@ export default function Courbe({
         )}
 
         {/* Aire dégradée sous la courbe */}
-        <polygon points={airePoints} fill="url(#orangeGradient)" />
+        <polygon points={airePoints} fill="url(#orangeGradient)" className={trace ? 'trace-apres' : undefined} />
 
         {/* Courbe lisse */}
         <polyline
@@ -91,6 +93,8 @@ export default function Courbe({
           strokeLinecap="round"
           strokeLinejoin="round"
           points={tracePoints}
+          pathLength={1}
+          className={trace ? 'trace-ligne' : undefined}
         />
 
         {/* Ligne verticale repère sur le point actif */}
@@ -112,6 +116,7 @@ export default function Courbe({
           fill="var(--accent)"
           stroke="var(--bg)"
           strokeWidth="2.5"
+          className={trace ? 'trace-apres' : undefined}
         />
 
         {/* Zones interactives de clic / touch sur chaque point */}

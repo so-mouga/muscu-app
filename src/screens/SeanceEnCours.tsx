@@ -665,6 +665,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       return <div className="petit ensuite-superset">{texte}</div>
     }
     // La série qu'on vient de faire : battue (on le fête), et de quel exercice (pour la corriger s'il est fini).
+    // À l'instant : la fête ne se rejoue pas en revenant de la liste.
+    const vient = !!derniereSerie && Date.now() - derniereSerie.heure < 1500
     const derniere = (() => {
       if (!derniereSerie) return null
       const i = plans.findIndex((p) => p.exoId === derniereSerie.exoId)
@@ -692,7 +694,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const enSuperset = groupe.length > 1
       return (
         <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
-          {derniere?.mieux && <div className="mieux-titre">↑ {derniere.mieux} vs la dernière fois</div>}
+          {derniere?.mieux && <div className={'mieux-titre' + (vient ? ' vient-monter' : '')}>↑ {derniere.mieux} vs la dernière fois</div>}
           {enSuperset && enteteSuperset(enCours)}
           {/* Superset : la série d'avant vient de l'autre exercice ; elle reste à portée pour la corriger. */}
           {enSuperset && !exoFini && derniere && derniere.i !== enCours && (
@@ -708,7 +710,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {exoFini ? (
             <>
               <div className="ligne entre ligne-terminee">
-                <div className="nouvel-exo-titre">
+                <div className={'nouvel-exo-titre' + (vient ? ' vient-coche' : '')}>
                   <Check size={16} /> <span>{exoFini} terminé</span>
                 </div>
                 <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)} aria-label={`Corriger la série ${derniere!.k + 1}`}>
@@ -727,7 +729,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {p.finisseur && n === t - 1 && <span className="pastille fin"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</span>}
           {enSuperset && ensuiteSuperset(enCours)}
           {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
-          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />}
+          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} vient={vient && derniere?.i === enCours ? (derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
@@ -1622,7 +1624,7 @@ function FenetreCorrection({ seance, plan, exo, sugg, serie, total, repos, onFer
   )
 }
 
-function LigneSeries({ exo, faites, total, cible, onCorriger }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void }) {
+function LigneSeries({ exo, faites, total, cible, onCorriger, vient }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void; vient?: string }) {
   // Toutes les séries de l'exercice, chacune une seule fois : faites (✎ pour corriger), en cours (▶, sa cible est affichée en grand à côté), à venir.
   const rangee = useRef<HTMLDivElement>(null)
   // Une seule rangée qui défile : la série en cours reste visible, même sur 5 séries.
@@ -1637,7 +1639,7 @@ function LigneSeries({ exo, faites, total, cible, onCorriger }: { exo: Exercice;
         const f = faites[k]
         if (f)
           return onCorriger ? (
-            <button key={k} className="faite" onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
+            <button key={k} className={'faite' + (vient && k === faites.length - 1 ? ' ' + vient : '')} onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
               S{k + 1} {serieTexte(exo, f, false, false)} <Pencil size={13} />
             </button>
           ) : (

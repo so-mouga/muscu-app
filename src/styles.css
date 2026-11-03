@@ -107,6 +107,8 @@
   --duree-courte: 200ms;
   --duree: 250ms;
   --duree-longue: 300ms;
+  /* Une courbe qui se trace : seulement à l'ouverture d'une page, jamais pendant la saisie. */
+  --duree-trace: 900ms;
   --sortie: cubic-bezier(0.16, 1, 0.3, 1);
   color-scheme: dark;
 }
@@ -121,7 +123,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--texte);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: Barlow, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: var(--t-texte);
   font-variant-numeric: tabular-nums;
   line-height: 1.4;
@@ -5591,4 +5593,74 @@ button.semaine-cycle.courante {
 .volume-suivis[open]::details-content {
   block-size: auto;
   opacity: 1;
+}
+
+/* Réussites : une fois, au moment où ça arrive. */
+.ligne-series > .vient-faite {
+  animation: vient-faite var(--duree-longue) var(--sortie);
+}
+.ligne-series > .vient-mieux {
+  animation: vient-mieux var(--duree-longue) var(--sortie);
+}
+.vient-monter {
+  animation: vient-monter var(--duree-longue) var(--sortie) both;
+}
+/* Après le changement de page, sinon il se joue sans qu'on le voie. */
+.fin-mieux {
+  animation: vient-monter var(--duree-longue) var(--sortie) var(--duree) both;
+}
+.vient-coche svg path {
+  stroke-dasharray: 24;
+  animation: vient-coche var(--duree-longue) var(--sortie) both;
+}
+@keyframes vient-faite {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+@keyframes vient-mieux {
+  35% {
+    transform: scale(1.1);
+    background: var(--ok-voile);
+  }
+}
+@keyframes vient-monter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes vient-coche {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Courbes et jauges : elles se tracent la première fois qu'on les voit (premiereFois). */
+.trace-ligne {
+  stroke-dasharray: 1;
+  animation: trace-ligne var(--duree-trace) var(--sortie) both;
+}
+.trace-apres {
+  animation: fondu var(--duree) var(--sortie) calc(var(--duree-trace) / 2) both;
+}
+.jauge .niveau.remplit {
+  animation: remplit var(--duree-trace) var(--sortie) both;
+}
+@keyframes trace-ligne {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes remplit {
+  from {
+    width: 0;
+  }
 }

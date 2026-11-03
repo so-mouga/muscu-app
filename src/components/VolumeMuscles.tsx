@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { MUSCLES } from '../data/exercices'
+import { premiereFois } from '../lib/animations'
 import { kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { ajustee, BONUS_PRIORITE_MUSCLE, cibleConseillee, etatVolume, LIBELLE_VOLUME, prioritaire, zone } from '../lib/volume'
@@ -14,6 +15,12 @@ interface Props {
   /** Les cibles réglées par l'utilisateur, et l'enregistrement d'un changement. */
   perso: Record<Muscle, number>
   onCibles: (v: Record<Muscle, number>) => void
+}
+
+/** Le niveau d'une jauge : il se remplit la première fois qu'on le voit. */
+export function NiveauJauge({ muscle, etat, valeur, max }: { muscle: Muscle; etat: string; valeur: number; max: number }) {
+  const [remplit] = useState(() => premiereFois(`jauge:${muscle}:${valeur}:${max}`))
+  return <span className={`niveau ${etat}${remplit ? ' remplit' : ''}`} style={{ width: `${Math.min(100, (valeur / max) * 100)}%` }} />
 }
 
 /**
@@ -47,7 +54,7 @@ export default function VolumeMuscles({ volume, cibles, perso, onCibles }: Props
               </span>
               <span className="jauge">
                 <span className="zone-utile" style={{ left: `${(z.bas / max) * 100}%`, width: `${((z.haut - z.bas) / max) * 100}%` }} />
-                <span className={`niveau ${etat}`} style={{ width: `${Math.min(100, (v / max) * 100)}%` }} />
+                <NiveauJauge muscle={m.id} etat={etat} valeur={v} max={max} />
               </span>
             </span>
             <ChevronRight size={16} className="muted" />
