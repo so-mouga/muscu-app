@@ -241,10 +241,11 @@ export function dureeHabituelle(modeleId: string, terminees: Seance[]): number |
 /** « 55 min », « 1 h 05 ». */
 export const minutes = (n: number) => (n < 60 ? `${n} min` : `${Math.floor(n / 60)} h ${String(n % 60).padStart(2, '0')}`)
 
-/** Durée affichée sur une séance : la durée réelle habituelle si elle existe, sinon l'estimation du plan. */
-export function dureeTexte(m: SeanceModele, terminees: Seance[] | undefined, court = false): string {
+/** Durée affichée sur une séance : la durée réelle habituelle, dite comme telle, sinon l'estimation du plan. Rien pour une séance vide. */
+export function dureeTexte(m: SeanceModele, terminees: Seance[] | undefined): string {
+  if (!m.exercices.length) return ''
   const h = terminees && dureeHabituelle(m.id, terminees)
-  return h ? `≈ ${minutes(h)}${court ? '' : ' d’habitude'}` : `≈ ${minutes(dureeEstimee(m))}`
+  return h ? `≈ ${minutes(h)} d’habitude` : `≈ ${minutes(dureeEstimee(m))}`
 }
 
 /** Muscu soutenue ≈ 5 MET ; poids par défaut 75 kg quand aucune pesée n'existe. */

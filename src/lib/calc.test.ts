@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance, Serie } from '../types'
-import { calories, dureeHabituelle, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import { calories, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -114,6 +114,13 @@ describe('durée habituelle et calories', () => {
   it('médiane des 3 dernières séances du même modèle', () => {
     expect(dureeHabituelle('a', [s(1, 50), s(2, 70), s(3, 62), s(4, 120, 'b'), s(0, 300)])).toBe(60)
     expect(dureeHabituelle('z', [s(1, 50)])).toBeNull()
+  })
+  it('la durée habituelle est dite comme telle, une séance vide n’affiche aucune durée', () => {
+    const plan = { exoId: 'presse', repos: 120, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }], chauffes: [], finisseur: false, charge: null }
+    const m = { id: 'a', nom: 'A', sousTitre: '', exercices: [plan] }
+    expect(dureeTexte(m, [s(1, 45)])).toBe('≈ 45 min d’habitude')
+    expect(dureeTexte({ ...m, id: 'z' }, [s(1, 45)])).toMatch(/^≈ \d+ min$/)
+    expect(dureeTexte({ ...m, exercices: [] }, [s(1, 45)])).toBe('')
   })
   it('5 MET × poids × heures', () => {
     expect(calories(3600000, 80)).toBe(400)

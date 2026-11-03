@@ -394,7 +394,7 @@ export default function Accueil({
         <span>
           {etiquetteProchaine(e)} : {e.modele.nom}
         </span>
-        <span className="seance-jour-duree">{dureeTexte(e.modele, terminees, true)}</span>
+        <span className="seance-jour-duree">{dureeTexte(e.modele, terminees)}</span>
       </div>
       <ListeExosJour lignes={lignesDe(e.modele, false)} entiere />
       <div className="seance-jour-actions">
@@ -514,7 +514,7 @@ export default function Accueil({
               </div>
               <div className="seance-jour-titre">
                 <h2>{proposee.modele.nom}</h2>
-                <span className="seance-jour-duree">{dureeTexte(proposee.modele, terminees, true)}</span>
+                <span className="seance-jour-duree">{dureeTexte(proposee.modele, terminees)}</span>
               </div>
               {variante && (
                 <button type="button" className="seance-jour-lien pas-de-salle" onClick={() => voir(variante)}>

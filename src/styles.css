@@ -4362,6 +4362,7 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .seance-jour-titre {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
   gap: var(--e3);
@@ -4428,6 +4429,7 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .seance-jour-suite {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
   gap: var(--e3);

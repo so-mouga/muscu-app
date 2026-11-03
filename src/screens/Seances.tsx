@@ -17,7 +17,7 @@ import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
 import { ciblesPrecedentes } from '../lib/objectifs'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dateCourte, dateISO, dureeEstimee, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dateCourte, dateISO, dureeEstimee, dureeHabituelle, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
@@ -119,7 +119,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
     return (
       <>
         <AvisCycle catalogue={catalogue} fixe />
-        <Editeur key={vue.m.id} catalogue={catalogue} initial={vue.m} nouvelle={vue.nouvelle} entree={vue.entree} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
+        <Editeur key={vue.m.id} catalogue={catalogue} terminees={terminees} initial={vue.m} nouvelle={vue.nouvelle} entree={vue.entree} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
       </>
     )
   if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={fermer} onBilan={onBilanCycle} />
@@ -390,7 +390,7 @@ function PageProgramme({
             <span>
               {m!.nom}
               {m!.sousTitre && <span className="faible prog-sous">{m!.sousTitre}</span>}
-              <span className="faible prog-sous">{[`${m!.exercices.length} exercice${m!.exercices.length > 1 ? 's' : ''}`, m!.exercices.length ? dureeTexte(m!, terminees, true) : ''].filter(Boolean).join(' · ')}</span>
+              <span className="faible prog-sous">{[`${m!.exercices.length} exercice${m!.exercices.length > 1 ? 's' : ''}`, dureeTexte(m!, terminees)].filter(Boolean).join(' · ')}</span>
             </span>
             <ChevronRight size={20} className="muted" />
           </button>
@@ -736,7 +736,7 @@ function PageAutresSeances({ catalogue, terminees, onFermer, onOuvrir }: { catal
               <span>
                 {m.nom}
                 <span className="faible prog-sous">
-                  {[m.sousTitre, `${m.exercices.length} exercice${m.exercices.length > 1 ? 's' : ''}`, dureeTexte(m, terminees, true), m.varianteDe ? `variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : '', progs.length ? progs.join(', ') : 'dans aucun programme'].filter(Boolean).join(' · ')}
+                  {[m.sousTitre, `${m.exercices.length} exercice${m.exercices.length > 1 ? 's' : ''}`, dureeTexte(m, terminees), m.varianteDe ? `variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : '', progs.length ? progs.join(', ') : 'dans aucun programme'].filter(Boolean).join(' · ')}
                 </span>
               </span>
               <ChevronRight size={20} className="muted" />
@@ -762,6 +762,7 @@ function PageAutresSeances({ catalogue, terminees, onFermer, onOuvrir }: { catal
 
 function Editeur({
   catalogue,
+  terminees,
   initial,
   nouvelle,
   entree,
@@ -769,6 +770,7 @@ function Editeur({
   onFermer,
 }: {
   catalogue: Catalogue
+  terminees: Seance[] | undefined
   initial: SeanceModele
   nouvelle: boolean
   /** Ouverte depuis un programme : lequel, et sa place dedans (son jour, « Retirer du programme »). */
@@ -778,6 +780,7 @@ function Editeur({
   onFermer: () => void
 }) {
   const [m, setM] = useState(initial)
+  const habituelle = terminees && dureeHabituelle(m.id, terminees)
   const [choix, setChoix] = useState(choisirExos)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [infos, setInfos] = useState<Exercice | null>(null)
@@ -905,8 +908,7 @@ function Editeur({
           <div>
             <strong className="seance-resume-duree">≈ {minutes(dureeEstimee(m))}</strong>
             <span className="faible">
-              {' '}
-              · {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {nbSeries} série{nbSeries > 1 ? 's' : ''}
+              {habituelle ? ` prévues · ${minutes(habituelle)} d’habitude` : ''} · {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {nbSeries} série{nbSeries > 1 ? 's' : ''}
             </span>
           </div>
           {travailles.length > 0 && (
