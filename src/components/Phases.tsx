@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronRight, Pencil, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
@@ -230,27 +230,9 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                   marginBottom: 16,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className={`point-phase phase-${enCours.phase}`} />
-                    <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>Modifier {nomPhase(enCours.phase)}</strong>
-                  </div>
-                  <button
-                    type="button"
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--texte-2)',
-                      padding: '4px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                    onClick={() => setEditionEnCours(false)}
-                    aria-label="Fermer la modification"
-                  >
-                    <X size={16} strokeWidth={2} />
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span className={`point-phase phase-${enCours.phase}`} />
+                  <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>Modifier {nomPhase(enCours.phase)}</strong>
                 </div>
 
                 <EditeurPhase
@@ -415,19 +397,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                           border: '1px solid var(--voile-fort)',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                          <span style={{ fontSize: 'var(--t-petit)', fontWeight: 700, color: 'var(--texte)' }}>
-                            {nomPhase(p.phase)} (à venir)
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setOuverte(null)}
-                            style={{ background: 'none', border: 'none', color: 'var(--texte-2)', cursor: 'pointer', padding: 2 }}
-                            aria-label="Fermer"
-                          >
-                            <X size={15} />
-                          </button>
-                        </div>
+                        <div style={{ fontSize: 'var(--t-petit)', fontWeight: 700, color: 'var(--texte)', marginBottom: 10 }}>{nomPhase(p.phase)} (à venir)</div>
                         <EditeurPhase
                           p={p}
                           enCours={false}
