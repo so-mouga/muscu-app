@@ -253,6 +253,7 @@ function PageProgramme({
   }
   const supprimer = async () => {
     setMenu(false)
+    if (cycle && etat && !etat.fini) return informer('Ton cycle en cours s’en sert. Termine d’abord le cycle : appuie sur la ligne du cycle, puis sur ⋯. Tu pourras ensuite supprimer ce programme.', 'Ce programme est en cours')
     if (catalogue.programmes.length <= 1) return informer('Il faut garder au moins un programme.')
     if (!(await confirmer('Ses séances restent disponibles dans « Autres séances ».', { titre: `Supprimer le programme « ${p.nom} » ?`, oui: 'Supprimer le programme', danger: true }))) return
     if ((await db.programmes.count()) === 0) await db.programmes.bulkPut(catalogue.programmes)
