@@ -176,22 +176,26 @@ export type RegimeSemaine = 'normale' | 'allegee' | 'pause'
 
 export const regimeSemaine = (c: Cycle, l: string): RegimeSemaine => (c.pauses.includes(l) ? 'pause' : c.deloads.includes(etatCycle(c, l).n) ? 'allegee' : 'normale')
 
+/** La semaine n'est plus allégée : le décalage s'annule, sauf pour la dernière semaine, qui reste une semaine normale. */
+function retirerAllegee(c: Cycle, l: string): Cycle {
+  const { n } = etatCycle(c, l)
+  return n === c.semaines ? { ...c, deloads: c.deloads.filter((d) => d !== n) } : { ...c, semaines: c.semaines - 1, deloads: c.deloads.filter((d) => d !== n).map((d) => (d > n ? d - 1 : d)) }
+}
+
+/** Annule la pause : on retrouve ce qui était prévu, la semaine allégée comprise si elle avait glissé. */
+export const reprendreSemaine = (c: Cycle, l: string): Cycle => ({ ...c, pauses: c.pauses.filter((p) => p !== l) })
+
 /**
  * Change une semaine, à venir ou en cours (lundi `l`). Pause : la suite glisse d'une semaine, et revient si on l'annule.
- * Allégée : la suite est décalée. Ne plus l'alléger : le décalage s'annule, sauf pour la dernière semaine, qui reste une semaine normale.
+ * La dernière semaine allégée glisse aussi : sinon, on reprendrait à pleine charge après une pause. Allégée : la suite est décalée.
  */
 export function changerSemaine(c: Cycle, l: string, regime: RegimeSemaine): Cycle {
   const actuel = regimeSemaine(c, l)
   if (actuel === regime) return c
-  let r = c
-  if (actuel === 'pause') r = { ...r, pauses: r.pauses.filter((p) => p !== l) }
-  if (actuel === 'allegee') {
-    const { n } = etatCycle(r, l)
-    r = n === r.semaines ? { ...r, deloads: r.deloads.filter((d) => d !== n) } : { ...r, semaines: r.semaines - 1, deloads: r.deloads.filter((d) => d !== n).map((d) => (d > n ? d - 1 : d)) }
-  }
-  if (regime === 'pause') return mettreEnPause(r, l)
+  if (regime === 'pause') return mettreEnPause(actuel === 'allegee' && etatCycle(c, l).n !== c.semaines ? retirerAllegee(c, l) : c, l)
+  const r = actuel === 'pause' ? reprendreSemaine(c, l) : c
   if (regime === 'allegee') return r.deloads.includes(etatCycle(r, l).n) ? r : deloadMaintenant(r, l)
-  return r
+  return regimeSemaine(r, l) === 'allegee' ? retirerAllegee(r, l) : r
 }
 
 /** Met la semaine en cours en pause : la suite du cycle (déload compris) glisse d'une semaine. */

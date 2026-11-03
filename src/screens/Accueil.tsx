@@ -11,7 +11,7 @@ import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
-import { changerSemaine, etatCycle, lundiDe, planDeload } from '../lib/cycle'
+import { etatCycle, lundiDe, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
@@ -483,7 +483,7 @@ export default function Accueil({
               <p className="faible">
                 Reprend le {new Date(lundiDe(cycle, etat.n) + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} : semaine {etat.n} sur {etat.total}.
               </p>
-              <button type="button" className="btn plein" onClick={() => void db.cycles.put(changerSemaine(cycle, lundi(), 'normale'))}>
+              <button type="button" className="btn plein" onClick={() => void db.cycles.put(reprendreSemaine(cycle, lundi()))}>
                 Reprendre cette semaine
               </button>
             </>

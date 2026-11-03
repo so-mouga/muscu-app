@@ -11,7 +11,7 @@ import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '
 import { suiviCycle } from '../lib/motivation'
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
-import { changerSemaine, debutCycle, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
+import { debutCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
 import { ciblesPrecedentes } from '../lib/objectifs'
@@ -324,7 +324,7 @@ function PageProgramme({
             </span>
             <ChevronRight size={20} className="muted" />
           </button>
-          <button className="btn plein" onClick={() => void db.cycles.put(changerSemaine(cycle, lundi(), 'normale'))}>
+          <button className="btn plein" onClick={() => void db.cycles.put(reprendreSemaine(cycle, lundi()))}>
             Reprendre cette semaine
           </button>
         </div>

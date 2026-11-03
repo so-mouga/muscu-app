@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { appliquerEcart, avecPriorites, changerSemaine, debutCycle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
+import { appliquerEcart, avecPriorites, changerSemaine, debutCycle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -215,6 +215,20 @@ describe('changer une semaine', () => {
     const b = changerSemaine(changerSemaine(c0(), '2026-11-02', 'allegee'), '2026-11-02', 'pause')
     expect(b).toMatchObject({ semaines: 6, deloads: [6], pauses: ['2026-11-02'] })
     expect(changerSemaine(b, '2026-11-02', 'allegee')).toMatchObject({ semaines: 7, deloads: [3, 7], pauses: [] })
+  })
+
+  it('une pause sur la dernière semaine allégée la fait glisser : on ne reprend pas à pleine charge', () => {
+    const b = changerSemaine(c0(), '2026-11-23', 'pause')
+    expect(b).toMatchObject({ semaines: 6, deloads: [6], pauses: ['2026-11-23'] })
+    expect(etatCycle(b, '2026-11-23')).toMatchObject({ pause: true, deload: false })
+    expect(etatCycle(b, '2026-11-30')).toMatchObject({ n: 6, deload: true, fini: false })
+    expect(etatCycle(b, '2026-12-07').fini).toBe(true)
+  })
+
+  it('reprendre une semaine retrouve ce qui était prévu ; « Normale » retire vraiment l’allègement', () => {
+    const b = changerSemaine(c0(), '2026-11-23', 'pause')
+    expect(etatCycle(reprendreSemaine(b, '2026-11-23'), '2026-11-23')).toMatchObject({ n: 6, deload: true })
+    expect(changerSemaine(b, '2026-11-23', 'normale')).toMatchObject({ semaines: 6, deloads: [], pauses: [] })
   })
 
   it('même régime : rien ne change', () => {
