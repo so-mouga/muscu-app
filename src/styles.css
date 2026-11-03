@@ -5329,3 +5329,13 @@ html[data-sens='fondu']::view-transition-new(root) {
   padding: 0 var(--e3) var(--e3);
   font-size: var(--t-petit);
 }
+
+/* Filtres sur une ligne qui défile : à 360 px, ils prendraient trois rangées avant le premier exercice. */
+.chips.zones-defile {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips.zones-defile button {
+  flex: none;
+}

@@ -1,4 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import Exercices from './Exercices'
 import { useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Pencil, Ruler, Smile, Trophy, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
@@ -36,11 +37,12 @@ const jourLong = (iso: string) => {
 }
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
-export type VueProgression = 'bilan' | 'journal'
+export type VueProgression = 'bilan' | 'journal' | 'exercices'
 
 const VUES: [VueProgression, string][] = [
   ['bilan', 'Bilan'],
   ['journal', 'Journal'],
+  ['exercices', 'Exercices'],
 ]
 
 interface Props {
@@ -50,13 +52,16 @@ interface Props {
   /** Séance ouverte en détail (aussi depuis l'accueil). */
   detail: string | null
   onDetail: (id: string | null) => void
-  /** Ouvre la fiche / courbe d'un exercice dans l'onglet Exercices. */
+  /** Ouvre la fiche d'un exercice, depuis le Bilan. */
   onExo?: (id: string) => void
+  /** Fiche ouverte depuis le Bilan, et le retour vers lui. */
+  exoInitial?: string | null
+  onRetourExo?: () => void
   /** Ouvre l'onglet Corps (poids, mensurations, photos). */
   onCorps?: (page?: PageCorps) => void
 }
 
-export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, onCorps }: Props) {
+export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, exoInitial, onRetourExo, onCorps }: Props) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   /** Jour choisi dans le calendrier (aujourd'hui par défaut). */
@@ -108,7 +113,8 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
       </div>
     </>
   )
-  if (vue === 'bilan') return <Bilan catalogue={catalogue} haut={haut} onExo={onExo} onCorps={onCorps} />
+  if (vue === 'bilan') return <Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => onVue('exercices')} onCorps={onCorps} />
+  if (vue === 'exercices') return <Exercices catalogue={catalogue} haut={haut} initial={exoInitial} onRetourInitial={onRetourExo} />
 
   return (
     <div>

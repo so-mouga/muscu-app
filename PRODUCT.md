@@ -122,7 +122,7 @@ Limites connues du parcours :
 
 ### Reste à faire, dans l'ordre
 
-1. **Programme et Exercices**, plan validé après maquette cliquable (`AGENTS.md`), un commit par écran. Fait : page Programme et fenêtre de lancement, écran de séance, réglage d'un exercice et liste d'ajout, Changer de programme et « Prendre ce programme » qui lance le cycle, page du cycle et fusion du Bilan du cycle, fiche d'exercice. À voir à l'usage : si l'appui sur le jour se trouve. À faire, dans l'ordre : liste dans Progrès et retrait de l'onglet, formulaire d'exercice (Palier, Machine assistée).
+1. **Programme et Exercices**, plan validé après maquette cliquable (`AGENTS.md`), un commit par écran. Fait : page Programme et fenêtre de lancement, écran de séance, réglage d'un exercice et liste d'ajout, Changer de programme et « Prendre ce programme » qui lance le cycle, page du cycle et fusion du Bilan du cycle, fiche d'exercice, liste dans Progrès et retrait de l'onglet. À voir à l'usage : si l'appui sur le jour se trouve. À faire : formulaire d'exercice (Palier, Machine assistée).
 2. **Réglages.**
 
 À traiter en refaisant ces écrans :

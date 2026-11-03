@@ -19,7 +19,7 @@ const texte = (v?: number) => (v === undefined ? '' : kg(v))
 
 /**
  * Ce qu'on ne découvre que devant la machine : palier, charge maximale, note et photo. Enregistré au
- * fil de l'eau. Le reste de l'exercice (nom, muscle, mode) se modifie dans l'onglet Exercices.
+ * fil de l'eau. Le reste de l'exercice (nom, muscle, mode) se modifie depuis la fiche, dans Progrès.
  */
 export function ContenuReglages({ exo }: { exo: Exercice }) {
   const [pas, setPas] = useState(exo.pas)

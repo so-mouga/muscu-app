@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowLeft, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import Aide from '../components/Aide'
 import { informer } from '../components/Dialogues'
@@ -12,7 +12,6 @@ import { analyser, essentiel, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
 import { depuisDebut, semainesTenues } from '../lib/motivation'
-import { useRetour } from '../lib/nav'
 import { etatVolume, LIBELLE_VOLUME, zone } from '../lib/volume'
 import type { Muscle } from '../types'
 
@@ -25,12 +24,11 @@ const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 const ecart = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(arrondi(d)))} ${u}`
 
 /** Ce qu'on retrouve au retour d'une fiche d'exercice : le Bilan est démonté pendant qu'elle est ouverte. */
-const memoire = { periode: '4' as Periode, tous: false, defilement: 0 }
+const memoire = { periode: '4' as Periode, defilement: 0 }
 
 /** « Voir le bilan » d'un cycle : le Bilan s'ouvrira sur sa période. */
 export const voirPeriodeCycle = () => {
   memoire.periode = 'cycle'
-  memoire.tous = false
   memoire.defilement = 0
 }
 
@@ -38,23 +36,14 @@ export const voirPeriodeCycle = () => {
  * Bilan des semaines finies : la réponse d'abord (À retenir), puis les exercices, la régularité, les
  * muscles et la forme. La semaine en cours n'y entre pas : l'accueil s'en occupe, et un lundi ne juge rien.
  */
-export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onCorps?: () => void }) {
+export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onTousExos?: () => void; onCorps?: () => void }) {
   const [periodeChoisie, setPeriodeChoisie] = useState(memoire.periode)
-  const [tous, setTousEtat] = useState(memoire.tous)
   const seances = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])
   const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   const donneesPretes = !!seances
-
-  const setTous = (v: boolean) => {
-    memoire.tous = v
-    memoire.defilement = 0
-    setTousEtat(v)
-    window.scrollTo({ top: 0 })
-  }
-  useRetour(tous, () => setTous(false))
 
   useEffect(() => {
     if (!donneesPretes || !memoire.defilement) return
@@ -99,38 +88,6 @@ export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: 
   // Sur un cycle : ce qui monte se lit en charges, de la 1re séance à la dernière.
   const parCharges = periode === 'cycle' && cycle ? depuisDebut(seances.filter((s) => s.date <= fin), catalogue.exo, cycle.debut, 8) : []
   const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}` })))
-
-  if (tous)
-    return (
-      <div>
-        <div className="entete">
-          <button className="btn" onClick={() => setTous(false)} aria-label="Retour au Bilan">
-            <ArrowLeft size={20} strokeWidth={2} />
-          </button>
-          <h2 style={{ flex: 1 }}>Tous les exercices</h2>
-        </div>
-        <p className="faible bilan-periode">
-          Du {jour(a.debut)} au {jour(fin)}
-        </p>
-        {exercices.bloques.length > 0 && (
-          <section className="carte bilan-carte">
-            <h3>Ce qui bloque ({exercices.bloques.length})</h3>
-            {exercices.pisteCommune && <p className="faible petit-texte">Piste commune : {exercices.pisteCommune}.</p>}
-            {exercices.bloques.map((l) => (
-              <LigneExo key={l.id} {...l} onClick={ouvrirExo && (() => ouvrirExo(l.id))} />
-            ))}
-          </section>
-        )}
-        {exercices.montent.length > 0 && (
-          <section className="carte bilan-carte">
-            <h3>Ce qui monte ({exercices.montent.length})</h3>
-            {exercices.montent.map((l) => (
-              <LigneExo key={l.id} {...l} onClick={ouvrirExo && (() => ouvrirExo(l.id))} />
-            ))}
-          </section>
-        )}
-      </div>
-    )
 
   const partager = async () => {
     const texte = genererBilan(donnees, a.debut, fin)
@@ -194,7 +151,7 @@ export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: 
           <h3>À retenir</h3>
           {lignes.map((l) =>
             l.exoId || l.blocages ? (
-              <button key={l.texte} type="button" className="bilan-retenir" onClick={() => (l.exoId ? ouvrirExo?.(l.exoId) : setTous(true))}>
+              <button key={l.texte} type="button" className="bilan-retenir" onClick={() => (l.exoId ? ouvrirExo?.(l.exoId) : onTousExos?.())}>
                 <span>{l.texte}</span>
                 <ChevronRight size={16} strokeWidth={1.75} className="muted" />
               </button>
@@ -219,7 +176,7 @@ export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: 
             <LigneExo key={l.id} {...l} onClick={ouvrirExo && (() => ouvrirExo(l.id))} />
           ))}
           {exercices.montent.length + exercices.bloques.length > 2 && (
-            <button type="button" className="bilan-tous" onClick={() => setTous(true)}>
+            <button type="button" className="bilan-tous" onClick={() => onTousExos?.()}>
               <span>Voir tous les exercices</span>
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
             </button>

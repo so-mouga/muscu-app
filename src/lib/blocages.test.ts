@@ -59,7 +59,7 @@ describe('pistes', () => {
       { date: '2026-10-30', poids: 75.1 },
     ]
     const p = pistes(smith, '2026-10-01', FIN, { seances: l, journal, pesees, phase: 'prise' })
-    expect(p).toEqual(['sommeil moyen 5 h 00', 'calories sous l’objectif 3 jours sur 5', 'poids qui ne monte pas (+0,03 kg par semaine)', 'séries déjà très dures (RPE moyen 9,5)'])
+    expect(p).toEqual(['sommeil moyen 5 h 00', 'calories sous l’objectif 3 jours sur 5', 'poids qui ne monte pas (+0,03 kg par semaine)', 'séries déjà très dures (effort moyen 9,5/10)'])
     expect(texteBlocage({ semaines: 4, seances: 4, depuis: '2026-10-01', pistes: p })).toMatch(/^Pas de progrès depuis 4 semaines \(4 séances\)\. Pistes : sommeil moyen 5 h 00/)
   })
   it('rien quand la donnée manque ; pas de déload depuis plus de 6 semaines', () => {

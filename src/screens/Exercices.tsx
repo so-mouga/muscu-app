@@ -1,49 +1,53 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { ChevronRight } from 'lucide-react'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
-import { parMuscle } from '../components/ChoixExo'
+import { nomMuscle, parMuscle } from '../components/ChoixExo'
 import ChoixExo from '../components/ChoixExo'
 import FormExo from '../components/FormExo'
 import Vignette from '../components/Vignette'
 import { MUSCLES, ZONES, type Zone } from '../data/exercices'
 import IconeMuscle from '../components/IconeMuscle'
 import { db, exoAvecReglages, uid } from '../db'
-import { chargeQte, dateCourte } from '../lib/calc'
+import { diagnostic } from '../lib/blocages'
+import { chargeQte, dateCourte, dateISO } from '../lib/calc'
+import { phaseA } from '../lib/objectifs'
 import { delies, lireEquivalents, modifierEquivalents, relies } from '../lib/equivalents'
 import { meilleureSerie } from '../lib/historique'
 import { transition, useRetour } from '../lib/nav'
-import type { Exercice, Muscle } from '../types'
-import { Detail } from './Progression'
+import type { Exercice, Seance } from '../types'
+import { Detail, lectureExo } from './Progression'
 import { confirmer } from '../components/Dialogues'
 
-type Filtre = 'tous' | 'recents' | Zone
+type Filtre = 'tous' | Zone
 
-export default function Exercices({ catalogue, initial, onRetourInitial }: { catalogue: Catalogue; initial?: string | null; onRetourInitial?: () => void }) {
+/** Partie Exercices de Progrès : est-ce que je progresse sur cet exercice ? Le titre et les parties sont dans `haut`. */
+export default function Exercices({ catalogue, haut, initial, onRetourInitial }: { catalogue: Catalogue; haut: ReactNode; /** Fiche ouverte depuis le Bilan : le retour y revient. */ initial?: string | null; onRetourInitial?: () => void }) {
   const seances = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [], [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const [choisi, setChoisiEtat] = useState<string | null>(initial ?? null)
   const [formulaire, setFormulaire] = useState<{ exo?: Exercice } | null>(null)
   const [relier, setRelier] = useState(false)
-  /** Groupes de muscles dépliés (accordéon). */
-  const [ouverts, setOuverts] = useState<Set<string>>(() => new Set())
-  const basculer = (m: string) =>
-    setOuverts((o) => {
-      const n = new Set(o)
-      if (n.has(m)) n.delete(m)
-      else n.add(m)
-      return n
-    })
+  const [voirAutres, setVoirAutres] = useState(false)
+  const journal = useLiveQuery(() => db.journal.toArray(), [], [])
+  const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const [recherche, setRecherche] = useState('')
   const [filtre, setFiltre] = useState<Filtre>('tous')
 
+  // Le retour d'une fiche retrouve la liste à la même position.
+  const defilement = useRef(0)
   const setChoisi = (id: string | null) => {
     if (!id && initial && choisi === initial && onRetourInitial) {
       onRetourInitial()
       return
     }
+    if (id) defilement.current = window.scrollY
     transition(() => setChoisiEtat(id), id ? 'avant' : 'arriere')
-    window.scrollTo({ top: 0 })
+    if (id) window.scrollTo({ top: 0 })
   }
+  useLayoutEffect(() => {
+    if (!choisi && defilement.current) window.scrollTo({ top: defilement.current })
+  }, [choisi])
   useRetour(!!choisi, () => setChoisi(null))
   useRetour(!!formulaire, () => setFormulaire(null))
 
@@ -54,6 +58,22 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
       const h = historique.get(id)
       historique.set(id, { n: (h?.n ?? 0) + 1, date: h?.date ?? s.date })
     }
+  // Dernière performance et constat de chaque exercice fait : les mêmes règles que la fiche.
+  const phase = phaseA(catalogue.objectifs, dateISO())?.phase
+  const enSeche = phase === 'seche'
+  const resumes = useMemo(() => {
+    const parExo = new Map<string, Seance[]>()
+    for (const s of seances)
+      for (const id of new Set(s.series.map((x) => x.exoId))) parExo.set(id, [...(parExo.get(id) ?? []), s])
+    return new Map(
+      [...parExo].map(([id, l]) => {
+        const e = catalogue.exo(id)
+        const derniere = l.find((s) => !s.deload) ?? l[0]
+        const m = meilleureSerie(derniere.series.filter((x) => x.exoId === id), e.assistance)
+        return [id, { perf: m ? chargeQte(e, m.charge, m.reps) : '', lecture: lectureExo(e, [...l].reverse(), enSeche) }]
+      })
+    )
+  }, [seances, catalogue, enSeche])
   const utilisations = (id: string) => catalogue.modeles.filter((m) => m.exercices.some((e) => e.exoId === id)).map((m) => m.nom)
 
   const tous = Object.values(catalogue.exercices)
@@ -133,6 +153,8 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
           onDupliquer={() => void dupliquer(exo)}
           copieDe={copieDe?.id === exo.id ? copieDe.nom : undefined}
           equivalents={liste}
+          enSeche={enSeche}
+          pistes={diagnostic(exo, { seances, journal, pesees, phase }, dateISO())?.pistes}
           suggestions={tous
             .filter((e) => e.muscle === exo.muscle && e.id !== exo.id && !e.supprime && !(eq[exo.id] ?? []).includes(e.id))
             .sort((a, b) => Number(b.type === exo.type) - Number(a.type === exo.type) || (historique.get(b.id)?.n ?? 0) - (historique.get(a.id)?.n ?? 0))
@@ -159,82 +181,82 @@ export default function Exercices({ catalogue, initial, onRetourInitial }: { cat
     )
   }
 
-  const recents = tous
-    .filter((e) => historique.has(e.id) && !e.supprime)
-    .sort((a, b) => historique.get(b.id)!.date.localeCompare(historique.get(a.id)!.date))
-  const groupes =
-    filtre === 'recents'
-      ? [{ muscle: 'recents', nom: 'Faits récemment', exos: recents.filter((e) => parMuscle([e], recherche).length) }]
-      : parMuscle(tous, recherche).filter((g) => recherche.trim() || filtre === 'tous' || MUSCLES.find((m) => m.id === g.muscle)?.zone === filtre)
-
-  // Fermés par défaut ; ouverts pendant une recherche, pour « Récents » ou quand il n'y a qu'un groupe.
-  const ouvert = (m: string) => !!recherche.trim() || (m === 'recents' || groupes.length === 1) !== ouverts.has(m)
+  // Tes exercices d'abord, du plus récent au plus ancien ; les autres seulement quand on les cherche.
+  const correspond = (e: Exercice) => filtre === 'tous' || !!recherche.trim() || MUSCLES.find((m) => m.id === e.muscle)?.zone === filtre
+  const visibles = parMuscle(tous, recherche).flatMap((g) => g.exos).filter(correspond)
+  const tiens = visibles.filter((e) => historique.has(e.id)).sort((a, b) => historique.get(b.id)!.date.localeCompare(historique.get(a.id)!.date))
+  const autres = visibles.filter((e) => !historique.has(e.id))
+  const montrerAutres = voirAutres || !!recherche.trim() || filtre !== 'tous' || tiens.length === 0
 
   const ligne = (e: Exercice) => {
-    const h = historique.get(e.id)
+    const r = resumes.get(e.id)
     return (
       <button key={e.id} className="liste-btn" onClick={() => setChoisi(e.id)}>
         <span className="avec-vignette">
           <Vignette exo={e} taille={44} />
           <span>
-            <strong>{e.nom}</strong>
-            <div className="faible">
-              {h ? `${h.n} séance${h.n > 1 ? 's' : ''} · dernière ${dateCourte(h.date)}` : 'jamais fait'}
-              {e.perso ? ' · perso' : ''}
-            </div>
+            {e.nom}
+            <span className="faible prog-sous">
+              {r ? (
+                <>
+                  {r.perf}
+                  {r.lecture && (
+                    <>
+                      {' · '}
+                      <span className={r.lecture.classe}>{r.lecture.texte.toLowerCase()}</span>
+                    </>
+                  )}
+                </>
+              ) : (
+                `${nomMuscle(e.muscle)} · jamais fait`
+              )}
+            </span>
           </span>
         </span>
-        <span className="muted">›</span>
+        <ChevronRight size={20} className="muted" />
       </button>
     )
   }
 
   return (
     <div>
-      <div className="entete">
-        <h1>Exercices</h1>
-        <button className="btn primaire" onClick={() => setFormulaire({})}>
-          + Nouveau
-        </button>
-      </div>
-      <input placeholder="Rechercher un exercice" value={recherche} onChange={(e) => setRecherche(e.target.value)} style={{ marginBottom: 10 }} />
-      <div className="chips zones" style={{ marginBottom: 4 }}>
-        {(
-          [
-            ['tous', 'Tous'],
-            ['recents', 'Récents'],
-            ...ZONES.map((z) => [z.id, z.nom]),
-          ] as [Filtre, string][]
-        ).map(([id, nom]) => (
-          <button key={id} className={filtre === id ? 'actif' : ''} onClick={() => setFiltre(id)}>
-            {id !== 'tous' && id !== 'recents' && <IconeMuscle zone={id} taille={24} />}
-            {nom}
-          </button>
-        ))}
-      </div>
-
-      {groupes.map((g) => {
-        const estOuvert = ouvert(g.muscle)
-        return (
-          <div key={g.muscle}>
-            <button className="groupe-repli" onClick={() => basculer(g.muscle)} aria-expanded={estOuvert}>
-              <span className="ligne" style={{ gap: 8 }}>
-                {g.muscle !== 'recents' && <IconeMuscle muscle={g.muscle as Muscle} taille={26} />}
-                <span>
-                  {g.nom} <span className="nb">({g.exos.length})</span>
-                </span>
-              </span>
-              <span className={'muted chevron-accordeon' + (estOuvert ? ' ouvert' : '')}>▸</span>
+      {haut}
+      <input placeholder="Rechercher un exercice" value={recherche} onChange={(e) => setRecherche(e.target.value)} style={{ marginBottom: 'var(--e2)' }} />
+      {!recherche.trim() && (
+        <div className="chips zones zones-defile" style={{ marginBottom: 'var(--e2)' }}>
+          {(
+            [
+              ['tous', 'Tous'],
+              ...ZONES.map((z) => [z.id, z.nom]),
+            ] as [Filtre, string][]
+          ).map(([id, nom]) => (
+            <button key={id} className={filtre === id ? 'actif' : ''} onClick={() => setFiltre(id)}>
+              {id !== 'tous' && <IconeMuscle zone={id} taille={24} />}
+              {nom}
             </button>
-            <div className={'accordeon-tiroir' + (estOuvert ? ' ouvert' : '')}>
-              <div className="accordeon-contenu">
-                {g.exos.map(ligne)}
-              </div>
-            </div>
-          </div>
+          ))}
+        </div>
+      )}
+
+      {tiens.length > 0 && <h3 className="prog-groupe">Tes exercices</h3>}
+      {tiens.map(ligne)}
+
+      {montrerAutres ? (
+        <>
+          {tiens.length > 0 && autres.length > 0 && <h3 className="prog-groupe">Les autres</h3>}
+          {autres.map(ligne)}
+        </>
+      ) : (
+        autres.length > 0 && (
+          <button className="btn plein" style={{ marginBottom: 'var(--e2)' }} onClick={() => setVoirAutres(true)}>
+            Voir les {autres.length} autres
+          </button>
         )
-      })}
-      {groupes.every((g) => g.exos.length === 0) && <div className="carte muted" style={{ marginTop: 12 }}>Aucun exercice.</div>}
+      )}
+      {visibles.length === 0 && <div className="carte muted">Aucun exercice.</div>}
+      <button className="btn plein" style={{ marginTop: 'var(--e2)' }} onClick={() => setFormulaire({})}>
+        + Créer {recherche.trim() ? `« ${recherche.trim()} »` : 'un exercice'}
+      </button>
 
       {supprimes.length > 0 && filtre === 'tous' && !recherche && (
         <div className="carte pile" style={{ marginTop: 20 }}>

@@ -8,7 +8,6 @@ import { CLE_DEMARRAGE, type EtatDemarrage } from './lib/demarrage'
 import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJourNatif, type Rappel } from './lib/natif'
 import Accueil from './screens/Accueil'
 import Corps, { type PageCorps } from './screens/Corps'
-import Exercices from './screens/Exercices'
 import Demarrage, { type ModeDemarrage } from './components/Demarrage'
 import IconeOnglet from './components/IconeOnglet'
 import Historique, { type VueProgression } from './screens/Historique'
@@ -23,7 +22,6 @@ const ONGLETS = [
   ['historique', 'Progrès'],
   ['corps', 'Corps'],
   ['seances', 'Programme'],
-  ['exercices', 'Exercices'],
 ] as const
 type Onglet = (typeof ONGLETS)[number][0]
 
@@ -34,7 +32,7 @@ export default function App() {
   const [provenanceDetail, setProvenanceDetail] = useState<Onglet | null>(null)
   /** Réglages ouverts par ⚙ (page au-dessus de l'onglet). */
   const [reglages, setReglages] = useState(false)
-  /** Exercice ouvert depuis le Bilan dans l'onglet Exercices. */
+  /** Exercice ouvert depuis le Bilan, dans Progrès. */
   const [exoInitial, setExoInitial] = useState<string | null>(null)
   /** Page de détail ouverte dans Corps (phases, pesées, mensurations, photos). */
   const [pageCorps, setPageCorps] = useState<PageCorps | null>(null)
@@ -43,7 +41,7 @@ export default function App() {
     try {
       // Anciens noms : « seances » = Journal ; Corps et Objectifs sont sortis de Progrès.
       const v = localStorage.getItem('vueProgression')
-      return v === 'journal' || v === 'seances' ? 'journal' : 'bilan'
+      return v === 'journal' || v === 'seances' ? 'journal' : v === 'exercices' ? 'exercices' : 'bilan'
     } catch {
       return 'bilan'
     }
@@ -155,19 +153,14 @@ export default function App() {
             onDetail={setDetail}
             vue={vue}
             onVue={setVue}
-            onExo={(id) => (setExoInitial(id), setOnglet('exercices'))}
+            onExo={(id) => (setExoInitial(id), setVue('exercices'))}
+            exoInitial={exoInitial}
+            onRetourExo={() => (setExoInitial(null), setVue('bilan'))}
             onCorps={ouvrirCorps}
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={setPageCorps} />}
         {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} onBilanCycle={ouvrirBilanCycle} />}
-        {!reglages && onglet === 'exercices' && (
-          <Exercices
-            catalogue={catalogue}
-            initial={exoInitial}
-            onRetourInitial={() => (setExoInitial(null), setOnglet('historique'))}
-          />
-        )}
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (

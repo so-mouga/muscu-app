@@ -86,7 +86,7 @@ export function pistes(exo: Exercice, depuis: string, jusqua: string, c: Context
     .filter((s) => !s.enCours && !s.deload && s.date > depuis && s.date <= jusqua)
     .flatMap((s) => s.series.filter((x) => x.exoId === exo.id && x.type === 'normale').map((x) => x.rpe))
   const rpe = moyenne(rpes)
-  if (rpe !== null && rpe >= 9) r.push(`séries déjà très dures (RPE moyen ${kg(arrondi(rpe))})`)
+  if (rpe !== null && rpe >= 9) r.push(`séries déjà très dures (effort moyen ${kg(arrondi(rpe))}/10)`)
 
   const faites = c.seances.filter((s) => !s.enCours && s.date <= jusqua)
   const premiere = faites.reduce<string | null>((a, s) => (!a || s.date < a ? s.date : a), null)
