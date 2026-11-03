@@ -51,6 +51,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 ### 4. Programmes
 - Créer un programme, une séance, ajouter / retirer / réordonner des exercices (poignée ⠿, appui maintenu, pas de flèches).
 - Planning par jour, rendre un programme actif, lancer un cycle (nom, déload en fin de cycle), « Plus d'options ».
+- Programme modifié pendant un cycle : la carte « Ton cycle garde l'ancienne version » apparaît tout de suite, reste après la barre du bas ou l'appli fermée (rappel sur l'Accueil) ; « Garder pour le prochain cycle » n'entre jamais dans le cycle, même en acceptant ensuite un autre changement ; l'historique ne change pas.
 - Carte « Volume par semaine » : jauges Léger / Optimal / Beaucoup, « Ajuster les cibles ».
 - Supprimer un programme, une séance (au moins un programme reste).
 

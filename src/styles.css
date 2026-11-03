@@ -5114,3 +5114,39 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-legende);
   text-align: right;
 }
+
+/* Programme modifié pendant le cycle : à répondre, sans fenêtre qui coupe la modification. */
+.avis-cycle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  margin-bottom: var(--e3);
+  padding: var(--e3);
+  border-radius: var(--rayon);
+  background: var(--surface-2);
+}
+.avis-cycle.fixe {
+  position: fixed;
+  left: var(--e3);
+  right: var(--e3);
+  bottom: calc(var(--barre-onglets) + var(--e2) + env(safe-area-inset-bottom));
+  margin: 0;
+  z-index: 4;
+  background: var(--surface-uni);
+  box-shadow: var(--ombre-forte);
+}
+#root:has(.avis-cycle.fixe) {
+  padding-bottom: calc(var(--barre-onglets) + 180px + env(safe-area-inset-bottom));
+}
+.avis-cycle-choix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--e2);
+  margin-top: var(--e1);
+}
+.avis-cycle-choix .btn {
+  min-height: var(--cible);
+  padding: var(--e2);
+  font-size: var(--t-petit);
+  line-height: 1.25;
+}

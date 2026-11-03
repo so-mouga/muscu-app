@@ -1,14 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { changerObjectifs, ID_PROGRAMME_DEFAUT, type Catalogue } from '../catalogue'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
 import ChoixProgramme from '../components/ChoixProgramme'
-import { Aide, AIDE_CYCLE, LancerCycle, VueCycle } from '../components/Cycle'
+import { Aide, AIDE_CYCLE, AvisCycle, LancerCycle, VueCycle } from '../components/Cycle'
 import { confirmer, informer } from '../components/Dialogues'
-import { copieSeances, etatCycle, nomCycle } from '../lib/cycle'
+import { etatCycle, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
@@ -109,6 +109,8 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
 
   if (vue?.type === 'seance')
     return (
+      <>
+      <AvisCycle catalogue={catalogue} fixe />
       <Editeur
         key={vue.m.id}
         catalogue={catalogue}
@@ -126,10 +128,13 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
           })
         }
       />
+      </>
     )
   if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={() => fermer()} />
   if (vue?.type === 'programme')
     return (
+      <>
+      <AvisCycle catalogue={catalogue} fixe />
       <EditeurProgramme
         key={vue.initial.id}
         catalogue={catalogue}
@@ -140,6 +145,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
         onNouvelleSeance={() => nouvelleSeance(true)}
         onFermer={() => fermer()}
       />
+      </>
     )
 
   const utilisations = (m: SeanceModele) => catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === m.id)).map((p) => p.nom)
@@ -149,6 +155,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
       <div className="entete">
         <h1>Programmes</h1>
       </div>
+      <AvisCycle catalogue={catalogue} />
 
       <div className="segments" role="tablist">
         <button
@@ -383,7 +390,9 @@ function EditeurProgramme({
   const [choix, setChoix] = useState(false)
   const [lancer, setLancer] = useState(false)
   const [voirVolume, setVoirVolume] = useState(false)
-  const modifie = JSON.stringify(p) !== JSON.stringify(initial)
+  // Comparé à la dernière version écrite (pas à celle d'ouverture) : revenir en arrière s'enregistre aussi.
+  const ecrit = useRef(JSON.stringify(initial))
+  const modifie = JSON.stringify(p) !== ecrit.current
   const actif = catalogue.actif.id === p.id
   const enBase = catalogue.programmes.some((x) => x.id === p.id)
   useRetour(choix, () => setChoix(false))
@@ -391,30 +400,26 @@ function EditeurProgramme({
   // Enregistrement automatique : chaque changement est écrit peu après (dès que le programme a un nom).
   const finaleDe = (x: Programme) => ({ ...x, nom: x.nom.trim(), description: x.description?.trim() || undefined, seances: x.seances.filter((e) => catalogue.modele(e.modeleId)) })
   const [enregistre, setEnregistre] = useState(false)
+  const ecrire = () => {
+    ecrit.current = JSON.stringify(p)
+    return sauverProgramme(finaleDe(p), catalogue).then(() => setEnregistre(true))
+  }
   useEffect(() => {
     if (!modifie || !p.nom.trim()) return
-    const t = setTimeout(() => void sauverProgramme(finaleDe(p), catalogue).then(() => setEnregistre(true)), 400)
+    const t = setTimeout(() => void ecrire(), 400)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p])
+  // Quitté aussitôt après un changement (barre du bas) : il est écrit quand même.
+  const enAttente = useRef(() => {})
+  enAttente.current = () => {
+    if (modifie && p.nom.trim()) void ecrire()
+  }
+  useEffect(() => () => enAttente.current(), [])
 
-  // En quittant : dernier enregistrement, puis, pour le programme du cycle en cours, la question du cycle.
+  // En quittant : dernier enregistrement. La question du cycle est posée par AvisCycle, dès l'enregistrement.
   const quitter = async () => {
-    if (modifie && p.nom.trim()) {
-      const finale = finaleDe(p)
-      await sauverProgramme(finale, catalogue)
-      const c = catalogue.cycle
-      if (
-        c &&
-        c.programmeId === finale.id &&
-        (await confirmer(`« ${finale.nom} » est le programme du cycle en cours. Tes changements sont enregistrés dans le programme ; tu choisis s’ils s’appliquent dès maintenant au cycle, ou seulement au prochain.`, {
-          titre: 'Appliquer au cycle en cours ?',
-          oui: 'Appliquer au cycle en cours',
-          non: 'Seulement pour le prochain cycle',
-        }))
-      )
-        await db.cycles.update(c.id, { programme: finale, modeles: copieSeances(finale, catalogue.modele) })
-    }
+    if (modifie && p.nom.trim()) await ecrire()
     onFermer()
   }
   useRetour(true, () => {
@@ -645,12 +650,16 @@ function Editeur({
   // Programmes qui contiennent la séance ; une nouvelle séance va par défaut dans le programme actif.
   const progsInitiaux = catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === initial.id)).map((p) => p.id)
   const [progs, setProgs] = useState<string[]>(nouvelle ? [catalogue.actif.id] : progsInitiaux)
-  const modifie = JSON.stringify(m) !== JSON.stringify(initial) || (!pourProgramme && [...progs].sort().join() !== [...progsInitiaux].sort().join())
+  // Comparé à la dernière version écrite (pas à celle d'ouverture) : revenir en arrière s'enregistre aussi.
+  const version = () => JSON.stringify(m) + (pourProgramme ? '' : [...progs].sort().join())
+  const ecrit = useRef(JSON.stringify(initial) + (pourProgramme ? '' : [...(nouvelle ? [] : progsInitiaux)].sort().join()))
+  const modifie = version() !== ecrit.current
   const prechargee = !!MODELES[m.id]
 
   // Enregistrement automatique : la séance et ses programmes sont écrits peu après chaque changement.
   const [enregistre, setEnregistre] = useState(false)
   const ecrire = async () => {
+    ecrit.current = version()
     const finale = { ...m, nom: m.nom.trim(), sousTitre: m.sousTitre.trim() }
     await db.modeles.put(finale)
     if (!pourProgramme)
@@ -669,22 +678,17 @@ function Editeur({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [m, progs])
 
-  // En quittant : dernier enregistrement, puis, pour une séance du cycle en cours, la question du cycle.
+  // Quitté aussitôt après un changement (barre du bas) : il est écrit quand même.
+  const enAttente = useRef(() => {})
+  enAttente.current = () => {
+    if (modifie && m.nom.trim()) void ecrire()
+  }
+  useEffect(() => () => enAttente.current(), [])
+
+  // En quittant : dernier enregistrement. La question du cycle est posée par AvisCycle, dès l'enregistrement.
   const quitter = async () => {
-    if (!modifie || !m.nom.trim()) return onFermer()
-    const finale = await ecrire()
-    const c = catalogue.cycle
-    if (
-      JSON.stringify(m) !== JSON.stringify(initial) &&
-      c?.modeles.some((x) => x.id === finale.id) &&
-      (await confirmer(`« ${finale.nom} » fait partie du cycle en cours. La séance est enregistrée dans ta bibliothèque ; tu choisis si le cycle la prend dès maintenant, ou seulement au prochain cycle.`, {
-        titre: 'Appliquer au cycle en cours ?',
-        oui: 'Appliquer au cycle en cours',
-        non: 'Seulement pour le prochain cycle',
-      }))
-    )
-      await db.cycles.update(c.id, { modeles: c.modeles.map((x) => (x.id === finale.id ? structuredClone(finale) : x)) })
-    onFermer(finale)
+    if (!m.nom.trim() || (!modifie && !enregistre)) return onFermer()
+    onFermer(await ecrire())
   }
   useRetour(true, () => {
     void quitter()

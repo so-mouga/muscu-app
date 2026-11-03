@@ -5,7 +5,7 @@ import { nomCle } from '../data/mesures'
 import { db, setReglage, uid } from '../db'
 import { chargeQte, dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle, volumePrevu } from '../lib/calc'
 import { depuisDebut } from '../lib/motivation'
-import { BONUS_PRIORITE, deloadMaintenant, DUREE_DEFAUT, etatCycle, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle, nouveauCycle } from '../lib/cycle'
+import { appliquerEcart, BONUS_PRIORITE, deloadMaintenant, DUREE_DEFAUT, etatCycle, garderEcart, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle, nouveauCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
@@ -15,13 +15,45 @@ import { confirmer } from './Dialogues'
 import Aide from './Aide'
 
 export const AIDE_CYCLE =
-  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine de déload à la fin : 5 de travail + 1 de déload). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, l’appli te demande si tu veux l’appliquer tout de suite ou seulement au prochain cycle.'
+  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine de déload à la fin : 5 de travail + 1 de déload). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, tu choisis s’il s’applique aux semaines qui restent ou seulement au prochain cycle.'
 export const AIDE_DELOAD =
   'Déload : une semaine allégée pour récupérer et repartir plus fort. L’appli divise les séries par deux, baisse les charges d’environ 10 %, vise un RPE de 6-7 et retire les finisseurs. Garde tes repas et tes pas comme d’habitude : une semaine allégée ne fait pas perdre de muscle. Ces séances ne comptent pas pour ta progression : ensuite, tu reprends là où tu en étais.'
 
 const debutSemaine = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
 export { Aide } from './Aide'
+
+/**
+ * Programme modifié pendant le cycle : le dit tant qu'on n'a pas répondu, quel que soit le chemin pris
+ * (barre du bas, appli fermée, séance retirée ailleurs). `fixe` : en bas de l'écran, pour ne pas décaler ce qu'on est en train de modifier.
+ */
+export function AvisCycle({ catalogue, fixe = false }: { catalogue: Catalogue; fixe?: boolean }) {
+  const [fait, setFait] = useState('')
+  const { cycle, ecart } = catalogue
+  const repondre = async (changement: Partial<Cycle>, message: string) => {
+    await db.cycles.update(cycle!.id, changement)
+    setFait(message)
+    setTimeout(() => setFait(''), 2500)
+  }
+  const classe = 'avis-cycle' + (fixe ? ' fixe' : '')
+  if (!cycle || !ecart) return fait ? <div className={classe} role="status">✓ {fait}</div> : null
+  const programme = catalogue.programmes.find((p) => p.id === cycle.programmeId)
+  const quoi = [...(ecart.planning ? ['les jours et les séances du programme'] : []), ...ecart.seances.map((s) => s.nom)].join(', ')
+  return (
+    <div className={classe} role="status">
+      <strong>Ton cycle garde l’ancienne version</strong>
+      <div className="faible">Modifié : {quoi}.</div>
+      <div className="avis-cycle-choix">
+        <button type="button" className="btn" onClick={() => void repondre(appliquerEcart(cycle, ecart, programme, catalogue.modele), 'Appliqué aux semaines qui restent')}>
+          Appliquer aux semaines qui restent
+        </button>
+        <button type="button" className="btn" onClick={() => void repondre(garderEcart(cycle, ecart, programme), 'Gardé pour le prochain cycle')}>
+          Garder pour le prochain cycle
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export function LancerCycle({ catalogue, programme, cycle, onFermer }: { catalogue: Catalogue; programme?: Programme; cycle?: Cycle; onFermer: () => void }) {
   useRetour(true, onFermer)

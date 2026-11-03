@@ -5,7 +5,7 @@ import { PROGRAMME } from './data/programme'
 import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
 import { dateISO } from './lib/calc'
-import { avecPriorites, cibles } from './lib/cycle'
+import { avecPriorites, cibles, ecartCycle, etatCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
@@ -31,8 +31,10 @@ export interface Catalogue {
   sansProgramme: boolean
   /** Séances du programme actif ayant un jour, triées par jour. */
   planning: EntreePlanning[]
-  /** Cycle en cours : il pilote l'accueil avec sa propre copie du programme. */
+  /** Cycle sans date de fin. Il pilote l'accueil avec sa propre copie du programme, jusqu'à la fin de sa dernière semaine. */
   cycle?: Cycle
+  /** Programme modifié pendant le cycle : ce qui attend une réponse (appliquer, ou garder pour le prochain). */
+  ecart?: EcartCycle
   /** Objectifs dans le temps (phase, fin prévue, volume), les mêmes pour tous les programmes. */
   objectifs: EtapeObjectifs[]
   /** Objectifs de séries dures par semaine, par muscle, en vigueur aujourd'hui (priorités du cycle comprises). */
@@ -75,9 +77,11 @@ export function construireCatalogue(
     return m && !m.supprime ? m : undefined
   }
   // Pendant un cycle : son programme et ses séances tels qu'au lancement (ou mis à jour à la demande).
-  const duCycle = new Map((cycle?.modeles ?? []).map((m) => [m.id, m]))
-  const actif = cycle ? { ...cycle.programme, id: cycle.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0] ?? { id: '', nom: '', seances: [] })
-  const pourPlanning = (id: string) => duCycle.get(id) ?? (cycle ? undefined : modele(id))
+  // Cycle arrivé au bout de ses semaines : terminé, c'est de nouveau le programme qui compte.
+  const pilote = cycle && !etatCycle(cycle).fini ? cycle : undefined
+  const duCycle = new Map((pilote?.modeles ?? []).map((m) => [m.id, m]))
+  const actif = pilote ? { ...pilote.programme, id: pilote.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0] ?? { id: '', nom: '', seances: [] })
+  const pourPlanning = (id: string) => duCycle.get(id) ?? (pilote ? undefined : modele(id))
   const perso = (date: string) => cibles(objectifsA(objectifs, date)?.volume, cycle, actif)
 
   return {
@@ -94,6 +98,7 @@ export function construireCatalogue(
       .map((e) => ({ modele: pourPlanning(e.modeleId)!, jour: e.jour! }))
       .sort((a, b) => a.jour - b.jour),
     cycle,
+    ecart: pilote && ecartCycle(pilote, programmes.find((p) => p.id === pilote.programmeId), modele),
     objectifs,
     cibles: avecPriorites(perso(dateISO()), cycles, dateISO()),
     ciblesPerso: perso(dateISO()),

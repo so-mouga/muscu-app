@@ -197,7 +197,7 @@ export default function Accueil({
   const cycle = catalogue.cycle
   const etat = cycle && etatCycle(cycle)
   const contexte: ContexteCycle | undefined =
-    cycle && etat ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.fini && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
+    cycle && etat && !etat.fini ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
   // On retient d'où la séance est lancée (accueil, ou « Voir ») pour y revenir si on l'annule.
   const lancer = (m?: SeanceModele, depuisApercu = false) => {
     try {
@@ -317,6 +317,14 @@ export default function Accueil({
         </button>
         <button type="button" className="fermer-rappel" aria-label="Masquer ce rappel une semaine" onClick={() => masquer('deload')}>
           <X size={15} strokeWidth={2} />
+        </button>
+      </div>
+    ),
+    catalogue.ecart && (
+      <div key="ecart" className="rappel-ligne">
+        <button type="button" className="texte" onClick={onProgrammes}>
+          <RefreshCw size={16} strokeWidth={2} className="rappel-ico info" />
+          <span className="rappel-texte">Programme modifié : appliquer au cycle ?</span>
         </button>
       </div>
     ),

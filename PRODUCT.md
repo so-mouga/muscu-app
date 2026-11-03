@@ -81,6 +81,8 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Démarrage d'un nouvel utilisateur** (3 nov. 2026, après inventaire et maquette cliquable validée) : accueil et onglet Programme sans programme, Full body 2 jours, questions avec croix et reprise, proposition. Le détail est dans `AGENTS.md`.
 
+- **Programme modifié pendant un cycle** (3 nov. 2026) : la question ne se perd plus, un refus est respecté. Le détail est dans `AGENTS.md`.
+
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)

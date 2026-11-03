@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { aujourdhui, ecrire, lireTable, ouvrirReglages, ouvrirSeanceDuJour, premierProgramme, seance, suivreErreurs } from './outils'
+import { aujourdhui, ecrire, lireTable, onglet, ouvrirReglages, ouvrirSeanceDuJour, premierProgramme, seance, suivreErreurs } from './outils'
 
 /**
  * Parcours qui feraient perdre des données s'ils cassaient : faire une séance, l'enregistrer et la
@@ -143,5 +143,33 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
   expect(await lireTable(p, 'pesees')).toEqual([{ date: jour, poids: 76.2 }])
   await ouvrirSeanceDuJour(p, 'Séance test')
   await expect(p.locator('.recap-serie').first()).toContainText('52,5 kg × 8')
+  expect(erreurs).toEqual([])
+})
+
+test('programme modifié pendant un cycle : la question ne se perd pas, et le cycle ne change que si on accepte', async ({ page: p }) => {
+  const erreurs = suivreErreurs(p)
+  await p.goto('/')
+  await premierProgramme(p)
+  await onglet(p, 'Programme')
+  await p.getByRole('button', { name: 'Lancer un cycle' }).click()
+  await p.getByRole('button', { name: 'Lancer le cycle' }).click()
+  const joursDuCycle = async () => ((await lireTable(p, 'cycles')) as { programme: { seances: { jour?: number }[] } }[])[0].programme.seances.map((e) => e.jour)
+  const avant = await joursDuCycle()
+
+  // Un jour change, puis on sort par la barre du bas et on ferme l'appli, sans passer par ←.
+  await p.getByRole('button', { name: /Modifier le programme/ }).click()
+  await p.locator('.seance-plan-carte').first().getByRole('button', { name: 'dimanche' }).click()
+  await expect(p.getByText('Ton cycle garde l’ancienne version')).toBeVisible()
+  await onglet(p, 'Accueil')
+  await expect(p.getByText('Programme modifié : appliquer au cycle ?')).toBeVisible()
+  await p.waitForFunction(() => !history.state?.piege)
+  await p.reload()
+  expect(await joursDuCycle()).toEqual(avant)
+
+  // La question est toujours là ; le rappel y mène ; répondre applique.
+  await p.getByText('Programme modifié : appliquer au cycle ?').click()
+  await p.getByRole('button', { name: 'Appliquer aux semaines qui restent' }).click()
+  await expect(p.getByText('Appliqué aux semaines qui restent')).toBeVisible()
+  await expect.poll(joursDuCycle).toContain(7)
   expect(erreurs).toEqual([])
 })

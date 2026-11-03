@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { avecPriorites, cibles, deloadMaintenant, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
+import { appliquerEcart, avecPriorites, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -92,5 +92,69 @@ describe('prévu un jour donné', () => {
     expect(prevuLe(planning, c, '2026-10-26').seances).toEqual([])
     expect(prevuLe(planning, c, '2026-12-14').seances).toEqual([])
     expect(prevuLe(planning, undefined, '2027-03-01').seances).toEqual([m])
+  })
+})
+
+describe('programme modifié pendant le cycle', () => {
+  const seance = (id: string, nom = id) => ({ id, nom, sousTitre: '', exercices: [] })
+  const base = { id: 'p', nom: 'Prog', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 2 }] }
+  const biblio = { a: seance('a'), b: seance('b') } as Record<string, ReturnType<typeof seance>>
+  const lire = (l: Record<string, ReturnType<typeof seance>>) => (id: string) => l[id]
+  const cycle = () => nouveauCycle('c', base, lire(biblio), '2026-10-19')
+
+  it('rien de changé : aucun écart, même si les champs ou les séances sont dans un autre ordre', () => {
+    expect(ecartCycle(cycle(), base, lire(biblio))).toBeUndefined()
+    const ordre = { ...base, seances: [...base.seances].reverse() }
+    const champs = { a: { exercices: [], sousTitre: '', nom: 'a', id: 'a' }, b: seance('b') }
+    expect(ecartCycle(cycle(), ordre, lire(champs))).toBeUndefined()
+  })
+
+  it('un jour ou une séance modifiée se voit, un jour revenu en arrière ne se voit plus', () => {
+    const c = cycle()
+    const jeudi = { ...base, seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 4 }] }
+    expect(ecartCycle(c, jeudi, lire(biblio))).toEqual({ planning: true, seances: [] })
+    expect(ecartCycle(c, base, lire({ ...biblio, a: seance('a', 'Haut') }))?.seances.map((s) => s.nom)).toEqual(['Haut'])
+    expect(ecartCycle(c, base, lire(biblio))).toBeUndefined()
+  })
+
+  it('une séance retirée du programme se voit ; une séance supprimée de la bibliothèque ne compte pas', () => {
+    const sansB = { ...base, seances: [{ modeleId: 'a', jour: 1 }] }
+    expect(ecartCycle(cycle(), sansB, lire(biblio))?.planning).toBe(true)
+    expect(ecartCycle(cycle(), base, lire({ a: seance('a') }))).toBeUndefined()
+  })
+
+  it('un changement refusé n’est plus proposé et n’entre pas quand on en accepte un autre', () => {
+    let c = cycle()
+    const modifiee = { ...biblio, a: seance('a', 'Haut') }
+    c = { ...c, ...garderEcart(c, ecartCycle(c, base, lire(modifiee))!, base) }
+    expect(ecartCycle(c, base, lire(modifiee))).toBeUndefined()
+
+    const jeudi = { ...base, seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 4 }] }
+    const e = ecartCycle(c, jeudi, lire(modifiee))!
+    expect(e).toEqual({ planning: true, seances: [] })
+    c = { ...c, ...appliquerEcart(c, e, jeudi, lire(modifiee)) }
+    expect(c.programme.seances[1].jour).toBe(4)
+    expect(c.modeles.find((m) => m.id === 'a')!.nom).toBe('a')
+    expect(ecartCycle(c, jeudi, lire(modifiee))).toBeUndefined()
+  })
+
+  it('une séance refusée puis modifiée encore est proposée de nouveau, et le refus s’efface une fois appliquée', () => {
+    let c = cycle()
+    const v1 = { ...biblio, a: seance('a', 'Haut') }
+    c = { ...c, ...garderEcart(c, ecartCycle(c, base, lire(v1))!, base) }
+    const v2 = { ...biblio, a: seance('a', 'Haut 2') }
+    const e = ecartCycle(c, base, lire(v2))!
+    expect(e.seances[0].nom).toBe('Haut 2')
+    c = { ...c, ...appliquerEcart(c, e, base, lire(v2)) }
+    expect(c.modeles.find((m) => m.id === 'a')!.nom).toBe('Haut 2')
+    expect(c.refus).toBeUndefined()
+  })
+
+  it('appliquer ajoute la copie d’une nouvelle séance et retire celle qui n’y est plus', () => {
+    const c = cycle()
+    const l = { ...biblio, n: seance('n') }
+    const autre = { ...base, seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'n', jour: 3 }] }
+    const r = appliquerEcart(c, ecartCycle(c, autre, lire(l))!, autre, lire(l))
+    expect(r.modeles.map((m) => m.id)).toEqual(['a', 'n'])
   })
 })

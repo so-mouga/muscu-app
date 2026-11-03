@@ -55,4 +55,23 @@ describe('cycle en cours', () => {
     expect(c.pourDemarrer(modifiee).exercices.length).toBe(m.exercices.length)
     expect(c.modele(m.id)?.nom).toBe('Modifiée')
   })
+  it('une fois ses semaines passées, c’est le programme qui compte, et plus rien n’attend de réponse', () => {
+    const base = construireCatalogue([], [], [], undefined)
+    const m = base.planning[0].modele
+    const expire = nouveauCycle('c', base.actif, base.modele, '2020-01-06')
+    const modifiee = { ...m, nom: 'Modifiée' }
+    const c = construireCatalogue([modifiee], [], [], undefined, expire)
+    expect(c.planning[0].modele.nom).toBe('Modifiée')
+    expect(c.pourDemarrer(modifiee).nom).toBe('Modifiée')
+    expect(c.ecart).toBeUndefined()
+    expect(c.cycle).toBe(expire)
+  })
+
+  it('une séance du cycle modifiée attend une réponse', () => {
+    const base = construireCatalogue([], [], [], undefined)
+    const m = base.planning[0].modele
+    const cycle = nouveauCycle('c', base.actif, base.modele, new Date().toISOString().slice(0, 10))
+    const c = construireCatalogue([{ ...m, nom: 'Modifiée' }], [], [], undefined, cycle)
+    expect(c.ecart?.seances.map((s) => s.nom)).toEqual(['Modifiée'])
+  })
 })

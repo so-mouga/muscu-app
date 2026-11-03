@@ -96,6 +96,61 @@ export function nouveauCycle(
 export const copieSeances = (p: Programme, modele: (id: string) => SeanceModele | undefined) =>
   [...new Set(p.seances.map((e) => e.modeleId))].map((id) => modele(id)).filter((m): m is SeanceModele => !!m).map((m) => structuredClone(m))
 
+// --- Programme modifié pendant le cycle ---------------------------------------
+
+/** Ce qui diffère entre le cycle et le programme, sans ce qui a déjà été gardé pour le prochain cycle. */
+export interface EcartCycle {
+  planning: boolean
+  /** Séances du cycle dont la bibliothèque a une autre version (celle de la bibliothèque). */
+  seances: SeanceModele[]
+}
+
+const CLE_PLANNING = 'planning'
+/** Deux versions identiques ont la même signature, quel que soit l'ordre des champs. */
+const signature = (x: unknown) =>
+  JSON.stringify(x, (_, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v))
+// L'ordre des séances ne change pas ce qu'on fait chaque jour : seuls comptent quelles séances et quels jours.
+const signaturePlanning = (p: Programme) =>
+  signature(p.seances.map((e) => [e.modeleId, e.jour ?? 0]).sort((a, b) => String(a[0]).localeCompare(String(b[0])) || Number(a[1]) - Number(b[1])))
+
+export function ecartCycle(c: Cycle, programme: Programme | undefined, modele: (id: string) => SeanceModele | undefined): EcartCycle | undefined {
+  const dansCycle = new Set(c.programme.seances.map((e) => e.modeleId))
+  const planning = !!programme && signaturePlanning(programme) !== signaturePlanning(c.programme) && signaturePlanning(programme) !== c.refus?.[CLE_PLANNING]
+  const seances = c.modeles.flatMap((copie) => {
+    const m = dansCycle.has(copie.id) ? modele(copie.id) : undefined
+    return m && signature(m) !== signature(copie) && signature(m) !== c.refus?.[copie.id] ? [m] : []
+  })
+  return planning || seances.length ? { planning, seances } : undefined
+}
+
+/** Le cycle prend ce qui est listé dans l'écart, et rien d'autre : un changement gardé pour le prochain cycle n'y entre pas. */
+export function appliquerEcart(c: Cycle, e: EcartCycle, programme: Programme | undefined, modele: (id: string) => SeanceModele | undefined): Pick<Cycle, 'programme' | 'modeles' | 'refus'> {
+  const refus = { ...c.refus }
+  let prog = c.programme
+  let modeles = c.modeles
+  if (e.planning && programme) {
+    prog = structuredClone(programme)
+    modeles = [...new Set(programme.seances.map((x) => x.modeleId))].flatMap((id) => {
+      const m = c.modeles.find((x) => x.id === id) ?? modele(id)
+      return m ? [structuredClone(m)] : []
+    })
+    delete refus[CLE_PLANNING]
+  }
+  for (const s of e.seances) {
+    modeles = modeles.map((m) => (m.id === s.id ? structuredClone(s) : m))
+    delete refus[s.id]
+  }
+  return { programme: prog, modeles, refus: Object.keys(refus).length ? refus : undefined }
+}
+
+/** « Garder pour le prochain cycle » : ces versions ne sont plus reproposées, tant qu'on ne les modifie pas encore. */
+export function garderEcart(c: Cycle, e: EcartCycle, programme: Programme | undefined): Pick<Cycle, 'refus'> {
+  const refus = { ...c.refus }
+  if (e.planning && programme) refus[CLE_PLANNING] = signaturePlanning(programme)
+  for (const s of e.seances) refus[s.id] = signature(s)
+  return { refus }
+}
+
 /** Met la semaine en cours en pause : la suite du cycle (déload compris) glisse d'une semaine. */
 export function mettreEnPause(c: Cycle, date = dateISO()): Cycle {
   const l = lundi(new Date(date + 'T12:00:00'))

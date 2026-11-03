@@ -215,6 +215,8 @@ export interface Cycle {
   priorites?: Muscle[]
   /** Date de fin si le cycle a été terminé. */
   fin?: string
+  /** Versions gardées « pour le prochain cycle » (`planning` ou id de séance) : on ne les repropose pas. */
+  refus?: Record<string, string>
 }
 
 /** Autre sport de la journée (padel, course…), à côté des séances de muscu. */
