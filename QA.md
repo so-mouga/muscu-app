@@ -17,8 +17,11 @@ Pour chaque partie, ce qui est **attendu** est écrit ci-dessous : ce sont des c
 Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 
 ### 1. Première ouverture
-- L'accueil montre seulement « Pour commencer, choisis ton programme ».
-- Choisir un programme tout prêt (Full body 3 jours, Haut / Bas 4 jours, Recompo) : il devient actif, ses séances apparaissent.
+- Première ouverture : plein écran sans barre du bas, une question par écran. « Qu'est-ce que tu vises ? » (4 réponses, dont « Je ne sais pas encore »), « Où en es-tu ? » (3 réponses), « Quels jours peux-tu t'entraîner ? » (au moins 2).
+- Proposition : 2 jours → Full body 2 jours ; 3 jours → Full body 3 jours ; 4 jours ou plus → Haut / Bas 4 jours, ou Full body 3 jours si on débute. « Prendre ce programme » : il devient actif, avec les jours choisis, et la 1re séance tombe sur le prochain de ces jours. « Voir les autres ou créer le mien » montre les autres programmes.
+- « J'ai déjà mon programme » : « Créer le mien » et les 4 programmes, sans question sur les jours.
+- La croix mène à l'accueil en gardant les réponses ; les questions ne reviennent pas d'elles-mêmes. Fermer ou recharger sans la croix : reprise à la même question.
+- Accueil sans programme : « Choisis ton programme » en orange, « Faire une séance › » ouvre une fenêtre avec « Séance libre », aucun Recompo. Onglet Programme : « Pas encore de programme », pas de « Lancer un cycle ». Sans objectif : « + Ton objectif » sous la date.
 - Réglages : bouton en haut à droite de l'accueil, pas dans la barre du bas. (Pas de profil ni d'activités hors muscu : retirés volontairement.)
 
 ### 2. Accueil (la séance du jour)

@@ -79,10 +79,13 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Progression et Corps** (3 nov. 2026, après inventaire et maquette validée) : `a627b06` Accueil et Journal, `3f08dbf` Bilan, `7693f98` Photos, `e099c74` Phases, `93e23f7` Corps. Bilan en 5 sections et environ 2 écrans, Corps en une page. Le détail et ce qui a été retiré sont dans `AGENTS.md`.
 
+- **Démarrage d'un nouvel utilisateur** (3 nov. 2026, après inventaire et maquette cliquable validée) : accueil et onglet Programme sans programme, Full body 2 jours, questions avec croix et reprise, proposition. Le détail est dans `AGENTS.md`.
+
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)
 
+- Démarrage : vrai bouton retour Android à chaque question (depuis la 1re, l'appli se ferme), largeur des 7 jours et du titre « Ton programme » + « Faire une séance › » avec sa police, flash éventuel au chargement. À essayer avec sa famille : leurs vraies hésitations avant d'ajouter d'autres cas.
 - Bilan et Corps : place en largeur avec sa police, retour Android depuis une fiche (même période, même position), « Noter mon poids », photos réelles dans Corps (poids en mémoire, fluidité).
 
 Rien depuis `f591d41` n'a encore été confirmé sur le téléphone, sauf que la photo depuis la galerie fonctionne.
@@ -137,6 +140,9 @@ Limites connues du parcours :
 - À la fin : `QA.md` et la fiche Play Store si des fonctions visibles ont changé, puis une vérification complète.
 
 ### Choix en attente de l'avis de l'utilisateur
+
+- **Full body 2 jours** : les 9 muscles suivis restent « Léger » dans le programme et le Bilan. Non vu avec de vraies séances ; à revoir si ça met la pression.
+- **« Créer le mien »** : ouvre l'éditeur de programme actuel, pas encore repris (étape Programmes).
 
 - **« Suivre les conseils »** : gardé par défaut ; à retirer seulement s'il ne s'en sert jamais après plusieurs séances.
 - **« Stoppe si douleur articulaire… »** : masqué sur les finisseurs sous 720 px de haut, pour que tout tienne. À remettre s'il préfère défiler.
