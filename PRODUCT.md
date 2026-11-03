@@ -133,7 +133,7 @@ Limites connues du parcours :
 
 À traiter en refaisant ces écrans :
 
-- Saisie des mensurations : garde un bouton « Enregistrer », contraire à l'enregistrement automatique. Détail de séance : « + Ajouter une série oubliée » répété sous chaque exercice, icônes ℹ et émojis du détail à reprendre.
+- Détail de séance : « + Ajouter une série oubliée » répété sous chaque exercice, icônes ℹ et émojis du détail à reprendre.
 
 - La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
