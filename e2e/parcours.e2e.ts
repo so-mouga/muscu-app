@@ -85,8 +85,8 @@ test('exporter puis importer dans une appli vide : tout revient à l’identique
   await q.getByRole('button', { name: 'Quitter' }).click()
   await ouvrirReglages(q)
   await q.locator('input[type=file]').setInputFiles(fichier)
-  await q.getByRole('button', { name: 'AJOUTER', exact: true }).click()
-  await expect(q.getByText('Import terminé ✓')).toBeVisible()
+  await q.getByRole('button', { name: 'Récupérer', exact: true }).click()
+  await expect(q.getByText('Sauvegarde récupérée ✓')).toBeVisible()
   expect({ seances: await lireTable(q, 'seances'), pesees: await lireTable(q, 'pesees'), journal: await lireTable(q, 'journal'), programmes: await lireTable(q, 'programmes') }).toEqual(avant)
 
   // Et l'appli importée les montre.
@@ -95,6 +95,51 @@ test('exporter puis importer dans une appli vide : tout revient à l’identique
   await expect(q.locator('.recap-serie').first()).toContainText('50 kg × 10')
   await ctx.close()
   expect([...erreurs, ...erreursQ]).toEqual([])
+})
+
+test('récupérer une sauvegarde : « Compléter » ne change rien de ce qui existe, « Remplacer » annonce les pertes, un fichier vide est refusé', async ({ page: p }) => {
+  const erreurs = suivreErreurs(p)
+  await p.addInitScript(() => Object.defineProperty(navigator, 'canShare', { value: undefined }))
+  await p.goto('/')
+  await premierProgramme(p)
+  const jour = await aujourdhui(p)
+  await ecrire(p, 'pesees', [{ date: jour, poids: 70 }])
+  await ecrire(p, 'seances', [seance('s1', jour, [{ charge: 50, reps: 10, rpe: 8 }])])
+  await p.reload()
+  await ouvrirReglages(p)
+  await p.getByRole('button', { name: 'Exporter…' }).click()
+  const telechargement = p.waitForEvent('download')
+  await p.getByRole('button', { name: 'EXPORTER', exact: true }).click()
+  const fichier = await (await telechargement).path()
+
+  // Après cet export : une pesée corrigée, et une séance de plus.
+  await ecrire(p, 'pesees', [{ date: jour, poids: 71.5 }])
+  await ecrire(p, 'seances', [seance('s2', jour, [{ charge: 55, reps: 8, rpe: 8 }])])
+
+  // Compléter avec ce vieux fichier : rien à ajouter, et rien n'a bougé.
+  await p.locator('input[type=file]').setInputFiles(fichier)
+  await expect(p.getByText('rien à ajouter')).toBeVisible()
+  await expect(p.getByRole('button', { name: 'Compléter', exact: true }).last()).toBeDisabled()
+
+  // Remplacer annonce la perte et demande confirmation ; annuler ne touche à rien.
+  await p.locator('.choix-prochaine button', { hasText: 'Remplacer' }).click()
+  await expect(p.getByText('Perdu : 1 séance.')).toBeVisible()
+  await p.locator('.modal > .btn.danger').click()
+  await p.getByRole('button', { name: 'Annuler' }).last().click()
+  expect(await lireTable(p, 'seances')).toHaveLength(2)
+  expect(await lireTable(p, 'pesees')).toEqual([{ date: jour, poids: 71.5 }])
+
+  await p.locator('.modal > .btn.danger').click()
+  await p.getByRole('button', { name: 'Remplacer mes données' }).click()
+  await expect(p.getByText('Sauvegarde récupérée ✓')).toBeVisible()
+  expect(await lireTable(p, 'seances')).toHaveLength(1)
+  expect(await lireTable(p, 'pesees')).toEqual([{ date: jour, poids: 70 }])
+
+  // Le fichier d'une appli vide est refusé, sans rien effacer.
+  await p.locator('input[type=file]').setInputFiles({ name: 'vide.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ app: 'muscu', seances: [], pesees: [], reglages: [{ cle: 'demarrage', valeur: {} }] })) })
+  await expect(p.getByText('Cette sauvegarde est vide')).toBeVisible()
+  expect(await lireTable(p, 'seances')).toHaveLength(1)
+  expect(erreurs).toEqual([])
 })
 
 test('base d’une ancienne version (avant le journal) : l’appli la met à jour sans rien perdre', async ({ page: p }) => {

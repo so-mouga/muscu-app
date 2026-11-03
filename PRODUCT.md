@@ -155,6 +155,6 @@ Limites connues du parcours :
 - **Halo du cercle de repos** : en ligne, mais aucun avis donné sur ce point précis. Sa fluidité sur le téléphone n'est pas confirmée non plus.
 - **Lueur de réussite** (record, série battue) : proposée, pas décidée.
 - **Lueur très légère en haut de l'écran** : proposée, pas essayée.
-- **« EXPORTER », « AJOUTER », « REMPLACER »** : encore en majuscules dans la sauvegarde, parce que le test les cherche tels quels. Passer en minuscules demande de modifier le test.
+- **« EXPORTER »** : encore en majuscules dans la sauvegarde, parce que le test le cherche tel quel. À passer en minuscules en refaisant la page Réglages.
 - **Écran de lancement Android** : il peut garder l'ancienne couleur. Le changer demanderait un nouvel APK.
 - **Exercices au poids du corps** : l'unité dit « kg de lest », sans la précision « − = assistance », à remettre si elle manque.

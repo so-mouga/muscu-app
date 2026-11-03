@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { useRetour } from '../lib/nav'
-import { CATEGORIES, CATEGORIES_COURANTES, compter, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type Categorie, type Fichier } from '../lib/sauvegarde'
+import { apercu, CATEGORIES, CATEGORIES_COURANTES, clesTelephone, compter, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type ClesTelephone, type Categorie, type Fichier } from '../lib/sauvegarde'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
 import { confirmer, informer } from '../components/Dialogues'
@@ -67,7 +67,7 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
     try {
       setFichier(lire(await f.text()))
     } catch (e) {
-      setMessage('Import impossible : ' + (e as Error).message)
+      void informer((e as Error).message, 'Récupération impossible')
     }
   }
 
@@ -204,12 +204,12 @@ function ChoixExport({ onExporter, onFermer }: { onExporter: (cats: Categorie[])
   const [cats, setCats] = useState<Categorie[]>(CATEGORIES_COURANTES)
   return (
     <div className="modal-fond" onClick={onFermer}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
         <div>
           <h2>Exporter</h2>
           <div className="faible">Choisis ce que tu sauvegardes. Pour une sauvegarde complète, garde tout coché (et les photos de temps en temps).</div>
         </div>
-        <div>
+        <div className="modal-defile">
           {CATEGORIES.map((c) => (
             <Case
               key={c.id}
@@ -233,47 +233,83 @@ function ChoixExport({ onExporter, onFermer }: { onExporter: (cats: Categorie[])
 
 function ChoixImport({ fichier, onFini }: { fichier: Fichier; onFini: (message?: string) => void }) {
   useRetour(true, () => onFini())
-  const [cats, setCats] = useState<Categorie[]>(fichier.presentes.map((c) => c.id))
-  const [remplacer, setRemplacer] = useState(false)
+  const [cles, setCles] = useState<ClesTelephone | null>(null)
+  const [mode, setMode] = useState<'completer' | 'remplacer'>('completer')
+  const [copie, setCopie] = useState(false)
+  useEffect(() => void clesTelephone().then(setCles), [])
+  if (!cles) return null
+  const a = apercu(fichier, cles)
+  const remplacer = a.telephoneVide || mode === 'remplacer'
+
   const lancer = async () => {
-    if (remplacer && !(await confirmer('Les données cochées seront effacées sur ce téléphone, puis remplacées par celles du fichier.', { titre: 'Remplacer tes données ?', oui: 'Remplacer mes données', danger: true }))) return
+    if (!a.telephoneVide && remplacer && !(await confirmer(a.pertes ? `Tu perdras pour de bon : ${a.pertes}.` : 'Ce qui existe des deux côtés reprendra la version du fichier.', { titre: 'Remplacer ce qui est sur ce téléphone ?', oui: 'Remplacer mes données', danger: true }))) return
     try {
-      await importerDonnees(fichier, cats, remplacer)
-      onFini('Import terminé ✓')
-    } catch (e) {
-      onFini('Import impossible : ' + (e as Error).message)
+      await importerDonnees(fichier, remplacer ? 'remplacer' : 'completer')
+      onFini(remplacer ? 'Sauvegarde récupérée ✓' : `Ajouté ✓ ${a.ajouts}.`)
+    } catch {
+      onFini('La récupération a échoué : rien n’a changé sur ce téléphone.')
     }
   }
+
+  const sauvegarderAvant = async () => {
+    try {
+      await sauvegarder(CATEGORIES.map((c) => c.id))
+      setCopie(true)
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') void informer((e as Error).message, 'Sauvegarde impossible')
+    }
+  }
+
   return (
     <div className="modal-fond" onClick={() => onFini()}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
         <div>
-          <h2>Importer</h2>
-          {fichier.exporteLe && (
-            <div className="faible">Export du {new Date(fichier.exporteLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          <h2>Récupérer une sauvegarde</h2>
+          {fichier.exporteLe && <div className="faible">Faite le {new Date(fichier.exporteLe).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>}
+        </div>
+        <div className="modal-defile pile">
+          <table className="compare-import">
+            <thead>
+              <tr>
+                <th />
+                <th>Fichier</th>
+                <th>Téléphone</th>
+              </tr>
+            </thead>
+            <tbody>
+              {a.lignes.map((l) => (
+                <tr key={l.nom}>
+                  <td>{l.nom}</td>
+                  <td>{l.fichier}</td>
+                  <td>{l.telephone}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!a.telephoneVide && (
+            <div className="choix-prochaine une-colonne">
+              <button className={mode === 'completer' ? 'actif' : ''} onClick={() => setMode('completer')}>
+                <strong>Compléter</strong>
+                <span className="faible">{a.ajouts ? `Ajoute ${a.ajouts}.` : 'Tout est déjà sur ce téléphone : rien à ajouter.'} Le reste ne change pas.</span>
+              </button>
+              <button className={mode === 'remplacer' ? 'actif' : ''} onClick={() => setMode('remplacer')}>
+                <strong>Remplacer</strong>
+                <span className="faible">
+                  Efface ce qui est ici et remet le fichier.{a.pertes ? ` Perdu : ${a.pertes}.` : ''}{a.avecPhotos ? '' : ' Tes photos ne changent pas.'}
+                </span>
+              </button>
+            </div>
           )}
+          {!a.telephoneVide && remplacer && (copie ? (
+            <div className="petit">Copie de ce téléphone créée ✓</div>
+          ) : (
+            <button className="btn plein" onClick={sauvegarderAvant}>
+              Sauvegarder d’abord ce téléphone
+            </button>
+          ))}
         </div>
-        <div>
-          {fichier.presentes.map((p) => {
-            const c = CATEGORIES.find((x) => x.id === p.id)!
-            return <Case key={p.id} coche={cats.includes(p.id)} onClick={() => setCats((x) => basculer(x, p.id))} nom={`${c.nom} (${p.n})`} detail={c.detail} />
-          })}
-        </div>
-        <div className="segments" role="tablist">
-          <button className={!remplacer ? 'actif' : ''} onClick={() => setRemplacer(false)}>
-            Ajouter
-          </button>
-          <button className={remplacer ? 'actif' : ''} onClick={() => setRemplacer(true)}>
-            Remplacer
-          </button>
-        </div>
-        <div className="faible">
-          {remplacer
-            ? 'Restauration : les données cochées sont effacées sur ce téléphone, puis remplacées par celles du fichier.'
-            : 'Les données du fichier s’ajoutent aux tiennes (un élément identique est mis à jour). Rien n’est effacé.'}
-        </div>
-        <button className={'btn grand' + (remplacer ? ' danger' : ' primaire')} disabled={!cats.length} onClick={lancer}>
-          {remplacer ? 'REMPLACER' : 'AJOUTER'}
+        <button className={'btn grand' + (remplacer && !a.telephoneVide ? ' danger' : ' primaire')} disabled={!remplacer && !a.ajouts} onClick={lancer}>
+          {a.telephoneVide ? 'Récupérer' : remplacer ? 'Remplacer' : 'Compléter'}
         </button>
         <button className="btn discret plein" onClick={() => onFini()}>
           Annuler

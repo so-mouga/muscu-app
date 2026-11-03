@@ -5145,6 +5145,14 @@ html[data-sens='fondu']::view-transition-new(root) {
   background: var(--controle);
   font-size: var(--t-petit);
 }
+.seance-muscles button {
+  min-height: 30px;
+  padding: var(--e1) 12px;
+  border-radius: 999px;
+  background: var(--controle);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+}
 .seance-muscles span.fort {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
@@ -5417,4 +5425,33 @@ button.semaine-cycle.courante {
 }
 .volume-suivis summary::-webkit-details-marker {
   display: none;
+}
+
+/* Récupérer une sauvegarde : le fichier face au téléphone. */
+.choix-prochaine.une-colonne {
+  grid-template-columns: 1fr;
+}
+.compare-import {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-petit);
+}
+.compare-import th {
+  font-size: var(--t-legende);
+  font-weight: 400;
+  color: var(--texte-2);
+}
+.compare-import th,
+.compare-import td {
+  padding: 2px 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.compare-import th:first-child,
+.compare-import td:first-child {
+  text-align: left;
+}
+.compare-import th + th,
+.compare-import td + td {
+  width: 76px;
 }

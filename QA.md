@@ -49,7 +49,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Refais la même séance : l'objectif par défaut est **refaire pareil** que la dernière fois (pas de progression automatique).
 
 ### 4. Programmes
-- Séance : en haut la durée, le nombre d'exercices et de séries, les séries par muscle en pastilles avec une aide ; puis l'échauffement ; puis les exercices avec leur icône de muscle ; un appui sur une ligne ouvre son réglage (« Suivant › » toujours visible ; en bas : Comment le faire, Remplacer, Enchaîner en superset, Retirer) ; réordonner à la poignée ⠿, appui maintenu ; un appui sur le jour sous le titre le change ; ⋯ : renommer, sous-titre, plan B « Pas de salle », dupliquer, retirer du programme.
+- Séance : en haut la durée, le nombre d'exercices et de séries, les séries par muscle en pastilles avec une aide (au-delà de 5 muscles, « +n » déplie les autres) ; puis l'échauffement ; puis les exercices avec leur icône de muscle ; un appui sur une ligne ouvre son réglage (« Suivant › » toujours visible ; en bas : Comment le faire, Remplacer, Enchaîner en superset, Retirer) ; réordonner à la poignée ⠿, appui maintenu ; un appui sur le jour sous le titre le change ; ⋯ : renommer, sous-titre, plan B « Pas de salle », dupliquer, retirer du programme.
 - Ajouter des exercices : liste à plat par muscle, filtres par zone, recherche qui se vide après chaque choix ; ⓘ ouvre la fiche, avec « Ajouter à la séance » ; plusieurs exercices d'un coup ; aucun réglage imposé avant de revenir.
 - L'onglet Programme montre le programme en service : cycle en une ligne (« Cycle · semaine 3 sur 6 ») ou « Lancer sur 6 semaines » en orange, séances triées par jour, un appui sur le jour le change, un appui sur la ligne ouvre la séance. Fenêtre de lancement : une phrase, « Lancer le cycle », « Régler » pour le début, le nom, la durée et les semaines allégées ; un message confirme. Cycle terminé : « Relancer sur 6 semaines ».
 - « Changer de programme » : autres programmes, un appui déplie un programme sur place, avec ses séances et ses exercices ; tout prêts ( « Prendre ce programme » lance le cycle, avec confirmation si un cycle est en cours ; « Le prendre sans lancer de cycle » ; un tout prêt déjà pris n'est plus proposé), « Créer le mien », « Autres séances ». ⋯ : renommer, dupliquer, supprimer.
@@ -77,7 +77,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - « 💬 Donner mon avis » en haut (mail pré-rempli).
 - Bips de fin de repos. (Plus de réglage du pas des −/+ : ils suivent le palier de chaque exercice, modifiable en séance.)
 - « 🔔 Rappel de séance » : seulement dans l'appli Android 1.6 et plus (à lister dans « vrai téléphone » sinon).
-- Sauvegarde : Exporter (choix des données), **Importer** ce fichier dans un site vidé : tout doit revenir à l'identique. Export CSV des séries.
+- Sauvegarde : Exporter (choix des données), **Importer** ce fichier dans un site vidé : tout doit revenir à l'identique. Sur un site qui a déjà des données : le fichier et le téléphone sont comparés en chiffres, « Compléter » ne modifie rien de ce qui existe, « Remplacer » dit ce qui sera perdu et demande confirmation. Un fichier quelconque ou vide est refusé avec un message clair, sans rien effacer. Export CSV des séries.
 - Stockage, À propos.
 
 ## À vérifier partout

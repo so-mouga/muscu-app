@@ -93,45 +93,117 @@ export const CATEGORIES_COURANTES = CATEGORIES.filter((c) => c.id !== 'photos').
 
 export interface Fichier {
   data: Record<string, unknown[]>
-  /** Catégories présentes dans le fichier, avec leur nombre d'éléments. */
+  /** Catégories qui ont quelque chose à récupérer, avec leur nombre d'éléments. */
   presentes: { id: Categorie; n: number }[]
   exporteLe?: string
 }
 
-/** Lit un export (y compris les anciens, qui contiennent tout). */
+/** Clé de chaque ligne, par table. */
+const CLES: Record<NomTable, string> = { seances: 'id', activites: 'id', cycles: 'id', pesees: 'date', mesures: 'date', journal: 'date', reglages: 'cle', modeles: 'id', exercices: 'id', programmes: 'id', photos: 'id' }
+
+/** Réglages présents même dans une appli vide : ils ne font pas une sauvegarde. */
+const REGLAGES_SANS_DONNEES = ['demarrage', 'dernierExport']
+
+const nbDonnees = (t: NomTable, lignes: unknown[]) => (t === 'reglages' ? (lignes as { cle: string }[]).filter((l) => !REGLAGES_SANS_DONNEES.includes(l.cle)).length : lignes.length)
+
+/** Lit une sauvegarde (y compris les anciennes). Lève une erreur en clair si elle n'est pas utilisable. */
 export function lire(texte: string): Fichier {
-  const data = JSON.parse(texte)
-  if (data?.app !== 'muscu') throw new Error('Fichier non reconnu')
-  const presentes = CATEGORIES.filter((c) => TABLES[c.id].some((t) => Array.isArray(data[t]))).map((c) => ({
-    id: c.id,
-    n: TABLES[c.id].reduce((a, t) => a + (Array.isArray(data[t]) ? data[t].length : 0), 0),
-  }))
+  let data
+  try {
+    data = JSON.parse(texte)
+  } catch {
+    data = null
+  }
+  if (data?.app !== 'muscu') throw new Error('Ce fichier n’est pas une sauvegarde de Cran.')
+  for (const t of Object.keys(CLES) as NomTable[]) {
+    if (data[t] === undefined) continue
+    if (!Array.isArray(data[t]) || data[t].some((l: Record<string, unknown> | null) => l?.[CLES[t]] === undefined)) throw new Error('Cette sauvegarde est abîmée.')
+  }
+  // Une séance restée ouverte dans le fichier rouvrirait l'écran de séance : elle n'a pas à revenir.
+  if (data.seances) data.seances = (data.seances as Seance[]).filter((s) => !s.enCours)
+  const presentes = CATEGORIES.map((c) => ({ id: c.id, n: TABLES[c.id].reduce((a, t) => a + (data[t] ? nbDonnees(t, data[t]) : 0), 0) })).filter((c) => c.n > 0)
+  if (!presentes.length) throw new Error('Cette sauvegarde est vide : il n’y a rien à récupérer.')
   return { data, presentes, exporteLe: data.exporteLe }
 }
 
+/** Ce qui se compte et se comprend à l'écran. */
+const RUBRIQUES: { table: NomTable; nom: string; un: string; plusieurs: string }[] = [
+  { table: 'seances', nom: 'Séances', un: 'séance', plusieurs: 'séances' },
+  { table: 'pesees', nom: 'Pesées', un: 'pesée', plusieurs: 'pesées' },
+  { table: 'mesures', nom: 'Mensurations', un: 'mensuration', plusieurs: 'mensurations' },
+  { table: 'journal', nom: 'Jours notés', un: 'jour noté', plusieurs: 'jours notés' },
+  { table: 'photos', nom: 'Photos', un: 'photo', plusieurs: 'photos' },
+  { table: 'programmes', nom: 'Programmes', un: 'programme', plusieurs: 'programmes' },
+  { table: 'exercices', nom: 'Exercices perso', un: 'exercice perso', plusieurs: 'exercices perso' },
+]
+
+export type ClesTelephone = Record<NomTable, unknown[]>
+
+/** Clés de tout ce qui est sur le téléphone. */
+export async function clesTelephone(): Promise<ClesTelephone> {
+  const r = {} as ClesTelephone
+  for (const t of Object.keys(CLES) as NomTable[]) r[t] = await table(t).toCollection().primaryKeys()
+  return r
+}
+
+export interface ApercuImport {
+  lignes: { nom: string; fichier: number; telephone: number }[]
+  /** Rien à perdre sur ce téléphone : pas besoin de choisir. */
+  telephoneVide: boolean
+  /** Ce que « Compléter » ajouterait, et ce que « Remplacer » ferait disparaître, en clair (vide = rien). */
+  ajouts: string
+  pertes: string
+  /** Le fichier a des photos : « Remplacer » y touche. */
+  avecPhotos: boolean
+}
+
+const enClair = (l: { n: number; un: string; plusieurs: string }[]) => {
+  const t = l.filter((x) => x.n > 0).map((x) => `${x.n} ${x.n > 1 ? x.plusieurs : x.un}`)
+  return t.length > 1 ? `${t.slice(0, -1).join(', ')} et ${t[t.length - 1]}` : (t[0] ?? '')
+}
+
+/** Compare le fichier au téléphone. Une catégorie sans rien dans le fichier ne change jamais. */
+export function apercu({ data, presentes }: Fichier, cles: ClesTelephone): ApercuImport {
+  const touchees = new Set(presentes.flatMap((c) => TABLES[c.id]))
+  const dansFichier = (t: NomTable) => ((data[t] ?? []) as Record<string, unknown>[]).map((l) => l[CLES[t]])
+  const ajoutes = (t: NomTable) => dansFichier(t).filter((k) => !cles[t].includes(k)).length
+  const perdus = (t: NomTable) => (touchees.has(t) ? cles[t].filter((k) => !dansFichier(t).includes(k)).length : 0)
+  return {
+    lignes: RUBRIQUES.map((r) => ({ nom: r.nom, fichier: dansFichier(r.table).length, telephone: cles[r.table].length })).filter((l) => l.fichier || l.telephone),
+    telephoneVide: (['seances', 'pesees', 'mesures', 'journal', 'photos', 'exercices'] as NomTable[]).every((t) => !cles[t].length),
+    ajouts: enClair(RUBRIQUES.map((r) => ({ ...r, n: ajoutes(r.table) }))),
+    pertes: enClair(RUBRIQUES.map((r) => ({ ...r, n: perdus(r.table) }))),
+    avecPhotos: touchees.has('photos'),
+  }
+}
+
 /**
- * Importe les catégories choisies. `remplacer` : efface d'abord ces catégories sur le téléphone
- * (restauration) ; sinon ajoute et met à jour sans rien effacer.
+ * Récupère une sauvegarde, tout ou rien (si ça échoue, le téléphone ne change pas).
+ * `completer` : ajoute ce qui manque, ne touche à rien de ce qui existe.
+ * `remplacer` : efface les catégories présentes dans le fichier et remet les siennes.
  */
-export async function importer({ data }: Fichier, cats: Categorie[], remplacer: boolean) {
-  const tables = new Set(cats.flatMap((c) => TABLES[c]))
-  // Exercices perso utilisés par les programmes ou l'historique importés : toujours ajoutés.
-  const exosEnPlus = !tables.has('exercices') && (cats.includes('programmes') || cats.includes('historique')) && Array.isArray(data.exercices)
-  const toutes = [...tables, ...(exosEnPlus ? ['exercices' as const] : [])].map(table)
-  await db.transaction('rw', toutes, async () => {
+export async function importer({ data, presentes }: Fichier, mode: 'completer' | 'remplacer') {
+  const tables = presentes.flatMap((c) => TABLES[c.id])
+  await db.transaction('rw', tables.map(table), async () => {
     for (const t of tables) {
-      const lignes = (data[t] ?? []) as unknown[]
-      if (remplacer) await table(t).clear()
-      await table(t).bulkPut(
-        t === 'seances'
-          ? (lignes as Seance[]).map((s) => ({
-              ...s,
-              exercices: s.exercices ?? structuredClone(MODELES[s.modeleId ?? '']?.exercices ?? []),
-              ajustSeries: s.ajustSeries ?? {},
-            }))
-          : lignes
-      )
+      const cle = CLES[t]
+      let lignes = (data[t] ?? []) as Record<string, unknown>[]
+      if (t === 'seances')
+        lignes = (lignes as unknown as Seance[]).map((s) => ({
+          ...s,
+          exercices: s.exercices ?? structuredClone(MODELES[s.modeleId ?? '']?.exercices ?? []),
+          ajustSeries: s.ajustSeries ?? {},
+        })) as unknown as Record<string, unknown>[]
+      if (mode === 'remplacer') {
+        // Une vieille sauvegarde sans cette marque ne doit pas relancer les questions du démarrage.
+        const demarrage = t === 'reglages' && !lignes.some((l) => l.cle === 'demarrage') ? await table(t).get('demarrage') : undefined
+        await table(t).clear()
+        if (demarrage) await table(t).put(demarrage)
+      } else {
+        const existe = new Set(await table(t).toCollection().primaryKeys())
+        lignes = lignes.filter((l) => !existe.has(l[cle] as string))
+      }
+      await table(t).bulkPut(lignes)
     }
-    if (exosEnPlus) await table('exercices').bulkPut(data.exercices as unknown[])
   })
 }
