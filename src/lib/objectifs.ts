@@ -128,6 +128,14 @@ export function phaseA(frise: EtapeObjectifs[], date: string): (PeriodePhase & {
 /** Dernier jour d'une phase pour l'affichage : sa vraie fin, sinon sa fin prévue (ou aujourd'hui si elle est dépassée), sinon sans fin. */
 export const finAffichee = (p: PeriodePhase, aujourdhui: string) => p.fin ?? (p.finPrevue ? (p.finPrevue > aujourdhui ? p.finPrevue : aujourdhui) : '9999-12-31')
 
+/** Phase à écrire sur un mois du calendrier : celle d'aujourd'hui dans le mois en cours, sinon la dernière qui touche ce mois, sinon aucune. */
+export function phaseDuMois(frise: EtapeObjectifs[], debut: string, fin: string, aujourdhui: string): Phase | undefined {
+  const l = periodes(frise)
+  const couvre = (p: PeriodePhase, a: string, b: string) => p.debut <= b && finAffichee(p, aujourdhui) >= a
+  const duJour = aujourdhui >= debut && aujourdhui <= fin ? l.find((p) => couvre(p, aujourdhui, aujourdhui)) : undefined
+  return (duJour ?? [...l].reverse().find((p) => couvre(p, debut, fin)))?.phase
+}
+
 /**
  * Phase à montrer sur l'accueil : celle en cours, sinon la prochaine prévue.
  * Planifier la suite ne doit jamais faire disparaître la phase d'aujourd'hui.

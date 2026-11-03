@@ -1,4 +1,4 @@
-import { finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
+import { phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -229,5 +229,22 @@ describe('nouvelle phase quand une autre est déjà prévue', () => {
   it('sans chevauchement, sa durée normale', () => {
     expect(finNouvellePhase(f, '2026-11-03', 1)).toBe('2026-11-10')
     expect(finNouvellePhase([], '2026-11-03', 12)).toBe('2027-01-26')
+  })
+})
+
+describe('phase écrite sur un mois du calendrier', () => {
+  const f = [
+    { depuis: '2026-07-27', phase: 'prise' as const, finPrevue: '2026-11-16', volume: {} },
+    { depuis: '2026-11-16', phase: 'seche' as const, finPrevue: '2027-01-11', volume: {} },
+  ]
+  it('un mois d’avant la première phase n’en affiche aucune', () => {
+    expect(phaseDuMois(f, '2026-05-01', '2026-05-31', '2026-11-03')).toBeUndefined()
+  })
+  it('un mois où la phase commence en cours de route l’affiche', () => {
+    expect(phaseDuMois(f, '2026-07-01', '2026-07-31', '2026-11-03')).toBe('prise')
+  })
+  it('dans le mois en cours, la phase d’aujourd’hui', () => {
+    expect(phaseDuMois(f, '2026-11-01', '2026-11-30', '2026-11-03')).toBe('prise')
+    expect(phaseDuMois(f, '2026-11-01', '2026-11-30', '2026-11-25')).toBe('seche')
   })
 })

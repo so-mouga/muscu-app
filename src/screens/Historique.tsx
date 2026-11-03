@@ -16,7 +16,7 @@ import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { PlanchePhotos, POSES } from './Photos'
 import Bilan from './Bilan'
 import { SaisieMesures, type PageCorps } from './Corps'
-import { finAffichee, nomCourtPhase, periodes, type EtapeObjectifs } from '../lib/objectifs'
+import { finAffichee, nomCourtPhase, periodes, phaseDuMois, type EtapeObjectifs } from '../lib/objectifs'
 import { etatCycle, prevuLe } from '../lib/cycle'
 import { objectifDuJour } from '../lib/nutrition'
 
@@ -194,7 +194,7 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
   const estMoisCourant = mois.getFullYear() === auj.getFullYear() && mois.getMonth() === auj.getMonth()
   const pasAujourdhui = !estMoisCourant || choisi !== aujourdhui
   const prevuesMois = cases.reduce((n, d) => n + (d ? (prevu(dateISO(d))?.seances.length ?? 0) : 0), 0)
-  const phaseMois = phases.find((p) => p.debut <= dateISO(mois) && dateISO(mois) <= finAffichee(p, dateISO()))?.phase ?? phases.find((p) => p.debut <= aujourdhui && aujourdhui <= finAffichee(p, dateISO()))?.phase
+  const phaseMois = phaseDuMois(frise, dateISO(mois), dateISO(new Date(mois.getFullYear(), mois.getMonth() + 1, 0)), aujourdhui)
 
   return (
     <div className="carte calendrier" style={{ padding: '16px', borderRadius: 'var(--rayon)' }} {...glisse}>
