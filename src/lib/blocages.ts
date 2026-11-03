@@ -57,6 +57,8 @@ export interface Contexte {
   journal?: JourJournal[]
   pesees?: Pesee[]
   phase?: Phase
+  /** Début de la phase en cours : le rythme du poids en prise ne regarde pas la phase d'avant. */
+  debutPhase?: string
 }
 
 /** Ce qui a changé pendant le blocage et peut l'expliquer, chiffres à l'appui. Rien quand la donnée manque. */
@@ -72,12 +74,13 @@ export function pistes(exo: Exercice, depuis: string, jusqua: string, c: Context
   if (c.phase !== 'seche' && notes.length >= 4 && pasAssez / notes.length >= 0.3) r.push(`calories sous l’objectif ${pasAssez} jours sur ${notes.length}`)
 
   // Poids en prise : moyenne de la 1re semaine du blocage face à la dernière.
-  if (c.phase === 'prise' && jours(depuis, jusqua) >= 14) {
-    const p = (c.pesees ?? []).filter((x) => x.date >= depuis && x.date <= jusqua)
-    const debut = moyenne(p.filter((x) => x.date <= decaler(depuis, 7)).map((x) => x.poids))
+  const departPoids = c.debutPhase && c.debutPhase > depuis ? c.debutPhase : depuis
+  if (c.phase === 'prise' && jours(departPoids, jusqua) >= 14) {
+    const p = (c.pesees ?? []).filter((x) => x.date >= departPoids && x.date <= jusqua)
+    const debut = moyenne(p.filter((x) => x.date <= decaler(departPoids, 7)).map((x) => x.poids))
     const fin = moyenne(p.filter((x) => x.date > decaler(jusqua, -7)).map((x) => x.poids))
     if (debut !== null && fin !== null) {
-      const parSemaine = (fin - debut) / ((jours(depuis, jusqua) - 7) / 7)
+      const parSemaine = (fin - debut) / ((jours(departPoids, jusqua) - 7) / 7)
       if (parSemaine < 0.1) r.push(`poids qui ne monte pas (${parSemaine >= 0 ? '+' : '−'}${kg(Math.abs(arrondi(parSemaine, 2)))} kg par semaine)`)
     }
   }

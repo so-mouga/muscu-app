@@ -4,7 +4,7 @@ import type { Exercice, Muscle, Serie } from '../types'
 import { chargeQte, dateISO, estDure, heuresMinutes, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
 import { dureeReelle, evolutionForce, scoreSerie, semaineDe } from './historique'
-import { nomPhase, type Phase } from './objectifs'
+import { nomPhase, phaseA, type Phase } from './objectifs'
 import { diagnostic } from './blocages'
 
 const SEMAINE = 7 * 86400000
@@ -127,7 +127,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
           })
       }
     }
-    const b = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase }, fin)
+    const b = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase, debutPhase: d.objectifs && phaseA(d.objectifs, fin)?.debut }, fin)
     if (b) stagnations.push({ exo, semaines: b.semaines, seances: b.seances, pistes: b.pistes })
   }
   progressions.sort((a, b) => b.pct - a.pct)

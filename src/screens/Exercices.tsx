@@ -59,7 +59,8 @@ export default function Exercices({ catalogue, haut, initial, onRetourInitial }:
       historique.set(id, { n: (h?.n ?? 0) + 1, date: h?.date ?? s.date })
     }
   // Dernière performance et constat de chaque exercice fait : les mêmes règles que la fiche.
-  const phase = phaseA(catalogue.objectifs, dateISO())?.phase
+  const phaseEnCours = phaseA(catalogue.objectifs, dateISO())
+  const phase = phaseEnCours?.phase
   const enSeche = phase === 'seche'
   const resumes = useMemo(() => {
     const parExo = new Map<string, Seance[]>()
@@ -154,7 +155,7 @@ export default function Exercices({ catalogue, haut, initial, onRetourInitial }:
           copieDe={copieDe?.id === exo.id ? copieDe.nom : undefined}
           equivalents={liste}
           enSeche={enSeche}
-          pistes={diagnostic(exo, { seances, journal, pesees, phase }, dateISO())?.pistes}
+          pistes={diagnostic(exo, { seances, journal, pesees, phase, debutPhase: phaseEnCours?.debut }, dateISO())?.pistes}
           suggestions={tous
             .filter((e) => e.muscle === exo.muscle && e.id !== exo.id && !e.supprime && !(eq[exo.id] ?? []).includes(e.id))
             .sort((a, b) => Number(b.type === exo.type) - Number(a.type === exo.type) || (historique.get(b.id)?.n ?? 0) - (historique.get(a.id)?.n ?? 0))

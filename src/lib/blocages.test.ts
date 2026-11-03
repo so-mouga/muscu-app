@@ -130,3 +130,21 @@ describe('sensations à 3 choix (Difficile = 1, Bien = 3, Au top = 5)', () => {
     expect(deloadConseille(l(5), exo, FIN)).toBeNull()
   })
 })
+
+describe('piste du poids en prise', () => {
+  const smith = (date: string) => ({ id: date, date, debut: Date.parse(date + 'T10:00:00'), enCours: false, series: [{ id: date, exoId: 'smith_incline', type: 'normale', charge: 50, reps: 10, rpe: 8, heure: 0 }] }) as unknown as Parameters<typeof pistes>[3]['seances'][number]
+  // Sèche jusqu'au 27 juil. (82 → 80 kg), puis prise à +0,2 kg par semaine.
+  const pesees = [
+    { date: '2026-06-01', poids: 82 },
+    { date: '2026-07-27', poids: 80 },
+    { date: '2026-08-31', poids: 81 },
+  ]
+  const c = { seances: [smith('2026-06-01')], pesees, phase: 'prise' as const }
+
+  it('sans le début de phase, la sèche d’avant écrase le rythme', () => {
+    expect(pistes(EXERCICES.smith_incline, '2026-06-01', '2026-08-31', c).join()).toContain('poids qui ne monte pas')
+  })
+  it('avec le début de phase, seule la prise compte : pas de piste', () => {
+    expect(pistes(EXERCICES.smith_incline, '2026-06-01', '2026-08-31', { ...c, debutPhase: '2026-07-27' }).join()).not.toContain('poids qui ne monte pas')
+  })
+})
