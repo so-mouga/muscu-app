@@ -54,6 +54,18 @@ describe('déload', () => {
     const s = suggestionDeload(EXERCICES.butterfly, { decision: 'pareil', charges: [50, 32.5, null], reps: [10, 10, 10], message: '' })
     expect(s.charges).toEqual([45, 30, null])
   })
+  it('petits haltères : jamais 0 kg ni la moitié de la charge ; le message le dit', () => {
+    const allege = (c: number) => suggestionDeload(EXERCICES.elevation_laterale_halteres, { decision: 'pareil', charges: [c], reps: [15], message: '' })
+    expect(allege(2).charges).toEqual([2])
+    expect(allege(2).message).toContain('même charge')
+    expect(allege(4).charges).toEqual([4])
+    expect(allege(8).charges).toEqual([6])
+    expect(allege(12).charges).toEqual([10])
+    expect(allege(12).message).toContain('−10 %')
+  })
+  it('lest au poids du corps : peut revenir à zéro', () => {
+    expect(suggestionDeload(EXERCICES.tractions, { decision: 'pareil', charges: [2.5], reps: [6], message: '' }).charges).toEqual([0])
+  })
 })
 
 describe('objectifs de volume', () => {

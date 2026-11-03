@@ -217,14 +217,22 @@ export function planDeload(p: ExoPlan): ExoPlan {
 
 const arrondiPas = (x: number, pas: number) => Math.round(Math.round(x / pas) * pas * 100) / 100
 
-/** Charges −10 % (arrondies au pas de l'exercice) par rapport à l'objectif normal. */
+/**
+ * Charges −10 % (arrondies au pas de l'exercice) par rapport à l'objectif normal. Si le palier est trop gros pour ça
+ * (plus d'un quart de la charge : petits haltères), on garde la charge : la moitié des séries et l'effort allègent déjà. Jamais 0 kg.
+ */
 export function suggestionDeload(exo: Exercice, s: Suggestion): Suggestion {
   const alleger = (c: number | null) => {
     if (c === null || c <= 0 || exo.mode === 'elastique' || exo.assistance) return c
     const r = arrondiPas(c * 0.9, exo.pas)
-    return r < c ? r : Math.max(0, arrondiPas(c - exo.pas, exo.pas))
+    if (r < c && r > 0) return r
+    const unCran = arrondiPas(c - exo.pas, exo.pas)
+    if (exo.mode === 'poids_corps') return Math.max(0, unCran)
+    return unCran > 0 && exo.pas / c <= 0.25 ? unCran : c
   }
-  return { ...s, charges: s.charges.map(alleger), message: 'Déload : environ −10 % de charge, effort 6-7/10, sans aller à l’échec.' }
+  const charges = s.charges.map(alleger)
+  const memes = charges.every((c, i) => c === s.charges[i]) && charges.some((c) => c !== null && c > 0) && exo.mode !== 'elastique' && !exo.assistance
+  return { ...s, charges, message: memes ? 'Déload : même charge (le palier est trop gros pour −10 %), effort 6-7/10, sans aller à l’échec.' : 'Déload : environ −10 % de charge, effort 6-7/10, sans aller à l’échec.' }
 }
 
 /** Ce qui est prévu un jour donné : séances du planning (1 = lundi), et pendant un cycle sa semaine, déload ou pause. */
