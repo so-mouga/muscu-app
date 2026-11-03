@@ -23,7 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { estDansSuperset, groupeSuperset } from '../lib/superset'
-import { copieProgramme } from '../lib/programme'
+import { copieProgramme, nomSeanceLibre } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -262,7 +262,7 @@ function PageProgramme({
     onRetour?.()
   }
   const creerSeance = async () => {
-    const m: SeanceModele = { id: 'm_' + uid(), nom: ajout!.nom.trim() || `Séance ${entrees.length + 1}`, sousTitre: '', exercices: [] }
+    const m: SeanceModele = { id: 'm_' + uid(), nom: ajout!.nom.trim() || nomSeanceLibre(entrees.map((x) => x.m!.nom)), sousTitre: '', exercices: [] }
     const jour = ajout!.jour
     await db.modeles.put(m)
     await sauverProgramme({ ...p, seances: [...p.seances, { modeleId: m.id, jour }] }, catalogue)
@@ -393,7 +393,7 @@ function PageProgramme({
         </div>
         )
       })}
-      <button className={'btn plein' + (entrees.length ? '' : ' primaire')} style={{ marginBottom: 'var(--e4)' }} onClick={() => setAjout({ nom: `Séance ${'ABCDEFGHIJ'[entrees.length] ?? entrees.length + 1}` })}>
+      <button className={'btn plein' + (entrees.length ? '' : ' primaire')} style={{ marginBottom: 'var(--e4)' }} onClick={() => setAjout({ nom: nomSeanceLibre(entrees.map((x) => x.m!.nom)) })}>
         + Ajouter une séance
       </button>
 
@@ -718,7 +718,7 @@ function PageAutresSeances({ catalogue, terminees, onFermer, onOuvrir }: { catal
         </button>
         <h2 style={{ flex: 1 }}>Autres séances</h2>
       </div>
-      <button className="btn plein" style={{ marginBottom: 'var(--e3)' }} onClick={() => onOuvrir({ id: 'm_' + uid(), nom: '', sousTitre: '', exercices: [] }, true)}>
+      <button className="btn plein" style={{ marginBottom: 'var(--e3)' }} onClick={() => onOuvrir({ id: 'm_' + uid(), nom: nomSeanceLibre(catalogue.modeles.map((m) => m.nom)), sousTitre: '', exercices: [] }, true)}>
         + Nouvelle séance
       </button>
       {[...catalogue.modeles]
@@ -789,12 +789,12 @@ function Editeur({
   // Enregistrement automatique : la séance est écrite peu après chaque changement.
   const ecrire = async () => {
     ecrit.current = JSON.stringify(m)
-    const finale = { ...m, nom: m.nom.trim(), sousTitre: m.sousTitre.trim() }
+    const finale = { ...m, nom: m.nom.trim() || initial.nom, sousTitre: m.sousTitre.trim() }
     await db.modeles.put(finale)
     return finale
   }
   useEffect(() => {
-    if (!modifie || !m.nom.trim()) return
+    if (!modifie) return
     const t = setTimeout(() => void ecrire(), 400)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -803,13 +803,13 @@ function Editeur({
   // Quitté aussitôt après un changement (barre du bas) : il est écrit quand même.
   const enAttente = useRef(() => {})
   enAttente.current = () => {
-    if (modifie && m.nom.trim()) void ecrire()
+    if (modifie) void ecrire()
   }
   useEffect(() => () => enAttente.current(), [])
 
   // En quittant : dernier enregistrement. La question du cycle est posée par AvisCycle, dès l'enregistrement.
   const quitter = async () => {
-    if (m.nom.trim() && modifie) await ecrire()
+    if (modifie) await ecrire()
     onFermer()
   }
   useRetour(true, () => {
