@@ -71,7 +71,8 @@ function revenir(modal: HTMLElement) {
   setTimeout(() => (modal.style.transition = ''), DUREE_SORTIE)
 }
 
-type Tirage = { modal: HTMLElement; fond: HTMLElement; cible: Element; x0: number; y0: number; tire: boolean; distance: number; dernierY: number; dernierT: number; vitesse: number }
+// `repereY` / `repereT` : où était le doigt il y a environ 100 ms, pour la vitesse au moment du relâchement.
+type Tirage = { modal: HTMLElement; fond: HTMLElement; cible: Element; x0: number; y0: number; tire: boolean; distance: number; dernierY: number; dernierT: number; repereY: number; repereT: number }
 
 function suivreTirage() {
   let t: Tirage | null = null
@@ -87,7 +88,7 @@ function suivreTirage() {
     // Pas les fenêtres de confirmation, au centre : une décision ne se prend pas d'un geste.
     if (!modal || !fond?.matches('.modal-fond:not(.dialogue)') || cible.closest(SANS_TIRAGE)) return
     const { clientX: x, clientY: y } = e.touches[0]
-    t = { modal, fond, cible, x0: x, y0: y, tire: false, distance: 0, dernierY: y, dernierT: e.timeStamp, vitesse: 0 }
+    t = { modal, fond, cible, x0: x, y0: y, tire: false, distance: 0, dernierY: y, dernierT: e.timeStamp, repereY: y, repereT: e.timeStamp }
   }, { passive: true })
 
   document.addEventListener('touchmove', (e) => {
@@ -105,23 +106,26 @@ function suivreTirage() {
       t.modal.getAnimations().forEach((a) => a.finish())
       t.modal.style.transition = 'none'
       t.tire = true
-      t.y0 = y
     }
     if (e.cancelable) e.preventDefault()
     t.distance = Math.max(0, y - t.y0)
-    const duree = e.timeStamp - t.dernierT
-    if (duree > 0) t.vitesse = (y - t.dernierY) / duree
+    if (e.timeStamp - t.repereT > 100) {
+      t.repereY = t.dernierY
+      t.repereT = t.dernierT
+    }
     t.dernierY = y
     t.dernierT = e.timeStamp
     t.modal.style.transform = `translateY(${t.distance}px)`
   }, { passive: false })
 
-  document.addEventListener('touchend', () => {
+  document.addEventListener('touchend', (e) => {
     if (!t?.tire) {
       t = null
       return
     }
-    const { modal, fond, distance, vitesse } = t
+    const { modal, fond, distance } = t
+    // Compté jusqu'au relâchement : un doigt arrêté avant de se lever n'a plus de vitesse.
+    const vitesse = (t.dernierY - t.repereY) / Math.max(1, e.timeStamp - t.repereT)
     t = null
     if (!fermerAuRelache(distance, vitesse, modal.offsetHeight)) return revenir(modal)
     fond.click()
