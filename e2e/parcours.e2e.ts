@@ -21,13 +21,14 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
     await p.getByRole('button', { name: /démarrer/i }).click()
   }
 
-  // Plein écran : 1re série à 40 kg × 10.
+  // Plein écran : 1re série à 40 kg. Les reps visées dépendent de la séance, donc du jour du test.
   const charge = p.locator('.stepper input').first()
   await charge.fill('40')
   await charge.blur()
+  const repsVisees = Number(await p.locator('.stepper input').nth(1).inputValue())
   await p.getByRole('button', { name: 'VALIDER LA SÉRIE' }).click()
 
-  // Corriger la série faite : 11 reps au lieu de 10.
+  // Corriger la série faite : une rep de plus.
   await p.getByRole('button', { name: /Corriger la série 1|✎ S1/ }).first().click()
   const reps = p.locator('.stepper').nth(1)
   await reps.getByRole('button', { name: '+' }).click()
@@ -50,9 +51,9 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
   const [s] = (await lireTable(p, 'seances')) as { enCours: boolean; series: { charge: number; reps: number }[] }[]
   expect(s.enCours).toBe(false)
   expect(s.series).toHaveLength(1)
-  expect(s.series[0]).toMatchObject({ charge: 40, reps: 11 })
+  expect(s.series[0]).toMatchObject({ charge: 40, reps: repsVisees + 1 })
   await ouvrirSeanceDuJour(p, 'Full body')
-  await expect(p.locator('.recap-serie').first()).toContainText('40 kg × 11')
+  await expect(p.locator('.recap-serie').first()).toContainText(new RegExp(`40 kg(/main)? × ${repsVisees + 1}`))
   expect(erreurs).toEqual([])
 })
 

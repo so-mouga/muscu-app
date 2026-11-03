@@ -48,7 +48,7 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 ## Refonte : où on en est
 
-État au 2 nov. 2026 : Accueil refait après `cddf5ea`. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
+État au 3 nov. 2026 : Progression et Corps refaits après `d58adde`. Le système de design et les règles de la séance sont dans `AGENTS.md`, qui reste la référence.
 
 ### Fait et poussé
 
@@ -77,9 +77,13 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Accueil** : refait entièrement le 2 nov. 2026, version choisie par l'utilisateur après comparaison de maquettes (décrite dans `AGENTS.md`). Poids qui ne se perd plus, programme sans jours qui n'est plus une impasse, calories seulement avec un objectif, déload écrit sur la carte, onglets moins coupés. Puis le haut de l'écran, jugé fade tout en gris, regroupé dans une carte où les chiffres ressortent.
 
+- **Progression et Corps** (3 nov. 2026, après inventaire et maquette validée) : `a627b06` Accueil et Journal, `3f08dbf` Bilan, `7693f98` Photos, `e099c74` Phases, `93e23f7` Corps. Bilan en 5 sections et environ 2 écrans, Corps en une page. Le détail et ce qui a été retiré sont dans `AGENTS.md`.
+
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)
+
+- Bilan et Corps : place en largeur avec sa police, retour Android depuis une fiche (même période, même position), « Noter mon poids », photos réelles dans Corps (poids en mémoire, fluidité).
 
 Rien depuis `f591d41` n'a encore été confirmé sur le téléphone, sauf que la photo depuis la galerie fonctionne.
 
@@ -111,13 +115,15 @@ Limites connues du parcours :
 
 ### Reste à faire, dans l'ordre
 
-1. **Progression** (Bilan, Journal).
-2. **Corps.**
-3. **Programmes** (le sous-titre « maintien » d'une séance se lit mal à côté de la phase « Prise »).
-4. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
-5. **Réglages.**
+1. **Programmes** (le sous-titre « maintien » d'une séance se lit mal à côté de la phase « Prise »).
+2. **Exercices** (la fiche d'exercice n'a pas encore été capturée pendant la refonte).
+3. **Réglages.**
 
 À traiter en refaisant ces écrans :
+
+- Bilan du cycle (fenêtre) : fait double emploi avec le Bilan sur la période Cycle, à réunir en refaisant Programmes.
+- Saisie des mensurations : garde un bouton « Enregistrer », contraire à l'enregistrement automatique. Détail de séance : « + Ajouter une série oubliée » répété sous chaque exercice, icônes ℹ et émojis du détail à reprendre.
+- Fiche d'exercice : @8 et 1RM à dire en clair.
 
 - Exercice créé par l'utilisateur et assisté : rien ne permet encore de le marquer (`Exercice.assistance`), à prévoir dans la fiche en refaisant Exercices. Le repère des exercices équivalents (`repere`) ne connaît pas non plus l'assistance.
 - La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.

@@ -60,11 +60,11 @@ const REGLES: [string, string[]][] = [
   [
     'Bilan : « À retenir »',
     [
-      'Au plus 5 phrases, dans cet ordre : douleurs signalées, lecture de la phase, sommeil, assiduité, muscles, exercices bloqués, recompo, fatigue, records.',
+      'Au plus 3 lignes, dans cet ordre : douleurs signalées, lecture de la phase, sommeil, séances sous 75 % du prévu, exercices bloqués (résumés en une ligne), fatigue. Le bilan regarde les semaines finies : la semaine en cours n’y entre pas. Le texte partagé est plus complet.',
       'Sèche (jugée depuis le début de la phase, avec au moins 2 semaines de pesées) : charges en baisse de 5 % ou plus → déficit trop fort ; perte de plus de 1 % du poids par semaine → ralentis ; poids qui ne baisse pas → réduis un peu (150 kcal de moins si tu tiens déjà tes calories) ; sinon « sèche qui marche ».',
       'Prise : moins de +0,1 kg par semaine → mange un peu plus (+100 kcal si tu tiens déjà tes calories) ; plus de +0,4 kg par semaine → 100 kcal de moins ; charges qui ne montent pas → objectif réaliste rappelé ; sinon « prise qui marche ».',
-      'Sommeil moyen sous 6 h 30. Assiduité parfaite, ou sous 75 % du prévu (jamais pendant la semaine en cours).',
-      'Muscle sans aucune série dure, ou sous 75 % de sa cible. Recompo : tour de taille en baisse pendant que les charges montent. Fatigue : effort en hausse et énergie en baisse par rapport à la période d’avant → pense au déload.',
+      'Sommeil moyen sous 6 h 30. Séances sous 75 % du prévu.',
+      'Fatigue : effort en hausse et énergie en baisse par rapport à la période d’avant → pense au déload.',
     ],
   ],
   [
