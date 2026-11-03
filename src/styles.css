@@ -5286,7 +5286,6 @@ button.semaine-cycle {
 button.semaine-cycle.courante {
   flex-direction: row;
   width: calc(100% + 2 * var(--e2));
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .semaine-cycle-corps {
   flex: 1;
@@ -5301,4 +5300,72 @@ button.semaine-cycle.courante {
 }
 .prog-seance.en-pause {
   opacity: 0.55;
+}
+
+/* Couleur qui veut dire quelque chose : vert = tenu, orange = en cours, violet = allégé, bleu = pause */
+.frise-cycle {
+  display: flex;
+  gap: var(--e1);
+  margin-top: var(--e3);
+}
+.frise-cycle i {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--voile, rgba(255, 255, 255, 0.12));
+}
+.frise-cycle i.tenue {
+  background: var(--ok);
+}
+.frise-cycle i.manquee {
+  background: color-mix(in srgb, var(--ok) 25%, transparent);
+}
+.frise-cycle i.courante {
+  background: var(--accent);
+}
+.frise-cycle i.allegee {
+  background: var(--finisseur);
+}
+.frise-cycle i.pause {
+  background: var(--info);
+}
+.prog-cycle > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.prog-cycle-titre {
+  display: block;
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+.prog-seance.du-jour {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-uni));
+}
+.prog-seance.du-jour .prog-jour {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--accent);
+}
+.prog-jour.faite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--t-legende);
+  font-weight: 400;
+  color: var(--texte-2);
+}
+.prog-fait {
+  color: var(--ok);
+}
+.resume-chiffre {
+  font-size: var(--t-titre);
+}
+.resume-cycle .frise-cycle:first-child {
+  margin-top: 0;
+}
+.semaine-allegee {
+  color: var(--finisseur);
+}
+button.semaine-cycle.courante {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }

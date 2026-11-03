@@ -6,15 +6,16 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
 import VolumeMuscles from '../components/VolumeMuscles'
-import { Aide, AIDE_CYCLE, AvisCycle, LancerCycle, VueCycle } from '../components/Cycle'
-import { ChevronRight, MoreHorizontal } from 'lucide-react'
+import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '../components/Cycle'
+import { suiviCycle } from '../lib/motivation'
+import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
 import { changerSemaine, debutCycle, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dureeEstimee, dureeTexte, kg, lundi, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dateISO, dureeEstimee, dureeTexte, jourSemaine, kg, lundi, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
@@ -267,6 +268,18 @@ function PageProgramme({
   const legers = etats.filter((e) => e === 'leger').length
   const beaucoup = etats.filter((e) => e === 'beaucoup').length
   const prochainDeload = cycle && etat ? cycle.deloads.find((d) => d >= etat.n) : undefined
+  const suivi = cycle ? suiviCycle(cycle, terminees ?? [], dateISO()) : undefined
+  // Les repères de la semaine : ce qui est fait, et ce qui tombe aujourd'hui.
+  const enPause = !!etat?.pause && !etat.fini
+  const ceLundi = lundi()
+  const deLaSemaine = enService && !enPause ? (terminees ?? []).filter((s) => s.date >= ceLundi && !s.deload).map((s) => s.modeleId) : []
+  const faiteCetteSemaine = (modeleId: string) => {
+    const i = deLaSemaine.indexOf(modeleId)
+    if (i < 0) return false
+    deLaSemaine.splice(i, 1)
+    return true
+  }
+  const aujourdhui = jourSemaine()
 
   return (
     <div>
@@ -296,10 +309,11 @@ function PageProgramme({
         <div className="carte pile">
           <button type="button" className="prog-lien" onClick={onCycle}>
             <span>
-              <strong className="semaine-pause">Cycle en pause</strong>
+              <strong className="semaine-pause prog-cycle-titre">Cycle en pause</strong>
               <span className="faible prog-sous">
                 Reprend le {new Date(lundiDe(cycle, etat.n) + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} : semaine {etat.n} sur {etat.total}
               </span>
+              <FriseCycle cycle={cycle} seances={terminees ?? []} />
             </span>
             <ChevronRight size={20} className="muted" />
           </button>
@@ -309,18 +323,20 @@ function PageProgramme({
         </div>
       ) : entrees.length > 0 &&
         (cycle && etat && !etat.fini ? (
-          <button className="liste-btn" onClick={onCycle}>
+          <button className="liste-btn prog-cycle" onClick={onCycle}>
             <span>
-              {etat.n <= 0 ? 'Cycle à venir' : `Cycle · semaine ${etat.n} sur ${etat.total}`}
+              <strong className="prog-cycle-titre">{etat.n <= 0 ? 'Cycle à venir' : `Semaine ${etat.n} sur ${etat.total}`}</strong>
               <span className="faible prog-sous">
                 {etat.n <= 0
                   ? `Commence le ${new Date(cycle.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
-                  : etat.deload
-                      ? 'Cette semaine est allégée (déload)'
-                      : prochainDeload
-                        ? `Semaine allégée (déload) : la ${prochainDeload}e`
-                        : 'Pas de semaine allégée de prévue'}
+                  : [
+                      `${suivi?.cetteSemaine ?? 0} sur ${suivi?.prevues ?? 0} cette semaine`,
+                      etat.deload ? 'semaine allégée' : prochainDeload ? `allégée : la ${prochainDeload}e` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
               </span>
+              <FriseCycle cycle={cycle} seances={terminees ?? []} />
             </span>
             <ChevronRight size={20} className="muted" />
           </button>
@@ -350,10 +366,14 @@ function PageProgramme({
           </div>
         ))}
 
-      {entrees.map(({ e, i, m }) => (
-        <div key={e.modeleId + i} className={'prog-seance' + (etat?.pause && !etat.fini ? ' en-pause' : '')}>
-          <button type="button" className={'prog-jour' + (e.jour ? '' : ' sans')} aria-label={`Jour de ${m!.nom} : ${e.jour ? JOURS[e.jour] : 'aucun'}`} onClick={() => setChoixJour(i)}>
-            {e.jour ? jourCourt(e.jour) : 'sans jour'}
+      {entrees.map(({ e, i, m }) => {
+        const faite = !!e.jour && faiteCetteSemaine(e.modeleId)
+        const duJour = enService && !enPause && !faite && e.jour === aujourdhui
+        return (
+        <div key={e.modeleId + i} className={'prog-seance' + (enPause ? ' en-pause' : '') + (duJour ? ' du-jour' : '')}>
+          <button type="button" className={'prog-jour' + (e.jour ? '' : ' sans') + (faite ? ' faite' : '')} aria-label={`Jour de ${m!.nom} : ${e.jour ? JOURS[e.jour] : 'aucun'}${faite ? ', faite cette semaine' : ''}`} onClick={() => setChoixJour(i)}>
+            {faite && <Check size={18} className="prog-fait" />}
+            {duJour ? 'auj.' : e.jour ? jourCourt(e.jour) : 'sans jour'}
           </button>
           <button type="button" className="prog-ligne" onClick={() => onSeance(m!, { programmeId: p.id, index: i })}>
             <span>
@@ -364,7 +384,8 @@ function PageProgramme({
             <ChevronRight size={20} className="muted" />
           </button>
         </div>
-      ))}
+        )
+      })}
       <button className={'btn plein' + (entrees.length ? '' : ' primaire')} style={{ marginBottom: 'var(--e4)' }} onClick={() => setAjout({ nom: `Séance ${'ABCDEFGHIJ'[entrees.length] ?? entrees.length + 1}` })}>
         + Ajouter une séance
       </button>

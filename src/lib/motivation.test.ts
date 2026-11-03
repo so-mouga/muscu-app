@@ -1,6 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle, Seance } from '../types'
-import { depuisDebut, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues } from './motivation'
+import { depuisDebut, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle } from './motivation'
+import { nouveauCycle } from './cycle'
 
 type S = [exoId: string, charge: number, reps: number, rpe?: number]
 const seance = (id: string, date: string, series: S[], extra: Partial<Seance> = {}): Seance =>
@@ -85,5 +86,19 @@ describe('retour après une pause', () => {
     const l = [seance('a', '2026-10-05', []), seance('b', '2026-10-17', []), seance('c', '2026-10-28', [], { enCours: true })]
     expect(joursSansSeance(l, '2026-10-29')).toBe(12)
     expect(joursSansSeance([], '2026-10-29')).toBeNull()
+  })
+})
+
+describe('suivi du cycle', () => {
+  const m = (id: string) => ({ id, nom: id, sousTitre: '', exercices: [] })
+  const prog = { id: 'p', nom: 'P', seances: ['a', 'b', 'c', 'd'].map((modeleId, i) => ({ modeleId, jour: i + 1 })) }
+  const faite = (id: string, date: string, cycleId = 'c') => ({ id, date, nom: id, debut: Date.parse(date + 'T18:00:00'), enCours: false, exercices: [], chauffes: {}, notes: {}, ajustSeries: {}, series: [], cycleId })
+
+  it('tenue dès les trois quarts, manquée sinon, déload tenu avec une séance, pause et semaines à venir', () => {
+    const c = { ...nouveauCycle('c', prog, m, '2026-10-05', 6, [2, 6]), pauses: ['2026-10-26'] }
+    const seances = [faite('1', '2026-10-05'), faite('2', '2026-10-06'), faite('3', '2026-10-07'), faite('4', '2026-10-12'), faite('5', '2026-10-19'), faite('6', '2026-11-03'), faite('x', '2026-11-03', 'autre')]
+    const r = suiviCycle(c, seances as never, '2026-11-04')
+    expect(r.semaines.map((x) => x.etat)).toEqual(['tenue', 'tenue', 'manquee', 'pause', 'courante', 'avenir', 'allegee'])
+    expect(r).toMatchObject({ prevues: 4, faites: 6, tenues: 2, cetteSemaine: 1 })
   })
 })

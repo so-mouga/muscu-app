@@ -1,6 +1,6 @@
 import type { Cycle, Exercice, Seance, Serie } from '../types'
-import { dateISO } from './calc'
-import { couvre, etatCycle } from './cycle'
+import { dateISO, semaineType } from './calc'
+import { couvre, etatCycle, lignesCycle } from './cycle'
 import { mieuxParSeance, recordsParSeance, scoreSerie, semaineDe } from './historique'
 
 /**
@@ -89,4 +89,25 @@ export function joursSansSeance(seances: Seance[], aujourdhui: string): number |
   if (!faites.length) return null
   const derniere = faites.reduce((a, s) => (s.date > a ? s.date : a), faites[0].date)
   return Math.round((Date.parse(aujourdhui + 'T12:00:00') - Date.parse(derniere + 'T12:00:00')) / JOUR)
+}
+
+export type EtatSemaine = 'tenue' | 'manquee' | 'courante' | 'allegee' | 'pause' | 'avenir'
+
+/** Chaque semaine du cycle et ce qu'il s'en est passé : la frise et le résumé du cycle. */
+export function suiviCycle(c: Cycle, seances: Seance[], aujourdhui: string) {
+  const prevues = semaineType(c.programme).length
+  const seuil = seuilSemaine(prevues)
+  const ceLundi = semaineDe(aujourdhui)
+  const duCycle = seances.filter((s) => s.cycleId === c.id && !s.enCours)
+  const semaines = lignesCycle(c).map((x) => {
+    const lundi = 'pause' in x ? x.pause : x.lundi
+    const faites = duCycle.filter((s) => semaineDe(s.date) === lundi).length
+    let etat: EtatSemaine
+    if ('pause' in x) etat = 'pause'
+    else if (lundi === ceLundi && !etatCycle(c, aujourdhui).fini) etat = 'courante'
+    else if (lundi < ceLundi) etat = faites >= (c.deloads.includes(x.n) ? 1 : seuil) ? 'tenue' : 'manquee'
+    else etat = c.deloads.includes(x.n) ? 'allegee' : 'avenir'
+    return { lundi, etat, faites }
+  })
+  return { semaines, prevues, faites: duCycle.length, tenues: semaines.filter((x) => x.etat === 'tenue').length, cetteSemaine: duCycle.filter((s) => semaineDe(s.date) === ceLundi).length }
 }

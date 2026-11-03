@@ -7,7 +7,8 @@ import { dateCourte, dateISO, kg, lundi, semaineType, volumePrevu } from '../lib
 import { appliquerEcart, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, garderEcart, lignesCycle, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { useRetour } from '../lib/nav'
-import type { Cycle, Muscle, Programme } from '../types'
+import { suiviCycle } from '../lib/motivation'
+import type { Cycle, Muscle, Programme, Seance } from '../types'
 import { confirmer } from './Dialogues'
 import Aide, { LigneAide } from './Aide'
 
@@ -244,6 +245,7 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
   const prevues = semaineType(cycle.programme).map((e) => cycle.modeles.find((m) => m.id === e.modeleId)).filter((m) => !!m)
 
   const lignes = lignesCycle(cycle)
+  const suivi = suiviCycle(cycle, seances, dateISO())
   /** Semaine ouverte : son lundi et son numéro, s'il n'est pas en pause. */
   const [semaine, setSemaine] = useState<string | null>(null)
   useRetour(semaine !== null, () => setSemaine(null))
@@ -262,7 +264,7 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
           ←
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>{etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h2>
+          <h1>{etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h1>
           <div className="faible">
             {nomCycle(cycle)} · depuis le {debutSemaine(cycle.debut)}
             {cycle.priorites?.length ? ` · priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}` : ''}
@@ -273,6 +275,22 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
             <MoreHorizontal size={22} />
           </button>
         )}
+      </div>
+
+      <div className="carte resume-cycle">
+        {suivi.faites > 0 && (
+          <div className="ligne entre">
+            <span>
+              <strong className="resume-chiffre">{suivi.faites}</strong> <span className="faible">séance{suivi.faites > 1 ? 's' : ''} faite{suivi.faites > 1 ? 's' : ''}</span>
+            </span>
+            {suivi.tenues > 0 && (
+              <span className="tenue">
+                {suivi.tenues} semaine{suivi.tenues > 1 ? 's' : ''} tenue{suivi.tenues > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        )}
+        <FriseCycle cycle={cycle} seances={seances} />
       </div>
 
       <div className="carte">
@@ -392,6 +410,18 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
         />
       )}
     </div>
+  )
+}
+
+/** Le cycle d'un coup d'œil : vert = tenue, orange = en cours, violet = allégée, bleu = pause. */
+export function FriseCycle({ cycle, seances }: { cycle: Cycle; seances: Seance[] }) {
+  const { semaines } = suiviCycle(cycle, seances, dateISO())
+  return (
+    <span className="frise-cycle" aria-hidden="true">
+      {semaines.map((x) => (
+        <i key={x.lundi} className={x.etat} />
+      ))}
+    </span>
   )
 }
 
