@@ -52,7 +52,9 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
   /** Exercices créés ici : pas encore dans le catalogue au moment d'ajouter. */
   const [crees, setCrees] = useState<Exercice[]>([])
   const champ = useRef<HTMLInputElement>(null)
-  useRetour(true, () => (creation ? (setCreation(false), 'rester') : onFermer()))
+  // Retour, appui à côté ou glissement : les exercices cochés sont ajoutés. Seul « Annuler » ne garde rien.
+  const fermerEnGardant = () => (onChoixMultiple && choisis.length ? onChoixMultiple(choisis, crees) : onFermer())
+  useRetour(true, () => (creation ? (setCreation(false), 'rester') : fermerEnGardant()))
 
   const zoneDe = (m: Muscle) => MUSCLES.find((x) => x.id === m)?.zone
   const groupes = parMuscle(
@@ -105,7 +107,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
           .slice(0, 4)
 
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond" onClick={fermerEnGardant}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         {creation ? (
           <FormExo
