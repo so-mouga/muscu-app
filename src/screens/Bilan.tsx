@@ -282,7 +282,7 @@ interface LigneExercice {
   valeur?: string
 }
 
-/** Records, progressions et blocages réunis : ce qui monte (les plus forts d'abord), ce qui bloque, et la piste qu'ils ont tous. */
+/** Records, progressions et blocages réunis : ce qui monte (les plus forts d'abord) et ce qui bloque ; les pistes sont sur la fiche de l'exercice. */
 function lectureExercices(a: Analyse, parCharges: LigneExercice[] = []) {
   const records = new Map(a.records.map((r) => [r.exo.id, r.perf]))
   const avecRecord = (id: string, texte: string) => (records.has(id) ? `${texte} · record` : texte)
@@ -301,13 +301,12 @@ function lectureExercices(a: Analyse, parCharges: LigneExercice[] = []) {
     if (i >= 0) montent.splice(i, 1)
     montent.unshift({ ...l, detail: records.has(l.id) ? `${l.detail} · record` : l.detail })
   }
-  const pisteCommune = a.stagnations.length >= 2 ? a.stagnations[0].pistes.find((p) => a.stagnations.every((s) => s.pistes.includes(p))) : undefined
   const bloques: LigneExercice[] = a.stagnations.map((s) => ({
     id: s.exo.id,
     nom: s.exo.nom,
-    detail: [`${s.semaines} sem. sans progrès`, ...s.pistes.filter((p) => p !== pisteCommune)].join(' · '),
+    detail: `${s.semaines} sem. sans progrès`,
   }))
-  return { montent, bloques, pisteCommune }
+  return { montent, bloques }
 }
 
 function LigneExo({ nom, detail, valeur, onClick }: LigneExercice & { onClick?: () => void }) {
