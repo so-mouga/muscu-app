@@ -6,6 +6,7 @@ import { useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, TypeFinisseur } from '../types'
 import ChoixDuree from './ChoixDuree'
 import Interrupteur from './Interrupteur'
+import Deplie from './Deplie'
 
 const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
 
@@ -308,9 +309,9 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
           <span>
             Avancé <span className="faible">· {resumeAvance}</span>
           </span>
-          <span className="muted">{avance ? '▾' : '▸'}</span>
+          <span className={'muted chevron-accordeon' + (avance ? ' ouvert' : '')}>▸</span>
         </button>
-        {avance && (
+        <Deplie ouvert={avance}>
           <div className="pile">
             <label className="champ">
               <span>Note (consigne pour cette séance)</span>
@@ -374,9 +375,9 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
                   </div>
                 )}
                 <button type="button" className="btn discret petit" onClick={() => setAideFin(!aideFin)}>
-                  {aideFin ? '▾' : '▸'} C’est quoi, chaque technique ?
+                  <span className={'chevron-accordeon' + (aideFin ? ' ouvert' : '')}>▸</span> C’est quoi, chaque technique ?
                 </button>
-                {aideFin && (
+                <Deplie ouvert={aideFin}>
                   <div className="pile petit" style={{ gap: 6 }}>
                     {Object.values(FINISSEURS).map((f) => (
                       <div key={f.nom}>
@@ -384,12 +385,12 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
                       </div>
                     ))}
                   </div>
-                )}
+                </Deplie>
               </div>
             )}
             <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" aide="À faire seulement si tu as le temps." />
           </div>
-        )}
+        </Deplie>
 
         <div className="exo-plan-plus">
           {onInfos && (

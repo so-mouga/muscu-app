@@ -4,6 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
 import { duree, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
+import Deplie from './Deplie'
 
 /** Durée d'une séance : effective (de la 1re à la dernière série), ou jusqu'à maintenant si elle est en cours. */
 export const dureeSeance = (s: Seance) => (s.enCours ? Date.now() - s.debut : dureeSeanceEffective(s))
@@ -105,8 +106,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
               </button>
             </div>
 
-            <div className={'accordeon-tiroir' + (ouvert ? ' ouvert' : '')}>
-              <div className="accordeon-contenu">
+            <Deplie ouvert={ouvert}>
                 <div className="pile" style={{ gap: 6, padding: '8px 0 4px', borderTop: '1px solid var(--bord)', fontSize: 'var(--t-petit)' }}>
                   {seance.notes[exo.id] && (
                     <div>
@@ -135,8 +135,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
+            </Deplie>
 
             <div className="pile" style={{ gap: 2 }}>
               {series.map((x, k) => {

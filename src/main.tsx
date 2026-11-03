@@ -6,6 +6,7 @@ import Secours from './Secours'
 import UneFenetre from './UneFenetre'
 import './styles.css'
 import Dialogues from './components/Dialogues'
+import { installerFenetres } from './lib/fenetres'
 
 declare global {
   interface Window {
@@ -32,6 +33,7 @@ createRoot(document.getElementById('root')!).render(
 )
 
 void demanderStockagePersistant()
+installerFenetres()
 
 // Petite vibration à chaque appui sur un bouton, comme une appli native.
 document.addEventListener('pointerdown', (e) => {

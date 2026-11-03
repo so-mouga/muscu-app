@@ -23,6 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { estDansSuperset, groupeSuperset } from '../lib/superset'
+import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -609,7 +610,7 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
         </span>
         <ChevronRight size={20} className={'muted depliable-chevron' + (ouvert === id ? ' ouvert' : '')} />
       </button>
-      {ouvert === id && (
+      <Deplie ouvert={ouvert === id}>
         <div className="depliable-corps pile">
           {[...seances]
             .sort((x, y) => (x.jour ?? 8) - (y.jour ?? 8))
@@ -624,7 +625,7 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
             ))}
           {actions}
         </div>
-      )}
+      </Deplie>
     </div>
   )
   return (

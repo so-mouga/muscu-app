@@ -22,6 +22,7 @@ import { CLE_DEMARRAGE, type EtatDemarrage } from '../lib/demarrage'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
+import Deplie from '../components/Deplie'
 
 const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 
@@ -653,8 +654,7 @@ export default function Accueil({
                     <span className={'muted chevron-accordeon' + (ouvert ? ' ouvert' : '')} style={{ fontSize: 16 }}>▸</span>
                   </button>
 
-                  <div className={'accordeon-tiroir' + (ouvert ? ' ouvert' : '')}>
-                    <div className="accordeon-contenu">
+                  <Deplie ouvert={ouvert}>
                       <div
                         className="pile"
                         style={{
@@ -734,8 +734,7 @@ export default function Accueil({
                           })
                         )}
                       </div>
-                    </div>
-                  </div>
+                  </Deplie>
                 </div>
               )
             })}

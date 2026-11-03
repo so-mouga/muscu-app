@@ -489,7 +489,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
             color: 'var(--texte)',
             cursor: 'pointer',
             flexShrink: 0,
-            transition: 'all 0.15s ease',
+            transition: 'all var(--duree-appui) ease',
           }}
         >
           <ArrowLeftRight size={15} strokeWidth={2} />
@@ -515,7 +515,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
                   border: 'none',
                   borderRadius: 'var(--rayon-2)',
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  transition: 'all var(--duree-appui) ease',
                 }}
                 onClick={() => setPose(p.id)}
               >

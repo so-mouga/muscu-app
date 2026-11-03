@@ -29,6 +29,7 @@ import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 import Echauffement, { echauffementActif } from '../components/Echauffement'
+import Deplie from '../components/Deplie'
 
 function stocke<T>(cle: string, defaut: T): T {
   try {
@@ -1012,7 +1013,7 @@ function LigneExoSeance({
           </button>
         </div>
       )}
-      {ouvert && (
+      <Deplie ouvert={ouvert}>
         <div className="ligne-seance-detail">
           <div className="faible">
             {schemaPlan(exo, plan)} · effort {efforts.join(', ')}/10 · repos {reposTexte(plan)}
@@ -1118,7 +1119,7 @@ function LigneExoSeance({
             {exo.image && <Vignette exo={exo} taille={44} onClick={() => setPhoto(true)} />}
           </div>
         </div>
-      )}
+      </Deplie>
       {photo && exo.image && <Photo src={exo.image} titre={exo.nom} onFermer={() => setPhoto(false)} />}
     </div>
   )

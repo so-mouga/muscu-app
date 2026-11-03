@@ -103,6 +103,7 @@
   --cible-salle: 44px;
 
   /* Mouvement */
+  --duree-appui: 120ms;
   --duree-courte: 200ms;
   --duree: 250ms;
   --duree-longue: 300ms;
@@ -289,7 +290,7 @@ button,
 .icone {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.1s cubic-bezier(0.2, 0, 0, 1), filter 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
+  transition: transform var(--duree-appui) cubic-bezier(0.2, 0, 0, 1), filter var(--duree-appui) ease, background-color var(--duree-appui) ease, border-color var(--duree-appui) ease;
 }
 button:active:not(:disabled),
 [role="button"]:active,
@@ -388,7 +389,7 @@ button:active:not(:disabled),
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
-  transition: color 0.15s ease;
+  transition: color var(--duree-appui) ease;
 }
 .onglets button.actif {
   color: var(--accent);
@@ -548,7 +549,7 @@ button:active:not(:disabled),
   border-top: 1px solid var(--bord-haut);
   padding: 6px 16px calc(6px + env(safe-area-inset-bottom));
   view-transition-name: minuteur;
-  animation: monte 0.25s ease-out;
+  animation: monte var(--duree) var(--sortie);
 }
 .minuteur .contenu {
   max-width: 528px;
@@ -803,24 +804,24 @@ th {
 }
 
 .apparait {
-  animation: entree-droite 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: entree-droite var(--duree) var(--sortie);
 }
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 0.18s;
+  animation-duration: var(--duree-courte);
 }
 html[data-sens='avant']::view-transition-old(root) {
-  animation: sortie-gauche 0.24s ease-in both;
+  animation: sortie-gauche var(--duree-courte) ease-in both;
 }
 html[data-sens='avant']::view-transition-new(root) {
-  animation: entree-droite 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: entree-droite var(--duree) var(--sortie) both;
 }
 html[data-sens='arriere']::view-transition-old(root) {
-  animation: sortie-droite 0.24s ease-in both;
+  animation: sortie-droite var(--duree-courte) ease-in both;
 }
 html[data-sens='arriere']::view-transition-new(root) {
-  animation: entree-gauche 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: entree-gauche var(--duree) var(--sortie) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -938,7 +939,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   border: 1px solid var(--bord);
   position: relative;
   flex: 0 0 auto;
-  transition: background-color 0.15s;
+  transition: background-color var(--duree-appui);
 }
 .interrupteur .piste::after {
   content: '';
@@ -949,7 +950,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   height: 20px;
   border-radius: 50%;
   background: var(--texte-2);
-  transition: transform 0.15s;
+  transition: transform var(--duree-appui);
 }
 .interrupteur.on .piste {
   background: var(--accent);
@@ -1109,36 +1110,11 @@ html[data-sens='arriere']::view-transition-new(root) {
 }
 
 /* Tiroirs d'accordéon fluides (animation mobile native) */
-.accordeon-tiroir {
-  display: grid;
-  grid-template-rows: 0fr;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-in-out;
-  pointer-events: none;
-}
-.accordeon-tiroir.ouvert {
-  grid-template-rows: 1fr;
-  max-height: 1200px;
-  opacity: 1;
-  pointer-events: auto;
-}
-.accordeon-tiroir > .accordeon-contenu {
-  overflow: hidden;
-  min-height: 0;
-  transition: opacity 0.25s ease-in-out;
-  opacity: 0;
-}
-.accordeon-tiroir.ouvert > .accordeon-contenu {
-  opacity: 1;
-}
-
 .chevron-accordeon {
   display: inline-block;
   line-height: 1;
   transform-origin: center center;
-  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--duree) var(--sortie);
   transform: rotate(0deg);
 }
 .chevron-accordeon.ouvert {
@@ -1317,7 +1293,7 @@ body:has(.focus) {
   line-height: 1;
   margin-bottom: 6px;
   opacity: 0.65;
-  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease;
+  transition: opacity var(--duree-courte) ease, transform var(--duree-courte) ease, color var(--duree-courte) ease;
 }
 .cercle-pause:hover .etat-chrono {
   opacity: 1;
@@ -2197,7 +2173,7 @@ body:has(.focus) {
   cursor: pointer;
   color: inherit;
   font: inherit;
-  transition: border-color 0.15s ease;
+  transition: border-color var(--duree-appui) ease;
 }
 .sous-seance-item:hover,
 .sous-seance-item:active {
@@ -2260,7 +2236,7 @@ button.pastille.cliquable {
 .modal-fond.dialogue .modal {
   border-radius: var(--rayon);
   transform-origin: center center;
-  animation: modal-dialogue 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modal-dialogue var(--duree-courte) var(--sortie);
 }
 .texte-dialogue {
   white-space: pre-line;
@@ -2283,8 +2259,8 @@ button.pastille.cliquable {
   background: var(--surface-2);
   font-size: var(--t-petit);
   white-space: nowrap;
-  animation: banniere-entree 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: all 0.25s ease-in-out;
+  animation: banniere-entree var(--duree) var(--sortie);
+  transition: all var(--duree) var(--sortie);
 }
 .rappel-ligne .texte {
   background: none;
@@ -2315,7 +2291,7 @@ button.pastille.cliquable {
   cursor: pointer;
 }
 .frise-jour-rond {
-  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease, filter 0.15s ease;
+  transition: transform var(--duree-appui) cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow var(--duree-appui) ease, filter var(--duree-appui) ease;
 }
 .frise-jour-rond.interactif {
   cursor: pointer;
@@ -2615,7 +2591,7 @@ button.semaine-bilan.cliquable {
   padding: 0;
   color: inherit;
   border-radius: 50%;
-  transition: transform 0.2s ease, filter 0.2s ease;
+  transition: transform var(--duree-courte) ease, filter var(--duree-courte) ease;
 }
 .cercle-pause:active {
   transform: scale(0.97);
@@ -2929,10 +2905,10 @@ button.semaine-bilan.cliquable {
 
 /* Calendrier : le mois glisse dans le sens du geste */
 .grille-mois.glisse-avant {
-  animation: mois-avant 0.2s ease-out;
+  animation: mois-avant var(--duree-courte) var(--sortie);
 }
 .grille-mois.glisse-arriere {
-  animation: mois-arriere 0.2s ease-out;
+  animation: mois-arriere var(--duree-courte) var(--sortie);
 }
 @keyframes mois-avant {
   from { transform: translateX(24px); opacity: 0.3; }
@@ -2962,7 +2938,7 @@ button.phase-accueil {
   text-decoration: none;
   min-height: 0;
   line-height: 1.2;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color var(--duree-appui) ease, border-color var(--duree-appui) ease, color var(--duree-appui) ease;
 }
 .pill-accueil:hover,
 .pill-accueil:active,
@@ -5518,3 +5494,90 @@ button.semaine-cycle.courante {
   text-align: center;
 }
 
+/* --- Fenêtres qui se ferment (`lib/fenetres.ts`) et accordéons (`Deplie`) --- */
+@keyframes modal-descendre {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes modal-dialogue-sortie {
+  to {
+    transform: scale(0.97);
+    opacity: 0;
+  }
+}
+@keyframes fondu-fond-sortie {
+  to {
+    background-color: transparent;
+    backdrop-filter: blur(0);
+  }
+}
+.modal-fond.sortie {
+  pointer-events: none;
+  animation: fondu-fond-sortie var(--duree-courte) ease-in both;
+}
+.modal-fond.sortie .modal {
+  animation: modal-descendre var(--duree-courte) ease-in both;
+}
+.modal-fond.dialogue.sortie .modal {
+  animation: modal-dialogue-sortie var(--duree-courte) ease-in both;
+}
+.comparaison-plein,
+.page-dessus,
+.prise-photo,
+.fondu-entree,
+.focus .minuteur.grand {
+  animation: fondu var(--duree-courte) var(--sortie);
+}
+.comparaison-plein.sortie,
+.page-dessus.sortie {
+  pointer-events: none;
+  animation: fondu-sortie var(--duree-courte) ease-in both;
+}
+
+.deplie {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows var(--duree) var(--sortie), opacity var(--duree-courte) var(--sortie);
+}
+.deplie.ouvert {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+@starting-style {
+  .deplie.ouvert:not(.pose) {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+.deplie > div {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.deplie.pose > div {
+  overflow: visible;
+}
+.mouvement-deplie {
+  grid-column: 1 / -1;
+}
+.depliable-chevron {
+  transition: transform var(--duree) var(--sortie);
+}
+.depliable,
+.volume-suivis {
+  interpolate-size: allow-keywords;
+}
+.depliable::details-content,
+.volume-suivis::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition: block-size var(--duree) var(--sortie), opacity var(--duree-courte) var(--sortie), content-visibility var(--duree) allow-discrete;
+}
+.depliable[open]::details-content,
+.volume-suivis[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}

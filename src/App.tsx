@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useCatalogue } from './catalogue'
 import { CLE_PREVUS, noterPrevu, type EtapePrevu } from './lib/prevu'
 import { db, setReglage } from './db'
@@ -127,8 +127,24 @@ export default function App() {
   const fermerReglages = () => (transition(() => setReglages(false), 'arriere'), window.scrollTo({ top: 0 }))
   useRetour(!enCours && reglages, fermerReglages)
 
+  // La séance se crée et se termine dans la base : pas de transition d'écran possible, un fondu en arrivant.
+  const revientDeSeance = useRef(false)
+  useEffect(() => {
+    if (enCours) revientDeSeance.current = true
+    else if (revientDeSeance.current) {
+      const t = setTimeout(() => (revientDeSeance.current = false), 400)
+      return () => clearTimeout(t)
+    }
+  }, [enCours])
+
   if (enCours === null || !catalogue || demarrage === null) return null // chargement
-  if (enCours) return <SeanceEnCours key={enCours.id} seance={enCours} catalogue={catalogue} />
+  if (enCours) {
+    return (
+      <div className="fondu-entree">
+        <SeanceEnCours key={enCours.id} seance={enCours} catalogue={catalogue} />
+      </div>
+    )
+  }
 
   const etatDemarrage = demarrage?.valeur as EtatDemarrage | undefined
   const modeDemarrage = demarrageOuvert ?? (catalogue.sansProgramme && !etatDemarrage?.quitte ? 'parcours' : null)
@@ -147,7 +163,7 @@ export default function App() {
 
   return (
     <>
-      <div key={reglages ? 'reglages' : onglet}>
+      <div key={reglages ? 'reglages' : onglet} className={revientDeSeance.current ? 'fondu-entree' : undefined}>
         {reglages && <Reglages catalogue={catalogue} onFermer={fermerReglages} />}
         {!reglages && onglet === 'accueil' && (
           <Accueil
@@ -169,14 +185,14 @@ export default function App() {
             detail={detail}
             onDetail={setDetail}
             vue={vue}
-            onVue={setVue}
+            onVue={(v) => transition(() => setVue(v), 'fondu')}
             onExo={(id) => (setExoInitial(id), setVue('exercices'))}
             exoInitial={exoInitial}
             onRetourExo={() => (setExoInitial(null), setVue('bilan'))}
             onCorps={(page) => (setCorpsDepuisProgres(true), ouvrirCorps(page))}
           />
         )}
-        {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={setPageCorps} />}
+        {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={(p) => transition(() => setPageCorps(p), p ? 'avant' : 'arriere')} />}
         {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} onBilanCycle={ouvrirBilanCycle} />}
       </div>
       <nav className="onglets">

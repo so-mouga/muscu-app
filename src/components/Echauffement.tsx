@@ -10,6 +10,7 @@ import type { Seance, SeanceModele } from '../types'
 import { majSeance } from './CarteExo'
 import { confirmer } from './Dialogues'
 import PictoEchauffement from './PictoEchauffement'
+import Deplie from './Deplie'
 
 const ZONES = [
   ['general', 'Général'],
@@ -77,7 +78,7 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
                   {ouvert === id ? '×' : 'i'}
                 </button>
               )}
-              {ouvert === id && (
+              <Deplie ouvert={ouvert === id} className="mouvement-deplie">
                 <div className="mouvement-detail">
                   <PictoEchauffement id={id} taille={120} />
                   <ul className="consignes">
@@ -86,7 +87,7 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
                     ))}
                   </ul>
                 </div>
-              )}
+              </Deplie>
             </div>
           )
         })}
@@ -177,7 +178,7 @@ function ChoixMouvements({ ids, liste, onChange: changer, onFermer }: { ids: str
                         </button>
                       )
                     )}
-                    {ouvert === m.id && (
+                    <Deplie ouvert={ouvert === m.id} className="mouvement-deplie">
                       <div className="mouvement-detail">
                         <PictoEchauffement id={m.id} taille={120} />
                         <ul className="consignes">
@@ -186,7 +187,7 @@ function ChoixMouvements({ ids, liste, onChange: changer, onFermer }: { ids: str
                           ))}
                         </ul>
                       </div>
-                    )}
+                    </Deplie>
                   </div>
                 )
               })}

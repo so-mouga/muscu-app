@@ -1,5 +1,6 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
+import Deplie from './Deplie'
 
 /**
  * « Comment l'appli te conseille » (page de Réglages) : toutes les règles des conseils et alertes, en clair.
@@ -86,9 +87,9 @@ export default function ReglesConseils() {
         <div key={titre} className="regle-section">
           <button type="button" className="ligne-reglage" onClick={() => setOuvert(ouvert === titre ? null : titre)} aria-expanded={ouvert === titre}>
             <span>{titre}</span>
-            {ouvert === titre ? <ChevronDown size={20} className="muted" /> : <ChevronRight size={20} className="muted" />}
+            <ChevronRight size={20} className={'muted depliable-chevron' + (ouvert === titre ? ' ouvert' : '')} />
           </button>
-          {ouvert === titre && (
+          <Deplie ouvert={ouvert === titre}>
             <ul className="regle-lignes pile">
               {lignes.map((l) => (
                 <li key={l} className="petit">
@@ -96,7 +97,7 @@ export default function ReglesConseils() {
                 </li>
               ))}
             </ul>
-          )}
+          </Deplie>
         </div>
       ))}
     </div>

@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ChevronDown, ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
 import Aide from '../components/Aide'
 import Courbe from '../components/Courbe'
 import { FenetreJour } from '../components/JournalMatin'
@@ -17,6 +17,7 @@ import { confirmer } from '../components/Dialogues'
 import Photos from './Photos'
 import Objectifs from './Objectifs'
 import type { Catalogue } from '../catalogue'
+import Deplie from '../components/Deplie'
 
 const cm = (v: number) => `${kg(v)} cm`
 const signe = (d: number) => (d > 0 ? '+' : d < 0 ? '−' : '±') + kg(Math.abs(Math.round(d * 10) / 10))
@@ -348,10 +349,10 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
           <span>
             <strong>{cm(der.valeur)}</strong>
             {s.length > 1 && <span className="ecart-mesure"> {signe(d)}</span>}
-            {estOuverte ? <ChevronDown size={16} strokeWidth={1.75} className="muted" /> : <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
+            <ChevronRight size={16} strokeWidth={1.75} className={'muted depliable-chevron' + (estOuverte ? ' ouvert' : '')} />
           </span>
         </button>
-        {estOuverte && (
+        <Deplie ouvert={estOuverte}>
           <div className="mesure-detail">
             <div className="ligne entre faible petit-texte">
               <span>Dernière prise le {dateCourte(der.date).replace(/^\S+ /, '')}</span>
@@ -359,7 +360,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
             </div>
             {s.length >= 2 && <Courbe key={c} points={s} format={cm} label={`Évolution : ${nomCle(c)}`} sansEnTete />}
           </div>
-        )}
+        </Deplie>
       </div>
     )
   }
@@ -386,7 +387,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
           fontWeight: 600,
           cursor: 'pointer',
           marginBottom: 14,
-          transition: 'transform 0.1s ease, box-shadow 0.15s ease',
+          transition: 'transform var(--duree-appui) ease, box-shadow var(--duree-appui) ease',
         }}
       >
         <Ruler size={18} strokeWidth={2.2} />
@@ -402,10 +403,10 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
           {autres.length > 0 && principales.length > 0 && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>
               <span>Autres mesures</span>
-              <span className="muted">{voirAutres ? '▾' : '▸'}</span>
+              <span className={'muted chevron-accordeon' + (voirAutres ? ' ouvert' : '')}>▸</span>
             </button>
           )}
-          {(voirAutres || !principales.length) && autres.map(ligne)}
+          <Deplie ouvert={voirAutres || !principales.length}>{autres.map(ligne)}</Deplie>
         </div>
       )}
 
@@ -415,9 +416,9 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
             <span style={{ fontWeight: 600 }}>
               Prises <span className="faible">({mesures.length})</span>
             </span>
-            <span className="muted">{voirPrises ? '▾' : '▸'}</span>
+            <span className={'muted chevron-accordeon' + (voirPrises ? ' ouvert' : '')}>▸</span>
           </button>
-          {voirPrises && [...mesures].reverse().map((m) => {
+          <Deplie ouvert={voirPrises}>{[...mesures].reverse().map((m) => {
             const entrees = Object.entries(m.valeurs)
             const apercu = entrees.length <= 2
               ? entrees.map(([k, v]) => `${nomCle(k)} : ${cm(v)}`).join(' · ')
@@ -436,7 +437,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
                 </span>
               </button>
             )
-          })}
+          })}</Deplie>
         </div>
       )}
 
@@ -580,7 +581,7 @@ export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure
           marginBottom: 8,
           background: estActif ? 'var(--accent-voile)' : 'var(--sous-carte)',
           border: '1px solid ' + (estActif ? 'var(--accent)' : 'var(--voile)'),
-          transition: 'all 0.15s ease',
+          transition: 'all var(--duree-appui) ease',
           cursor: 'pointer',
         }}
       >
@@ -724,11 +725,11 @@ export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure
             {conseilOuvert ? 'Masquer' : 'Voir plus ›'}
           </span>
         </button>
-        {conseilOuvert && (
+        <Deplie ouvert={conseilOuvert}>
           <div style={{ marginTop: 6, color: 'var(--texte-2)', lineHeight: 1.4 }}>
             {CONSEILS_MESURE} Remplis seulement ce que tu mesures ; en gris clair, ta dernière valeur. Tout est gardé dès que tu le notes.
           </div>
-        )}
+        </Deplie>
       </div>
 
       <div className="saisie-mesures">
@@ -744,9 +745,9 @@ export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure
             <span>
               Autres mesures <span className="faible">(cou, épaules, côté droit…)</span>
             </span>
-            <span className="muted">{autresOuvertes ? '▾' : '▸'}</span>
+            <span className={'muted chevron-accordeon' + (autresOuvertes ? ' ouvert' : '')}>▸</span>
           </button>
-          {autresOuvertes && MESURES.map((m) => carteSaisie(m, clesDe(m).filter((c) => !PRINCIPALES.includes(c))))}
+          <Deplie ouvert={autresOuvertes}>{MESURES.map((m) => carteSaisie(m, clesDe(m).filter((c) => !PRINCIPALES.includes(c))))}</Deplie>
         </div>
       </div>
 

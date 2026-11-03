@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { CLE_RAPPEL, natif, RAPPEL_DEFAUT, rappelDisponible, type Rappel } from '../lib/natif'
-import { useRetour } from '../lib/nav'
+import { transition, useRetour } from '../lib/nav'
 import { apercu, CATEGORIES, CATEGORIES_COURANTES, clesTelephone, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type ClesTelephone, type Fichier } from '../lib/sauvegarde'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
@@ -33,7 +33,7 @@ function depuis(quand: number) {
 export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue; onFermer?: () => void }) {
   const [page, setPage] = useState<PageReglages | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const ouvrir = (p: PageReglages | null) => (setPage(p), setMessage(null))
+  const ouvrir = (p: PageReglages | null) => transition(() => (setPage(p), setMessage(null)), p ? 'avant' : 'arriere')
   useRetour(page !== null, () => ouvrir(null))
   useEffect(() => {
     window.scrollTo({ top: 0 })

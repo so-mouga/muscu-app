@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronRight, Pencil } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Pencil } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
@@ -34,6 +34,7 @@ import {
 } from '../lib/objectifs'
 import ChampNombre from './ChampNombre'
 import { confirmer } from './Dialogues'
+import Deplie from './Deplie'
 
 const JOUR = 86400000
 const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
@@ -369,7 +370,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                           background: 'var(--surface-2)',
                           border: '1px solid var(--voile)',
                           cursor: 'pointer',
-                          transition: 'all 0.15s ease',
+                          transition: 'all var(--duree-appui) ease',
                         }}
                       >
                         <div>
@@ -390,6 +391,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                       </button>
                     ) : (
                       <div
+                        className="fondu-entree"
                         style={{
                           padding: '12px 14px',
                           borderRadius: 'var(--rayon-2)',
@@ -449,7 +451,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                     fontSize: 'var(--t-legende)',
                     fontWeight: 600,
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'all var(--duree-appui) ease',
                   }}
                   onClick={() => {
                     enregistrer(ajouterApres(frise, x.id, DUREE_DEFAUT[x.id], catalogue.ciblesPerso))
@@ -482,15 +484,15 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
               <span style={{ fontSize: 'var(--t-petit)' }}>
                 Phases précédentes <span className="faible">({passees.length})</span>
               </span>
-              <span className="muted">{voirAvant ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
+              <ChevronRight size={16} className={'muted depliable-chevron' + (voirAvant ? ' ouvert' : '')} />
             </button>
-            {voirAvant && (
+            <Deplie ouvert={voirAvant}>
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {passees.map((p) => (
                   <LignePassee key={p.debut} p={p} pesees={pesees} />
                 ))}
               </div>
-            )}
+            </Deplie>
           </div>
         )}
       </div>

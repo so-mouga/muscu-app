@@ -11,6 +11,7 @@ import { suiviCycle } from '../lib/motivation'
 import type { Cycle, Muscle, Programme, Seance } from '../types'
 import { confirmer } from './Dialogues'
 import Aide, { LigneAide } from './Aide'
+import Deplie from './Deplie'
 
 export const AIDE_CYCLE =
   'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine de déload à la fin : 5 de travail + 1 de déload). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, tu choisis s’il s’applique aux semaines qui restent ou seulement au prochain cycle.'
@@ -180,10 +181,10 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
           <span>
             Plus d’options{priorites.length > 0 && <span className="faible"> · priorité : {priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}</span>}
           </span>
-          <span className="muted">{options ? '▾' : '▸'}</span>
+          <span className={'muted chevron-accordeon' + (options ? ' ouvert' : '')}>▸</span>
         </button>
         ) : null}
-        {options && (
+        <Deplie ouvert={options}>
         <div className="champ">
           <span>Muscle prioritaire pendant ce cycle (facultatif, {MAX_PRIORITES} au plus)</span>
           <div className="chips">
@@ -208,7 +209,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
             <span className="faible">Un muscle à pousser pendant ce bloc (ex. les bras) : son objectif de volume monte de {BONUS_PRIORITE} séries par semaine, le temps du cycle. Tes objectifs habituels ne changent pas.</span>
           )}
         </div>
-        )}
+        </Deplie>
 
         </>
         )}
