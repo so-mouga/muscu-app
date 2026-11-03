@@ -5043,11 +5043,15 @@ html[data-sens='fondu']::view-transition-new(root) {
   bottom: calc(var(--barre-onglets) + var(--e2) + env(safe-area-inset-bottom));
   margin: 0;
   z-index: 4;
+  padding: var(--e2) var(--e3);
+  align-items: center;
   background: var(--surface-uni);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
   box-shadow: var(--ombre-forte);
 }
 #root:has(.avis-cycle.fixe) {
-  padding-bottom: calc(var(--barre-onglets) + 180px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--barre-onglets) + 60px + env(safe-area-inset-bottom));
 }
 .avis-cycle-choix {
   display: grid;

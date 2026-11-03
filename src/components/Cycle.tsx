@@ -24,7 +24,7 @@ export { Aide, LigneAide } from './Aide'
 
 /**
  * Programme modifié pendant le cycle : le dit tant qu'on n'a pas répondu, quel que soit le chemin pris
- * (barre du bas, appli fermée, séance retirée ailleurs). `fixe` : en bas de l'écran, pour ne pas décaler ce qu'on est en train de modifier.
+ * (barre du bas, appli fermée, séance retirée ailleurs). `fixe` : une ligne en bas de l'éditeur, sans question : on répond une fois les changements finis, sur la page Programme.
  */
 export function AvisCycle({ catalogue, fixe = false }: { catalogue: Catalogue; fixe?: boolean }) {
   const [fait, setFait] = useState('')
@@ -34,7 +34,8 @@ export function AvisCycle({ catalogue, fixe = false }: { catalogue: Catalogue; f
     setFait(message)
     setTimeout(() => setFait(''), 2500)
   }
-  const classe = 'avis-cycle' + (fixe ? ' fixe' : '')
+  if (fixe) return cycle && ecart ? <div className="avis-cycle fixe" role="status">Ton cycle garde l’ancienne version</div> : null
+  const classe = 'avis-cycle'
   if (!cycle || !ecart) return fait ? <div className={classe} role="status">✓ {fait}</div> : null
   const programme = catalogue.programmes.find((p) => p.id === cycle.programmeId)
   const quoi = [...(ecart.planning ? ['les jours et les séances du programme'] : []), ...ecart.seances.map((s) => s.nom)].join(', ')
