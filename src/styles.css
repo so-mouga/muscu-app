@@ -1531,13 +1531,6 @@ body:has(.focus) {
 }
 
 /* Fiche exercice */
-.fiche-tete {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
 .segments {
   display: flex;
   gap: 4px;
@@ -2132,15 +2125,6 @@ body:has(.focus) {
 .ligne:has(.aide-texte) {
   flex-wrap: wrap;
 }
-.bandeau-cycle {
-  margin-bottom: 12px;
-}
-.bandeau-cycle > span {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.bandeau-cycle.deload,
 .bandeau-deload {
   border-color: var(--info);
 }
@@ -2209,46 +2193,6 @@ body:has(.focus) {
 }
 
 /* Éditeur de planning : carte de séance et bande 7 jours */
-.seance-plan-carte {
-  background: var(--surface-2);
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon-2);
-  padding: 12px;
-  margin-bottom: 8px;
-}
-.pastilles-jours {
-  display: flex;
-  gap: 4px;
-  justify-content: space-between;
-  padding-top: 8px;
-  border-top: 1px solid var(--bord);
-  margin-top: 6px;
-}
-.btn-jour {
-  flex: 1;
-  min-height: 32px;
-  padding: 0;
-  border-radius: var(--rayon-2);
-  border: 1px solid var(--bord);
-  background: var(--surface);
-  color: var(--texte-3);
-  font-weight: 700;
-  font-size: var(--t-petit);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.btn-jour:hover {
-  background: var(--surface-2);
-  color: var(--texte);
-}
-.btn-jour.actif {
-  background: var(--accent);
-  color: var(--accent-texte);
-  border-color: var(--accent);
-}
 .semaines-cycle > span {
   flex: 1;
   height: 6px;
@@ -2264,29 +2208,6 @@ body:has(.focus) {
 }
 .semaines-cycle > span.deload {
   background-image: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--info) 70%, transparent) 3px 5px);
-}
-.ligne-semaine {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--bord);
-}
-.ligne-semaine:last-child {
-  border-bottom: none;
-}
-.ligne-semaine.courante {
-  margin: 0 -10px;
-  padding: 10px;
-  border-radius: var(--rayon-2);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border-bottom-color: transparent;
-}
-.ligne-semaine.deload strong {
-  color: var(--info);
-}
-.ligne-semaine.pause {
-  padding: 6px 0;
 }
 /* Barre des exercices en séance : un dégradé signale qu'elle défile. */
 /* En-tête du plein écran : infos sur une ligne, actions sur la suivante. */
@@ -2395,10 +2316,6 @@ button.pastille.cliquable {
 }
 .frise-jour-rond.interactif:active {
   transform: scale(0.92);
-}
-.carte .bandeau-cycle {
-  margin: 0 0 4px;
-  background: var(--surface-2);
 }
 /* Lien d'action dans le texte : discret, mais une zone d'appui de 44 px pour le pouce. */
 .btn.lien-action {
@@ -3187,23 +3104,6 @@ button.phase-accueil:active {
 }
 
 /* Programmes tout prêts : une ligne par programme, le bouton à droite. */
-.programme-type {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid var(--bord);
-}
-.programme-type > div {
-  flex: 1;
-  min-width: 0;
-}
-.programme-type .pour {
-  color: var(--accent);
-  font-size: var(--t-petit);
-  font-weight: 600;
-  margin: 2px 0;
-}
 
 /* Lien qui a l'allure d'un bouton (ex. « Écrire mon avis » vers un mail). */
 a.btn {
@@ -5338,4 +5238,18 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .chips.zones-defile button {
   flex: none;
+}
+
+/* Formulaire d'exercice */
+.form-options summary .muted {
+  font-size: var(--t-titre);
+}
+.form-options[open] summary .muted {
+  transform: rotate(90deg);
+}
+.form-photo {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: var(--rayon-2);
 }

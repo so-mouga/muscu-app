@@ -32,12 +32,12 @@ export async function modifierEquivalents(f: (eq: Equivalents) => Equivalents) {
  * Repère pour un exercice jamais fait : la dernière meilleure série d'un équivalent.
  * `seances` de la plus récente à la plus ancienne (la séance en cours peut être en tête).
  */
-export function repere(exoId: string, eq: Equivalents, seances: Seance[]): { exoId: string; charge: number; reps: number; rpe: number; date: string } | null {
+export function repere(exoId: string, eq: Equivalents, seances: Seance[], assiste: (id: string) => boolean = () => false): { exoId: string; charge: number; reps: number; rpe: number; date: string } | null {
   const liste = eq[exoId] ?? []
   if (!liste.length) return null
   for (const s of seances) {
     for (const id of liste) {
-      const m = meilleureSerie(s.series.filter((x) => x.exoId === id))
+      const m = meilleureSerie(s.series.filter((x) => x.exoId === id), assiste(id))
       if (m) return { exoId: id, charge: m.charge, reps: m.reps, rpe: m.rpe, date: dateCourte(s.date) }
     }
   }

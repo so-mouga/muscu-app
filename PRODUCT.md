@@ -85,10 +85,13 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Programme modifié pendant un cycle** (3 nov. 2026) : la question ne se perd plus, un refus est respecté. Le détail est dans `AGENTS.md`.
 
+- **Programme et Exercices** (3 nov. 2026, après inventaire et maquette cliquable validés, un commit par écran) : page Programme et lancement `93393ce`, séance, réglage et liste d'ajout `935a92e`, Changer de programme `03b6452`, page du cycle et fusion du Bilan du cycle `1049fec`, fiche `f006bcc`, liste dans Progrès et retrait de l'onglet `282445a`, formulaire. Le détail est dans `AGENTS.md`.
+
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)
 
+- Programme et Exercices : barre à 4 onglets avec sa police ; est-ce que l'onglet Exercices manque ; l'appui sur le jour se trouve-t-il ; la carte du cycle gêne-t-elle en modifiant ; clavier qui reste ouvert dans la recherche d'exercices ; poignée pour réordonner ; vrai bouton retour dans les fenêtres, l'aperçu, le ⋯ et depuis une fiche ; dépliables et courbe au doigt ; constats « ça monte / stable / bloqué » sur ses vraies séances. À essayer avec sa famille : « lance ce programme pour 6 semaines, puis change le jour d'une séance ».
 - Démarrage : vrai bouton retour Android à chaque question (depuis la 1re, l'appli se ferme), largeur des 7 jours et du titre « Ton programme » + « Faire une séance › » avec sa police, flash éventuel au chargement. À essayer avec sa famille : leurs vraies hésitations avant d'ajouter d'autres cas.
 - Bilan et Corps : place en largeur avec sa police, retour Android depuis une fiche (même période, même position), « Noter mon poids », photos réelles dans Corps (poids en mémoire, fluidité).
 
@@ -122,22 +125,18 @@ Limites connues du parcours :
 
 ### Reste à faire, dans l'ordre
 
-1. **Programme et Exercices**, plan validé après maquette cliquable (`AGENTS.md`), un commit par écran. Fait : page Programme et fenêtre de lancement, écran de séance, réglage d'un exercice et liste d'ajout, Changer de programme et « Prendre ce programme » qui lance le cycle, page du cycle et fusion du Bilan du cycle, fiche d'exercice, liste dans Progrès et retrait de l'onglet. À voir à l'usage : si l'appui sur le jour se trouve. À faire : formulaire d'exercice (Palier, Machine assistée).
-2. **Réglages.**
+1. **Réglages.**
 
 À traiter en refaisant ces écrans :
 
 - Saisie des mensurations : garde un bouton « Enregistrer », contraire à l'enregistrement automatique. Détail de séance : « + Ajouter une série oubliée » répété sous chaque exercice, icônes ℹ et émojis du détail à reprendre.
 
-- Exercice créé par l'utilisateur et assisté : rien ne permet encore de le marquer (`Exercice.assistance`), à prévoir dans la fiche en refaisant Exercices. Le repère des exercices équivalents (`repere`) ne connaît pas non plus l'assistance.
 - La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.
 - Le Bilan, Programmes, Exercices et Réglages ont changé de teinte sans avoir été relus.
 - Réduire les `style={{…}}`, les tailles hors échelle et les variables de couleur restantes. La séance n'a plus d'émojis ni de RPE (sauf l'aide de l'effort) ; il en reste dans le Bilan, Programmes, le lexique, et ailleurs.
 - Fenêtres de l'Accueil (« Choisir une séance », détail d'une séance faite) : pas encore reprises, encore des `style={{…}}`.
-- Formulaire de l'onglet Exercices : dire « Palier » comme en séance (il dit encore « Pas de charge »).
 - Revoir l'échauffement général de la séance, pas encore repris.
 - Plein écran à 360 px de large : dans la rangée de séries, « S1 » est coupé à gauche, car la rangée se centre sur la série en cours. Déjà présent avant, à reprendre si ça gêne en salle.
-- Styles de l'ancienne page Programme encore dans `styles.css` (`.sous-seance-item`, `.badge-jour`, `.seance-plan-carte`, `.btn-jour`, `.programme-type`…) : à retirer une fois Programme et Exercices finis.
 - Tester chaque écran de 667 à 832 px de haut et à 360 comme à 384 px de large. Les scripts de capture ne sont pas dans le dépôt : Playwright sur `npm run build` + `.claude/launch.json`, en écrivant dans IndexedDB une séance `enCours` et un historique, avec les noms d'exercices les plus longs (« Extension triceps poulie haute à la corde ») et un superset. Pour simuler le bouton retour Android : `window.__retourCran()`. Deux validations à moins de 1,5 s : la seconde est ignorée (voulu). Les messages durent 4 s.
 - À la fin : `QA.md` et la fiche Play Store si des fonctions visibles ont changé, puis une vérification complète.
 

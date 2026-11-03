@@ -1,19 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MUSCLES } from '../data/exercices'
 import { db, uid } from '../db'
 import { POIDS_BARRES, type PoidsBarre } from '../lib/disques'
 import { photoReduite } from '../lib/image'
+import { kg } from '../lib/calc'
 import { secondairesProposes } from '../lib/secondaires'
 import type { Exercice, ModeCharge, Muscle } from '../types'
 import Interrupteur from './Interrupteur'
 import { informer } from './Dialogues'
 
-export const MODES: [ModeCharge, string][] = [
-  ['machine', 'Machine / barre / poulie'],
-  ['par_main', 'Haltère par main'],
-  ['poids_corps', 'Poids du corps (+ lest)'],
-  ['elastique', 'Élastique (niveau)'],
+const MATERIELS: [ModeCharge, string][] = [
+  ['machine', 'Machine, barre, poulie'],
+  ['par_main', 'Haltères'],
+  ['poids_corps', 'Poids du corps'],
+  ['elastique', 'Élastique'],
 ]
+/** Les mêmes qu'en séance, dans les réglages de la machine. */
+const PALIERS = [1, 1.25, 2, 2.5, 5, 10]
+const palierDefaut = (m: ModeCharge) => (m === 'elastique' ? 1 : m === 'par_main' ? 2 : 2.5)
+const nombre = (t: string) => {
+  const v = parseFloat(t.replace(',', '.'))
+  return v > 0 ? v : undefined
+}
 
 interface Props {
   /** Exercice à modifier ; absent = création. */
@@ -26,15 +34,22 @@ interface Props {
   fenetre?: boolean
 }
 
+/**
+ * Créer ou modifier un exercice : l'essentiel d'abord, le reste replié. En modification, tout
+ * s'enregistre tout seul, y compris en quittant par le retour ; à la création, « Créer » valide.
+ */
 export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnregistre, onAnnuler, fenetre = false }: Props) {
   const [nom, setNom] = useState(initial?.nom ?? nomInitial)
   // Pas de muscle par défaut : un exercice de jambes ne doit pas finir dans « Pecs » par inattention.
   const [muscle, setMuscle] = useState<Muscle | ''>(initial?.muscle ?? muscleInitial ?? '')
   const [secondaires, setSecondaires] = useState(initial?.secondaires ?? [])
   const [mode, setMode] = useState<ModeCharge>(initial?.mode ?? 'machine')
-  const [pas, setPas] = useState(String(initial?.pas ?? 2.5).replace('.', ','))
+  const [pas, setPas] = useState(initial?.pas ?? 2.5)
+  const [autreOuvert, setAutreOuvert] = useState(!!initial && !PALIERS.includes(initial.pas))
+  const [autre, setAutre] = useState(initial && !PALIERS.includes(initial.pas) ? kg(initial.pas) : '')
   // Charge maximale du matériel (haut de la pile, haltères les plus lourds) : vide = pas de limite.
-  const [max, setMax] = useState(initial?.chargeMax !== undefined ? String(initial.chargeMax).replace('.', ',') : '')
+  const [max, setMax] = useState(initial?.chargeMax !== undefined ? kg(initial.chargeMax) : '')
+  const [assiste, setAssiste] = useState(!!initial?.assistance)
   const [compose, setCompose] = useState(initial ? initial.type === 'compose' : false)
   const [temps, setTemps] = useState(initial?.mesure === 'temps')
   // Calculateur de disques : réglé exercice par exercice ; un exercice créé n'en a pas tant qu'on ne l'active pas.
@@ -67,22 +82,27 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
     }
   }
 
-  const enregistrer = async () => {
-    if (!muscle) return
-    const p = parseFloat(pas.replace(',', '.'))
+  const estMachine = mode === 'machine'
+  const assistee = estMachine && assiste
+  const avecMax = mode !== 'poids_corps' && !assistee
+  const palier = (autreOuvert && nombre(autre)) || pas
+  const complet = !!nom.trim() && !!muscle && !chargement
+
+  const exoSaisi = (): Exercice => {
     const exo: Exercice = {
       ...initial,
       id: initial?.id ?? 'x_' + uid(),
       nom: nom.trim(),
-      muscle,
+      muscle: muscle as Muscle,
       secondaires: secondaires.filter((s) => s.muscle !== muscle),
       type: compose ? 'compose' : 'isolation',
       mode,
-      pas: p > 0 ? p : mode === 'elastique' ? 1 : 2.5,
-      chargeMax: mode !== 'poids_corps' && parseFloat(max.replace(',', '.')) > 0 ? parseFloat(max.replace(',', '.')) : undefined,
-      suivreE1rm: compose && !temps,
+      pas: palier,
+      assistance: assistee || undefined,
+      chargeMax: avecMax ? nombre(max) : undefined,
+      suivreE1rm: compose && !temps && !assistee,
       mesure: temps ? 'temps' : undefined,
-      barre: mode === 'machine' && disques ? barre : undefined,
+      barre: estMachine && disques && !assistee ? barre : undefined,
       notes: notes.trim() || undefined,
       image,
       perso: initial ? initial.perso : true,
@@ -91,43 +111,49 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
     if (!exo.mesure) delete exo.mesure
     if (exo.barre === undefined) delete exo.barre
     if (exo.chargeMax === undefined) delete exo.chargeMax
+    if (!exo.assistance) delete exo.assistance
+    return exo
+  }
+  const ecrire = async (exo: Exercice) => {
     await db.exercices.put(exo)
     // L'ancien réglage de pas (écran Progression) est remplacé par celui de la fiche.
     await db.reglages.delete(`pas:${exo.id}`)
+  }
+  const creer = async () => {
+    const exo = exoSaisi()
+    await ecrire(exo)
     onEnregistre(exo)
   }
 
-  const contenu = (
-    <div className="pile">
-      <h2>{initial ? 'Modifier l’exercice' : 'Nouvel exercice'}</h2>
+  // Modification : écrite peu après chaque changement, et en quittant (retour, appui à côté). Pas de changement, pas d'écriture :
+  // un exercice de base simplement ouvert ne doit pas devenir « modifié ».
+  const signature = (e: Exercice) => JSON.stringify(Object.entries(e).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)))
+  const ecrit = useRef(initial ? signature(initial) : '')
+  const enregistrerModif = () => {
+    if (!initial || !complet) return
+    const exo = exoSaisi()
+    if (signature(exo) === ecrit.current) return
+    ecrit.current = signature(exo)
+    void ecrire(exo)
+  }
+  const dernier = useRef(enregistrerModif)
+  dernier.current = enregistrerModif
+  useEffect(() => {
+    if (!initial) return
+    const t = setTimeout(() => dernier.current(), 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nom, muscle, secondaires, mode, pas, autre, autreOuvert, max, assiste, compose, temps, disques, barre, notes, image])
+  useEffect(() => () => dernier.current(), [])
 
-      <div className="ligne" style={{ alignItems: 'center', gap: 12 }}>
-        {image ? (
-          <img src={image} alt="" style={{ width: 88, height: 88, objectFit: 'cover', borderRadius: 'var(--rayon-2)' }} />
-        ) : (
-          <span className="vignette vide" style={{ width: 88, height: 88, borderRadius: 'var(--rayon-2)', fontSize: 28 }}>
-            📷
-          </span>
-        )}
-        <div className="pile" style={{ flex: 1 }}>
-          <label className="btn plein">
-            {chargement ? 'Chargement…' : image ? 'Changer la photo' : 'Ajouter une photo'}
-            <input type="file" accept="image/*" hidden onChange={(e) => choisirPhoto(e.target.files?.[0])} />
-          </label>
-          {image && (
-            <button type="button" className="btn discret petit plein" onClick={() => setImage(undefined)}>
-              Retirer la photo
-            </button>
-          )}
-        </div>
-      </div>
-
+  const champs = (
+    <>
       <label className="champ">
         <span>Nom</span>
         <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="ex. Pec deck prise neutre" />
       </label>
       <label className="champ">
-        <span>Muscle principal</span>
+        <span>Muscle</span>
         <select value={muscle} onChange={(e) => setMuscle(e.target.value as Muscle)}>
           {!muscle && (
             <option value="" disabled>
@@ -142,119 +168,166 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         </select>
       </label>
       <div className="champ">
-        <span>Compte aussi pour (une demi-série dans le volume)</span>
+        <span>Matériel</span>
         <div className="chips">
-          {secondaires
-            .filter((s) => s.muscle !== muscle)
-            .map((s) => (
-              <button key={s.muscle} type="button" className="actif" onClick={() => (setSecondairesTouches(true), basculerSecondaire(s.muscle))} aria-label={`Retirer ${MUSCLES.find((m) => m.id === s.muscle)!.nom}`}>
-                {MUSCLES.find((m) => m.id === s.muscle)!.nom} ✕
-              </button>
-            ))}
-          <button type="button" className="btn discret petit" onClick={() => setToutesSecondaires(!toutesSecondaires)}>
-            {toutesSecondaires ? 'Fermer' : secondaires.length ? '+ Ajouter' : 'Aucun · + Ajouter'}
-          </button>
-        </div>
-        {toutesSecondaires && (
-          <div className="chips">
-            {MUSCLES.filter((m) => m.id !== muscle && !secondaires.some((s) => s.muscle === m.id)).map((m) => (
-              <button key={m.id} type="button" onClick={() => (setSecondairesTouches(true), basculerSecondaire(m.id))}>
-                + {m.nom}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <label className="champ">
-        <span>Mode de charge</span>
-        <select
-          value={mode}
-          onChange={(e) => {
-            const m = e.target.value as ModeCharge
-            setMode(m)
-            setPas(m === 'elastique' ? '1' : m === 'par_main' ? '2' : '2,5')
-          }}
-        >
-          {MODES.map(([m, n]) => (
-            <option key={m} value={m}>
+          {MATERIELS.map(([m, n]) => (
+            <button
+              key={m}
+              type="button"
+              className={mode === m ? 'actif' : ''}
+              onClick={() => {
+                setMode(m)
+                setPas(palierDefaut(m))
+                setAutreOuvert(false)
+                setAutre('')
+              }}
+            >
               {n}
-            </option>
+            </button>
           ))}
-        </select>
-      </label>
-      <div className="champ">
-        <span>Mesuré en</span>
-        <div className="segments" role="tablist" style={{ marginBottom: 0 }}>
-          <button type="button" className={!temps ? 'actif' : ''} onClick={() => setTemps(false)}>
-            Répétitions
-          </button>
-          <button type="button" className={temps ? 'actif' : ''} onClick={() => setTemps(true)}>
-            Temps (secondes)
-          </button>
         </div>
-        {temps !== (initial?.mesure === 'temps') && initial && (
-          <span className="faible">Pense à régler la durée visée de cet exercice dans tes séances (onglet Programmes).</span>
-        )}
       </div>
-      <label className="champ">
-        <span>Pas de charge ({mode === 'elastique' ? 'niveau' : 'kg'}) — boutons −/+</span>
-        <input inputMode="decimal" value={pas} onChange={(e) => setPas(e.target.value)} />
-      </label>
-      {mode !== 'poids_corps' && (
-        <label className="champ">
-          <span>Charge maximale du matériel ({mode === 'elastique' ? 'niveau' : mode === 'par_main' ? 'kg par main' : 'kg'}) — facultatif</span>
-          <input inputMode="decimal" value={max} onChange={(e) => setMax(e.target.value)} placeholder="vide = pas de limite" />
-          <span className="faible">Le haut de la pile, ou tes haltères les plus lourds. Une fois atteinte, l’appli ne propose plus de monter : elle conseille de ralentir la descente ou d’ajouter une pause.</span>
-        </label>
+      {mode !== 'elastique' && (
+        <div className="champ">
+          <span>Palier : de combien la charge monte</span>
+          <div className="chips">
+            {PALIERS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={!autreOuvert && pas === p ? 'actif' : ''}
+                onClick={() => {
+                  setPas(p)
+                  setAutreOuvert(false)
+                }}
+              >
+                {kg(p)} kg
+              </button>
+            ))}
+            <button type="button" className={autreOuvert ? 'actif' : ''} onClick={() => setAutreOuvert(true)}>
+              Autre
+            </button>
+          </div>
+          {autreOuvert && <input inputMode="decimal" aria-label="Autre palier, en kg" placeholder="Palier en kg" value={autre} onChange={(e) => setAutre(e.target.value)} />}
+        </div>
       )}
-      <Interrupteur
-        on={compose}
-        onChange={setCompose}
-        label="Exercice composé"
-        aide="Composé : plusieurs articulations bougent ensemble (développé, rowing, squat, soulevé de terre). Ta force y est suivie par une charge maximale estimée, et on lui donne plus de repos. Isolation (interrupteur coupé) : une seule articulation (curl, élévation latérale, extension de jambes), suivie par ta meilleure série."
-      />
-      {mode === 'machine' && (
-        <>
-          <Interrupteur
-            on={disques}
-            onChange={setDisques}
-            label="Calculateur de disques"
-            aide="En séance, sous la charge : les disques à mettre de chaque côté (barre, Smith, machine à plaques)."
-          />
-          {disques && (
-            <div className="champ">
-              <span>Poids de la barre</span>
+
+      <details className="depliable form-options">
+        <summary>
+          <span>Plus d’options</span>
+          <span className="muted">›</span>
+        </summary>
+        <div className="depliable-corps pile">
+          {estMachine && <Interrupteur on={assiste} onChange={setAssiste} label="Machine assistée" aide="Les kg notés t’aident : moins de kg = plus dur (tractions ou dips à la machine). Les conseils et les records vont dans ce sens." />}
+          <div className="champ">
+            <span>Compte aussi pour (une demi-série dans le volume)</span>
+            <div className="chips">
+              {secondaires
+                .filter((s) => s.muscle !== muscle)
+                .map((s) => (
+                  <button key={s.muscle} type="button" className="actif" onClick={() => (setSecondairesTouches(true), basculerSecondaire(s.muscle))} aria-label={`Retirer ${MUSCLES.find((m) => m.id === s.muscle)!.nom}`}>
+                    {MUSCLES.find((m) => m.id === s.muscle)!.nom} ✕
+                  </button>
+                ))}
+              <button type="button" className="btn discret petit" onClick={() => setToutesSecondaires(!toutesSecondaires)}>
+                {toutesSecondaires ? 'Fermer' : secondaires.length ? '+ Ajouter' : 'Aucun · + Ajouter'}
+              </button>
+            </div>
+            {toutesSecondaires && (
               <div className="chips">
-                {POIDS_BARRES.map((b) => (
-                  <button key={b} type="button" className={barre === b ? 'actif' : ''} onClick={() => setBarre(b)}>
-                    {b === 0 ? 'Disques seuls' : `${b} kg${b === 20 ? ' (barre olympique)' : b === 10 ? ' (Smith)' : ''}`}
+                {MUSCLES.filter((m) => m.id !== muscle && !secondaires.some((s) => s.muscle === m.id)).map((m) => (
+                  <button key={m.id} type="button" onClick={() => (setSecondairesTouches(true), basculerSecondaire(m.id))}>
+                    + {m.nom}
                   </button>
                 ))}
               </div>
-            </div>
+            )}
+          </div>
+          <Interrupteur on={temps} onChange={setTemps} label="Mesuré en secondes" aide="Gainage, tenues : chaque série se note en secondes plutôt qu’en reps." />
+          {temps !== (initial?.mesure === 'temps') && initial && <span className="faible">Pense à régler la durée visée de cet exercice dans tes séances.</span>}
+          <Interrupteur
+            on={compose}
+            onChange={setCompose}
+            label="Plusieurs articulations"
+            aide="Développé, rowing, squat, soulevé de terre : ta force y est suivie par une estimation, et on lui donne plus de repos. Coupé : une seule articulation (curl, élévation latérale), suivie par ta meilleure série."
+          />
+          {avecMax && (
+            <label className="champ">
+              <span>Charge maximale du matériel ({mode === 'elastique' ? 'niveau' : mode === 'par_main' ? 'kg par main' : 'kg'})</span>
+              <input inputMode="decimal" value={max} onChange={(e) => setMax(e.target.value)} placeholder="Pas de limite" />
+              <span className="faible">Le haut de la pile, ou tes haltères les plus lourds. L’appli ne propose pas de monter au-delà.</span>
+            </label>
           )}
-        </>
-      )}
-      <label className="champ">
-        <span>Réglages machine / consignes</span>
-        <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ex. siège cran 4, dossier 2" />
-      </label>
-
-      <button className="btn primaire grand" disabled={!nom.trim() || !muscle || chargement} onClick={enregistrer}>
-        {initial ? 'Enregistrer' : 'Créer'}
-      </button>
-      {!initial && (
-        <button type="button" className="btn discret plein" onClick={onAnnuler}>
-          Annuler
-        </button>
-      )}
-    </div>
+          {estMachine && !assistee && (
+            <>
+              <Interrupteur on={disques} onChange={setDisques} label="Calculateur de disques" aide="En séance, sous la charge : les disques à mettre de chaque côté (barre, Smith, machine à plaques)." />
+              {disques && (
+                <div className="champ">
+                  <span>Poids de la barre</span>
+                  <div className="chips">
+                    {POIDS_BARRES.map((b) => (
+                      <button key={b} type="button" className={barre === b ? 'actif' : ''} onClick={() => setBarre(b)}>
+                        {b === 0 ? 'Disques seuls' : `${b} kg${b === 20 ? ' (barre olympique)' : b === 10 ? ' (Smith)' : ''}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          <label className="champ">
+            <span>Note</span>
+            <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ex. siège cran 4, dossier 2" />
+          </label>
+          <div className="champ">
+            <span>Photo</span>
+            {image && <img src={image} alt="" className="form-photo" />}
+            <div className="ligne" style={{ gap: 'var(--e2)' }}>
+              <label className="btn" style={{ flex: 1 }}>
+                {chargement ? 'Chargement…' : image ? 'Changer la photo' : 'Ajouter une photo'}
+                <input type="file" accept="image/*" hidden onChange={(e) => choisirPhoto(e.target.files?.[0])} />
+              </label>
+              {image && (
+                <button type="button" className="btn discret" onClick={() => setImage(undefined)}>
+                  Retirer
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </details>
+    </>
   )
-  if (!fenetre) return contenu
+  const bouton = initial ? (
+    <button className="btn plein" onClick={onAnnuler}>
+      Terminé
+    </button>
+  ) : (
+    <button className="btn primaire plein" disabled={!complet} onClick={() => void creer()}>
+      Créer
+    </button>
+  )
+  const titre = <h2>{initial ? 'Modifier l’exercice' : 'Nouvel exercice'}</h2>
+
+  if (!fenetre)
+    return (
+      <div className="pile">
+        {titre}
+        {champs}
+        {bouton}
+        {!initial && (
+          <button type="button" className="btn discret plein" onClick={onAnnuler}>
+            Annuler
+          </button>
+        )}
+      </div>
+    )
   return (
-    <div className="modal-fond" onClick={() => (nom.trim() && muscle && !chargement ? void enregistrer() : onAnnuler())}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        {contenu}
+    <div className="modal-fond" onClick={() => (initial ? onAnnuler() : complet ? void creer() : onAnnuler())}>
+      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-tete">{titre}</div>
+        <div className="modal-defile pile">{champs}</div>
+        <div className="modal-pied">{bouton}</div>
       </div>
     </div>
   )

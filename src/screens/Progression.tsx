@@ -282,7 +282,7 @@ export function Detail({
           <ChevronRight size={20} className="muted depliable-chevron" />
         </summary>
         <div className="depliable-corps pile">
-          <ContenuReglages key={exo.id} exo={exo} />
+          <ContenuReglages key={`${exo.id}:${exo.pas}:${exo.chargeMax}`} exo={exo} />
         </div>
       </details>
 

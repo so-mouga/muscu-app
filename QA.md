@@ -60,8 +60,8 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 
 ### 5. Exercices (dans Progrès, plus d'onglet)
 - Barre du bas à 4 onglets. Progrès → Exercices : tes exercices d'abord avec leur dernière performance et « ça monte », « stable » ou « bloqué » ; les autres par la recherche, les filtres ou « Voir les n autres ». « Voir tous les exercices » du Bilan y mène ; retour d'une fiche à la même position.
-- Créer un exercice, le modifier, le supprimer.
-- Fiche d'un exercice : interrupteur « Calculateur de disques » (coupé pour un exercice créé ; activé d'office sur les exercices à barre et Smith, pas sur les presses), poids de la barre ; en séance, la puce sous la charge donne les disques par côté.
+- Créer un exercice : nom, muscle, matériel, palier, le reste dans « Plus d'options », dont « Machine assistée » (moins de kg = plus dur). Le modifier (⋯ de la fiche) : pas de bouton Enregistrer, tout est gardé, y compris par le retour. Le supprimer.
+- Fiche d'un exercice : dans les options du formulaire, interrupteur « Calculateur de disques » (coupé pour un exercice créé ; activé d'office sur les exercices à barre et Smith, pas sur les presses), poids de la barre ; en séance, la puce sous la charge donne les disques par côté.
 - Exercice de base : modifiable, « Revenir à l'original » (dans ⋯), « Masquer » (réversible, jamais supprimé).
 - Fiche sur une page : « Dernière fois », effort en clair (jamais @8 ni 1RM), « Ça monte / Stable / Bloqué depuis n semaines » avec ses chiffres, courbe (force ou charge) ; dépliables : historique, records, comment le faire, réglages, remplaçants ; ⋯ : modifier, dupliquer, masquer ou supprimer. Exercice jamais fait : « Pas encore fait », consignes ouvertes.
 

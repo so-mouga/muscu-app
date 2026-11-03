@@ -313,7 +313,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   /** Exercice jamais fait : la dernière perf d'un équivalent relié (séance du jour comprise). */
   const repereDe = (exoId: string) => {
     if (historiqueDe(terminees, exoId).length) return undefined
-    const r = repere(exoId, equivalents, [seance, ...terminees])
+    const r = repere(exoId, equivalents, [seance, ...terminees], (id) => !!catalogue.exo(id).assistance)
     if (!r) return undefined
     const ref = catalogue.exo(r.exoId)
     return `${ref.nom}, ${chargeQte(ref, r.charge, r.reps)}, effort ${kg(r.rpe)}/10 (${r.date})`
