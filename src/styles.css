@@ -5216,3 +5216,29 @@ html[data-sens='fondu']::view-transition-new(root) {
   color: var(--bg);
   font-weight: 600;
 }
+
+/* Écran de séance */
+.seance-jour-choix {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font: inherit;
+  min-height: 24px;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.exo-ligne > .muted {
+  flex: none;
+}
+.seance-muscles {
+  margin-top: var(--e2);
+  padding: 0 var(--e1);
+}
+.exo-plan-plus {
+  margin-top: var(--e2);
+}
+.choix-exo-groupe {
+  margin: var(--e3) 0 var(--e2);
+  font-size: var(--t-petit);
+  color: var(--texte-2);
+}

@@ -49,7 +49,8 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Refais la même séance : l'objectif par défaut est **refaire pareil** que la dernière fois (pas de progression automatique).
 
 ### 4. Programmes
-- Créer un programme, une séance, ajouter / retirer / réordonner des exercices (poignée ⠿, appui maintenu, pas de flèches).
+- Séance : les exercices d'abord, un appui sur une ligne ouvre son réglage (« Suivant › » toujours visible ; en bas : Comment le faire, Remplacer, Enchaîner en superset, Retirer) ; réordonner à la poignée ⠿, appui maintenu ; un appui sur le jour sous le titre le change ; ⋯ : renommer, sous-titre, plan B « Pas de salle », dupliquer, retirer du programme.
+- Ajouter des exercices : liste à plat par muscle, filtres par zone, recherche qui se vide après chaque choix ; ⓘ ouvre la fiche, avec « Ajouter à la séance » ; plusieurs exercices d'un coup ; aucun réglage imposé avant de revenir.
 - L'onglet Programme montre le programme en service : cycle en une ligne (« Cycle · semaine 3 sur 6 ») ou « Lancer sur 6 semaines » en orange, séances triées par jour, un appui sur le jour le change, un appui sur la ligne ouvre la séance. Fenêtre de lancement : une phrase, « Lancer le cycle », « Régler » pour le début, le nom, la durée et les semaines allégées ; un message confirme. Cycle terminé : « Relancer sur 6 semaines ».
 - « Changer de programme » : autres programmes, tout prêts, « Créer le mien », « Autres séances » (ce qui reste de la Bibliothèque). ⋯ : renommer, dupliquer, supprimer.
 - Programme modifié pendant un cycle : la carte « Ton cycle garde l'ancienne version » apparaît tout de suite, reste après la barre du bas ou l'appli fermée (rappel sur l'Accueil) ; « Garder pour le prochain cycle » n'entre jamais dans le cycle, même en acceptant ensuite un autre changement ; l'historique ne change pas.

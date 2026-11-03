@@ -17,7 +17,6 @@ import { db, setReglage, uid } from '../db'
 import { chargeTexte, dureeEstimee, dureeTexte, kg, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
-import SilhouetteVolume from '../components/SilhouetteVolume'
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { estDansSuperset, groupeSuperset } from '../lib/superset'
@@ -44,14 +43,14 @@ export function planParDefaut(exo: Exercice): ExoPlan {
 }
 
 export function resumePlan(exo: Exercice, p: ExoPlan): string {
-  // Le RPE n'apparaît que s'il s'écarte du réglage par défaut (8) : on lit d'abord reps, charge, repos.
+  // L'effort n'apparaît que s'il s'écarte du réglage par défaut (8) : on lit d'abord reps, charge, repos.
   const rpeParDefaut = p.series.every((x) => x.rpe === 8) || (p.finisseur && p.series.slice(0, -1).every((x) => x.rpe === 8))
   return [
     schemaPlan(exo, p),
     p.charge === null ? '' : chargeTexte(exo, p.charge),
     p.enchaine ? (p.repos > 0 ? `repos ${p.repos} s (enchaîné)` : 'enchaîné direct') : `repos ${reposTexte(p)}`,
-    rpeParDefaut ? '' : `RPE ${p.series.map((x) => kg(x.rpe)).join(', ')}`,
-    p.finisseur ? '★ finisseur' : '',
+    rpeParDefaut ? '' : `effort ${[...new Set(p.series.map((x) => kg(x.rpe)))].join(', ')}/10`,
+    p.finisseur ? 'finisseur' : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -59,7 +58,7 @@ export function resumePlan(exo: Exercice, p: ExoPlan): string {
 
 type Vue =
   | { type: 'programme'; p: Programme }
-  | { type: 'seance'; m: SeanceModele; nouvelle: boolean; /** Dans un programme : pas de choix de programme ici. */ pourProgramme?: boolean; /** Séance à peine créée : on choisit tout de suite ses exercices. */ choisirExos?: boolean }
+  | { type: 'seance'; m: SeanceModele; nouvelle: boolean; /** Ouverte depuis un programme. */ entree?: { programmeId: string; index: number }; /** Séance à peine créée : on choisit tout de suite ses exercices. */ choisirExos?: boolean }
   | { type: 'cycle' }
   | { type: 'volume'; p: Programme }
   | { type: 'changer' }
@@ -84,7 +83,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
   const fermer = () => (transition(() => setPile((x) => x.slice(0, -1)), 'arriere'), window.scrollTo({ top: 0 }))
   useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'autresSeances', fermer)
-  const ouvrirSeance = (m: SeanceModele, pourProgramme = true, choisirExos = false) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle: false, pourProgramme, choisirExos })
+  const ouvrirSeance = (m: SeanceModele, entree: { programmeId: string; index: number }, choisirExos = false) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle: false, entree, choisirExos })
   const nouveauProgramme = async () => {
     const noms = new Set(catalogue.programmes.map((x) => x.nom))
     let nom = 'Mon programme'
@@ -106,7 +105,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
     return (
       <>
         <AvisCycle catalogue={catalogue} fixe />
-        <Editeur key={vue.m.id} catalogue={catalogue} initial={vue.m} nouvelle={vue.nouvelle} pourProgramme={!!vue.pourProgramme} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
+        <Editeur key={vue.m.id} catalogue={catalogue} initial={vue.m} nouvelle={vue.nouvelle} entree={vue.entree} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
       </>
     )
   if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={fermer} />
@@ -189,7 +188,7 @@ function PageProgramme({
   terminees: Seance[] | undefined
   /** Absent : c'est le programme en service, la page de l'onglet. */
   onRetour?: () => void
-  onSeance: (m: SeanceModele, pourProgramme?: boolean, choisirExos?: boolean) => void
+  onSeance: (m: SeanceModele, entree: { programmeId: string; index: number }, choisirExos?: boolean) => void
   onCycle: () => void
   onVolume: () => void
   onChanger: () => void
@@ -243,7 +242,7 @@ function PageProgramme({
     await db.modeles.put(m)
     await sauverProgramme({ ...p, seances: [...p.seances, { modeleId: m.id, jour }] }, catalogue)
     setAjout(null)
-    onSeance(m, true, true)
+    onSeance(m, { programmeId: p.id, index: p.seances.length }, true)
   }
 
   const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
@@ -326,7 +325,7 @@ function PageProgramme({
           <button type="button" className={'prog-jour' + (e.jour ? '' : ' sans')} aria-label={`Jour de ${m!.nom} : ${e.jour ? JOURS[e.jour] : 'aucun'}`} onClick={() => setChoixJour(i)}>
             {e.jour ? jourCourt(e.jour) : 'sans jour'}
           </button>
-          <button type="button" className="prog-ligne" onClick={() => onSeance(m!)}>
+          <button type="button" className="prog-ligne" onClick={() => onSeance(m!, { programmeId: p.id, index: i })}>
             <span>
               {m!.nom}
               {m!.sousTitre && <span className="faible prog-sous">{m!.sousTitre}</span>}
@@ -411,16 +410,6 @@ function PageProgramme({
             >
               Sans jour : séance au choix
             </button>
-            <button
-              className="btn discret plein"
-              onClick={() => {
-                const i = choixJour
-                setChoixJour(null)
-                maj((x) => x.seances.splice(i, 1))
-              }}
-            >
-              Retirer de ce programme
-            </button>
           </div>
         </div>
       )}
@@ -478,14 +467,14 @@ function PageProgramme({
 }
 
 /** Un appui à côté ou le retour gardent le nom saisi ; vide, on garde l'ancien. */
-function FenetreRenommer({ nom, onFin }: { nom: string; onFin: (nom: string) => void }) {
+function FenetreRenommer({ titre = 'Renommer', nom, indice, videPermis = false, onFin }: { titre?: string; nom: string; indice?: string; videPermis?: boolean; onFin: (nom: string) => void }) {
   const [texte, setTexte] = useState(nom)
-  const finir = () => onFin(texte.trim() || nom)
+  const finir = () => onFin(texte.trim() || (videPermis ? '' : nom))
   return (
     <div className="modal-fond" onClick={finir}>
       <div className="modal pile" onClick={(ev) => ev.stopPropagation()}>
-        <h2>Renommer</h2>
-        <input value={texte} autoFocus onChange={(ev) => setTexte(ev.target.value)} />
+        <h2>{titre}</h2>
+        <input value={texte} autoFocus placeholder={indice} onChange={(ev) => setTexte(ev.target.value)} />
         <button className="btn plein" onClick={finir}>
           Terminé
         </button>
@@ -610,15 +599,15 @@ function Editeur({
   catalogue,
   initial,
   nouvelle,
-  pourProgramme,
+  entree,
   choisirExos,
   onFermer,
 }: {
   catalogue: Catalogue
   initial: SeanceModele
   nouvelle: boolean
-  /** Ouverte depuis un programme : pas de choix de programme ici. */
-  pourProgramme: boolean
+  /** Ouverte depuis un programme : lequel, et sa place dedans (son jour, « Retirer du programme »). */
+  entree?: { programmeId: string; index: number }
   /** Séance à peine créée : on ouvre tout de suite le choix des exercices. */
   choisirExos: boolean
   onFermer: () => void
@@ -627,28 +616,22 @@ function Editeur({
   const [choix, setChoix] = useState(choisirExos)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [infos, setInfos] = useState<Exercice | null>(null)
-  // Programmes qui contiennent la séance ; une nouvelle séance va par défaut dans le programme actif.
-  const progsInitiaux = catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === initial.id)).map((p) => p.id)
-  const [progs, setProgs] = useState<string[]>(nouvelle ? [catalogue.actif.id] : progsInitiaux)
+  const [plus, setPlus] = useState(false)
+  const [fenetre, setFenetre] = useState<'nom' | 'sousTitre' | 'planB' | 'jour' | null>(null)
+  useRetour(plus, () => setPlus(false))
+  useRetour(fenetre !== null, () => setFenetre(null))
   // Comparé à la dernière version écrite (pas à celle d'ouverture) : revenir en arrière s'enregistre aussi.
-  const version = () => JSON.stringify(m) + (pourProgramme ? '' : [...progs].sort().join())
-  const ecrit = useRef(JSON.stringify(initial) + (pourProgramme ? '' : [...(nouvelle ? [] : progsInitiaux)].sort().join()))
-  const modifie = version() !== ecrit.current
+  const ecrit = useRef(JSON.stringify(initial))
+  const modifie = JSON.stringify(m) !== ecrit.current
   const prechargee = !!MODELES[m.id]
+  const programme = entree && catalogue.programmes.find((p) => p.id === entree.programmeId)
+  const jour = entree && programme?.seances[entree.index]?.jour
 
-  // Enregistrement automatique : la séance et ses programmes sont écrits peu après chaque changement.
-  const [enregistre, setEnregistre] = useState(false)
+  // Enregistrement automatique : la séance est écrite peu après chaque changement.
   const ecrire = async () => {
-    ecrit.current = version()
+    ecrit.current = JSON.stringify(m)
     const finale = { ...m, nom: m.nom.trim(), sousTitre: m.sousTitre.trim() }
     await db.modeles.put(finale)
-    if (!pourProgramme)
-      for (const p of catalogue.programmes) {
-        const dedans = p.seances.some((e) => e.modeleId === finale.id)
-        if (progs.includes(p.id) && !dedans) await sauverProgramme({ ...p, seances: [...p.seances, { modeleId: finale.id }] }, catalogue)
-        if (!progs.includes(p.id) && dedans) await sauverProgramme({ ...p, seances: p.seances.filter((e) => e.modeleId !== finale.id) }, catalogue)
-      }
-    setEnregistre(true)
     return finale
   }
   useEffect(() => {
@@ -656,7 +639,7 @@ function Editeur({
     const t = setTimeout(() => void ecrire(), 400)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [m, progs])
+  }, [m])
 
   // Quitté aussitôt après un changement (barre du bas) : il est écrit quand même.
   const enAttente = useRef(() => {})
@@ -682,9 +665,6 @@ function Editeur({
       return c
     })
   const [remplace, setRemplace] = useState<number | null>(null)
-  /** Exercice dont le menu ⋯ est ouvert (fiche, remplacer, retirer). */
-  const [menu, setMenu] = useState<number | null>(null)
-  useRetour(menu !== null, () => setMenu(null))
   const glisser = useGlisser('.exo-ligne', (de, vers) =>
     maj((x) => {
       if (x.exercices[de]) x.exercices[de].enchaine = undefined
@@ -698,14 +678,23 @@ function Editeur({
   // Séries dures que la séance donne à chaque muscle, du plus travaillé au moins travaillé.
   const volume = volumePrevu([m], catalogue.exercices)
   const travailles = MUSCLES.filter((x) => volume[x.id] > 0).sort((a, b) => volume[b.id] - volume[a.id])
-  const valide = m.nom.trim() !== '' && m.exercices.length > 0
 
   const dupliquer = async () => {
+    setPlus(false)
     await db.modeles.put({ ...structuredClone(m), id: 'm_' + uid(), nom: `${m.nom.trim()} (copie)`, jour: undefined })
-    onFermer()
+    await informer(`La copie est dans « Changer de programme », puis « Autres séances ».`, 'Séance dupliquée')
+  }
+  const retirer = async () => {
+    setPlus(false)
+    if (!programme || !entree) return
+    if (!(await confirmer('Elle reste disponible dans « Autres séances ». L’historique ne change pas.', { titre: `Retirer « ${m.nom} » de ${programme.nom} ?`, oui: 'Retirer du programme', danger: true }))) return
+    await sauverProgramme({ ...programme, seances: programme.seances.filter((_, i) => i !== entree.index) }, catalogue)
+    await quitter()
   }
   const supprimer = async () => {
+    setPlus(false)
     if (!(await confirmer('L’historique des séances faites est conservé.', { titre: `Supprimer « ${m.nom} » ?`, oui: 'Supprimer la séance', danger: true }))) return
+    ecrit.current = JSON.stringify(m)
     if (prechargee) await db.modeles.put({ ...initial, supprime: true })
     else await db.modeles.delete(m.id)
     onFermer()
@@ -714,78 +703,38 @@ function Editeur({
   return (
     <div>
       <div className="entete">
-        <button
-          className="btn"
-          onClick={() => void quitter()}
-        >
+        <button className="btn" onClick={() => void quitter()} aria-label="Retour">
           ←
         </button>
-        <h2 style={{ flex: 1 }}>{nouvelle ? 'Nouvelle séance' : 'Modifier la séance'}</h2>
-        <EtatEnregistrement nom={m.nom} enregistre={enregistre} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2>{m.nom.trim() || 'Nouvelle séance'}</h2>
+          <div className="faible">
+            {programme && (
+              <button type="button" className="seance-jour-choix" aria-label={`Changer le jour : ${jour ? JOURS[jour] : 'aucun'}`} onClick={() => setFenetre('jour')}>
+                {jour ? JOURS[jour] : 'sans jour'}
+              </button>
+            )}
+            {programme && m.sousTitre ? ' · ' : ''}
+            {m.sousTitre}
+          </div>
+        </div>
+        <button className="icone" onClick={() => setPlus(true)} aria-label="Plus d’actions">
+          <MoreHorizontal size={22} />
+        </button>
       </div>
 
-      <div className="carte pile">
-        <label className="champ">
+      {nouvelle && (
+        <label className="champ carte">
           <span>Nom</span>
           <input value={m.nom} placeholder="ex. Haut D" onChange={(e) => maj((x) => (x.nom = e.target.value))} />
         </label>
-        <label className="champ">
-          <span>Sous-titre</span>
-          <input value={m.sousTitre} placeholder="ex. épaules + bras" onChange={(e) => maj((x) => (x.sousTitre = e.target.value))} />
-        </label>
-        <label className="champ">
-          <span>Variante de (pour « Pas de salle »)</span>
-          <select value={m.varianteDe ?? ''} onChange={(e) => maj((x) => (x.varianteDe = e.target.value || undefined))}>
-            <option value="">Aucune</option>
-            {catalogue.modeles
-              .filter((x) => x.id !== m.id)
-              .map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.nom}
-                </option>
-              ))}
-          </select>
-          <span className="faible">Séance de repli proposée sur l’accueil (« 🏠 Pas de salle ») quand tu ne peux pas aller à la salle ce jour-là.</span>
-        </label>
-        {!pourProgramme && (
-          <div className="champ">
-            <span>Programme{catalogue.programmes.length > 1 ? 's' : ''}</span>
-            <div className="chips">
-              {catalogue.programmes.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={progs.includes(p.id) ? 'actif' : ''}
-                  onClick={() => setProgs((x) => (x.includes(p.id) ? x.filter((y) => y !== p.id) : [...x, p.id]))}
-                >
-                  {progs.includes(p.id) ? '✓ ' : ''}
-                  {p.nom}
-                </button>
-              ))}
-            </div>
-            <span className="faible">
-              {progs.length === 0
-                ? 'Dans aucun programme : tu la retrouveras dans « Autre séance → Hors programme ».'
-                : 'Le jour de la semaine se règle dans le programme (onglet Programme).'}
-            </span>
-          </div>
-        )}
-      </div>
+      )}
 
-      <ReglageEchauffement modele={m} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />
-
-      <div className="carte">
-        <div className="ligne entre">
-          <h3>Exercices</h3>
-          {m.exercices.length > 0 && <span className="faible">≈ {minutes(dureeEstimee(m))}</span>}
-        </div>
-        {m.exercices.length === 0 && <div className="muted petit" style={{ marginTop: 8 }}>Aucun exercice pour l’instant.</div>}
-        <div ref={glisser.liste}>
+      <div ref={glisser.liste}>
         {m.exercices.map((p, i) => {
           const exo = catalogue.exo(p.exoId)
           const dansSuperset = estDansSuperset(m.exercices, i)
           const groupe = groupeSuperset(m.exercices, i)
-          const posSuperset = dansSuperset ? groupe.indexOf(i) + 1 : 0
           const enchaine = !!p.enchaine
           const precEnchaine = i > 0 && !!m.exercices[i - 1]?.enchaine
           return (
@@ -799,130 +748,137 @@ function Editeur({
                 (precEnchaine && !enchaine ? ' suite-superset' : '')
               }
             >
-              <button className="poignee" aria-label={`Déplacer ${exo.nom}`} {...glisser.poignee(i)}>
-                ⠿
-              </button>
+              {m.exercices.length > 1 && (
+                <button className="poignee" aria-label={`Déplacer ${exo.nom}`} {...glisser.poignee(i)}>
+                  ⠿
+                </button>
+              )}
               <button className="texte" onClick={() => setEditIdx(i)}>
-                <div className="ligne entre" style={{ gap: 4 }}>
-                  <strong>
-                    {i + 1}. {exo.nom}
-                  </strong>
-                  {dansSuperset && <span className="badge-superset">🔗 A{posSuperset} · Superset</span>}
-                </div>
+                <strong>{exo.nom}</strong>
+                {dansSuperset && <span className="badge-superset">Superset {groupe.indexOf(i) + 1}/{groupe.length}</span>}
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 <div className="faible">{resumePlan(exo, p)}</div>
               </button>
-              <button className="icone" onClick={() => setMenu(i)} aria-label={`Actions pour ${exo.nom}`}>
-                ⋯
-              </button>
+              <ChevronRight size={20} className="muted" />
             </div>
           )
         })}
-        </div>
-        {m.exercices.length > 1 && <div className="faible" style={{ marginTop: 6 }}>Pour changer l’ordre, maintiens la poignée ⠿ d’un exercice puis fais-le glisser.</div>}
-        <button className="btn plein" style={{ marginTop: 12 }} onClick={() => setChoix(true)}>
-          + Ajouter un exercice
-        </button>
-        {finisseurs > 2 && (
-          <div className="faible" style={{ color: 'var(--alerte)', marginTop: 8 }}>
-            {finisseurs} finisseurs dans la même séance : c’est beaucoup, la qualité des dernières séries risque d’en pâtir.
-          </div>
-        )}
       </div>
-
-      {travailles.length > 0 && (
-        <div className="carte">
-          <h3>Muscles travaillés</h3>
-          <div className="faible" style={{ margin: '4px 0 8px' }}>
-            Séries dures de cette séance, face aux objectifs de la semaine. Le total de la semaine est dans le programme.
-          </div>
-          <SilhouetteVolume volume={volume} cibles={catalogue.cibles} legende="objectif de la semaine" quoi="prévues" />
-          {travailles.map((x) => (
-            <div key={x.id} className="ligne entre petit" style={{ padding: '4px 0' }}>
-              <span>{x.nom}</span>
-              <strong>
-                {kg(volume[x.id])} série{volume[x.id] >= 2 ? 's' : ''}
-              </strong>
-            </div>
-          ))}
+      <button className={'btn plein' + (m.exercices.length ? '' : ' primaire')} style={{ margin: 'var(--e3) 0 var(--e4)' }} onClick={() => setChoix(true)}>
+        + Ajouter un exercice
+      </button>
+      {finisseurs > 2 && (
+        <div className="faible" style={{ color: 'var(--alerte)', marginBottom: 'var(--e3)' }}>
+          {finisseurs} finisseurs dans la même séance : c’est beaucoup, la qualité des dernières séries risque d’en pâtir.
         </div>
       )}
 
-      {!valide && <div className="faible" style={{ marginTop: 6 }}>Donne-lui un nom et ajoute des exercices : tout s’enregistre au fur et à mesure.</div>}
-      {(!nouvelle || enregistre) && (
-        <div className="ligne wrap" style={{ marginTop: 12 }}>
-          <button className="btn" onClick={dupliquer}>
-            Dupliquer
-          </button>
-          <button className="btn danger" onClick={supprimer}>
-            Supprimer
-          </button>
+      {m.exercices.length > 0 && <ReglageEchauffement modele={m} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />}
+      {travailles.length > 0 && (
+        <div className="faible seance-muscles">
+          ≈ {minutes(dureeEstimee(m))} · séries dures : {travailles.slice(0, 5).map((x) => `${x.nom} ${kg(volume[x.id])}`).join(' · ')}
+        </div>
+      )}
+
+      {plus && (
+        <div className="modal-fond" onClick={() => setPlus(false)}>
+          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+            <h3>{m.nom}</h3>
+            <button className="liste-btn" onClick={() => (setPlus(false), setFenetre('nom'))}>
+              <span>Renommer</span>
+            </button>
+            <button className="liste-btn" onClick={() => (setPlus(false), setFenetre('sousTitre'))}>
+              <span>{m.sousTitre ? 'Modifier le sous-titre' : 'Ajouter un sous-titre'}</span>
+            </button>
+            <button className="liste-btn" onClick={() => (setPlus(false), setFenetre('planB'))}>
+              <span>
+                Plan B « Pas de salle »
+                <span className="faible prog-sous">{m.varianteDe ? `Variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : 'Séance de repli proposée sur l’accueil'}</span>
+              </span>
+            </button>
+            <button className="liste-btn" onClick={() => void dupliquer()}>
+              <span>Dupliquer</span>
+            </button>
+            {programme ? (
+              <button className="liste-btn" onClick={() => void retirer()}>
+                <span style={{ color: 'var(--danger)' }}>Retirer du programme</span>
+              </button>
+            ) : (
+              !nouvelle && (
+                <button className="liste-btn" onClick={() => void supprimer()}>
+                  <span style={{ color: 'var(--danger)' }}>Supprimer la séance</span>
+                </button>
+              )
+            )}
+            <button className="btn discret plein" onClick={() => setPlus(false)}>
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+      {fenetre === 'nom' && <FenetreRenommer nom={m.nom} onFin={(nom) => (setFenetre(null), maj((x) => (x.nom = nom)))} />}
+      {fenetre === 'sousTitre' && <FenetreRenommer titre="Sous-titre" nom={m.sousTitre} videPermis indice="ex. épaules + bras" onFin={(nom) => (setFenetre(null), maj((x) => (x.sousTitre = nom)))} />}
+      {fenetre === 'planB' && (
+        <div className="modal-fond" onClick={() => setFenetre(null)}>
+          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+            <h2>Plan B « Pas de salle »</h2>
+            <div className="faible">Cette séance sera proposée sur l’accueil, à la place de la séance choisie ici, quand tu ne peux pas aller à la salle ce jour-là.</div>
+            <select aria-label="Séance remplacée" value={m.varianteDe ?? ''} onChange={(e) => maj((x) => (x.varianteDe = e.target.value || undefined))}>
+              <option value="">Aucune</option>
+              {catalogue.modeles
+                .filter((x) => x.id !== m.id)
+                .map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.nom}
+                  </option>
+                ))}
+            </select>
+            <button className="btn plein" onClick={() => setFenetre(null)}>
+              Terminé
+            </button>
+          </div>
+        </div>
+      )}
+      {fenetre === 'jour' && programme && entree && (
+        <div className="modal-fond" onClick={() => setFenetre(null)}>
+          <div className="modal pile" onClick={(ev) => ev.stopPropagation()}>
+            <h2>Quel jour pour {m.nom} ?</h2>
+            <ChoixJours
+              jour={jour}
+              onJour={(j) => {
+                setFenetre(null)
+                void sauverProgramme({ ...programme, seances: programme.seances.map((e, i) => (i === entree.index ? { ...e, jour: j } : e)) }, catalogue)
+              }}
+            />
+            <button
+              className="btn plein"
+              onClick={() => {
+                setFenetre(null)
+                void sauverProgramme({ ...programme, seances: programme.seances.map((e, i) => (i === entree.index ? { ...e, jour: undefined } : e)) }, catalogue)
+              }}
+            >
+              Sans jour : séance au choix
+            </button>
+          </div>
         </div>
       )}
 
       {choix && (
         <ChoixExo
           catalogue={catalogue}
-          titre="Ajouter un exercice"
+          titre="Ajouter des exercices"
           exclure={m.exercices.map((e) => e.exoId)}
           onFermer={() => setChoix(false)}
           onChoix={(id, cree) => {
             setChoix(false)
             const exo = cree ?? catalogue.exo(id)
             maj((x) => x.exercices.push(planParDefaut(exo)))
-            setEditIdx(m.exercices.length)
           }}
-          onChoixMultiple={(ids) => {
+          onChoixMultiple={(ids, crees) => {
             setChoix(false)
-            maj((x) => x.exercices.push(...ids.map((id) => planParDefaut(catalogue.exo(id)))))
-            // Un seul exercice : on règle son plan tout de suite ; plusieurs : on les règle ensuite un par un.
-            if (ids.length === 1) setEditIdx(m.exercices.length)
+            maj((x) => x.exercices.push(...ids.map((id) => planParDefaut(crees.find((e) => e.id === id) ?? catalogue.exo(id)))))
           }}
         />
-      )}
-      {infos && <InfosExo exo={infos} onFermer={() => setInfos(null)} />}
-      {menu !== null && m.exercices[menu] && (
-        <div className="modal-fond" onClick={() => setMenu(null)}>
-          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-            <h3>{catalogue.exo(m.exercices[menu].exoId).nom}</h3>
-            <button className="liste-btn" onClick={() => (setInfos(catalogue.exo(m.exercices[menu].exoId)), setMenu(null))}>
-              <span>ⓘ Voir comment faire l’exercice</span>
-            </button>
-            <button className="liste-btn" onClick={() => (setRemplace(menu), setMenu(null))}>
-              <span>⇄ Remplacer par un autre exercice</span>
-            </button>
-            {menu < m.exercices.length - 1 && (
-              <button
-                className="liste-btn"
-                onClick={() => {
-                  const i = menu
-                  maj((x) => {
-                    const actif = !x.exercices[i].enchaine
-                    x.exercices[i].enchaine = actif ? true : undefined
-                    if (actif && x.exercices[i].repos > 30) x.exercices[i].repos = 0
-                  })
-                  setMenu(null)
-                }}
-              >
-                <span>{m.exercices[menu].enchaine ? '✕ Délier le superset' : '🔗 Enchaîner avec l’exercice suivant (superset)'}</span>
-              </button>
-            )}
-            <button
-              className="liste-btn"
-              onClick={async () => {
-                const i = menu
-                setMenu(null)
-                if (await confirmer(`Retirer « ${catalogue.exo(m.exercices[i].exoId).nom} » de la séance ?`, { oui: 'Retirer', danger: true }))
-                  maj((x) => x.exercices.splice(i, 1))
-              }}
-            >
-              <span style={{ color: 'var(--danger)' }}>✕ Retirer de la séance</span>
-            </button>
-            <button className="btn discret plein" onClick={() => setMenu(null)}>
-              Fermer
-            </button>
-          </div>
-        </div>
       )}
       {editIdx !== null && m.exercices[editIdx] && (
         <EditeurExoPlan
@@ -949,13 +905,21 @@ function Editeur({
                 }
               : undefined
           }
+          onInfos={() => setInfos(catalogue.exo(m.exercices[editIdx].exoId))}
           onRemplacer={(p) => {
             maj((x) => (x.exercices[editIdx] = p))
             setRemplace(editIdx)
             setEditIdx(null)
           }}
+          onRetirer={async () => {
+            const i = editIdx
+            if (!(await confirmer(`Retirer « ${catalogue.exo(m.exercices[i].exoId).nom} » de la séance ?`, { oui: 'Retirer', danger: true }))) return
+            setEditIdx(null)
+            maj((x) => x.exercices.splice(i, 1))
+          }}
         />
       )}
+      {infos && <InfosExo exo={infos} onFermer={() => setInfos(null)} />}
       {remplace !== null && m.exercices[remplace] && (
         <ChoixExo
           catalogue={catalogue}
@@ -964,7 +928,7 @@ function Editeur({
           exclure={m.exercices.map((e) => e.exoId)}
           onFermer={() => setRemplace(null)}
           onChoix={(id) => {
-            // Même plan (séries, reps, RPE, repos) ; charges et échauffements repartent de zéro (autre machine).
+            // Même plan (séries, reps, effort, repos) ; charges et échauffements repartent de zéro (autre machine).
             maj((x) => {
               const ancien = x.exercices[remplace]
               x.exercices[remplace] = {
@@ -982,10 +946,4 @@ function Editeur({
       )}
     </div>
   )
-}
-
-/** « ✓ Enregistré » : l'édition s'enregistre toute seule, on le montre discrètement. */
-function EtatEnregistrement({ nom, enregistre }: { nom: string; enregistre: boolean }) {
-  if (!nom.trim()) return <span className="faible">à nommer</span>
-  return enregistre ? <span className="faible etat-enregistre">✓ Enregistré</span> : null
 }

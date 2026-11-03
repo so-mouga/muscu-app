@@ -1,3 +1,4 @@
+import { ChevronRight } from 'lucide-react'
 import { Fragment, useRef, useState } from 'react'
 import { kg, lireChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
@@ -82,11 +83,14 @@ interface Props {
   onSuivant?: (p: ExoPlan) => void
   /** Enregistrer puis ouvrir l'exercice précédent (absent pour le premier). */
   onPrecedent?: (p: ExoPlan) => void
-  /** Remplacer l'exercice par un autre en gardant ce plan (séries, reps, RPE, repos). */
+  /** Remplacer l'exercice par un autre en gardant ce plan (séries, reps, effort, repos). */
   onRemplacer?: (p: ExoPlan) => void
+  /** Ouvrir la fiche d'exécution par-dessus. */
+  onInfos?: () => void
+  onRetirer?: () => void
 }
 
-export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrecedent, onRemplacer }: Props) {
+export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrecedent, onRemplacer, onInfos, onRetirer }: Props) {
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
   // Charge de chaque série (texte saisi) : celle de la série, sinon la charge de départ générale.
   const [charges, setCharges] = useState(() => plan.series.map((s) => kg(s.charge ?? plan.charge ?? undefined).replace('—', '')))
@@ -169,20 +173,22 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const chargeBase = lireCharge(charges[0] ?? '')
   const resumeAvance = [
-    `RPE ${[...new Set(p.series.map((s) => kg(s.rpe)))].join(', ')}`,
+    `effort ${[...new Set(p.series.map((s) => kg(s.rpe)))].join(', ')}/10`,
     p.series.some((s) => s.repos !== undefined && s.repos !== p.repos) ? 'repos par série' : '',
-    p.finisseur ? '★ finisseur' : '',
+    p.finisseur ? 'finisseur' : '',
     p.optionnel ? 'optionnel' : '',
-    p.enchaine ? '🔗 superset' : '',
+    p.note?.trim() ? 'note' : '',
   ]
     .filter(Boolean)
     .join(' · ')
 
   return (
     <div className="modal-fond" onClick={valider}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-        <h2>{exo.nom}</h2>
-
+      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-tete">
+          <h2>{exo.nom}</h2>
+        </div>
+        <div className="modal-defile pile">
         <div className="ligne entre">
           <span>Séries</span>
           <MiniStepper valeur={n} min={1} max={10} onChange={setNombre} />
@@ -221,15 +227,14 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
             {temps ? 'Fourchette de secondes (min – max)' : 'Fourchette de reps (min – max)'}
             <div className="faible">
               {fourchette
-                ? 'Vise le haut. En fin de séance, l’appli te conseille : une rep de plus, puis la charge quand toutes les séries atteignent le haut.'
-                : 'Un nombre fixe par série : tu refais pareil. Active pour viser une fourchette (ex. 12–15) et être guidé pour monter.'}
+                ? 'Vise le haut : en fin de séance, l’appli te conseille quand monter.'
+                : 'Active pour viser une fourchette (ex. 12–15) et être guidé pour monter.'}
             </div>
           </span>
           <span className="piste" />
         </button>
         <div className="faible">
-          Change la 1re série : les suivantes identiques suivent. La charge ne sert que la toute première fois (ensuite, l’appli repart de ta dernière
-          séance) ; pas d’idée ? Laisse « — », tu la trouveras pendant la séance.
+          Change la 1re série, les suivantes identiques suivent. La charge ne sert que la première fois ; pas d’idée ? Laisse « — ».
         </div>
 
         <div className="ligne entre">
@@ -267,7 +272,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
             />
           </div>
           <div className="faible" style={{ margin: '4px 0 6px' }}>
-            Séries légères avant les vraies, cochées pendant la séance. Elles ne comptent ni dans le volume ni dans la progression.
+            Séries légères, cochées pendant la séance. Elles ne comptent ni dans le volume ni dans la progression.
           </div>
           {chauffes.map((l, i) => (
             <div key={i} className="ligne" style={{ marginBottom: 6, gap: 6 }}>
@@ -298,11 +303,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
           )}
         </div>
 
-        <label className="champ">
-          <span>Note (consigne pour cette séance)</span>
-          <input value={p.note ?? ''} onChange={(e) => maj((q) => (q.note = e.target.value))} />
-        </label>
-
         {/* Réglages pour aller plus loin, repliés : par défaut l'appli vise RPE 8 sans qu'on ait à y penser. */}
         <button type="button" className="groupe-repli" onClick={() => setAvance(!avance)} aria-expanded={avance}>
           <span>
@@ -312,10 +312,14 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
         </button>
         {avance && (
           <div className="pile">
+            <label className="champ">
+              <span>Note (consigne pour cette séance)</span>
+              <input value={p.note ?? ''} onChange={(e) => maj((q) => (q.note = e.target.value))} />
+            </label>
             <div>
-              <div className="petit">Difficulté visée (RPE) par série</div>
+              <div className="petit">Effort visé par série</div>
               <div className="faible" style={{ marginBottom: 6 }}>
-                8 = il te reste 2 reps en réserve ; 10 = échec. C’est elle qui dit quand une série compte comme « dure ».
+                8/10 = il te reste 2 reps en réserve ; 10/10 = échec. C’est lui qui dit quand une série compte comme « dure ».
               </div>
               {p.series.map((s, i) => (
                 <div key={i} className="ligne" style={{ marginBottom: 6, gap: 6 }}>
@@ -325,7 +329,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
                   <select value={s.rpe} disabled={p.finisseur && i === n - 1} onChange={(e) => maj((q) => (q.series[i].rpe = parseFloat(e.target.value)))}>
                     {RPES.map((r) => (
                       <option key={r} value={r}>
-                        RPE {kg(r)}
+                        {kg(r)}/10
                         {r === 10 ? ' (échec)' : ''}
                       </option>
                     ))}
@@ -344,7 +348,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
                   if (v) q.series[q.series.length - 1].rpe = 10
                 })
               }
-              label="★ Finisseur sur la dernière série"
+              label="Finisseur sur la dernière série"
               aide="Une technique d’intensité sur la dernière série. Plutôt sur de l’isolation, un ou deux par séance."
             />
             {p.finisseur && (
@@ -384,24 +388,46 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
               </div>
             )}
             <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" aide="À faire seulement si tu as le temps." />
-            {onSuivant && (
-              <Interrupteur
-                on={!!p.enchaine}
-                onChange={(v) =>
-                  maj((q) => {
-                    q.enchaine = v || undefined
-                    if (v && q.repos > 30) q.repos = 0
-                  })
-                }
-                label="🔗 Enchaîner en superset avec l’exercice suivant"
-                aide="Alterne les séries avec le prochain exercice de la séance."
-              />
-            )}
           </div>
         )}
 
+        <div className="exo-plan-plus">
+          {onInfos && (
+            <button type="button" className="liste-btn" onClick={onInfos}>
+              <span>Comment le faire</span>
+              <ChevronRight size={20} className="muted" />
+            </button>
+          )}
+          {onRemplacer && (
+            <button type="button" className="liste-btn" onClick={() => onRemplacer(resultat())}>
+              <span>Remplacer par un autre exercice</span>
+              <ChevronRight size={20} className="muted" />
+            </button>
+          )}
+          {onSuivant && (
+            <button
+              type="button"
+              className="liste-btn"
+              onClick={() =>
+                maj((q) => {
+                  q.enchaine = !q.enchaine || undefined
+                  if (q.enchaine && q.repos > 30) q.repos = 0
+                })
+              }
+            >
+              <span>{p.enchaine ? 'Délier le superset' : 'Enchaîner avec le suivant (superset)'}</span>
+            </button>
+          )}
+          {onRetirer && (
+            <button type="button" className="liste-btn" onClick={onRetirer}>
+              <span style={{ color: 'var(--danger)' }}>Retirer de la séance</span>
+            </button>
+          )}
+        </div>
+        </div>
+
         {/* Tout s'enregistre : on passe d'un exercice à l'autre, on ferme par un appui à côté ou le retour. */}
-        <div className="ligne">
+        <div className="modal-pied ligne">
           {onPrecedent && (
             <button className="btn grand" style={{ flex: 1 }} onClick={puis(onPrecedent)}>
               ‹ Précédent
@@ -411,12 +437,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
             {onSuivant ? 'Suivant ›' : 'Terminer'}
           </button>
         </div>
-        {onRemplacer && (
-          <button className="btn plein" onClick={() => onRemplacer(resultat())}>
-            ⇄ Remplacer par un autre exercice
-          </button>
-        )}
-
       </div>
     </div>
   )

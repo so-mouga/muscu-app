@@ -57,7 +57,7 @@ export function BoutonInfos({ onClick }: { onClick: () => void }) {
  * Fiche d'exécution par-dessus l'écran (séance, ajout d'exercices) : on la ferme et on reprend où on était.
  * Rendue dans <body> : ouverte depuis une carte d'exercice, elle doit couvrir aussi l'en-tête de la séance.
  */
-export default function InfosExo({ exo, onFermer }: { exo: Exercice; onFermer: () => void }) {
+export default function InfosExo({ exo, onFermer, action }: { exo: Exercice; onFermer: () => void; /** Liste d'ajout : décider sur place, après avoir lu la fiche. */ action?: { texte: string; faire: () => void } }) {
   const [reglages, setReglages] = useState(false)
   useRetour(true, onFermer)
   useRetour(reglages, () => setReglages(false))
@@ -111,6 +111,11 @@ export default function InfosExo({ exo, onFermer }: { exo: Exercice; onFermer: (
               <span>{resume}</span>
               <ChevronRight size={20} />
             </button>
+            {action && (
+              <button className="btn primaire plein" onClick={action.faire}>
+                {action.texte}
+              </button>
+            )}
           </>
         )}
       </div>
