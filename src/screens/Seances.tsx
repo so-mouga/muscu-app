@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { changerObjectifs, ID_PROGRAMME_DEFAUT, installerProgramme, lancerCycle, type Catalogue } from '../catalogue'
 import { PROGRAMMES_TYPES, type ProgrammeType } from '../data/programmesTypes'
 import ChoixExo from '../components/ChoixExo'
@@ -63,7 +63,6 @@ type Vue =
   | { type: 'cycle' }
   | { type: 'volume'; p: Programme }
   | { type: 'changer' }
-  | { type: 'apercu'; t: ProgrammeType }
   | { type: 'autresSeances' }
 
 export const jourCourt = (j?: number) => (j ? JOURS[j].slice(0, 3) : '')
@@ -90,7 +89,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
 
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
   const fermer = () => (transition(() => setPile((x) => x.slice(0, -1)), 'arriere'), window.scrollTo({ top: 0 }))
-  useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'apercu' || vue?.type === 'autresSeances', () => {
+  useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'autresSeances', () => {
     fermer()
     // Une seule page à la fois : tant qu'il en reste dessous, le prochain retour s'y arrête aussi.
     return pile.length > 1 ? 'rester' : undefined
@@ -128,12 +127,11 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
         catalogue={catalogue}
         onFermer={fermer}
         onOuvrir={(p) => ouvrir({ type: 'programme', p })}
-        onApercu={(t) => ouvrir({ type: 'apercu', t })}
+        onPris={(message) => (annoncer(message), transition(() => setPile([]), 'arriere'), window.scrollTo({ top: 0 }))}
         onCreer={() => void nouveauProgramme()}
         onAutresSeances={() => ouvrir({ type: 'autresSeances' })}
       />
     )
-  if (vue?.type === 'apercu') return <PageApercu catalogue={catalogue} t={vue.t} onFermer={fermer} onPris={(message) => (annoncer(message), transition(() => setPile([]), 'arriere'), window.scrollTo({ top: 0 }))} />
   if (vue?.type === 'autresSeances') return <PageAutresSeances catalogue={catalogue} terminees={terminees} onFermer={fermer} onOuvrir={(m, nouvelle) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle })} />
   if (!vue && catalogue.sansProgramme)
     return (
@@ -556,11 +554,55 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
   )
 }
 
-/** Tout ce qui n'est pas le programme en service : les autres, les tout prêts, créer le sien. */
-function PageChanger({ catalogue, onFermer, onOuvrir, onApercu, onCreer, onAutresSeances }: { catalogue: Catalogue; onFermer: () => void; onOuvrir: (p: Programme) => void; onApercu: (t: ProgrammeType) => void; onCreer: () => void; onAutresSeances: () => void }) {
+/** Tout ce qui n'est pas le programme en service. Un appui déplie un programme sur place : on compare sans changer de page. */
+function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresSeances }: { catalogue: Catalogue; onFermer: () => void; onOuvrir: (p: Programme) => void; onPris: (message: string) => void; onCreer: () => void; onAutresSeances: () => void }) {
+  const [ouvert, setOuvert] = useState<string | null>(null)
+  const [occupe, setOccupe] = useState(false)
+  const [lancer, setLancer] = useState<Programme | null>(null)
   const autres = catalogue.programmes.filter((x) => x.id !== catalogue.actif.id)
+  const enCours = catalogue.cycle && !etatCycle(catalogue.cycle).fini ? catalogue.cycle : undefined
   // Un tout prêt déjà pris se retrouve dans ses programmes : le reprendre ne ferait qu'une copie de plus.
   const noms = new Set(catalogue.programmes.map((x) => x.nom))
+  const prendre = async (t: ProgrammeType, avecCycle: boolean) => {
+    if (occupe) return
+    if (avecCycle && enCours && !(await confirmer(`Le cycle « ${nomCycle(enCours)} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer ce programme ?', oui: 'Lancer le nouveau cycle' }))) return
+    setOccupe(true)
+    try {
+      const debut = debutCycle(t.seances.flatMap((m) => m.jour ?? []))
+      const p = await installerProgramme(t, catalogue)
+      if (avecCycle) await lancerCycle(catalogue, p, { debut })
+      onPris(!avecCycle ? (enCours ? `${t.nom} est dans tes programmes. Ton cycle continue.` : `${t.nom} est ton programme`) : debut === lundi() ? 'Programme pris : semaine 1 sur 6' : 'Programme pris : il commence la semaine prochaine')
+    } finally {
+      setOccupe(false)
+    }
+  }
+  const depliable = (id: string, nom: string, detail: string, seances: { jour?: number; nom: string; exos: string[] }[], actions: ReactNode) => (
+    <div key={id} className="depliable">
+      <button type="button" className="depliable-tete" aria-expanded={ouvert === id} onClick={() => setOuvert(ouvert === id ? null : id)}>
+        <span>
+          {nom}
+          <span className="faible prog-sous">{detail}</span>
+        </span>
+        <ChevronRight size={20} className={'muted depliable-chevron' + (ouvert === id ? ' ouvert' : '')} />
+      </button>
+      {ouvert === id && (
+        <div className="depliable-corps pile">
+          {[...seances]
+            .sort((x, y) => (x.jour ?? 8) - (y.jour ?? 8))
+            .map((x, i) => (
+              <div key={x.nom + i}>
+                <strong>
+                  {x.jour ? `${jourCourt(x.jour)} · ` : ''}
+                  {x.nom}
+                </strong>
+                <div className="faible">{x.exos.join(', ') || 'Aucun exercice pour l’instant'}</div>
+              </div>
+            ))}
+          {actions}
+        </div>
+      )}
+    </div>
+  )
   return (
     <div>
       <div className="entete">
@@ -569,33 +611,58 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onApercu, onCreer, onAutre
         </button>
         <h2 style={{ flex: 1 }}>Changer de programme</h2>
       </div>
-      {autres.length > 0 && (
-        <>
-          <h3 className="prog-groupe">Mes autres programmes</h3>
-          {autres.map((x) => (
-            <button key={x.id} className="liste-btn" onClick={() => onOuvrir(x)}>
-              <span>
-                {x.nom}
-                <span className="faible prog-sous">
-                  {x.seances.length} séance{x.seances.length > 1 ? 's' : ''}
-                </span>
-              </span>
-              <ChevronRight size={20} className="muted" />
+      {autres.length > 0 && <h3 className="prog-groupe">Mes autres programmes</h3>}
+      {autres.map((x) =>
+        depliable(
+          x.id,
+          x.nom,
+          `${x.seances.length} séance${x.seances.length > 1 ? 's' : ''}`,
+          x.seances.flatMap((e) => {
+            const m = catalogue.modele(e.modeleId)
+            return m ? [{ jour: e.jour, nom: m.nom, exos: m.exercices.map((p) => catalogue.exo(p.exoId).nom) }] : []
+          }),
+          <>
+            {x.seances.length > 0 && (
+              <button className="btn primaire plein" onClick={() => setLancer(x)}>
+                Lancer sur 6 semaines
+              </button>
+            )}
+            {!enCours && x.seances.length > 0 && (
+              <button
+                className="btn plein"
+                onClick={() => {
+                  void setReglage('programmeActif', x.id)
+                  onPris(`${x.nom} est ton programme`)
+                }}
+              >
+                Utiliser sans cycle
+              </button>
+            )}
+            <button className="btn discret plein" onClick={() => onOuvrir(x)}>
+              Voir et modifier
             </button>
-          ))}
-        </>
+          </>
+        )
       )}
       <h3 className="prog-groupe">Tout prêts</h3>
-      {PROGRAMMES_TYPES.filter((t) => !noms.has(t.nom)).map((t) => (
-        <button key={t.id} className="liste-btn" onClick={() => onApercu(t)}>
-          <span>
-            {t.nom}
-            <span className="faible prog-sous">{t.pour}</span>
-          </span>
-          <ChevronRight size={20} className="muted" />
-        </button>
-      ))}
-      <h3 className="prog-groupe">Sur mesure</h3>
+      {PROGRAMMES_TYPES.filter((t) => !noms.has(t.nom)).map((t) =>
+        depliable(
+          t.id,
+          t.nom,
+          t.pour,
+          t.seances.map((m) => ({ jour: m.jour, nom: m.nom, exos: m.exercices.map((p) => catalogue.exo(p.exoId).nom) })),
+          <>
+            <div className="faible">Sur 6 semaines, la dernière allégée pour récupérer{debutCycle(t.seances.flatMap((m) => m.jour ?? [])) === lundi() ? '' : ', à partir de la semaine prochaine'}. Tout se modifie ensuite.</div>
+            <button className="btn primaire plein" disabled={occupe} onClick={() => void prendre(t, true)}>
+              Prendre ce programme
+            </button>
+            <button className="btn discret plein" disabled={occupe} onClick={() => void prendre(t, false)}>
+              Le prendre sans lancer de cycle
+            </button>
+          </>
+        )
+      )}
+      <div style={{ height: 'var(--e3)' }} />
       <button className="liste-btn" onClick={onCreer}>
         <span>Créer le mien</span>
         <ChevronRight size={20} className="muted" />
@@ -607,70 +674,7 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onApercu, onCreer, onAutre
         </span>
         <ChevronRight size={20} className="muted" />
       </button>
-    </div>
-  )
-}
-
-/** Un programme tout prêt : on voit ce qu'il contient avant de le prendre. */
-function PageApercu({ catalogue, t, onFermer, onPris }: { catalogue: Catalogue; t: ProgrammeType; onFermer: () => void; onPris: (message: string) => void }) {
-  const [occupe, setOccupe] = useState(false)
-  const seances = [...t.seances].sort((a, b) => (a.jour ?? 8) - (b.jour ?? 8))
-  const enCours = catalogue.cycle && !etatCycle(catalogue.cycle).fini ? catalogue.cycle : undefined
-  const debut = debutCycle(t.seances.flatMap((m) => m.jour ?? []))
-  const prendre = async (avecCycle: boolean) => {
-    if (occupe) return
-    if (avecCycle && enCours && !(await confirmer(`Le cycle « ${nomCycle(enCours)} » en cours sera terminé. Son historique et son bilan sont conservés.`, { titre: 'Lancer ce programme ?', oui: 'Lancer le nouveau cycle' }))) return
-    setOccupe(true)
-    try {
-      const p = await installerProgramme(t, catalogue)
-      if (avecCycle) await lancerCycle(catalogue, p, { debut })
-      onPris(!avecCycle ? (enCours ? `${t.nom} est dans tes programmes. Ton cycle continue.` : `${t.nom} est ton programme`) : debut === lundi() ? 'Programme pris : semaine 1 sur 6' : 'Programme pris : il commence la semaine prochaine')
-    } finally {
-      setOccupe(false)
-    }
-  }
-  return (
-    <div>
-      <div className="entete">
-        <button className="btn" onClick={onFermer} aria-label="Retour">
-          ←
-        </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>{t.nom}</h2>
-          <div className="faible">{t.pour}</div>
-        </div>
-      </div>
-      <div className="faible" style={{ marginBottom: 'var(--e3)' }}>
-        {t.description}
-      </div>
-      {seances.map((m) => (
-        <details key={m.id} className="apercu-seance">
-          <summary>
-            <span>
-              {m.jour ? `${jourCourt(m.jour)} · ` : ''}
-              {m.nom}
-              <span className="faible prog-sous">
-                {m.exercices.length} exercices{m.sousTitre ? ` · ${m.sousTitre}` : ''}
-              </span>
-            </span>
-            <ChevronRight size={20} className="muted apercu-chevron" />
-          </summary>
-          <ul>
-            {m.exercices.map((e) => (
-              <li key={e.exoId}>{catalogue.exo(e.exoId).nom}</li>
-            ))}
-          </ul>
-        </details>
-      ))}
-      <div className="faible" style={{ margin: 'var(--e4) 0 var(--e2)' }}>
-        Sur 6 semaines, la dernière allégée pour récupérer{debut === lundi() ? '' : ', à partir de la semaine prochaine'}. Tu peux tout modifier ensuite.
-      </div>
-      <button className="btn primaire plein" disabled={occupe} onClick={() => void prendre(true)}>
-        Prendre ce programme
-      </button>
-      <button className="btn discret plein" disabled={occupe} onClick={() => void prendre(false)}>
-        Le prendre sans lancer de cycle
-      </button>
+      {lancer && <LancerCycle catalogue={catalogue} programme={lancer} onFermer={() => setLancer(null)} onLance={onPris} />}
     </div>
   )
 }

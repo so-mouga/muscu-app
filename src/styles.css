@@ -5139,33 +5139,6 @@ html[data-sens='fondu']::view-transition-new(root) {
   color: var(--texte-2);
 }
 
-/* Aperçu d'un programme tout prêt */
-.apercu-seance {
-  margin-bottom: var(--e2);
-  border-radius: var(--rayon-2);
-  background: var(--surface);
-}
-.apercu-seance summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--e2);
-  padding: var(--e3);
-  list-style: none;
-  cursor: pointer;
-}
-.apercu-seance summary::-webkit-details-marker {
-  display: none;
-}
-.apercu-seance[open] .apercu-chevron {
-  transform: rotate(90deg);
-}
-.apercu-seance ul {
-  margin: 0;
-  padding: 0 var(--e3) var(--e3) calc(var(--e3) + 16px);
-  font-size: var(--t-petit);
-  color: var(--texte-2);
-}
 
 /* Page du cycle */
 .semaine-cycle {
@@ -5368,4 +5341,20 @@ button.semaine-cycle.courante {
 }
 button.semaine-cycle.courante {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* Programme déplié sur place, dans Changer de programme */
+.depliable-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e2);
+  width: 100%;
+  min-height: var(--cible);
+  padding: var(--e3);
+  background: none;
+  text-align: left;
+}
+.depliable-chevron.ouvert {
+  transform: rotate(90deg);
 }
