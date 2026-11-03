@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
 import Anneau from '../components/Anneau'
@@ -798,8 +798,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
-                <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
-                {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
+                <LigneSeries avant={n === 0 ? <ChauffesCochables seance={seance} plan={p} exo={exo} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
                 {(derniereFois?.[n] || plus) && (
                   <div className="faible">
                     {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n], false, false)} · effort {kg(derniereFois[n].rpe)}/10</>}
@@ -1660,17 +1659,22 @@ function FenetreCorrection({ seance, plan, exo, sugg, serie, total, repos, onFer
   )
 }
 
-function LigneSeries({ exo, faites, total, cible, onCorriger, vient }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void; vient?: string }) {
+function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void; vient?: string; /** Échauffements de l'exercice, avant S1. */ avant?: ReactNode }) {
   // Toutes les séries de l'exercice, chacune une seule fois : faites (✎ pour corriger), en cours (▶, sa cible est affichée en grand à côté), à venir.
   const rangee = useRef<HTMLDivElement>(null)
   // Une seule rangée qui défile : la série en cours reste visible, même sur 5 séries.
   useEffect(() => {
     const el = rangee.current
     const c = el?.querySelector<HTMLElement>('.courante')
-    if (el && c) el.scrollLeft = c.offsetLeft - el.offsetLeft - (el.clientWidth - c.offsetWidth) / 2
+    if (!el || !c) return
+    // Avec des échauffements : ils restent sous les yeux, la rangée ne glisse que pour garder S1 à l'écran.
+    const debut = c.offsetLeft - el.offsetLeft
+    el.scrollLeft = avant ? Math.max(0, debut + c.offsetWidth - el.clientWidth + 8) : debut - (el.clientWidth - c.offsetWidth) / 2
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faites.length])
   return (
-    <div className="ligne-series" ref={rangee}>
+    <div className={'ligne-series' + (avant ? ' avec-chauffes' : '')} ref={rangee}>
+      {avant}
       {Array.from({ length: total }, (_, k) => {
         const f = faites[k]
         if (f)
@@ -1694,11 +1698,11 @@ function LigneSeries({ exo, faites, total, cible, onCorriger, vient }: { exo: Ex
 }
 
 /** Échauffements de l'exercice, cochables directement (plein écran). */
-function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPlan; exo: Exercice }) {
+function ChauffesCochables({ seance, plan, exo, enRangee = false }: { seance: Seance; plan: ExoPlan; exo: Exercice; /** Dans la rangée des séries : le mot au-dessus, sur la largeur des pastilles. */ enRangee?: boolean }) {
   if (!plan.chauffes.length) return null
-  return (
+  const pastilles = (
     <div className="chauffes-ligne">
-      <span className="titre">Échauffement</span>
+      {!enRangee && <span className="titre">Échauffement</span>}
       {plan.chauffes.map((c, i) => {
         const cle = `${exo.id}:${i}`
         const fait = !!seance.chauffes[cle]
@@ -1714,10 +1718,18 @@ function ChauffesCochables({ seance, plan, exo }: { seance: Seance; plan: ExoPla
               })
             }
           >
-            {fait ? <Check size={16} /> : <Square size={16} />} {l ? chargeQte(exo, l.charge, l.reps) : c}
+            {fait ? <Check size={16} /> : <Square size={16} />} {l ? (enRangee && plan.chauffes.length > 2 ? chargeQte(exo, l.charge, l.reps).replace(' kg', '') : chargeQte(exo, l.charge, l.reps)) : c}
           </button>
         )
       })}
     </div>
+  )
+  return enRangee ? (
+    <div className="chauffes-groupe">
+      <div className="chauffes-groupe-titre">Échauffement</div>
+      {pastilles}
+    </div>
+  ) : (
+    pastilles
   )
 }

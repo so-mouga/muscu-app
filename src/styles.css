@@ -3521,6 +3521,40 @@ button.phase-accueil {
   border-color: var(--ok-bord);
   color: var(--ok);
 }
+/* Échauffements de l'exercice dans la rangée des séries : un trait et le mot, sur la largeur de leurs pastilles. */
+.focus .ligne-series.avec-chauffes {
+  align-items: flex-end;
+}
+.focus .ligne-series > .chauffes-groupe {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--e1);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.chauffes-groupe .chauffes-ligne {
+  overflow: visible;
+}
+.chauffes-groupe-titre {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  font-size: var(--t-legende);
+  line-height: 1;
+  color: var(--texte-2);
+}
+.chauffes-groupe-titre::before,
+.chauffes-groupe-titre::after {
+  content: '';
+  flex: 1;
+  min-width: var(--e2);
+  height: 1px;
+  background: var(--texte-3);
+}
 .rpe {
   gap: var(--e2);
 }
