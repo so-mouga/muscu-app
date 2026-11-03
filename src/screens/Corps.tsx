@@ -409,7 +409,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
         </div>
 
         {points.length >= 2 && (
-          <div style={{ marginTop: 10, width: '100%', overflow: 'hidden' }}>
+          <div style={{ marginTop: 10, width: '100%' }}>
             {def.cotes && clesDef.every((c) => serie(mesures, c).length) && (
               <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
                 {(['g', 'd'] as const).map((c) => {
