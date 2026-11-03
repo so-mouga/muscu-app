@@ -107,7 +107,8 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
     setPeriodeChoisie(p)
   }
 
-  if (!a.seances)
+  // Aucune semaine finie avec une séance : le bilan n'a encore rien à dire. Sinon, les périodes restent là, même vides.
+  if (!seances.some((s) => s.date <= finSemaines))
     return (
       <div>
         {haut}
@@ -118,17 +119,8 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
       </div>
     )
 
-  const tenues = semainesTenues(seances, prevues, cycles, dateISO())
-  const muscles = MUSCLES.filter((m) => zone(m.id, cibles[m.id]))
-  const horsZone = muscles
-    .filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) !== 'optimal')
-    .sort((x, y) => a.volume[x.id] / cibles[x.id] - a.volume[y.id] / cibles[y.id])
-  const dansZone = muscles.filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) === 'optimal')
-  const notesCalories = a.calories.ok + a.calories.trop + a.calories.pasAssez
-
-  return (
-    <div>
-      {haut}
+  const choixPeriode = (
+    <>
       <div className="bilan-periodes">
         {(
           [
@@ -145,6 +137,33 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
       <p className="faible bilan-periode">
         Du {jour(a.debut)} au {jour(fin)}
       </p>
+    </>
+  )
+
+  if (!a.seances)
+    return (
+      <div>
+        {haut}
+        {choixPeriode}
+        <div className="carte bilan-carte">
+          <h3>Pas de séance sur cette période</h3>
+          <p className="faible petit-texte">Tes séances d’avant restent là : choisis une autre période, ou retrouve-les dans le Journal.</p>
+        </div>
+      </div>
+    )
+
+  const tenues = semainesTenues(seances, prevues, cycles, dateISO())
+  const muscles = MUSCLES.filter((m) => zone(m.id, cibles[m.id]))
+  const horsZone = muscles
+    .filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) !== 'optimal')
+    .sort((x, y) => a.volume[x.id] / cibles[x.id] - a.volume[y.id] / cibles[y.id])
+  const dansZone = muscles.filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) === 'optimal')
+  const notesCalories = a.calories.ok + a.calories.trop + a.calories.pasAssez
+
+  return (
+    <div>
+      {haut}
+      {choixPeriode}
 
       {lignes.length > 0 && (
         <section className="carte bilan-carte">
