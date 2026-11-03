@@ -595,7 +595,7 @@ function EditeurPhase({
 
   const supprimer = async () => {
     if (
-      await confirmer(suivante ? 'Les phases suivantes avancent d’autant.' : 'Elle n’a pas encore commencé.', {
+      await confirmer(suivante ? 'Les phases suivantes avancent d’autant.' : p.debut === aujourdhui ? 'Elle a commencé aujourd’hui : rien n’en sera gardé.' : 'Elle n’a pas encore commencé.', {
         titre: `Supprimer cette ${nomPhase(p.phase).toLowerCase()} ?`,
         oui: 'Supprimer',
         danger: true,
@@ -784,7 +784,7 @@ function EditeurPhase({
 
       {/* Actions */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--voile)' }}>
-        {enCours ? (
+        {enCours && p.debut < aujourdhui ? (
           <button
             type="button"
             className="btn discret petit"
