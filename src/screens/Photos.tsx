@@ -116,15 +116,17 @@ export default function Photos() {
         </button>
       </div>
 
-      {/* Ligne discrète de confidentialité avec Aide */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--texte-2)', marginBottom: 14 }}>
-        <ShieldCheck size={14} strokeWidth={2} style={{ color: 'var(--ok)', flexShrink: 0 }} />
-        <span>Stockées uniquement sur cet appareil</span>
-        <Aide
-          titre="Conseils photo de progression"
-          texte="3 poses : face, profil, dos. Même endroit, même lumière, même heure (idéalement le matin à jeun) : c’est ce qui rend la comparaison fiable dans le temps."
-        />
-      </div>
+      {/* Confidentialité : utile une fois, à la première photo. */}
+      {dates.length === 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--texte-2)', marginBottom: 14 }}>
+          <ShieldCheck size={14} strokeWidth={2} style={{ color: 'var(--ok)', flexShrink: 0 }} />
+          <span>Stockées uniquement sur cet appareil</span>
+          <Aide
+            titre="Conseils photo de progression"
+            texte="3 poses : face, profil, dos. Même endroit, même lumière, même heure (idéalement le matin à jeun) : c’est ce qui rend la comparaison fiable dans le temps."
+          />
+        </div>
+      )}
 
       {importer && <ImportPhotos photos={photos} onFermer={() => setImporter(false)} />}
 
@@ -406,6 +408,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
   const [pose, setPose] = useState<Pose>('face')
   const [curseur, setCurseur] = useState<number | null>(null)
   const [pleinEcran, setPleinEcran] = useState(false)
+  const [voirEcarts, setVoirEcarts] = useState(false)
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const photo = (d: string) => dates.find((x) => x[0] === d)?.[1][pose]
@@ -520,9 +523,9 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               borderRadius: 'var(--rayon-2)',
               fontSize: 'var(--t-legende)',
               fontWeight: 500,
-              background: curseur !== null ? 'var(--accent-voile)' : 'var(--voile)',
-              border: '1px solid ' + (curseur !== null ? 'var(--accent)' : 'var(--voile-fort)'),
-              color: curseur !== null ? 'var(--accent)' : 'var(--texte)',
+              background: 'var(--voile)',
+              border: '1px solid var(--voile-fort)',
+              color: 'var(--texte)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
@@ -639,12 +642,20 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
               <strong style={{ color: 'var(--texte)' }}>{signe(poidsB.poids - poidsA.poids, 'kg')}</strong>
             </div>
           )}
-          {ecarts.map((c) => (
-            <div key={c} className="ligne-mesure">
-              <span>{nomCle(c)}</span>
-              <strong style={{ color: 'var(--texte)' }}>{signe(mB!.valeurs[c] - mA!.valeurs[c], 'cm')}</strong>
-            </div>
-          ))}
+          {ecarts
+            .filter((c) => voirEcarts || c === 'taille')
+            .map((c) => (
+              <div key={c} className="ligne-mesure">
+                <span>{nomCle(c)}</span>
+                <strong style={{ color: 'var(--texte)' }}>{signe(mB!.valeurs[c] - mA!.valeurs[c], 'cm')}</strong>
+              </div>
+            ))}
+          {ecarts.some((c) => c !== 'taille') && !voirEcarts && (
+            <button type="button" className="groupe-repli" onClick={() => setVoirEcarts(true)}>
+              <span>Les autres mesures</span>
+              <span className="muted">▸</span>
+            </button>
+          )}
         </div>
       )}
     </div>
