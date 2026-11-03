@@ -5,6 +5,7 @@ import { PROGRAMMES_TYPES, type ProgrammeType } from '../data/programmesTypes'
 import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
+import Vignette from '../components/Vignette'
 import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '../components/Cycle'
 import { suiviCycle } from '../lib/motivation'
@@ -16,7 +17,7 @@ import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
 import { ciblesPrecedentes } from '../lib/objectifs'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dateCourte, dateISO, dureeEstimee, dureeTexte, jourSemaine, kg, lundi, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dateCourte, dateISO, dureeEstimee, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
@@ -50,7 +51,7 @@ export function resumePlan(exo: Exercice, p: ExoPlan): string {
   return [
     schemaPlan(exo, p),
     p.charge === null ? '' : chargeTexte(exo, p.charge),
-    p.enchaine ? (p.repos > 0 ? `repos ${p.repos} s (enchaîné)` : 'enchaîné direct') : `repos ${reposTexte(p)}`,
+    p.enchaine ? (p.repos > 0 ? `enchaîné après ${p.repos} s` : 'enchaîné direct') : '',
     rpeParDefaut ? '' : `effort ${[...new Set(p.series.map((x) => kg(x.rpe)))].join(', ')}/10`,
     p.finisseur ? 'finisseur' : '',
   ]
@@ -833,6 +834,7 @@ function Editeur({
   // Séries dures que la séance donne à chaque muscle, du plus travaillé au moins travaillé.
   const volume = volumePrevu([m], catalogue.exercices)
   const travailles = MUSCLES.filter((x) => volume[x.id] > 0).sort((a, b) => volume[b.id] - volume[a.id])
+  const nbSeries = m.exercices.reduce((n, e) => n + e.series.length, 0)
 
   const dupliquer = async () => {
     setPlus(false)
@@ -885,6 +887,37 @@ function Editeur({
         </label>
       )}
 
+      {m.exercices.length > 0 && (
+        <div className="carte seance-resume">
+          <div>
+            <strong className="seance-resume-duree">≈ {minutes(dureeEstimee(m))}</strong>
+            <span className="faible">
+              {' '}
+              · {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {nbSeries} série{nbSeries > 1 ? 's' : ''}
+            </span>
+          </div>
+          {travailles.length > 0 && (
+            <>
+              <div className="ligne entre seance-resume-titre">
+                <span className="faible">Séries par muscle</span>
+                <Aide
+                  titre="Séries par muscle"
+                  texte="Ne comptent que les séries qui font vraiment travailler : proches de l’échec, à 7/10 d’effort ou plus. Un muscle qui aide (comme le triceps sur un développé) compte pour une demi-série. Le total de la semaine est dans Programme, puis Volume par semaine."
+                />
+              </div>
+              <div className="seance-muscles">
+                {travailles.map((x, i) => (
+                  <span key={x.id} className={i < 2 ? 'fort' : ''}>
+                    <strong>{kg(volume[x.id])}</strong> {x.nom}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {m.exercices.length > 0 && <ReglageEchauffement modele={m} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />}
+
       <div ref={glisser.liste}>
         {m.exercices.map((p, i) => {
           const exo = catalogue.exo(p.exoId)
@@ -908,6 +941,7 @@ function Editeur({
                   ⠿
                 </button>
               )}
+              <Vignette exo={exo} taille={36} />
               <button className="texte" onClick={() => setEditIdx(i)}>
                 <strong>{exo.nom}</strong>
                 {dansSuperset && <span className="badge-superset">Superset {groupe.indexOf(i) + 1}/{groupe.length}</span>}
@@ -925,13 +959,6 @@ function Editeur({
       {finisseurs > 2 && (
         <div className="faible" style={{ color: 'var(--alerte)', marginBottom: 'var(--e3)' }}>
           {finisseurs} finisseurs dans la même séance : c’est beaucoup, la qualité des dernières séries risque d’en pâtir.
-        </div>
-      )}
-
-      {m.exercices.length > 0 && <ReglageEchauffement modele={m} onChange={(v) => maj((x) => (v === undefined ? delete x.echauffement : (x.echauffement = v)))} />}
-      {travailles.length > 0 && (
-        <div className="faible seance-muscles">
-          ≈ {minutes(dureeEstimee(m))} · séries dures : {travailles.slice(0, 5).map((x) => `${x.nom} ${kg(volume[x.id])}`).join(' · ')}
         </div>
       )}
 

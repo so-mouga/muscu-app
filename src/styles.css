@@ -5126,9 +5126,34 @@ html[data-sens='fondu']::view-transition-new(root) {
 .exo-ligne > .muted {
   flex: none;
 }
-.seance-muscles {
+/* Résumé de la séance : la durée, puis les séries par muscle en pastilles */
+.seance-resume-duree {
+  font-size: var(--t-titre);
+}
+.seance-resume-titre {
   margin-top: var(--e2);
-  padding: 0 var(--e1);
+}
+.seance-muscles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e1);
+  margin-top: var(--e1);
+}
+.seance-muscles span {
+  padding: var(--e1) 10px;
+  border-radius: 999px;
+  background: var(--controle);
+  font-size: var(--t-petit);
+}
+.seance-muscles span.fort {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.seance-muscles span.fort strong {
+  color: var(--accent);
+}
+.exo-ligne .vignette,
+.exo-ligne > img {
+  flex: none;
 }
 .exo-plan-plus {
   margin-top: var(--e2);
