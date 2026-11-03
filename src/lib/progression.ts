@@ -375,3 +375,17 @@ export function hausse(exo: Exercice, sugg: Suggestion, derniere: Serie[] | unde
 
 /** L'objectif dépasse la dernière fois sur au moins une série : « à battre ». */
 export const aBattre = (exo: Exercice, sugg: Suggestion, derniere: Serie[] | undefined) => sugg.charges.some((_, i) => hausse(exo, sugg, derniere, i) !== null)
+
+/**
+ * Charge pré-remplie pour la série `index` : la cible, décalée du même écart que celui appliqué à la
+ * dernière série faite (monté de 10 kg en S1 → S2 et S3 aussi). Sans cible : la charge de la dernière série faite.
+ */
+export function chargeProposee(exo: Exercice, sugg: Suggestion, faites: Serie[], index: number): number {
+  const i = Math.min(index, sugg.charges.length - 1)
+  const k = Math.min(index, faites.length) - 1
+  const prec = faites[k]
+  const s = sugg.charges[i]
+  if (s === null) return prec?.charge ?? (exo.mode === 'elastique' ? 1 : 0)
+  const sPrec = sugg.charges[Math.min(k, sugg.charges.length - 1)]
+  return prec && sPrec !== null && sPrec !== undefined ? Math.max(0, s + (prec.charge - sPrec)) : s
+}

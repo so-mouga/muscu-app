@@ -9,7 +9,7 @@ import ChronoTenue from './ChronoTenue'
 import { PuceDisques } from './CalculateurDisques'
 import ReglagesMachine from './ReglagesMachine'
 import { vibrer } from '../lib/appareil'
-import { monterMaintenant, type Suggestion } from '../lib/progression'
+import { chargeProposee, monterMaintenant, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
 import { confirmer, informer } from './Dialogues'
 
@@ -27,25 +27,12 @@ const RPES = [6, 7, 8, 9, 10]
  * téléphone) : bloque un double appui avant même le rafraîchissement de l'écran. */
 let derniereValidation = -Infinity
 
-/**
- * Charge pré-remplie pour la série `index` : la cible, décalée du même écart que celui appliqué à la
- * série précédente (monté de 10 kg en S1 → S2 aussi). Sans cible : la charge de la série d'avant.
- */
-export function chargeProposee(exo: Exercice, sugg: Suggestion, faites: Serie[], index: number): number {
-  const i = Math.min(index, sugg.charges.length - 1)
-  const prec = faites[index - 1]
-  const s = sugg.charges[i]
-  if (s === null) return prec?.charge ?? (exo.mode === 'elastique' ? 1 : 0)
-  const sPrec = sugg.charges[Math.min(index - 1, sugg.charges.length - 1)]
-  return prec && sPrec !== null && index > 0 ? Math.max(0, s + (prec.charge - sPrec)) : s
-}
-
 /** Objectif de la série `n` : « 60 kg × 10 · effort 8/10 ». Avec `faites`, la charge suit l'écart pris aux séries d'avant. */
 export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number, faites?: Serie[]): string {
   const j = Math.min(n, sugg.charges.length - 1)
   const p = plan.series[Math.min(n, plan.series.length - 1)]
   // Charge encore inconnue (machine jamais faite, rien de saisi avant) : « à calibrer », pas « 0 kg ».
-  const charge = faites && !(sugg.charges[j] === null && !faites[n - 1]) ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
+  const charge = faites && !(sugg.charges[j] === null && !faites.length) ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
   const total = plan.series.length
   if (plan.finisseur && n === total - 1) {
     const chargeTxt = charge !== null ? (charge > 0 ? `${kg(charge)} kg` : '') : 'à calibrer'
@@ -133,6 +120,16 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const cleBrouillon = !edition && compact && !heure ? `brouillon:${seance.id}` : null
   const [brouillon] = useState(() => lireBrouillon(cleBrouillon, exo.id, index))
   const [charge, setCharge] = useState(edition?.charge ?? brouillon?.charge ?? chargeInitiale())
+  // Série d'avant corrigée : la proposition suit, sauf si la charge a déjà été changée à la main.
+  const proposition = useRef(chargeInitiale())
+  useEffect(() => {
+    if (edition) return
+    const nouvelle = chargeInitiale()
+    if (nouvelle === proposition.current) return
+    if (charge === proposition.current) setCharge(nouvelle)
+    proposition.current = nouvelle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faites])
   const [chargeTxt, setChargeTxt] = useState<string | null>(null)
   const [reps, setReps] = useState(edition?.reps ?? brouillon?.reps ?? sugg.reps[i] ?? p.repsMin)
   const [rpe, setRpe] = useState(edition?.rpe ?? brouillon?.rpe ?? (finisseur ? 10 : Math.round(p.rpe)))

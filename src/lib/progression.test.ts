@@ -4,7 +4,7 @@ import type { Serie, TypeSerie } from '../types'
 import { chargeDecalee, ecartSerie, kgSouleves } from './calc'
 import { suggestionDeload } from './cycle'
 import { scoreSerie } from './historique'
-import { aBattre, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
+import { aBattre, chargeProposee, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
 
 // Exemples du cahier des charges (5.6) : butterfly au palier de 2,5 kg (celui de la base est maintenant 5 kg).
 const BUTTERFLY = { ...EXERCICES.butterfly, pas: 2.5 }
@@ -423,5 +423,25 @@ describe('charge décalée à la main', () => {
     expect(chargeDecalee(EXERCICES.butterfly, 2.5, -5)).toBe(0)
     expect(chargeDecalee(EXERCICES.tractions_assistees, 5, -5)).toBe(0)
     expect(chargeDecalee(EXERCICES.butterfly, null, 5)).toBe(5)
+  })
+})
+
+describe('chargeProposee', () => {
+  const sugg = { decision: 'pareil', charges: [50, 50, 50], reps: [8, 8, 8], message: '' } as unknown as Parameters<typeof chargeProposee>[1]
+  const faite = (charge: number): Serie => ({ id: 'x', exoId: 'x', type: 'normale', charge, reps: 8, rpe: 8, heure: 0 })
+
+  it('la série suivante suit l’écart de la série d’avant', () => {
+    expect(chargeProposee(BUTTERFLY, sugg, [faite(70)], 1)).toBe(70)
+  })
+  it('une série plus loin suit le même écart : la pastille annonce ce qui sera proposé', () => {
+    expect(chargeProposee(BUTTERFLY, sugg, [faite(70)], 2)).toBe(70)
+  })
+  it('rien de fait : la cible', () => {
+    expect(chargeProposee(BUTTERFLY, sugg, [], 0)).toBe(50)
+    expect(chargeProposee(BUTTERFLY, sugg, [], 2)).toBe(50)
+  })
+  it('charge à trouver : celle de la dernière série faite', () => {
+    const vide = { ...sugg, charges: [null, null, null] }
+    expect(chargeProposee(BUTTERFLY, vide, [faite(40)], 2)).toBe(40)
   })
 })
