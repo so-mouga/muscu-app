@@ -23,7 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
-import { copieProgramme, estDuJour, nomSeanceLibre, programmesSansSeance, reposParDefaut } from '../lib/programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesSansSeance, reposParDefaut } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -33,13 +33,11 @@ export function planParDefaut(exo: Exercice): ExoPlan {
   // Exercice en temps (gainage…) : 3 × 30 s, repos court.
   if (exo.mesure === 'temps')
     return { exoId: exo.id, repos: reposParDefaut(exo), series: [0, 1, 2].map(() => ({ repsMin: 30, repsMax: 30, rpe: 8 })), chauffes: [], finisseur: false, charge: 0 }
-  const compose = exo.type === 'compose'
-  // Un seul nombre de reps par série (3 × 10, 3 × 12) ; la fourchette reste une option avancée.
-  const reps = compose ? 10 : 12
+  const reps = fourchetteParDefaut(exo)
   return {
     exoId: exo.id,
     repos: reposParDefaut(exo),
-    series: [0, 1, 2].map(() => ({ repsMin: reps, repsMax: reps, rpe: 8 })),
+    series: [0, 1, 2].map(() => ({ ...reps, rpe: 8 })),
     chauffes: [],
     finisseur: false,
     charge: null,

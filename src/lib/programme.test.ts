@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { Programme, SeanceModele } from '../types'
-import { copieProgramme, estDuJour, nomSeanceLibre, programmesSansSeance } from './programme'
+import { EXERCICES } from '../data/exercices'
+import type { Programme, SeanceModele, Serie } from '../types'
+import { conseil } from './progression'
+import { copieProgramme, estDuJour, fourchetteParDefaut, nomSeanceLibre, programmesSansSeance } from './programme'
 
 const seance = (id: string): SeanceModele => ({ id, nom: `Séance ${id}`, sousTitre: '', exercices: [{ exoId: 'presse', repos: 120, chauffes: [], finisseur: false, charge: 50, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }] })
 const programme: Programme = { id: 'p1', nom: 'Mon programme ', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'a', jour: 5 }] }
@@ -72,5 +74,19 @@ describe('estDuJour', () => {
     const plan = [{ modele: { id: 'a' }, jour: 1 }, { modele: { id: 'a' }, jour: 4 }]
     expect(estDuJour(lignes[0], lignes, plan, 4)).toBe(false)
     expect(estDuJour(lignes[1], lignes, plan, 4)).toBe(true)
+  })
+})
+
+describe('fourchetteParDefaut', () => {
+  it('8–12 à plusieurs articulations, 12–15 en isolation', () => {
+    expect(fourchetteParDefaut(EXERCICES.smith_incline)).toEqual({ repsMin: 8, repsMax: 12 })
+    expect(fourchetteParDefaut(EXERCICES.butterfly)).toEqual({ repsMin: 12, repsMax: 15 })
+  })
+
+  it('un exercice ajouté reçoit un conseil de monter dès qu’il dépasse le bas de sa fourchette', () => {
+    const exo = EXERCICES.smith_incline
+    const plan = { exoId: exo.id, repos: 180, series: [0, 1, 2].map(() => ({ ...fourchetteParDefaut(exo), rpe: 8 })), chauffes: [], finisseur: false, charge: null }
+    const faites = [0, 1, 2].map((i): Serie => ({ id: String(i), exoId: exo.id, type: 'normale', charge: 50, reps: 10, rpe: 7, heure: 0 }))
+    expect(conseil(exo, plan, [faites])).not.toBeNull()
   })
 })

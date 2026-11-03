@@ -100,7 +100,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
   const [chauffes, setChauffes] = useState<LigneChauffe[]>(() => plan.chauffes.map(versLigne))
   const [aideFin, setAideFin] = useState(false)
   const [avance, setAvance] = useState(false)
-  // Fourchette de reps (8–12) : option avancée ; par défaut un seul nombre par série.
+  // Fourchette de reps (8–12) : mise d'office sur un exercice ajouté ; on peut passer à un seul nombre par série.
   const [fourchette, setFourchette] = useState(() => plan.series.some((s) => s.repsMin !== s.repsMax))
 
   const n = p.series.length
@@ -231,7 +231,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
             <div className="faible">
               {fourchette
                 ? 'Vise le haut : en fin de séance, l’appli te conseille quand monter.'
-                : 'Active pour viser une fourchette (ex. 12–15) et être guidé pour monter.'}
+                : 'Sans fourchette, l’appli ne te conseille pas de monter. Active-la pour être guidé (ex. 12–15).'}
             </div>
           </span>
           <span className="piste" />

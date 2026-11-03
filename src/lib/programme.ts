@@ -31,6 +31,9 @@ export const programmesSansSeance = (programmes: Programme[], modeleId: string):
   programmes.filter((p) => p.seances.some((e) => e.modeleId === modeleId)).map((p) => ({ ...p, seances: p.seances.filter((e) => e.modeleId !== modeleId) }))
 
 /** Repos entre les séries d'un exercice ajouté : court en temps, sur les mollets et les abdos, plus long sur les exercices à plusieurs articulations. */
+/** Fourchette d'un exercice ajouté, comme dans les programmes tout prêts : sans elle, l'appli ne conseille jamais de monter. */
+export const fourchetteParDefaut = (exo: Exercice) => (exo.type === 'compose' ? { repsMin: 8, repsMax: 12 } : { repsMin: 12, repsMax: 15 })
+
 export const reposParDefaut = (exo: Exercice): number => (exo.mesure === 'temps' ? 60 : exo.muscle === 'mollets' || exo.muscle === 'abdos' ? 90 : exo.type === 'compose' ? 180 : 150)
 
 /**
