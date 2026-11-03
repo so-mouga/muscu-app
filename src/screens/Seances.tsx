@@ -918,7 +918,9 @@ function Editeur({
           <div>
             <strong className="seance-resume-duree">≈ {minutes(dureeEstimee(m))}</strong>
             <span className="faible">
-              {habituelle ? ` prévues · ${minutes(habituelle)} d’habitude` : ''} · {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {nbSeries} série{nbSeries > 1 ? 's' : ''}
+              {habituelle ? ` prévues · ${minutes(habituelle)} d’habitude` : ''}
+              {habituelle ? <br /> : ' · '}
+              {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {nbSeries} série{nbSeries > 1 ? 's' : ''}
             </span>
           </div>
           {travailles.length > 0 && (
