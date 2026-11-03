@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Fragment, useRef, useState } from 'react'
 import { kg, lireChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
@@ -434,16 +434,22 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
         </div>
         </div>
 
-        {/* Tout s'enregistre : on passe d'un exercice à l'autre, on ferme par un appui à côté ou le retour. */}
+        {/* Tout s'enregistre : on ferme par « Terminer », un appui à côté ou le retour, on change d'exercice par les flèches. */}
         <div className="modal-pied ligne">
-          {onPrecedent && (
-            <button className="btn grand" style={{ flex: 1 }} onClick={puis(onPrecedent)}>
-              ‹ Précédent
+          {/* Flèches toujours à la même place : « Terminer » ne bouge pas d'un exercice à l'autre. */}
+          {(onPrecedent || onSuivant) && (
+            <button className="btn grand btn-fleche" aria-label="Exercice précédent" disabled={!onPrecedent} onClick={onPrecedent && puis(onPrecedent)}>
+              <ChevronLeft size={24} />
             </button>
           )}
-          <button className="btn primaire grand" style={{ flex: 1 }} onClick={onSuivant ? puis(onSuivant) : valider}>
-            {onSuivant ? 'Suivant ›' : 'Terminer'}
+          <button className="btn primaire grand" style={{ flex: 1 }} onClick={valider}>
+            Terminer
           </button>
+          {(onPrecedent || onSuivant) && (
+            <button className="btn grand btn-fleche" aria-label="Exercice suivant" disabled={!onSuivant} onClick={onSuivant && puis(onSuivant)}>
+              <ChevronRight size={24} />
+            </button>
+          )}
         </div>
       </div>
     </div>

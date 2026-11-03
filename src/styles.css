@@ -4356,6 +4356,11 @@ html[data-sens='fondu']::view-transition-new(root) {
   align-self: flex-start;
   margin-top: var(--e1);
 }
+.btn-fleche {
+  flex: 0 0 var(--cible);
+  width: var(--cible);
+  padding: 0;
+}
 .prog-version-gardee {
   margin-bottom: var(--e3);
   font-size: var(--t-petit);
