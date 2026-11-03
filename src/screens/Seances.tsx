@@ -23,6 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { estDansSuperset, groupeSuperset } from '../lib/superset'
+import { copieProgramme } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -246,7 +247,8 @@ function PageProgramme({
 
   const dupliquer = async () => {
     setMenu(false)
-    const copie = { ...structuredClone(p), id: 'p_' + uid(), nom: `${p.nom.trim()} (copie)` }
+    const { programme: copie, seances } = copieProgramme(p, catalogue.modele, uid)
+    await db.modeles.bulkPut(seances)
     await sauverProgramme(copie, catalogue)
     onOuvrirProgramme(copie)
   }

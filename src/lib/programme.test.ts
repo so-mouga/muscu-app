@@ -1,0 +1,59 @@
+import { describe, expect, it } from 'vitest'
+import type { Programme, SeanceModele } from '../types'
+import { copieProgramme, nomSeanceLibre, programmesSansSeance } from './programme'
+
+const seance = (id: string): SeanceModele => ({ id, nom: `Séance ${id}`, sousTitre: '', exercices: [{ exoId: 'presse', repos: 120, chauffes: [], finisseur: false, charge: 50, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }] })
+const programme: Programme = { id: 'p1', nom: 'Mon programme ', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'a', jour: 5 }] }
+const modele = (id: string) => ({ a: seance('a'), b: seance('b') })[id]
+const compteur = () => {
+  let k = 0
+  return () => String(++k)
+}
+
+describe('copieProgramme', () => {
+  it('copie les séances : la copie ne pointe plus vers les séances d’origine', () => {
+    const { programme: c, seances } = copieProgramme(programme, modele, compteur())
+    expect(c.nom).toBe('Mon programme (copie)')
+    expect(c.id).not.toBe('p1')
+    expect(seances).toHaveLength(2)
+    expect(c.seances.map((e) => e.modeleId)).not.toContain('a')
+    expect(c.seances.map((e) => e.modeleId)).not.toContain('b')
+  })
+  it('garde les jours, et une séance faite deux fois par semaine reste une seule séance', () => {
+    const { programme: c, seances } = copieProgramme(programme, modele, compteur())
+    expect(c.seances.map((e) => e.jour)).toEqual([1, 3, 5])
+    expect(c.seances[0].modeleId).toBe(c.seances[2].modeleId)
+    expect(seances.map((m) => m.nom)).toEqual(['Séance a', 'Séance b'])
+  })
+  it('modifier une séance copiée ne touche pas à l’originale', () => {
+    const originale = seance('a')
+    const { seances } = copieProgramme({ ...programme, seances: [{ modeleId: 'a' }] }, () => originale, compteur())
+    seances[0].exercices.pop()
+    expect(originale.exercices).toHaveLength(1)
+  })
+  it('ignore une séance qui n’existe plus', () => {
+    const { programme: c } = copieProgramme({ ...programme, seances: [{ modeleId: 'a' }, { modeleId: 'disparue' }] }, modele, compteur())
+    expect(c.seances).toHaveLength(1)
+  })
+})
+
+describe('nomSeanceLibre', () => {
+  it('propose la première lettre libre, jamais un nom déjà pris', () => {
+    expect(nomSeanceLibre([])).toBe('Séance A')
+    expect(nomSeanceLibre(['Séance A', 'Haut'])).toBe('Séance B')
+    expect(nomSeanceLibre(['Séance A', 'Séance C'])).toBe('Séance B')
+    expect(nomSeanceLibre(['Séance A', 'Séance B', 'Séance C'])).toBe('Séance D')
+  })
+  it('passe à un numéro après la dernière lettre', () => {
+    expect(nomSeanceLibre([...'ABCDEFGHIJ'].map((l) => `Séance ${l}`))).toBe('Séance 11')
+  })
+})
+
+describe('programmesSansSeance', () => {
+  it('retire toutes les entrées de la séance, et ne renvoie que les programmes concernés', () => {
+    const autre: Programme = { id: 'p2', nom: 'Autre', seances: [{ modeleId: 'b' }] }
+    const r = programmesSansSeance([programme, autre], 'a')
+    expect(r).toHaveLength(1)
+    expect(r[0].seances).toEqual([{ modeleId: 'b', jour: 3 }])
+  })
+})
