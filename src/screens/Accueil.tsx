@@ -18,6 +18,7 @@ import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import { depuisDebut, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
+import { CLE_DEMARRAGE, type EtatDemarrage } from '../lib/demarrage'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
@@ -75,6 +76,7 @@ export default function Accueil({
   onJournal,
   onProgrammes,
   onChoisirProgramme,
+  onObjectif,
 }: {
   catalogue: Catalogue
   onVoirSeance: (id: string) => void
@@ -89,6 +91,8 @@ export default function Accueil({
   onProgrammes: () => void
   /** Sans programme : ouvre le choix du programme. */
   onChoisirProgramme: () => void
+  /** Sans objectif : ouvre la question de l'objectif. */
+  onObjectif: () => void
 }) {
   const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
@@ -349,6 +353,9 @@ export default function Accueil({
     .slice(0, window.innerHeight < 720 ? 1 : 2)
 
   const nbFaites = planning.filter(faite).length
+  // 1re semaine : seuls les jours restants après avoir pris le programme comptent.
+  const installeLe = (reglages.find((r) => r.cle === CLE_DEMARRAGE)?.valeur as EtatDemarrage | undefined)?.installeLe
+  const prevusSemaine = installeLe && installeLe >= debutSemaine ? planning.filter((e) => e.jour >= jourSemaine(new Date(installeLe + 'T12:00:00'))) : planning
   // Semaines tenues (les trois quarts des séances prévues) : affichées à partir de 2, déloads et pauses ne cassent rien.
   const tenues = terminees ? semainesTenues(terminees, planning.length, cycles, dateISO()) : 0
   // Un seul vrai progrès, depuis le début du cycle en cours, sinon de la phase, sinon en 4 semaines.
@@ -417,8 +424,8 @@ export default function Accueil({
           </button>
         ) : (
           !periodes(catalogue.objectifs).length && (
-            <button type="button" onClick={onObjectifs}>
-              + Phase
+            <button type="button" onClick={onObjectif}>
+              + Ton objectif
             </button>
           )
         )}
@@ -438,15 +445,15 @@ export default function Accueil({
           <JournalMatin catalogue={catalogue} />
           <button type="button" className="accueil-semaine" onClick={onJournal} aria-label="Cette semaine : ouvrir le Journal">
             <strong>Cette semaine</strong>
-            {planning.length > 0 && (
+            {prevusSemaine.length > 0 && (
               <span className="semaine-points" aria-hidden="true">
-                {planning.map((_, i) => (
+                {prevusSemaine.map((_, i) => (
                   <i key={i} className={i < nbFaites ? 'fait' : ''} />
                 ))}
               </span>
             )}
             <span className={tenues >= 2 ? 'semaine-texte tenue' : 'semaine-texte'}>
-              {tenues >= 2 ? `${tenues}e semaine tenue` : planning.length ? `${nbFaites} sur ${planning.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`} ›
+              {tenues >= 2 ? `${tenues}e semaine tenue` : prevusSemaine.length ? `${nbFaites} sur ${prevusSemaine.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`} ›
             </span>
           </button>
           {progres && gainBloc && (

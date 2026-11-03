@@ -4,10 +4,12 @@ import { useCatalogue } from './catalogue'
 import { db } from './db'
 import { transition, useRetour } from './lib/nav'
 import { dateISO } from './lib/calc'
+import { CLE_DEMARRAGE, type EtatDemarrage } from './lib/demarrage'
 import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJourNatif, type Rappel } from './lib/natif'
 import Accueil from './screens/Accueil'
 import Corps, { type PageCorps } from './screens/Corps'
 import Exercices from './screens/Exercices'
+import Demarrage, { type ModeDemarrage } from './components/Demarrage'
 import IconeOnglet from './components/IconeOnglet'
 import Historique, { type VueProgression } from './screens/Historique'
 import Reglages from './screens/Reglages'
@@ -55,6 +57,11 @@ export default function App() {
   }
   const enCours = useLiveQuery(() => db.seances.filter((s) => s.enCours).first(), [], null)
   const catalogue = useCatalogue()
+  const demarrage = useLiveQuery(() => db.reglages.get(CLE_DEMARRAGE), [], null)
+  /** Démarrage rouvert depuis l'accueil ou l'onglet Programme. */
+  const [demarrageOuvert, setDemarrageOuvert] = useState<ModeDemarrage | null>(null)
+  /** « Créer le mien » : ouvre un nouveau programme dans l'onglet Programme. */
+  const [creerProgramme, setCreerProgramme] = useState(false)
 
   // Rappel de séance (appli Android) : Android garde le planning et l'heure ; on les lui renvoie quand ils changent.
   const rappel = useLiveQuery(() => db.reglages.get(CLE_RAPPEL), [], null)
@@ -98,8 +105,23 @@ export default function App() {
   const fermerReglages = () => (transition(() => setReglages(false), 'arriere'), window.scrollTo({ top: 0 }))
   useRetour(!enCours && reglages, fermerReglages)
 
-  if (enCours === null || !catalogue) return null // chargement
+  if (enCours === null || !catalogue || demarrage === null) return null // chargement
   if (enCours) return <SeanceEnCours key={enCours.id} seance={enCours} catalogue={catalogue} />
+
+  const etatDemarrage = demarrage?.valeur as EtatDemarrage | undefined
+  const modeDemarrage = demarrageOuvert ?? (catalogue.sansProgramme && !etatDemarrage?.quitte ? 'parcours' : null)
+  if (modeDemarrage)
+    return (
+      <Demarrage
+        key={modeDemarrage}
+        catalogue={catalogue}
+        mode={modeDemarrage}
+        initial={etatDemarrage}
+        onFermer={() => setDemarrageOuvert(null)}
+        onCreer={() => (setDemarrageOuvert(null), setOngletEtat('seances'), setCreerProgramme(true))}
+        onInstalle={() => (setDemarrageOuvert(null), setOngletEtat('accueil'), window.scrollTo({ top: 0 }))}
+      />
+    )
 
   return (
     <>
@@ -111,10 +133,11 @@ export default function App() {
             onVoirSeance={(id) => setDetail(id, 'accueil')}
             onMesures={() => ouvrirCorps('mensurations')}
             onObjectifs={() => ouvrirCorps('phases')}
+            onObjectif={() => setDemarrageOuvert('objectif')}
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onJournal={() => (setVue('journal'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
-            onChoisirProgramme={() => setOnglet('seances')}
+            onChoisirProgramme={() => setDemarrageOuvert('programme')}
           />
         )}
         {!reglages && onglet === 'historique' && (
@@ -129,7 +152,7 @@ export default function App() {
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={setPageCorps} />}
-        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setOnglet('seances')} />}
+        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} />}
         {!reglages && onglet === 'exercices' && (
           <Exercices
             catalogue={catalogue}

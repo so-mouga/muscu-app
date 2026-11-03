@@ -179,7 +179,6 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
           <button className="btn plein" onClick={nouveauProgramme}>
             Créer le mien
           </button>
-          <ChoixProgramme catalogue={catalogue} titre="Programmes tout prêts" />
         </div>
       )}
 

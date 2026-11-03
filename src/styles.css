@@ -4951,3 +4951,117 @@ html[data-sens='fondu']::view-transition-new(root) {
   gap: var(--e1);
   flex-shrink: 0;
 }
+
+/* Démarrage : plein écran, sans barre du bas ; une question à la fois. */
+#root:has(.demarrage) {
+  padding-bottom: 0;
+}
+.demarrage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  min-height: 100dvh;
+  padding: calc(var(--e3) + env(safe-area-inset-top)) 0 calc(var(--e4) + env(safe-area-inset-bottom));
+}
+.demarrage h1 {
+  font-size: var(--t-page);
+  text-wrap: balance;
+}
+.demarrage-haut {
+  display: grid;
+  grid-template-columns: var(--cible) 1fr var(--cible);
+  align-items: center;
+  margin-inline: calc(var(--e2) * -1);
+}
+.demarrage-icone {
+  display: grid;
+  place-items: center;
+  width: var(--cible);
+  height: var(--cible);
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--texte-salle);
+}
+.demarrage-points {
+  display: flex;
+  justify-content: center;
+  gap: var(--e2);
+}
+.demarrage-points i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--voile-fort);
+}
+.demarrage-points i.fait {
+  background: var(--texte-salle);
+}
+.demarrage-corps {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e4);
+  min-height: 0;
+}
+.demarrage-choix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+.demarrage-option {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: var(--e3) var(--e4);
+  background: var(--surface-uni);
+  border: none;
+  border-radius: var(--rayon-2);
+  color: var(--texte);
+  font-size: var(--t-texte);
+  text-align: left;
+}
+.demarrage-option strong {
+  font-weight: 600;
+}
+.demarrage-option span {
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+}
+.demarrage-option.pris {
+  background: var(--voile-fort);
+}
+.demarrage-jours {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--e1);
+}
+.demarrage-jours button {
+  height: 52px;
+  padding: 0;
+  background: var(--controle);
+  border: 1.5px solid transparent;
+  border-radius: var(--rayon-2);
+  color: var(--texte-salle);
+  font-size: var(--t-texte);
+  font-weight: 600;
+}
+.demarrage-jours button[aria-pressed='true'] {
+  background: var(--voile-fort);
+  border-color: var(--voile-bord);
+  color: var(--texte);
+}
+.demarrage-compte {
+  min-height: 22px;
+  font-weight: 600;
+}
+.demarrage-bas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.demarrage-bas .btn {
+  flex: none;
+}
