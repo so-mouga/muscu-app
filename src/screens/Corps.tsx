@@ -84,10 +84,10 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
   // Poids : moyenne sur 7 jours, courbe et écart sur la période choisie.
   const moyenne = poidsSemaine(pesees, aujourdhui)
   const dernierePesee = pesees[pesees.length - 1]
-  const pesesDepuis = (j: number) => pesees.filter((p) => !j || p.date >= dateISO(new Date(Date.now() - j * 86400000)))
+  const peseesDepuis = (j: number) => pesees.filter((p) => !j || p.date >= dateISO(new Date(Date.now() - j * 86400000)))
   // D'office, la plus courte période qui montre une courbe : plus de carte vide après un temps sans pesée.
-  const jours = joursChoisis ?? [30, 91, 182, 0].find((j) => pesesDepuis(j).length >= 2) ?? 30
-  const surPeriode = pesesDepuis(jours)
+  const jours = joursChoisis ?? [30, 91, 182, 0].find((j) => peseesDepuis(j).length >= 2) ?? 30
+  const surPeriode = peseesDepuis(jours)
   const points = surPeriode.map((p) => ({ date: p.date, valeur: p.poids }))
   const ecartPoids = ecartPesees(surPeriode)
 

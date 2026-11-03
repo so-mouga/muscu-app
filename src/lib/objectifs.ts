@@ -209,6 +209,13 @@ export function dureePhase(frise: EtapeObjectifs[], debut: string, semaines: num
 export const dureeProlongee = (debut: string, finPrevue: string, aujourdhui: string) =>
   Math.max(Math.round((Date.parse(finPrevue) - Date.parse(debut)) / (7 * JOUR)), Math.ceil(joursEntre(debut, aujourdhui) / 7)) + 4
 
+/** Fin prévue d'une nouvelle phase : sa durée par défaut, mais jamais au-delà de ce qui est déjà prévu après elle. */
+export function finNouvellePhase(frise: EtapeObjectifs[], date: string, semaines: number) {
+  const fin = finApres(date, semaines)
+  const suite = tri(frise).find((e) => e.depuis > date)?.depuis
+  return suite && suite < fin ? suite : fin
+}
+
 /** Change la date de début d'une phase en gardant sa durée : elle et les suivantes glissent ensemble. */
 export const deplacerPhase = (frise: EtapeObjectifs[], debut: string, vers: string) => decaler(frise, debut, joursEntre(debut, vers))
 

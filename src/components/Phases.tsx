@@ -16,6 +16,7 @@ import {
   ecartPhase,
   ecartTexte,
   finApres,
+  finNouvellePhase,
   modifier,
   nomPhase,
   periodes,
@@ -64,7 +65,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
   const peutAjouter = !!derniere && !derniere.fin && !!derniere.finPrevue && derniere.finPrevue > aujourdhui
   const finie = enCours?.finPrevue && enCours.finPrevue <= aujourdhui && !aVenir.length
   const commencer = (phase: Phase, date = aujourdhui) => {
-    enregistrer(modifier(frise, date, { phase, finPrevue: finApres(date, DUREE_DEFAUT[phase]) }, catalogue.ciblesPerso))
+    enregistrer(modifier(frise, date, { phase, finPrevue: finNouvellePhase(frise, date, DUREE_DEFAUT[phase]) }, catalogue.ciblesPerso))
     if (catalogue.sansObjectif) void setReglage(CLE_SANS_OBJECTIF, false)
     setEditionEnCours(true)
   }

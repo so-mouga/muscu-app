@@ -1,4 +1,4 @@
-import { ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
+import { finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -218,5 +218,16 @@ describe('évolution du poids sur la courbe', () => {
   it('moins de 2 semaines : première face à dernière ; une seule pesée : rien', () => {
     expect(ecartPesees([{ date: '2026-10-01', poids: 80 }, { date: '2026-10-05', poids: 80.5 }])).toBeCloseTo(0.5)
     expect(ecartPesees([{ date: '2026-10-01', poids: 80 }])).toBeNull()
+  })
+})
+
+describe('nouvelle phase quand une autre est déjà prévue', () => {
+  const f = [{ depuis: '2026-11-20', phase: 'seche' as const, volume: {} }]
+  it('elle s’arrête où commence la suivante', () => {
+    expect(finNouvellePhase(f, '2026-11-03', 12)).toBe('2026-11-20')
+  })
+  it('sans chevauchement, sa durée normale', () => {
+    expect(finNouvellePhase(f, '2026-11-03', 1)).toBe('2026-11-10')
+    expect(finNouvellePhase([], '2026-11-03', 12)).toBe('2027-01-26')
   })
 })
