@@ -3667,6 +3667,9 @@ button.phase-accueil {
   .panneau-prudence {
     display: none;
   }
+}
+/* Jusqu'à 760 px : 731 px (S25) est le cas le plus juste, le badge y cachait les boutons d'effort. */
+@media (max-height: 760px) {
   .superset-badge-saisie {
     display: none;
   }
