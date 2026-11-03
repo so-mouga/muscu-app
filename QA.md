@@ -62,8 +62,8 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Recherche, liste par muscle, « Récents ».
 - Créer un exercice, le modifier, le supprimer.
 - Fiche d'un exercice : interrupteur « Calculateur de disques » (coupé pour un exercice créé ; activé d'office sur les exercices à barre et Smith, pas sur les presses), poids de la barre ; en séance, la puce sous la charge donne les disques par côté.
-- Exercice de base : modifiable, « ↺ Revenir à l'original », « Masquer » (réversible, jamais supprimé).
-- Courbe de progression d'un exercice déjà fait.
+- Exercice de base : modifiable, « Revenir à l'original » (dans ⋯), « Masquer » (réversible, jamais supprimé).
+- Fiche sur une page : « Dernière fois », effort en clair (jamais @8 ni 1RM), « Ça monte / Stable / Bloqué depuis n semaines » avec ses chiffres, courbe (force ou charge) ; dépliables : historique, records, comment le faire, réglages, remplaçants ; ⋯ : modifier, dupliquer, masquer ou supprimer. Exercice jamais fait : « Pas encore fait », consignes ouvertes.
 
 ### 6. Progrès (Bilan et Journal) et Corps (onglet à part)
 - **Bilan** : 4 sem. par défaut, Cycle (si un cycle a commencé avant cette semaine), 3 mois, **sur des semaines finies** : un lundi, rien en rouge et pas de reproche sur la semaine qui commence. Dans l'ordre : « À retenir » (3 lignes au plus), « Exercices » (2 qui montent, 2 qui bloquent, « Voir tous les exercices »), « Régularité » en une ligne, « Muscles » en jauges, « Forme » (sommeil, calories, poids moyen vers Corps), « Partager ce bilan » (texte complet). Une fiche ouverte depuis le Bilan : le retour garde la période et la position. Sans semaine finie : une seule carte, « Ton bilan arrive après ta première semaine ». Normal, voulu : pas de silhouette, pas de kg soulevés.

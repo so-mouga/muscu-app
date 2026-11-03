@@ -36,6 +36,14 @@ export function Consignes({ exo }: { exo: Exercice }) {
   )
 }
 
+/** Ce que disent les réglages de l'exercice, en une ligne. */
+export const resumeReglages = (exo: Exercice) =>
+  exo.mode === 'elastique'
+    ? 'Note et photo'
+    : exo.mode === 'poids_corps' || exo.assistance
+      ? `Palier ${kg(exo.pas)} kg`
+      : `Palier ${kg(exo.pas)} kg · charge max : ${exo.chargeMax !== undefined ? `${kg(exo.chargeMax)} kg` : 'pas réglée'}`
+
 /** Petit bouton ⓘ qui ouvre la fiche d'exécution. */
 export function BoutonInfos({ onClick }: { onClick: () => void }) {
   return (
@@ -62,12 +70,7 @@ export default function InfosExo({ exo, onFermer, action }: { exo: Exercice; onF
   useRetour(true, onFermer)
   useRetour(reglages, () => setReglages(false))
   const avecConsignes = !!consigne(exo.id)
-  const resume =
-    exo.mode === 'elastique'
-      ? 'Note et photo'
-      : exo.mode === 'poids_corps' || exo.assistance
-        ? `Palier ${kg(exo.pas)} kg`
-        : `Palier ${kg(exo.pas)} kg · charge max : ${exo.chargeMax !== undefined ? `${kg(exo.chargeMax)} kg` : 'pas réglée'}`
+  const resume = resumeReglages(exo)
   return createPortal(
     <div className="modal-fond" onClick={onFermer}>
       {/* Toujours la même fenêtre : passer aux réglages change son contenu, sans la faire remonter une 2e fois. */}

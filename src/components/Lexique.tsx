@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { LEXIQUE } from '../data/lexique'
 import { useRetour } from '../lib/nav'
 
-/** Les termes de l'appli expliqués (PDC, RPE, 1RM…). */
+/** Les termes de l'appli expliqués (PDC, RPE, force estimée…). */
 export function ListeLexique() {
   return (
     <dl className="lexique">

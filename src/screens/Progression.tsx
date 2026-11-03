@@ -1,30 +1,60 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { confirmer } from '../components/Dialogues'
 import { db } from '../db'
+import Aide from '../components/Aide'
 import { nomMuscle } from '../components/ChoixExo'
-import { MODES } from '../components/FormExo'
 import Courbe from '../components/Courbe'
-import IconeMuscle from '../components/IconeMuscle'
-import { Consignes } from '../components/InfosExo'
+import { Consignes, resumeReglages } from '../components/InfosExo'
+import { ContenuReglages } from '../components/ReglagesMachine'
 import { consigne } from '../data/consignes'
-import { EXERCICES, MUSCLES } from '../data/exercices'
-import { chargeTexte, dateCourte, duree, e1rm, enTemps, kg, kgSouleves, qte, serieTexte, tempsParExo } from '../lib/calc'
-import type { Exercice, Seance } from '../types'
-import { Aide } from '../components/Cycle'
+import { EXERCICES } from '../data/exercices'
 import { LEXIQUE } from '../data/lexique'
+import { blocage } from '../lib/blocages'
+import { chargeQte, chargeTexte, dateCourte, dateISO, e1rm, enTemps, kg, qte, serieTexte } from '../lib/calc'
+import { evolutionForce, meilleureSerie } from '../lib/historique'
+import { useRetour } from '../lib/nav'
+import type { Exercice, Seance, Serie } from '../types'
 
-type Onglet = 'stats' | 'historique' | 'infos'
-type Mesure = 'e1rm' | 'charge' | 'volume' | 'temps'
+type Mesure = 'force' | 'charge' | 'temps'
 const PERIODES: [string, number][] = [
-  ['30 j', 30],
-  ['3 m', 91],
-  ['6 m', 182],
+  ['3 mois', 91],
   ['1 an', 365],
   ['Tout', 0],
 ]
+const JOUR = 86400000
 
-/** Fiche d'un exercice en trois onglets : stats, historique, infos (exécution, muscles, remplaçants). */
+/** L'effort des séries, en clair : « effort 8/10 », ou « effort 7, 8/10 » s'il change. */
+const effortDe = (series: Serie[]) => {
+  const l = [...new Set(series.map((x) => x.rpe).filter((r) => r > 0))].sort((a, b) => a - b)
+  return l.length ? `effort ${l.map(kg).join(', ')}/10` : ''
+}
+
+/** Est-ce que je progresse ? Le constat, chiffré, sur les 8 dernières semaines : les mêmes règles que le Bilan et les blocages. */
+function lecture(exo: Exercice, chrono: Seance[]): { texte: string; classe: string; detail?: string } | null {
+  const travail = chrono.filter((s) => !s.deload)
+  if (travail.length < 2) return null
+  const bloque = blocage(exo, travail, dateISO())
+  if (bloque) return { texte: `Bloqué depuis ${bloque.semaines} semaines`, classe: 'alerte-texte', detail: `pas de progrès sur ${bloque.seances} séances` }
+  const dernier = Date.parse(travail[travail.length - 1].date)
+  const recentes = travail.filter((s) => dernier - Date.parse(s.date) <= 56 * JOUR)
+  const ev = evolutionForce(exo, recentes.length >= 2 ? recentes : travail)
+  if (!ev) return null
+  const premiere = recentes.length >= 2 ? recentes[0] : travail[0]
+  const semaines = Math.max(1, Math.round((dernier - Date.parse(premiere.date)) / (7 * JOUR)))
+  const duree = `en ${semaines} semaine${semaines > 1 ? 's' : ''}`
+  const monte = ev.apres.score > ev.avant.score * (exo.suivreE1rm && !enTemps(exo) ? 1.01 : 1)
+  if (monte)
+    return {
+      texte: 'Ça monte',
+      classe: 'tenue',
+      detail: ev.avant.e1rm && ev.apres.e1rm ? `force estimée +${kg(Math.round((ev.apres.e1rm - ev.avant.e1rm) * 2) / 2)} kg ${duree}` : `${chargeQte(exo, ev.avant.serie.charge, ev.avant.serie.reps)} → ${chargeQte(exo, ev.apres.serie.charge, ev.apres.serie.reps)} ${duree}`,
+    }
+  return { texte: ev.apres.score < ev.avant.score * 0.98 ? 'Un peu en dessous' : 'Stable', classe: 'faible', detail: `sur les ${semaines} dernière${semaines > 1 ? 's' : ''} semaine${semaines > 1 ? 's' : ''}` }
+}
+
+/** Fiche d'un exercice sur une page : où j'en suis, la courbe, puis le détail à un appui. */
 export function Detail({
   exo,
   seances,
@@ -56,12 +86,14 @@ export function Detail({
   onRelierExo: (id: string) => void
   onDelier: (id: string) => void
 }) {
-  const [onglet, setOnglet] = useState<Onglet>('stats')
+  const [menu, setMenu] = useState(false)
+  useRetour(menu, () => setMenu(false))
   // Exercice de base modifié par l'utilisateur (sa version est enregistrée par-dessus) : on peut revenir à l'original.
   const modifie = useLiveQuery(async () => !exo.perso && !!EXERCICES[exo.id] && !!(await db.exercices.get(exo.id)), [exo.id, exo.perso], false)
   const revenirOriginal = async () => {
+    setMenu(false)
     if (
-      await confirmer(`Nom, muscles, matériel, pas de charge et consignes reprennent les valeurs de l’appli${exo.image ? ', et ta photo est retirée' : ''}. Ton historique ne change pas.`, {
+      await confirmer(`Nom, muscles, matériel, palier et consignes reprennent les valeurs de l’appli${exo.image ? ', et ta photo est retirée' : ''}. Ton historique ne change pas.`, {
         titre: 'Revenir à l’original ?',
         oui: 'Revenir à l’original',
       })
@@ -69,46 +101,29 @@ export function Detail({
       await db.exercices.delete(exo.id)
   }
   const temps = enTemps(exo)
-  const secondaires = exo.secondaires?.map((x) => x.muscle) ?? []
-  const unite1rm = exo.mode === 'par_main' ? 'kg/main' : 'kg'
-  const [mesure, setMesure] = useState<Mesure>(temps ? 'temps' : exo.suivreE1rm ? 'e1rm' : 'charge')
+  const [mesure, setMesure] = useState<Mesure>(temps ? 'temps' : exo.suivreE1rm ? 'force' : 'charge')
   const [periode, setPeriode] = useState(91)
   const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
   const chrono = [...avec].reverse()
   const seriesDe = (s: Seance) => s.series.filter((x) => x.exoId === exo.id)
-  const e1rmDe = (s: Seance) => Math.max(0, ...seriesDe(s).map((x) => e1rm(exo, x, s.poidsCorps) ?? 0))
-  const volumeDe = (s: Seance) => seriesDe(s).reduce((a, x) => a + kgSouleves(x, exo), 0)
+  const forceDe = (s: Seance) => Math.max(0, ...seriesDe(s).map((x) => e1rm(exo, x, s.poidsCorps) ?? 0))
 
-  // Records et tuiles
-  const toutes = avec.flatMap((s) => seriesDe(s).map((x) => ({ x, s })))
-  const meilleurE1rm = exo.suivreE1rm ? Math.max(0, ...avec.map(e1rmDe)) : 0
-  const chargeMax = toutes.length ? Math.max(...toutes.map(({ x }) => x.charge)) : null
-  const dernierE1rm = exo.suivreE1rm && avec[0] ? e1rmDe(avec[0]) : 0
-  const volumeTotal = avec.reduce((a, s) => a + volumeDe(s), 0)
+  const derniere = avec.find((s) => !s.deload) ?? avec[0]
+  const meilleure = derniere && meilleureSerie(seriesDe(derniere), exo.assistance)
+  const verdict = lecture(exo, chrono)
+
+  const toutes = avec.flatMap((s) => seriesDe(s))
   const repsParCharge = new Map<number, number>()
-  for (const { x } of toutes) repsParCharge.set(x.charge, Math.max(repsParCharge.get(x.charge) ?? 0, x.reps))
-  const demiReps = chrono.flatMap((s) => seriesDe(s).filter((x) => x.type === 'serie_longue').map((x) => ({ date: s.date, x })))
+  for (const x of toutes) repsParCharge.set(x.charge, Math.max(repsParCharge.get(x.charge) ?? 0, x.reps))
 
   // Courbe : un point par séance sur la période choisie
-  const depuis = periode ? Date.now() - periode * 86400000 : 0
+  const depuis = periode ? Date.now() - periode * JOUR : 0
   const points = chrono
     .filter((s) => s.debut >= depuis)
-    .map((s) => ({
-      date: s.date,
-      valeur:
-        mesure === 'e1rm' ? e1rmDe(s) : mesure === 'volume' ? volumeDe(s) : mesure === 'temps' ? Math.max(...seriesDe(s).map((x) => x.reps)) : Math.max(...seriesDe(s).map((x) => x.charge)),
-    }))
-    .filter((p) => mesure !== 'e1rm' || p.valeur > 0)
+    .map((s) => ({ date: s.date, valeur: mesure === 'force' ? forceDe(s) : mesure === 'temps' ? Math.max(...seriesDe(s).map((x) => x.reps)) : Math.max(...seriesDe(s).map((x) => x.charge)) }))
+    .filter((p) => mesure !== 'force' || p.valeur > 0)
   const formatMesure = (v: number) => (mesure === 'temps' ? `${v} s` : mesure === 'charge' ? chargeTexte(exo, v) : `${kg(Math.round(v * 10) / 10)} kg`)
-  const tempsMax = toutes.length ? Math.max(...toutes.map(({ x }) => x.reps)) : null
-
-  const c = consigne(exo.id)
-  const tuile = (valeur: string, label: string) => (
-    <div className="tuile">
-      <strong>{valeur}</strong>
-      <span className="faible">{label}</span>
-    </div>
-  )
+  const secondaires = exo.secondaires?.map((x) => nomMuscle(x.muscle).toLowerCase()).join(', ')
 
   return (
     <div>
@@ -116,273 +131,218 @@ export function Detail({
         <button className="btn" onClick={onRetour} aria-label="Retour">
           ←
         </button>
-        <h2 style={{ flex: 1 }}>{exo.nom}</h2>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2>{exo.nom}</h2>
+          <div className="faible">
+            {nomMuscle(exo.muscle)}
+            {secondaires ? ` · aussi ${secondaires}` : ''}
+          </div>
+        </div>
+        <button className="icone" onClick={() => setMenu(true)} aria-label="Plus d’actions">
+          <MoreHorizontal size={22} />
+        </button>
       </div>
       {copieDe && (
         <div className="carte pile bandeau-copie">
-          <strong>⧉ Copie de « {copieDe} » créée</strong>
+          <strong>Copie de « {copieDe} » créée</strong>
           <div className="faible">C’est un nouvel exercice, sans historique, relié à l’original comme équivalent. L’original n’a pas changé.</div>
           <button className="btn petit" onClick={onModifier}>
             Renommer la copie
           </button>
         </div>
       )}
-      <div className="ligne" style={{ gap: 8, marginBottom: 12 }}>
-        <button className="btn" style={{ flex: 1 }} onClick={onModifier}>
-          ✎ Modifier
-        </button>
-        {onDupliquer && (
-          <button className="btn" style={{ flex: 1 }} onClick={onDupliquer} aria-label="Dupliquer l’exercice">
-            ⧉ Dupliquer
-          </button>
-        )}
-        {exo.perso ? (
-          <button className="btn danger" onClick={onSupprimer} aria-label="Supprimer l’exercice">
-            🗑
-          </button>
-        ) : (
-          <button className="btn" onClick={onSupprimer} aria-label="Masquer l’exercice">
-            Masquer
-          </button>
-        )}
-      </div>
+      {exo.image && <img src={exo.image} alt={exo.nom} className="photo-grande" />}
 
-      {modifie && (
-        <div className="ligne entre bandeau-copie carte" style={{ gap: 8 }}>
-          <span className="faible">Tu as modifié cet exercice de base.</span>
-          <button className="btn petit" onClick={() => void revenirOriginal()}>
-            ↺ Revenir à l’original
-          </button>
+      {derniere && meilleure ? (
+        <div className="carte fiche-reponse">
+          <div className="faible">Dernière fois, {dateCourte(derniere.date)}</div>
+          <div className="fiche-perf">{chargeQte(exo, meilleure.charge, meilleure.reps)}</div>
+          {effortDe(seriesDe(derniere)) && <div className="faible">{effortDe(seriesDe(derniere))}</div>}
+          {verdict ? (
+            <div className="fiche-verdict">
+              <strong className={verdict.classe}>{verdict.texte}</strong>
+              {verdict.detail && <span className="faible"> · {verdict.detail}</span>}
+            </div>
+          ) : (
+            <div className="fiche-verdict faible">Première séance : elle sert de repère.</div>
+          )}
         </div>
+      ) : (
+        <div className="carte faible">Pas encore fait. Ta première séance donnera le repère.</div>
       )}
 
-      <div className="carte fiche-tete">
-        {exo.image ? (
-          <img src={exo.image} alt={exo.nom} className="photo-grande" />
-        ) : (
-          // Muscle principal en orange, secondaires en orange doux ; la vue de dos s'ajoute si un muscle travaillé y est.
-          <div className="ligne" style={{ gap: 8, justifyContent: 'center' }}>
-            {(['avant', 'arriere'] as const)
-              .filter((f) => [exo.muscle, ...secondaires].some((m) => MUSCLES.find((x) => x.id === m)?.face === f))
-              .map((f) => (
-                <IconeMuscle key={f} muscle={exo.muscle} secondaires={secondaires} face={f} taille={84} />
-              ))}
-          </div>
-        )}
-        <div className="faible">
-          {nomMuscle(exo.muscle)}
-          {secondaires.length ? ` (+ ${secondaires.map((m) => nomMuscle(m).toLowerCase()).join(', ')})` : ''} · {MODES.find((m) => m[0] === exo.mode)?.[1]} ·{' '}
-          {exo.type === 'compose' ? 'composé' : 'isolation'}
-        </div>
-      </div>
-
-      <div className="segments" role="tablist">
-        {(
-          [
-            ['stats', 'Stats'],
-            ['historique', 'Historique'],
-            ['infos', 'Infos'],
-          ] as [Onglet, string][]
-        ).map(([id, nom]) => (
-          <button key={id} role="tab" aria-selected={onglet === id} className={onglet === id ? 'actif' : ''} onClick={() => setOnglet(id)}>
-            {nom}
-          </button>
-        ))}
-      </div>
-
-      {onglet === 'stats' && (
-        <>
-          <div className="tuiles" style={{ marginBottom: 12 }}>
-            {temps && tuile(tempsMax !== null ? `${tempsMax} s` : '—', 'record de temps')}
-            {tuile(exo.suivreE1rm ? (meilleurE1rm ? `${kg(Math.round(meilleurE1rm * 2) / 2)} ${unite1rm}` : '—') : chargeMax !== null ? chargeTexte(exo, chargeMax) : '—', exo.suivreE1rm ? 'record e1RM' : 'charge max')}
-            {exo.suivreE1rm && tuile(dernierE1rm ? `${kg(Math.round(dernierE1rm * 2) / 2)} ${unite1rm}` : '—', '1RM estimé (dernier)')}
-            {!temps && tuile(`${kg(Math.round(volumeTotal))} kg`, 'volume total')}
-          </div>
-          {exo.suivreE1rm && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-              <span className="faible" style={{ fontSize: 'var(--t-petit)' }}>1RM estimé</span>
-              <Aide titre="1RM estimé" texte={LEXIQUE.find((l) => l[0] === '1RM estimé')![1]} />
-            </div>
-          )}
-
-          <div className="carte pile">
-            <div className="chips">
-              {exo.suivreE1rm && (
-                <button className={mesure === 'e1rm' ? 'actif' : ''} onClick={() => setMesure('e1rm')}>
-                  1RM estimé
-                </button>
-              )}
-              {temps && (
-                <button className={mesure === 'temps' ? 'actif' : ''} onClick={() => setMesure('temps')}>
-                  Temps max
-                </button>
-              )}
-              <button className={mesure === 'charge' ? 'actif' : ''} onClick={() => setMesure('charge')}>
-                Charge max
+      {avec.length >= 2 && (
+        <div className="carte pile">
+          {exo.suivreE1rm && !temps && (
+            <div className="ligne" style={{ gap: 'var(--e2)' }}>
+            <div className="segments" role="tablist" style={{ marginBottom: 0, flex: 1 }}>
+              <button role="tab" aria-selected={mesure === 'force'} className={mesure === 'force' ? 'actif' : ''} onClick={() => setMesure('force')}>
+                Force
               </button>
-              {!temps && (
-                <button className={mesure === 'volume' ? 'actif' : ''} onClick={() => setMesure('volume')}>
-                  Volume
-                </button>
-              )}
+              <button role="tab" aria-selected={mesure === 'charge'} className={mesure === 'charge' ? 'actif' : ''} onClick={() => setMesure('charge')}>
+                Charge
+              </button>
             </div>
-            {points.length >= 2 ? (
-              <Courbe key={mesure + periode} points={points} format={formatMesure} />
-            ) : (
-              <div className="faible" style={{ padding: '24px 0', textAlign: 'center' }}>
-                {avec.length < 2
-                  ? `La courbe apparaît à partir de 2 séances${exo.suivreE1rm && exo.mode === 'poids_corps' ? ' (avec ton poids du jour noté)' : ''}.`
-                  : 'Pas assez de séances sur cette période.'}
-              </div>
-            )}
-            <div className="chips">
-              {PERIODES.map(([nom, j]) => (
-                <button key={nom} className={periode === j ? 'actif' : ''} onClick={() => setPeriode(j)}>
-                  {nom}
-                </button>
-              ))}
+            <Aide titre="Force estimée" texte={LEXIQUE.find((l) => l[0] === 'Force estimée')![1]} />
             </div>
+          )}
+          {points.length >= 2 ? (
+            <Courbe key={mesure + periode} points={points} format={formatMesure} />
+          ) : (
+            <div className="faible" style={{ padding: 'var(--e5) 0', textAlign: 'center' }}>
+              {mesure === 'force' && exo.mode === 'poids_corps' ? 'La force estimée demande ton poids du jour : note-le à l’accueil.' : 'Pas assez de séances sur cette période.'}
+            </div>
+          )}
+          <div className="chips">
+            {PERIODES.map(([nom, j]) => (
+              <button key={nom} className={periode === j ? 'actif' : ''} onClick={() => setPeriode(j)}>
+                {nom}
+              </button>
+            ))}
           </div>
-
-          {repsParCharge.size > 0 && (
-            <div className="carte">
-              <h3 style={{ marginBottom: 6 }}>{temps ? 'Records de temps' : 'Records de reps'}</h3>
-              <table>
-                <tbody>
-                  {[...repsParCharge.entries()]
-                    .sort((a, b) => b[0] - a[0])
-                    .slice(0, 6)
-                    .map(([ch, r]) => (
-                      <tr key={ch}>
-                        <td>
-                          {temps ? 'Max' : 'Max reps'} à {chargeTexte(exo, ch)}
-                        </td>
-                        <td>{qte(exo, r)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {demiReps.length > 0 && (
-            <div className="carte">
-              <h3 style={{ marginBottom: 6 }}>Demi-reps de finisseur</h3>
-              <div className="petit">
-                {demiReps.map(({ date, x }, i) => (
-                  <span key={i}>
-                    {i > 0 && ' → '}
-                    <strong>{x.demiReps}</strong> <span className="faible">({chargeTexte(exo, x.charge)}, {dateCourte(date)})</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {onglet === 'historique' && (
-        <div className="carte">
-          {avec.length === 0 && <div className="faible">Pas encore fait.</div>}
-          {avec.map((s) => (
-            <div key={s.id} style={{ marginBottom: 10 }}>
-              <div className="faible">
-                {dateCourte(s.date)} · {s.nom}
-                {tempsParExo(s)[exo.id] > 0 && ` · ⏱ ${duree(tempsParExo(s)[exo.id])}`}
-              </div>
-              <div className="petit">
-                {seriesDe(s)
-                  .map((x) => serieTexte(exo, x))
-                  .join(' · ')}
-              </div>
-              {s.notes[exo.id] && <div className="faible">📝 {s.notes[exo.id]}</div>}
-            </div>
-          ))}
         </div>
       )}
 
-      {onglet === 'infos' && (
-        <>
-          {c && (
-            <div className="carte pile">
-              <h3>Exécution</h3>
-              <Consignes exo={exo} />
-            </div>
-          )}
-
-          <div className="carte ligne" style={{ gap: 14 }}>
-            <div>
-              <div className="faible">Muscle ciblé</div>
-              <strong>{nomMuscle(exo.muscle)}</strong>
-              {exo.secondaires?.length ? <div className="faible">aussi : {exo.secondaires.map((x) => nomMuscle(x.muscle).toLowerCase()).join(', ')}</div> : null}
-            </div>
-          </div>
-
-          <div className="carte pile">
-            <div>
-              <h3>Remplaçants</h3>
-              <div className="faible">Quand la machine est prise. Les exercices reliés sont proposés en premier ; chacun garde sa propre progression.</div>
-            </div>
-            {equivalents.map((e) => (
-              <div key={e.exo.id} className="ligne entre">
-                <span>
-                  ⇄ <strong>{e.exo.nom}</strong>
-                  {e.derniere && <div className="faible">dernière fois : {e.derniere}</div>}
-                </span>
-                <button className="btn discret petit" onClick={() => onDelier(e.exo.id)}>
-                  Délier
-                </button>
+      {avec.length > 0 && (
+        <details className="depliable">
+          <summary>
+            <span>
+              Historique <span className="faible">· {avec.length} séance{avec.length > 1 ? 's' : ''}</span>
+            </span>
+            <ChevronRight size={20} className="muted depliable-chevron" />
+          </summary>
+          <div className="depliable-corps pile">
+            {avec.map((s) => (
+              <div key={s.id}>
+                <div className="faible">
+                  {dateCourte(s.date)} · {s.nom}
+                  {s.deload ? ' · allégée' : ''}
+                </div>
+                <div>
+                  {seriesDe(s)
+                    .map((x) => serieTexte(exo, x, true))
+                    .join(' · ')}
+                </div>
+                <div className="faible">{effortDe(seriesDe(s))}</div>
+                {s.notes[exo.id] && <div className="faible">Note : {s.notes[exo.id]}</div>}
               </div>
             ))}
-            {suggestions.length > 0 && (
-              <div>
-                <div className="faible" style={{ marginBottom: 4 }}>
-                  Suggestions, même muscle
+          </div>
+        </details>
+      )}
+
+      {repsParCharge.size > 0 && !temps && (
+        <details className="depliable">
+          <summary>
+            <span>Records</span>
+            <ChevronRight size={20} className="muted depliable-chevron" />
+          </summary>
+          <div className="depliable-corps">
+            <div className="faible" style={{ marginBottom: 'var(--e2)' }}>
+              Le plus de reps à chaque charge.
+            </div>
+            {[...repsParCharge.entries()]
+              .sort((a, b) => (exo.assistance ? a[0] - b[0] : b[0] - a[0]))
+              .slice(0, 6)
+              .map(([ch, r]) => (
+                <div key={ch} className="ligne entre">
+                  <span>{chargeTexte(exo, ch)}</span>
+                  <strong>{qte(exo, r)}</strong>
                 </div>
-                {suggestions.map((e) => (
-                  <div key={e.id} className="ligne entre" style={{ padding: '4px 0' }}>
-                    <span>{e.nom}</span>
-                    <button className="btn petit" onClick={() => onRelierExo(e.id)}>
-                      + Relier
-                    </button>
-                  </div>
-                ))}
-              </div>
+              ))}
+          </div>
+        </details>
+      )}
+
+      {consigne(exo.id) && (
+        <details className="depliable" open={avec.length === 0}>
+          <summary>
+            <span>Comment le faire</span>
+            <ChevronRight size={20} className="muted depliable-chevron" />
+          </summary>
+          <div className="depliable-corps pile">
+            <Consignes exo={exo} />
+          </div>
+        </details>
+      )}
+
+      <details className="depliable">
+        <summary>
+          <span>
+            Réglages
+            <span className="faible prog-sous">{resumeReglages(exo)}</span>
+          </span>
+          <ChevronRight size={20} className="muted depliable-chevron" />
+        </summary>
+        <div className="depliable-corps pile">
+          <ContenuReglages key={exo.id} exo={exo} />
+        </div>
+      </details>
+
+      <details className="depliable">
+        <summary>
+          <span>
+            Remplaçants
+            {equivalents.length > 0 && <span className="faible"> · {equivalents.length}</span>}
+          </span>
+          <ChevronRight size={20} className="muted depliable-chevron" />
+        </summary>
+        <div className="depliable-corps pile">
+          <div className="faible">Quand la machine est prise. Les exercices reliés sont proposés en premier ; chacun garde sa propre progression.</div>
+          {equivalents.map((e) => (
+            <div key={e.exo.id} className="ligne entre">
+              <span>
+                <strong>{e.exo.nom}</strong>
+                {e.derniere && <div className="faible">dernière fois : {e.derniere}</div>}
+              </span>
+              <button className="btn discret petit" onClick={() => onDelier(e.exo.id)}>
+                Délier
+              </button>
+            </div>
+          ))}
+          {suggestions.map((e) => (
+            <div key={e.id} className="ligne entre">
+              <span>{e.nom}</span>
+              <button className="btn petit" onClick={() => onRelierExo(e.id)}>
+                + Relier
+              </button>
+            </div>
+          ))}
+          <button className="btn plein" onClick={onRelier}>
+            Relier un autre exercice
+          </button>
+        </div>
+      </details>
+
+      {menu && (
+        <div className="modal-fond" onClick={() => setMenu(false)}>
+          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+            <h3>{exo.nom}</h3>
+            <button className="liste-btn" onClick={() => (setMenu(false), onModifier())}>
+              <span>Modifier</span>
+            </button>
+            {onDupliquer && (
+              <button className="liste-btn" onClick={() => (setMenu(false), onDupliquer())}>
+                <span>
+                  Dupliquer
+                  <span className="faible prog-sous">Autre machine, autre prise : sans historique, relié à l’original</span>
+                </span>
+              </button>
             )}
-            <button className="btn plein" onClick={onRelier}>
-              Relier un autre exercice
+            {modifie && (
+              <button className="liste-btn" onClick={() => void revenirOriginal()}>
+                <span>Revenir à l’original</span>
+              </button>
+            )}
+            <button className="liste-btn" onClick={() => (setMenu(false), onSupprimer())}>
+              <span style={exo.perso ? { color: 'var(--danger)' } : undefined}>{exo.perso ? 'Supprimer l’exercice' : 'Masquer de la liste'}</span>
+            </button>
+            <button className="btn discret plein" onClick={() => setMenu(false)}>
+              Fermer
             </button>
           </div>
-
-          <div className="carte">
-            <h3 style={{ marginBottom: 6 }}>Réglages</h3>
-            <table>
-              <tbody>
-                <tr>
-                  <td>Charge</td>
-                  <td>
-                    {MODES.find((m) => m[0] === exo.mode)?.[1]} · pas {kg(exo.pas)}
-                    {exo.mode === 'elastique' ? '' : ' kg'}
-                  </td>
-                </tr>
-                {exo.chargeMax !== undefined && (
-                  <tr>
-                    <td>Charge max dispo</td>
-                    <td>{chargeTexte(exo, exo.chargeMax)}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-            {exo.notes && <div className="petit muted" style={{ marginTop: 8 }}>📝 {exo.notes}</div>}
-          </div>
-
-          <button className={'btn discret plein' + (exo.perso ? ' danger' : '')} style={{ marginBottom: 24 }} onClick={onSupprimer}>
-            {exo.perso ? 'Supprimer l’exercice' : 'Masquer de la bibliothèque'}
-          </button>
-        </>
+        </div>
       )}
     </div>
   )
 }
-
-/** Courbe à une seule série : ligne 2 px, points 8 px, valeur au toucher. */

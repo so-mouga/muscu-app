@@ -141,7 +141,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
     if (ev?.avant.e1rm && ev.apres.e1rm) {
       const a = ev.avant.e1rm
       const b = ev.apres.e1rm
-      lignes.push(`  1RM estimé : ${kg(arrondi(a))} → ${kg(arrondi(b))} kg (${b >= a ? '+' : '−'}${kg(Math.abs(arrondi(((b - a) / a) * 100)))} %)`)
+      lignes.push(`  Force estimée : ${kg(arrondi(a))} → ${kg(arrondi(b))} kg (${b >= a ? '+' : '−'}${kg(Math.abs(arrondi(((b - a) / a) * 100)))} %)`)
     }
     const bloque = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase: d.objectifs && phaseA(d.objectifs, fin)?.phase }, fin)
     if (bloque) lignes.push(`  ${texteBlocage(bloque)}`)

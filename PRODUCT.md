@@ -120,13 +120,12 @@ Limites connues du parcours :
 
 ### Reste à faire, dans l'ordre
 
-1. **Programme et Exercices**, plan validé après maquette cliquable (`AGENTS.md`), un commit par écran. Fait : page Programme et fenêtre de lancement, écran de séance, réglage d'un exercice et liste d'ajout, Changer de programme et « Prendre ce programme » qui lance le cycle, page du cycle et fusion du Bilan du cycle. À voir à l'usage : si l'appui sur le jour se trouve. À faire, dans l'ordre : fiche d'exercice, liste dans Progrès et retrait de l'onglet, formulaire d'exercice (Palier, Machine assistée).
+1. **Programme et Exercices**, plan validé après maquette cliquable (`AGENTS.md`), un commit par écran. Fait : page Programme et fenêtre de lancement, écran de séance, réglage d'un exercice et liste d'ajout, Changer de programme et « Prendre ce programme » qui lance le cycle, page du cycle et fusion du Bilan du cycle, fiche d'exercice. À voir à l'usage : si l'appui sur le jour se trouve. À faire, dans l'ordre : liste dans Progrès et retrait de l'onglet, formulaire d'exercice (Palier, Machine assistée).
 2. **Réglages.**
 
 À traiter en refaisant ces écrans :
 
 - Saisie des mensurations : garde un bouton « Enregistrer », contraire à l'enregistrement automatique. Détail de séance : « + Ajouter une série oubliée » répété sous chaque exercice, icônes ℹ et émojis du détail à reprendre.
-- Fiche d'exercice : @8 et 1RM à dire en clair.
 
 - Exercice créé par l'utilisateur et assisté : rien ne permet encore de le marquer (`Exercice.assistance`), à prévoir dans la fiche en refaisant Exercices. Le repère des exercices équivalents (`repere`) ne connaît pas non plus l'assistance.
 - La liste des variables de couleur d'`AGENTS.md` (`--flamme`, `--ambre`, `--forme-*`…) cite des noms absents de `styles.css` : à remettre d'accord.

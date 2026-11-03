@@ -285,7 +285,7 @@ function Lexique() {
     <div className="carte pile">
       <button type="button" className="groupe-repli" onClick={() => setOuvert(!ouvert)} aria-expanded={ouvert}>
         <span>
-          <strong>Lexique</strong> <span className="faible">PDC, RPE, 1RM, déload…</span>
+          <strong>Lexique</strong> <span className="faible">PDC, RPE, force estimée, déload…</span>
         </span>
         <span className="muted">{ouvert ? '▾' : '▸'}</span>
       </button>

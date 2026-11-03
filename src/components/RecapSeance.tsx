@@ -115,7 +115,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                   )}
                   {meilleur > 0 && (
                     <div>
-                      🏆 <strong>1RM estimé :</strong> {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}
+                      🏆 <strong>Force estimée :</strong> {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}
                       {record && meilleur > record ? ' · record battu 🏆' : ''}
                     </div>
                   )}

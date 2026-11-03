@@ -5292,3 +5292,40 @@ html[data-sens='fondu']::view-transition-new(root) {
 .semaine-allegee {
   color: var(--texte-2);
 }
+
+/* Fiche d'exercice */
+.fiche-perf {
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+.fiche-verdict {
+  margin: var(--e2) 0 var(--e1);
+}
+.alerte-texte {
+  color: var(--alerte);
+}
+.depliable {
+  margin-bottom: var(--e2);
+  border-radius: var(--rayon-2);
+  background: var(--surface);
+}
+.depliable summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e2);
+  min-height: var(--cible);
+  padding: var(--e3);
+  list-style: none;
+  cursor: pointer;
+}
+.depliable summary::-webkit-details-marker {
+  display: none;
+}
+.depliable[open] .depliable-chevron {
+  transform: rotate(90deg);
+}
+.depliable-corps {
+  padding: 0 var(--e3) var(--e3);
+  font-size: var(--t-petit);
+}

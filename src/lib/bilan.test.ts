@@ -42,7 +42,7 @@ describe('bilan à partager', () => {
     expect(t).toContain('Pecs : 3/sem. (objectif 10) · RPE moyen 8 · par semaine : 3 / 3')
     expect(t).toContain('Développé incliné Smith (pecs)')
     expect(t).toContain('50 kg × 10 @8')
-    expect(t).toContain('1RM estimé : 70 → 73,5 kg (+5 %)')
+    expect(t).toContain('Force estimée : 70 → 73,5 kg (+5 %)')
     expect(t).toContain('(2 semaines)')
     expect(t).toContain('Poids moyen par semaine : 74 / 73,4 kg (−0,6 kg)')
     expect(t).toContain('Siège cran 4')
