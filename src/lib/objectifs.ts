@@ -115,14 +115,14 @@ export function phaseA(frise: EtapeObjectifs[], date: string): (PeriodePhase & {
 export const finAffichee = (p: PeriodePhase, aujourdhui: string) => p.fin ?? (p.finPrevue ? (p.finPrevue > aujourdhui ? p.finPrevue : aujourdhui) : '9999-12-31')
 
 /**
- * Phase à montrer dans Objectifs : celle programmée à l'avance s'il y en a une (à venir), sinon celle
- * en cours. `enCours` : la phase d'aujourd'hui quand une autre est à venir.
+ * Phase à montrer sur l'accueil : celle en cours, sinon la prochaine prévue.
+ * Planifier la suite ne doit jamais faire disparaître la phase d'aujourd'hui.
  */
 export function phaseAffichee(frise: EtapeObjectifs[], aujourdhui: string) {
-  const derniere = periodes(frise).at(-1)
   const enCours = phaseA(frise, aujourdhui)
-  if (derniere && derniere.debut > aujourdhui) return { ...derniere, aVenir: true as const, semaine: 0, total: derniere.finPrevue ? Math.max(1, Math.round((Date.parse(derniere.finPrevue) - Date.parse(derniere.debut)) / (7 * JOUR))) : undefined, enCours }
-  return enCours && { ...enCours, aVenir: false as const, enCours: null }
+  if (enCours) return { ...enCours, aVenir: false as const }
+  const prochaine = periodes(frise).find((p) => p.debut > aujourdhui)
+  return prochaine ? { ...prochaine, aVenir: true as const, semaine: 0, total: prochaine.finPrevue ? Math.max(1, Math.round((Date.parse(prochaine.finPrevue) - Date.parse(prochaine.debut)) / (7 * JOUR))) : undefined } : null
 }
 
 /** Texte pour un bilan : « Sèche depuis le 3 nov. (semaine 3 sur 12, fin prévue le 25 janv.) ». `finPrevue` est le 1er jour d'après : on affiche la veille, son dernier jour. */

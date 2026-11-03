@@ -28,21 +28,140 @@ export const CALORIES: [NonNullable<JourJournal['calories']>, string][] = [
 export const noterJournal = (date: string, c: Partial<JourJournal>) =>
   db.transaction('rw', db.journal, async () => db.journal.put({ ...(await db.journal.get(date)), ...c, date }))
 
-const TEXTE_CALORIES: Record<NonNullable<JourJournal['calories']>, string> = { ok: 'Tenu', trop: 'Trop', pasAssez: 'Pas assez' }
+export const TEXTE_CALORIES: Record<NonNullable<JourJournal['calories']>, string> = { ok: 'Tenu', trop: 'Trop', pasAssez: 'Pas assez' }
 
-type Saisie = 'poids' | 'sommeil' | 'calories'
+export type SaisieJour = 'poids' | 'sommeil' | 'calories'
 
 /**
  * Journal du matin sur l'accueil : poids, sommeil et calories d'hier (si un objectif est fixé), toujours
  * au même endroit, la valeur en grand ou « Noter ». Un appui ouvre la saisie dans une fenêtre, rien ne
  * bouge dans l'écran et rien n'est jamais pré-rempli pour le sommeil ou les calories.
  */
-function CaseJour({ valeur, nom, onClick }: { valeur?: string; nom: string; onClick: () => void }) {
+export function CaseJour({ valeur, nom, onClick }: { valeur?: string; nom: string; onClick: () => void }) {
   return (
     <button type="button" className="case-jour" onClick={onClick}>
       <span className={valeur ? 'case-jour-valeur' : 'case-jour-valeur a-noter'}>{valeur ?? 'Noter ›'}</span>
       <span className="case-jour-nom">{nom}</span>
     </button>
+  )
+}
+
+/**
+ * La saisie d'un jour, la même à l'accueil et dans le Journal. Poids : un appui à côté ou le retour Android
+ * gardent ce qui a changé, sans changement rien n'est noté, « Annuler » ne garde rien.
+ */
+export function FenetreJour({
+  saisie,
+  date,
+  catalogue,
+  journal,
+  poidsDuJour,
+  poidsRepere,
+  onFermer,
+}: {
+  saisie: SaisieJour
+  date: string
+  catalogue: Catalogue
+  journal?: JourJournal
+  poidsDuJour?: number
+  /** Dernier poids connu : point de départ quand ce jour n'a pas de pesée. */
+  poidsRepere?: number
+  onFermer: () => void
+}) {
+  const depart = kg(poidsDuJour ?? poidsRepere ?? 70)
+  const [valPoids, setValPoids] = useState(depart)
+  const objectif = objectifDuJour(catalogue.objectifs, date)
+  const aujourdhui = dateISO()
+  const court = new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const titrePoids = date === aujourdhui ? 'Poids du jour' : `Poids du ${court}`
+  const titreSommeil = date === aujourdhui ? 'Sommeil cette nuit' : `Sommeil du ${court}`
+  const hier = dateISO(new Date(Date.now() - JOUR))
+  const titreCalories = date === hier ? 'Calories d’hier' : date === aujourdhui ? 'Calories du jour' : `Calories du ${court}`
+
+  const enregistrerPoids = async () => {
+    const t = valPoids.trim().replace(',', '.')
+    const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
+    if (!(val > 30 && val < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
+    const arr = Math.round(val * 10) / 10
+    await db.pesees.put({ date, poids: arr })
+    await db.seances.filter((s) => !s.poidsCorps && (s.date === date || date === aujourdhui)).modify((s) => {
+      s.poidsCorps = arr
+    })
+    onFermer()
+  }
+
+  const ajusterPoids = (delta: number) => {
+    const cur = parseFloat(valPoids.trim().replace(',', '.'))
+    if (Number.isFinite(cur)) setValPoids(kg(Math.round((cur + delta) * 10) / 10))
+  }
+
+  const fermer = () => {
+    if (saisie === 'poids' && valPoids !== depart) return void enregistrerPoids()
+    onFermer()
+  }
+  useRetour(true, fermer)
+
+  return createPortal(
+    <div className="modal-fond" onClick={fermer}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        {saisie === 'poids' && (
+          <div className="pile">
+            <h2>{titrePoids}</h2>
+            <div className="stepper">
+              <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
+                −
+              </button>
+              <div className="valeur">
+                <input type="text" inputMode="decimal" enterKeyHint="done" aria-label="Poids en kg" value={valPoids} onFocus={(e) => e.target.select()} onChange={(e) => setValPoids(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()} />
+                <span className="unite">kg</span>
+              </div>
+              <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
+                +
+              </button>
+            </div>
+            <button type="button" className="btn primaire plein" onClick={() => void enregistrerPoids()}>
+              Noter ce poids
+            </button>
+            <button type="button" className="btn discret plein" onClick={onFermer}>
+              Annuler
+            </button>
+            {poidsDuJour !== undefined && (
+              <button type="button" className="btn discret danger plein" onClick={() => void db.pesees.delete(date).then(onFermer)}>
+                Effacer cette pesée
+              </button>
+            )}
+          </div>
+        )}
+        {saisie === 'sommeil' && (
+          <div className="pile">
+            <h2>{titreSommeil}</h2>
+            <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+              {HEURES.map(([h, txt]) => (
+                <button key={h} type="button" className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noterJournal(date, { sommeil: h }).then(onFermer)}>
+                  {txt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {saisie === 'calories' && (
+          <div className="pile">
+            <div>
+              <h2>{titreCalories}</h2>
+              {objectif && <div className="faible">Objectif : {objectif.kcal.toLocaleString('fr-FR')} kcal</div>}
+            </div>
+            <div className="rpe" style={{ gridTemplateColumns: `repeat(${CALORIES.length}, 1fr)` }}>
+              {CALORIES.map(([id, nom]) => (
+                <button key={id} type="button" className={journal?.calories === id ? 'actif' : ''} onClick={() => void noterJournal(date, { calories: journal?.calories === id ? undefined : id }).then(onFermer)}>
+                  {nom}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
   )
 }
 
@@ -53,107 +172,15 @@ export default function JournalMatin({ catalogue }: { catalogue: Catalogue }) {
   const peseeDuJour = useLiveQuery(() => db.pesees.get(aujourdhui), [aujourdhui])
   const duJour = useLiveQuery(() => db.journal.get(aujourdhui), [aujourdhui])
   const dHier = useLiveQuery(() => db.journal.get(hier), [hier])
-  const [saisie, setSaisie] = useState<Saisie | null>(null)
-  const [valPoids, setValPoids] = useState('')
-  const [poidsDepart, setPoidsDepart] = useState('')
+  const [saisie, setSaisie] = useState<SaisieJour | null>(null)
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui)
 
-  const ouvrirPoids = () => {
-    const v = kg(peseeDuJour?.poids ?? dernierePesee?.poids ?? 70)
-    setValPoids(v)
-    setPoidsDepart(v)
-    setSaisie('poids')
-  }
-
-  const enregistrerPoids = async () => {
-    const t = valPoids.trim().replace(',', '.')
-    const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
-    if (!(val > 30 && val < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
-    const arr = Math.round(val * 10) / 10
-    await db.pesees.put({ date: aujourdhui, poids: arr })
-    await db.seances.filter((s) => !s.poidsCorps).modify((s) => {
-      s.poidsCorps = arr
-    })
-    setSaisie(null)
-  }
-
-  const ajusterPoids = (delta: number) => {
-    const cur = parseFloat(valPoids.trim().replace(',', '.'))
-    if (Number.isFinite(cur)) setValPoids(kg(Math.round((cur + delta) * 10) / 10))
-  }
-
-  // Un appui à côté ou le retour Android gardent le poids réglé ; sans changement, rien n'est noté.
-  const fermer = () => {
-    if (saisie === 'poids' && valPoids !== poidsDepart) return void enregistrerPoids()
-    setSaisie(null)
-  }
-  useRetour(saisie !== null, fermer)
-
-  const avecCalories = !!objectif
   return (
     <div className="journal-matin">
-      <CaseJour nom="Poids" valeur={peseeDuJour && `${kg(peseeDuJour.poids)} kg`} onClick={ouvrirPoids} />
+      <CaseJour nom="Poids" valeur={peseeDuJour && `${kg(peseeDuJour.poids)} kg`} onClick={() => setSaisie('poids')} />
       <CaseJour nom="Sommeil" valeur={duJour?.sommeil !== undefined ? heures(duJour.sommeil) : undefined} onClick={() => setSaisie('sommeil')} />
-      {avecCalories && <CaseJour nom="Calories d’hier" valeur={dHier?.calories && TEXTE_CALORIES[dHier.calories]} onClick={() => setSaisie('calories')} />}
-
-      {saisie &&
-        createPortal(
-          <div className="modal-fond" onClick={fermer}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              {saisie === 'poids' && (
-                <div className="pile">
-                  <h2>Poids du jour</h2>
-                  <div className="stepper">
-                    <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
-                      −
-                    </button>
-                    <div className="valeur">
-                      <input type="text" inputMode="decimal" enterKeyHint="done" aria-label="Poids en kg" value={valPoids} onFocus={(e) => e.target.select()} onChange={(e) => setValPoids(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()} />
-                      <span className="unite">kg</span>
-                    </div>
-                    <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
-                      +
-                    </button>
-                  </div>
-                  <button type="button" className="btn primaire plein" onClick={() => void enregistrerPoids()}>
-                    Noter ce poids
-                  </button>
-                  <button type="button" className="btn discret plein" onClick={() => setSaisie(null)}>
-                    Annuler
-                  </button>
-                </div>
-              )}
-              {saisie === 'sommeil' && (
-                <div className="pile">
-                  <h2>Sommeil cette nuit</h2>
-                  <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
-                    {HEURES.map(([h, txt]) => (
-                      <button key={h} type="button" className={duJour?.sommeil === h ? 'actif' : ''} onClick={() => void noterJournal(aujourdhui, { sommeil: h }).then(() => setSaisie(null))}>
-                        {txt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {saisie === 'calories' && objectif && (
-                <div className="pile">
-                  <div>
-                    <h2>Calories d’hier</h2>
-                    <div className="faible">Objectif : {objectif.kcal.toLocaleString('fr-FR')} kcal</div>
-                  </div>
-                  <div className="rpe" style={{ gridTemplateColumns: `repeat(${CALORIES.length}, 1fr)` }}>
-                    {CALORIES.map(([id, nom]) => (
-                      <button key={id} type="button" className={dHier?.calories === id ? 'actif' : ''} onClick={() => void noterJournal(hier, { calories: dHier?.calories === id ? undefined : id }).then(() => setSaisie(null))}>
-                        {nom}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>,
-          document.body
-        )}
+      {objectif && <CaseJour nom="Calories d’hier" valeur={dHier?.calories && TEXTE_CALORIES[dHier.calories]} onClick={() => setSaisie('calories')} />}
+      {saisie && <FenetreJour saisie={saisie} date={saisie === 'calories' ? hier : aujourdhui} catalogue={catalogue} journal={saisie === 'calories' ? dHier : duJour} poidsDuJour={peseeDuJour?.poids} poidsRepere={dernierePesee?.poids} onFermer={() => setSaisie(null)} />}
     </div>
   )
 }

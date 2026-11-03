@@ -32,7 +32,9 @@ describe('objectifs dans le temps', () => {
     expect(phaseA(g, '2026-12-05')).toBeNull()
     // Prise prévue le 7 déc., vue le 1er : à venir, la sèche reste en cours jusque-là.
     const h = modifier(f, '2026-12-07', { phase: 'prise' })
-    expect(phaseAffichee(h, '2026-12-01')).toMatchObject({ phase: 'prise', aVenir: true, enCours: { phase: 'seche' } })
+    expect(phaseAffichee(h, '2026-12-01')).toMatchObject({ phase: 'seche', aVenir: false })
+    // Sans phase en cours, c'est la prochaine qu'on annonce.
+    expect(phaseAffichee(modifier(g, '2026-12-20', { phase: 'prise' }), '2026-12-05')).toMatchObject({ phase: 'prise', aVenir: true })
     expect(phaseA(h, '2026-12-01')?.phase).toBe('seche')
     // Volume changé aujourd'hui : il vaut aussi pour la phase déjà prévue.
     expect(objectifsA(modifier(h, '2026-12-01', { volume: { pecs: 12 } }), '2026-12-08')?.volume).toEqual({ pecs: 12 })

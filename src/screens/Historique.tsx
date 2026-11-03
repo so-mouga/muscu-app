@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo, useRef, useState } from 'react'
-import { Camera, Check, ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Moon, Pencil, Ruler, Smile, Trophy, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Pencil, Ruler, Smile, Trophy, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
@@ -10,18 +10,18 @@ import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
 import type { JourJournal, Mesure, PhotoCorps, Reglage, Seance, Serie } from '../types'
-import { CALORIES, HEURES, heures, noterJournal } from '../components/JournalMatin'
+import { CaseJour, FenetreJour, heures, TEXTE_CALORIES, type SaisieJour } from '../components/JournalMatin'
 import { MESURES, clesDe, nomCle } from '../data/mesures'
 import { PlanchePhotos, POSES } from './Photos'
 import Bilan from './Bilan'
 import { SaisieMesures } from './Corps'
-import { finAffichee, nomPhase, periodes, textePhase, type EtapeObjectifs } from '../lib/objectifs'
+import { finAffichee, nomPhase, periodes, type EtapeObjectifs } from '../lib/objectifs'
 import { prevuLe } from '../lib/cycle'
 import { objectifDuJour } from '../lib/nutrition'
 
 type Prevu = ReturnType<typeof prevuLe>
 import { planParDefaut } from './Seances'
-import { confirmer, informer } from '../components/Dialogues'
+import { confirmer } from '../components/Dialogues'
 
 const JOURS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const dateLongue = (s: Seance) =>
@@ -131,9 +131,9 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             date={jourChoisi}
             catalogue={catalogue}
             prevu={prevu(jourChoisi)}
-            phase={textePhase(catalogue.objectifs, jourChoisi, (iso) => jourCourt(iso).replace(/^\S+ /, ''))}
             seances={terminees.filter((x) => x.date === jourChoisi).reverse()}
             pesee={peseesJour.find((x) => x.date === jourChoisi)?.poids}
+            poidsRepere={peseesJour.filter((x) => x.date <= jourChoisi).sort((x, y) => y.date.localeCompare(x.date))[0]?.poids}
             mesure={mesuresJour.find((x) => x.date === jourChoisi)}
             mesures={mesuresJour}
             photos={photosJour.liste}
@@ -200,62 +200,26 @@ function Calendrier({ seances, frise, prevu, choisi, onChoix }: { seances: Seanc
         <button className="icone" onClick={() => aller(-1)} aria-label="Mois précédent" style={{ color: 'var(--texte-2)' }}>
           <ChevronLeft size={22} strokeWidth={2} />
         </button>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <strong style={{ textTransform: 'capitalize', fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>
-              {mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
-            </strong>
+        <div className="mois-tete">
+          <strong>{mois.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</strong>
+          <div className="mois-infos">
+            <span>
+              {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
+              {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
+              {phaseMois ? ` · ${nomPhase(phaseMois).split(' /')[0]}` : ''}
+            </span>
             {pasAujourdhui && (
               <button
                 type="button"
+                className="mois-retour"
                 onClick={() => {
                   setSens(mois < auj ? 'avant' : 'arriere')
                   setMois(new Date(auj.getFullYear(), auj.getMonth(), 1))
                   onChoix(aujourdhui)
                 }}
-                aria-label="Revenir à aujourd'hui"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '3px 9px',
-                  borderRadius: 'var(--rayon)',
-                  background: 'var(--voile)',
-                  border: '1px solid var(--voile-fort)',
-                  fontSize: 'var(--t-legende)',
-                  fontWeight: 600,
-                  color: 'var(--accent)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  lineHeight: 1.2,
-                }}
               >
                 Aujourd’hui
               </button>
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-            <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>
-              {duMois ? pluriel(duMois, 'séance') : prevuesMois ? '' : 'aucune séance'}
-              {prevuesMois ? `${duMois ? ' · ' : ''}${prevuesMois} ${duMois ? '' : prevuesMois > 1 ? 'séances ' : 'séance '}prévue${prevuesMois > 1 ? 's' : ''}` : ''}
-            </span>
-            {phaseMois && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '2px 8px',
-                  borderRadius: 'var(--rayon-2)',
-                  background: 'var(--ok-voile)',
-                  border: '1px solid var(--ok-bord)',
-                  fontSize: 'var(--t-legende)',
-                  fontWeight: 600,
-                  color: 'var(--ok)',
-                }}
-              >
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--ok)' }} />
-                <span>{nomPhase(phaseMois)}</span>
-              </span>
             )}
           </div>
         </div>
@@ -321,7 +285,6 @@ function FenetreMesures({
   const valeurs = mesures.find((m) => m.date === date)?.valeurs ?? {}
   const cles = MESURES.flatMap(clesDe).filter((c) => valeurs[c] !== undefined)
   const depuis = [...new Set(cles.map((c) => ecartMesure(mesures, date, c)?.depuis).filter(Boolean))]
-  const vide = cles.length === 0
   const dateTexte = jourLong(date)
 
   return (
@@ -364,74 +327,7 @@ function FenetreMesures({
           </button>
         </div>
 
-        {vide ? (
-          /* État vide : aucune prise enregistrée pour ce jour */
-          <div style={{ textAlign: 'center', padding: '16px 8px 8px' }}>
-            <div className="faible" style={{ fontSize: 'var(--t-petit)', marginBottom: 20, color: 'var(--texte-2)', lineHeight: 1.4 }}>
-              Aucune mensuration enregistrée pour ce jour.
-            </div>
-
-            {onAjouterOuModifier && (
-              <button
-                type="button"
-                className="btn primaire plein"
-                onClick={onAjouterOuModifier}
-                style={{
-                  height: 44,
-                  minHeight: 44,
-                  borderRadius: 'var(--rayon-2)',
-                  fontSize: 'var(--t-petit)',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  marginBottom: 10,
-                }}
-              >
-                <span>+ Ajouter une prise pour ce jour</span>
-              </button>
-            )}
-
-            {onCorps && (
-              <button
-                type="button"
-                className="btn discret plein"
-                onClick={() => {
-                  try {
-                    localStorage.setItem('sous_onglet_corps', 'mensurations')
-                  } catch {}
-                  onFermer()
-                  onCorps()
-                }}
-                style={{
-                  height: 40,
-                  borderRadius: 'var(--rayon-2)',
-                  fontSize: 'var(--t-petit)',
-                  fontWeight: 600,
-                  color: 'var(--texte-2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                  marginBottom: 6,
-                }}
-              >
-                <span>Gérer toutes les mensurations ›</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              className="btn discret plein"
-              onClick={onFermer}
-              style={{ height: 38, borderRadius: 'var(--rayon-2)', fontSize: 'var(--t-petit)' }}
-            >
-              Fermer
-            </button>
-          </div>
-        ) : (
-          /* Prise existante */
+        {
           <>
             {depuis.length === 1 && (
               <div className="faible" style={{ fontSize: 'var(--t-legende)', marginBottom: 6 }}>
@@ -535,7 +431,7 @@ function FenetreMesures({
               </button>
             </div>
           </>
-        )}
+        }
       </div>
     </div>
   )
@@ -548,6 +444,7 @@ function JourChoisi({
   prevu,
   seances,
   pesee,
+  poidsRepere,
   mesure,
   mesures,
   photos,
@@ -562,9 +459,10 @@ function JourChoisi({
   catalogue: Catalogue
   /** Séances prévues (jour à venir, ou aujourd'hui sans séance faite). */
   prevu: Prevu | null
-  phase: string | null
   seances: Seance[]
   pesee?: number
+  /** Dernier poids connu : point de départ de la saisie quand ce jour n'a pas de pesée. */
+  poidsRepere?: number
   mesure?: { valeurs: Record<string, number> }
   /** Toutes les mensurations, pour l'écart avec la prise d'avant. */
   mesures: Mesure[]
@@ -582,69 +480,7 @@ function JourChoisi({
   const [voirMesures, setVoirMesures] = useState(false)
   const [saisieMesures, setSaisieMesures] = useState(false)
   const [voirPhotos, setVoirPhotos] = useState(false)
-  const [saisiePoids, setSaisiePoids] = useState(false)
-  const [valPoids, setValPoids] = useState('')
-  const [saisieSommeil, setSaisieSommeil] = useState(false)
-  const [saisieCalories, setSaisieCalories] = useState(false)
-
-  const toggleSaisiePoids = () => {
-    if (saisiePoids) {
-      setSaisiePoids(false)
-    } else {
-      const def = pesee !== undefined ? pesee : 70
-      setValPoids(kg(def))
-      setSaisiePoids(true)
-      setSaisieSommeil(false)
-      setSaisieCalories(false)
-    }
-  }
-
-  const toggleSaisieSommeil = () => {
-    if (saisieSommeil) {
-      setSaisieSommeil(false)
-    } else {
-      setSaisieSommeil(true)
-      setSaisiePoids(false)
-      setSaisieCalories(false)
-    }
-  }
-
-  const toggleSaisieCalories = () => {
-    if (saisieCalories) {
-      setSaisieCalories(false)
-    } else {
-      setSaisieCalories(true)
-      setSaisiePoids(false)
-      setSaisieSommeil(false)
-    }
-  }
-
-  const ajusterPoids = (delta: number) => {
-    const t = (valPoids || (pesee !== undefined ? kg(pesee) : '70')).trim().replace(',', '.')
-    const cur = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : (pesee ?? 70)
-    const nouv = Math.round((cur + delta) * 10) / 10
-    setValPoids(kg(nouv))
-  }
-
-  const enregistrerPoids = async () => {
-    const t = (valPoids || (pesee !== undefined ? kg(pesee) : '70')).trim().replace(',', '.')
-    const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
-    if (!(val > 30 && val < 250)) {
-      return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
-    }
-    const arr = Math.round(val * 10) / 10
-    await db.pesees.put({ date, poids: arr })
-    await db.seances.filter((s) => s.date === date && !s.poidsCorps).modify((s) => {
-      s.poidsCorps = arr
-    })
-    setSaisiePoids(false)
-  }
-
-  const supprimerPoids = async () => {
-    await db.pesees.delete(date)
-    setValPoids('')
-    setSaisiePoids(false)
-  }
+  const [saisie, setSaisie] = useState<SaisieJour | null>(null)
 
   // Mensurations : la taille d'abord (la plus parlante), sinon la première prise ; l'écart avec la fois d'avant.
   const clesMesure = mesure ? MESURES.flatMap(clesDe).filter((c) => mesure.valeurs[c] !== undefined) : []
@@ -652,16 +488,12 @@ function JourChoisi({
   const ecartUne = cleUne ? ecartMesure(mesures, date, cleUne) : null
   const poses = POSES.flatMap((p) => photos.filter((x) => x.date === date && x.pose === p.id))
   const objectif = objectifDuJour(catalogue.objectifs, date)
-  const noter = (c: Partial<JourJournal>) => noterJournal(date, c)
+  // Un jour à venir n'a rien à noter : une pesée future fausserait la courbe et le rythme de la phase.
+  const aVenir = date > dateISO()
 
   return (
     <div className="carte jour-choisi" style={{ padding: '16px', borderRadius: 'var(--rayon)' }}>
-      <div className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 2 }}>
-        Détail du jour
-      </div>
-      <strong style={{ textTransform: 'capitalize', fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)', display: 'block', marginBottom: 12 }}>
-        {date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-      </strong>
+      <strong className="jour-titre">{date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>
 
       {/* Séances réalisées */}
       {seances.map((s) => (
@@ -671,373 +503,55 @@ function JourChoisi({
       {/* Séances prévues */}
       {prevu?.pause && <div className="faible" style={{ padding: '8px 0' }}>Semaine en pause dans le cycle.</div>}
       {prevu?.seances.map((m) => (
-        <div
-          key={m.id}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid var(--voile)',
-            marginBottom: 10,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ color: 'var(--texte-2)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
-            <div>
-              <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>{m.nom}</div>
-              <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
-                Prévu{prevu.semaine ? ` · Semaine ${prevu.semaine}/${prevu.total}` : ''}
-              </div>
-            </div>
-          </div>
-          {prevu.deload && (
-            <span style={{ fontSize: 'var(--t-legende)', fontWeight: 600, color: 'var(--finisseur)', background: 'var(--finisseur-voile)', padding: '2px 8px', borderRadius: 'var(--rayon-2)' }}>
-              Déload
-            </span>
-          )}
+        <div key={m.id} className="ligne-jour-detail">
+          <span>
+            <strong>{m.nom}</strong>
+            <span className="faible">Prévu{prevu.semaine ? ` · semaine ${prevu.semaine}/${prevu.total}` : ''}</span>
+          </span>
+          {prevu.deload && <span className="etiquette-deload">Déload</span>}
         </div>
       ))}
 
-      {vide && !prevu?.seances.length && !prevu?.pause && (
-        <div className="faible" style={{ padding: '8px 0 12px', fontSize: 'var(--t-petit)' }}>
-          {date > dateISO() ? 'Repos · Rien de prévu ce jour-là.' : date === dateISO() ? 'Repos · Pas encore d’entraînement aujourd’hui.' : 'Repos ce jour-là.'}
+      {vide && !prevu?.seances.length && !prevu?.pause && <div className="faible jour-repos">{aVenir ? 'Rien de prévu ce jour-là.' : date === dateISO() ? 'Pas encore d’entraînement aujourd’hui.' : 'Repos ce jour-là.'}</div>}
+
+      {!aVenir && (
+        <div className="journal-matin">
+          <CaseJour nom="Poids" valeur={pesee !== undefined ? `${kg(pesee)} kg` : undefined} onClick={() => setSaisie('poids')} />
+          <CaseJour nom="Sommeil" valeur={journal?.sommeil !== undefined ? heures(journal.sommeil) : undefined} onClick={() => setSaisie('sommeil')} />
+          {(objectif || journal?.calories) && <CaseJour nom="Calories" valeur={journal?.calories && TEXTE_CALORIES[journal.calories]} onClick={() => setSaisie('calories')} />}
         </div>
       )}
 
-      {/* Grille 2x2 des métriques du jour */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginTop: 4 }}>
-        {/* Tuile Poids */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={toggleSaisiePoids}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid ' + (saisiePoids ? 'var(--accent)' : 'var(--voile)'),
-            minHeight: 74,
-            cursor: 'pointer',
-            transition: 'border 0.15s ease',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--texte-2)' }}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="4" />
-              <path d="M8 7h8" />
-              <path d="M12 7v3" />
-            </svg>
-            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>✎</span>
-          </div>
-          <div>
-            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
-              {pesee !== undefined ? `${kg(pesee)} kg` : <span className="faible">—</span>}
-            </div>
-            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>Poids</div>
-          </div>
-        </div>
+      {!aVenir && cleUne && mesure && (
+        <button type="button" className="ligne-jour-detail" onClick={() => setVoirMesures(true)}>
+          <span>
+            <strong>
+              {nomCle(cleUne)} {kg(mesure.valeurs[cleUne])} cm{ecartUne && <span className="faible en-ligne"> {ecartUne.texte}</span>}
+            </strong>
+            <span className="faible">{clesMesure.length > 1 ? `et ${clesMesure.length - 1} autre${clesMesure.length > 2 ? 's' : ''} mesure${clesMesure.length > 2 ? 's' : ''}` : 'Mensuration'}</span>
+          </span>
+          <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+        </button>
+      )}
 
-        {/* Tuile Mensurations */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setVoirMesures(true)}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid var(--voile)',
-            minHeight: 74,
-            cursor: 'pointer',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--texte-2)' }}>
-            <Ruler size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>
-              {clesMesure.length > 0 ? '›' : '+'}
-            </span>
-          </div>
-          <div>
-            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
-              {cleUne && mesure ? `${kg(mesure.valeurs[cleUne])} cm` : <span className="faible">—</span>}
-              {ecartUne && <span className="faible" style={{ fontSize: 'var(--t-legende)', fontWeight: 500, marginLeft: 4 }}>({ecartUne.texte})</span>}
-            </div>
-            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>
-              {cleUne ? nomCle(cleUne) : 'Mensurations'}
-            </div>
-          </div>
-        </div>
-
-        {/* Tuile Sommeil */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={toggleSaisieSommeil}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid ' + (saisieSommeil ? 'var(--info)' : 'var(--voile)'),
-            minHeight: 74,
-            cursor: 'pointer',
-            transition: 'border 0.15s ease',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--info)' }}>
-            <Moon size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>✎</span>
-          </div>
-          <div>
-            <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
-              {journal?.sommeil !== undefined ? heures(journal.sommeil) : <span className="faible">—</span>}
-            </div>
-            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>Sommeil</div>
-          </div>
-        </div>
-
-        {/* Tuile Calories */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={toggleSaisieCalories}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid ' + (saisieCalories ? 'var(--accent)' : 'var(--voile)'),
-            minHeight: 74,
-            cursor: 'pointer',
-            transition: 'border 0.15s ease',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--accent)' }}>
-            <Flame size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: 'var(--t-legende)', opacity: 0.6, color: 'var(--texte-2)' }}>✎</span>
-          </div>
-          <div>
-            <div style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
-              {journal?.calories ? (
-                CALORIES.find(([id]) => id === journal.calories)?.[1]
-              ) : objectif?.kcal ? (
-                `${objectif.kcal.toLocaleString('fr-FR')} kcal`
-              ) : (
-                <span className="faible">—</span>
-              )}
-            </div>
-            <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1, color: 'var(--texte-2)' }}>Calories</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Saisie Poids dépliée avec transition fluide */}
-      <div className={`accordeon-tiroir ${saisiePoids ? 'ouvert' : ''}`}>
-        <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
-            <div className="ligne entre" style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>
-                Pesée ({date === dateISO() ? 'Aujourd’hui' : new Date(date + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})
-              </span>
-              <button
-                type="button"
-                className="btn discret petit"
-                style={{ padding: '0 4px', height: 24, fontSize: 'var(--t-legende)' }}
-                onClick={() => setSaisiePoids(false)}
-              >
-                Fermer
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-              <span className="mini-stepper compact" style={{ flex: 1 }}>
-                <button type="button" onClick={() => ajusterPoids(-0.1)} aria-label="Moins 0,1 kg">
-                  −
-                </button>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  enterKeyHint="done"
-                  className="duree"
-                  value={valPoids || (pesee !== undefined ? kg(pesee) : '70')}
-                  onFocus={(e) => {
-                    if (!valPoids) setValPoids(pesee !== undefined ? kg(pesee) : '70')
-                    e.target.select()
-                  }}
-                  onChange={(e) => setValPoids(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void enregistrerPoids()}
-                />
-                <button type="button" onClick={() => ajusterPoids(0.1)} aria-label="Plus 0,1 kg">
-                  +
-                </button>
-              </span>
-              <button
-                type="button"
-                className="btn primaire petit"
-                style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--rayon-2)' }}
-                onClick={() => void enregistrerPoids()}
-                aria-label="Valider le poids"
-              >
-                <Check size={18} strokeWidth={2.5} />
-              </button>
-              {pesee !== undefined && (
-                <button
-                  type="button"
-                  className="btn discret petit"
-                  style={{ height: 34, minHeight: 34, padding: '0 8px', fontSize: 'var(--t-legende)', color: 'var(--danger)', borderRadius: 'var(--rayon-2)' }}
-                  onClick={() => void supprimerPoids()}
-                  aria-label="Effacer la pesée"
-                >
-                  Effacer
-                </button>
-              )}
-            </div>
-
-            {/* Raccourcis d'ajustement rapide */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-              {[-0.5, -0.2, +0.2, +0.5].map((delta) => (
-                <button
-                  key={delta}
-                  type="button"
-                  style={{
-                    padding: '5px 0',
-                    borderRadius: 'var(--rayon-2)',
-                    fontSize: 'var(--t-legende)',
-                    fontWeight: 600,
-                    background: 'var(--voile)',
-                    border: '1px solid var(--bord)',
-                    color: 'var(--texte)',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                  }}
-                  onClick={() => ajusterPoids(delta)}
-                >
-                  {delta > 0 ? `+${delta}` : delta} kg
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Saisie Sommeil dépliée avec transition fluide */}
-      <div className={`accordeon-tiroir ${saisieSommeil ? 'ouvert' : ''}`}>
-        <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
-            <div className="ligne entre" style={{ marginBottom: 6 }}>
-              <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Sommeil cette nuit</span>
-              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: 'var(--t-legende)' }} onClick={() => setSaisieSommeil(false)}>
-                Fermer
-              </button>
-            </div>
-            <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
-              {HEURES.map(([h, txt]) => (
-                <button key={h} className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noter({ sommeil: h }).then(() => setSaisieSommeil(false))}>
-                  {txt}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Saisie Calories dépliée avec transition fluide */}
-      <div className={`accordeon-tiroir ${saisieCalories ? 'ouvert' : ''}`}>
-        <div className="accordeon-contenu">
-          <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 'var(--rayon-2)', border: '1px solid var(--bord)' }}>
-            <div className="ligne entre" style={{ marginBottom: 6 }}>
-              <span style={{ fontSize: 'var(--t-petit)', color: 'var(--texte-2)' }}>Calories ce jour-là</span>
-              <button className="btn discret petit" style={{ padding: '0 4px', height: 24, fontSize: 'var(--t-legende)' }} onClick={() => setSaisieCalories(false)}>
-                Fermer
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {CALORIES.map(([id, nom]) => (
-              <button
-                key={id}
-                type="button"
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 'var(--rayon)',
-                  fontSize: 'var(--t-legende)',
-                  fontWeight: journal?.calories === id ? 600 : 400,
-                  background: journal?.calories === id ? 'var(--accent-voile)' : 'var(--voile)',
-                  border: '1px solid ' + (journal?.calories === id ? 'var(--accent)' : 'var(--bord)'),
-                  color: journal?.calories === id ? 'var(--accent)' : 'var(--texte)',
-                  cursor: 'pointer',
-                }}
-                onClick={() => void noter({ calories: journal?.calories === id ? undefined : id }).then(() => setSaisieCalories(false))}
-              >
-                {nom}
-              </button>
+      {!aVenir && poses.length > 0 && (
+        <button type="button" className="ligne-jour-detail" onClick={() => setVoirPhotos(true)}>
+          <span>
+            <strong>Photos du jour</strong>
+          </span>
+          <span className="jour-photos">
+            {poses.map((p) => (
+              <img key={p.id} src={p.image} alt={p.pose} />
             ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Photos */}
-      {poses.length > 0 && (
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setVoirPhotos(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: 'var(--rayon-2)',
-            background: 'var(--sous-carte)',
-            border: '1px solid var(--voile)',
-            marginTop: 10,
-            cursor: 'pointer',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ color: 'var(--texte-2)' }}><Camera size={18} strokeWidth={1.75} /></span>
-            <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>Photos du jour</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {poses.map((p) => (
-                <img key={p.id} src={p.image} alt={p.pose} style={{ width: 28, height: 28, borderRadius: 'var(--rayon-2)', objectFit: 'cover' }} />
-              ))}
-            </div>
             <ChevronRight size={16} strokeWidth={1.75} className="muted" />
-          </div>
-        </div>
+          </span>
+        </button>
       )}
 
+      {saisie && <FenetreJour saisie={saisie} date={date} catalogue={catalogue} journal={journal} poidsDuJour={pesee} poidsRepere={poidsRepere} onFermer={() => setSaisie(null)} />}
       {saisieMesures && (
         <div className="page-dessus">
-          <SaisieMesures
-            initial={mesure ? { date, valeurs: mesure.valeurs } : { date, valeurs: {} }}
-            derniere={mesures[mesures.length - 1]}
-            onFermer={() => setSaisieMesures(false)}
-          />
+          <SaisieMesures initial={mesure ? { date, valeurs: mesure.valeurs } : { date, valeurs: {} }} derniere={mesures[mesures.length - 1]} onFermer={() => setSaisieMesures(false)} />
         </div>
       )}
       {voirMesures && (

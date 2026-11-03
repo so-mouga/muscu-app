@@ -142,16 +142,15 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
               {series.map((x, k) => {
                 const e = ecartSerie(x, precedente[k], exo)
                 const contenu = (
-                  <div className="ligne entre" style={{ alignItems: 'baseline', flexWrap: 'nowrap', width: '100%', padding: '2px 0' }}>
-                    <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div className="ligne entre" style={{ alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 0, width: '100%', padding: '2px 0' }}>
+                    <span>
                       <span className="faible" style={{ minWidth: 26, display: 'inline-block' }}>S{k + 1}</span>
                       <strong>{serieTexte(exo, x, true)}</strong>
-                      <span className="faible"> · effort {kg(x.rpe)}/10</span>
+                      <span className="faible" style={{ whiteSpace: 'nowrap' }}> · effort {kg(x.rpe)}/10</span>
                       {x.douleur ? ' ⚠️' : ''}
-                      {onSerie && <span className="faible"> ✎</span>}
                     </span>
                     {e ? (
-                      <span className={'avant ' + e.sens} style={{ display: 'inline', textAlign: 'right', whiteSpace: 'nowrap', fontSize: 'var(--t-petit)' }}>
+                      <span className={'avant ' + e.sens} style={{ display: 'inline', marginLeft: 'auto', textAlign: 'right', fontSize: 'var(--t-petit)' }}>
                         {e.sens === 'mieux' ? '↑ ' : e.sens === 'egal' ? '= ' : '↓ '}{e.texte}
                       </span>
                     ) : (
