@@ -1,13 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowLeftRight, Camera, ChevronDown, Image, Layers, Pencil, Plus, RefreshCw, ShieldCheck, Timer, Trash2, X } from 'lucide-react'
+import { ArrowLeftRight, Camera, Image, Layers, Maximize2, Pencil, Plus, RefreshCw, ShieldCheck, Timer, Trash2, X } from 'lucide-react'
 import Aide from '../components/Aide'
 import { MESURES, nomCle } from '../data/mesures'
 import { db, uid } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { photoReduite } from '../lib/image'
-import { paireDepart, posesCommunes } from '../lib/photos'
 import { useRetour } from '../lib/nav'
 import type { Mesure, PhotoCorps, Pose } from '../types'
 import { confirmer } from '../components/Dialogues'
@@ -40,7 +39,7 @@ function parDate(photos: PhotoCorps[]) {
 }
 
 /** Onglet Photos de la page Corps : séances photo et comparaison de deux dates. */
-export default function Photos({ debutPhase }: { debutPhase?: string }) {
+export default function Photos() {
   const photos = useLiveQuery(() => db.photos.toArray(), [], [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const [prise, setPrise] = useState(false)
@@ -131,7 +130,7 @@ export default function Photos({ debutPhase }: { debutPhase?: string }) {
 
       {importer && <ImportPhotos photos={photos} onFermer={() => setImporter(false)} />}
 
-      {dates.length >= 2 && <Comparaison dates={dates} debutPhase={debutPhase} />}
+      {dates.length >= 2 && <Comparaison dates={dates} />}
 
       {recentes.map(([date, poses]) => {
         const pPoids = avant(pesees, date)
@@ -407,26 +406,26 @@ function avant<T extends { date: string }>(liste: T[], date: string): T | undefi
   return liste.filter((x) => x.date <= date).sort((a, b) => b.date.localeCompare(a.date))[0]
 }
 
-/** Deux dates côte à côte, et les écarts de poids et de mensurations. Un appui sur une photo : plein écran, zoom et superposition. */
-function Comparaison({ dates, debutPhase }: { dates: [string, Partial<Record<Pose, PhotoCorps>>][]; debutPhase?: string }) {
+/** Deux dates côte à côte (ou superposées avec un curseur), et les écarts de poids et de mensurations. */
+function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorps>>][] }) {
   const liste = dates.map((d) => d[0])
-  // Tant qu'on n'a rien choisi (ou si la date choisie a été supprimée) : les mêmes photos que sur la page Corps.
-  const pair = paireDepart([...liste].reverse(), debutPhase)
+  // D'office la plus ancienne face à la plus récente. Après un choix, rien ne change tout seul : une photo qui manque reste une case vide.
+  // Seule exception, une date choisie puis supprimée : elle n'existe plus, on revient au choix d'office.
   const [aChoisie, setA] = useState<string | null>(null)
   const [bChoisie, setB] = useState<string | null>(null)
-  const a = aChoisie && liste.includes(aChoisie) ? aChoisie : pair.depart!
-  const b = bChoisie && liste.includes(bChoisie) ? bChoisie : pair.derniere!
-  const posesDe = (d: string) => Object.keys(dates.find((x) => x[0] === d)?.[1] ?? {}) as Pose[]
-  const communes = posesCommunes(posesDe(a), posesDe(b))
-  const [poseChoisie, setPose] = useState<Pose | null>(null)
-  const pose = poseChoisie && communes.includes(poseChoisie) ? poseChoisie : communes[0]
+  const a = aChoisie && liste.includes(aChoisie) ? aChoisie : liste[liste.length - 1]
+  const b = bChoisie && liste.includes(bChoisie) ? bChoisie : liste[0]
+  const [pose, setPose] = useState<Pose>('face')
+  const [curseur, setCurseur] = useState<number | null>(null)
   const [pleinEcran, setPleinEcran] = useState(false)
   const [voirEcarts, setVoirEcarts] = useState(false)
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
-  const photo = (d: string) => (pose ? dates.find((x) => x[0] === d)?.[1][pose] : undefined)
+  const photo = (d: string) => dates.find((x) => x[0] === d)?.[1][pose]
+  const pa = photo(a)
+  const pb = photo(b)
 
-  // Poids d'une date : seulement une pesée de ces jours-là, comme dans la liste des photos.
+  // Poids d'une date : seulement une pesée de ces jours-là, comme dans la liste des photos. Mensurations : la prise la plus proche avant.
   const poidsDe = (d: string) => {
     const p = avant(pesees, d)
     return p && (Date.parse(d) - Date.parse(p.date)) / 86400000 <= 2 ? p : undefined
@@ -441,61 +440,213 @@ function Comparaison({ dates, debutPhase }: { dates: [string, Partial<Record<Pos
       : []
   const signe = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(Math.round(d * 10) / 10))} ${u}`
 
+  const choixDate = (v: string, set: (d: string) => void) => (
+    <select
+      value={v}
+      onChange={(e) => set(e.target.value)}
+      style={{
+        width: '100%',
+        padding: '8px 10px',
+        background: 'var(--voile)',
+        border: '1px solid var(--voile-fort)',
+        borderRadius: 'var(--rayon-2)',
+        color: 'var(--texte)',
+        fontSize: 'var(--t-petit)',
+        cursor: 'pointer',
+      }}
+    >
+      {liste.map((d) => (
+        <option key={d} value={d}>
+          {dateCourte(d)}
+        </option>
+      ))}
+    </select>
+  )
+
   return (
     <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
-      <h3 style={{ margin: 0, fontSize: 'var(--t-texte)', fontWeight: 700 }}>Comparer</h3>
+      <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>Comparer</h3>
 
-      <div className="comparaison">
-        {(
-          [
-            [a, setA, poidsA, 'Date de la photo de gauche'],
-            [b, setB, poidsB, 'Date de la photo de droite'],
-          ] as const
-        ).map(([d, choisir, poids, nom]) => {
-          const p = photo(d)
-          return (
-            <figure key={nom}>
-              {p ? (
-                <button type="button" className="comparaison-photo" onClick={() => setPleinEcran(true)} aria-label={`Agrandir la photo du ${dateCourte(d)}`}>
-                  <img src={p.image} alt="" />
-                </button>
-              ) : (
-                <div className="vide faible">Pas de photo</div>
-              )}
-              <label className="comparaison-date">
-                <span>
-                  <strong>{dateCourte(d).replace(/^\S+ /, '')}</strong>
-                  {poids && <span className="faible">{kg(poids.poids)} kg</span>}
-                </span>
-                <ChevronDown size={14} strokeWidth={2} className="muted" />
-                <select aria-label={nom} value={d} onChange={(e) => choisir(e.target.value)}>
-                  {liste.map((x) => (
-                    <option key={x} value={x}>
-                      {dateCourte(x)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </figure>
-          )
-        })}
+      {/* Sélecteurs de dates avec bouton d'inversion au centre */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>{choixDate(a, setA)}</div>
+        <button
+          type="button"
+          onClick={() => {
+            setA(b)
+            setB(a)
+          }}
+          aria-label="Inverser les dates"
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 'var(--rayon-2)',
+            background: 'var(--voile)',
+            border: '1px solid var(--voile-fort)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--texte)',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <ArrowLeftRight size={15} strokeWidth={2} />
+        </button>
+        <div style={{ flex: 1 }}>{choixDate(b, setB)}</div>
       </div>
 
-      {communes.length > 1 && (
-        <div className="segments" role="radiogroup" aria-label="Pose">
-          {POSES.filter((p) => communes.includes(p.id)).map((p) => (
-            <button key={p.id} type="button" role="radio" aria-checked={pose === p.id} className={pose === p.id ? 'actif' : ''} onClick={() => setPose(p.id)}>
-              {p.nom}
-            </button>
+      {/* Barre d'outils unique : Poses à gauche, Vue (Superposer/Côte à côte + Plein écran) à droite */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 'var(--rayon-2)', border: '1px solid var(--voile)' }}>
+          {POSES.map((p) => {
+            const actifPose = pose === p.id
+            return (
+              <button
+                key={p.id}
+                type="button"
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 'var(--t-legende)',
+                  fontWeight: actifPose ? 600 : 400,
+                  color: actifPose ? 'var(--texte)' : 'var(--texte-2)',
+                  background: actifPose ? 'var(--voile-fort)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 'var(--rayon-2)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                onClick={() => setPose(p.id)}
+              >
+                {p.nom}
+              </button>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <button
+            type="button"
+            onClick={() => setCurseur(curseur === null ? 50 : null)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 10px',
+              borderRadius: 'var(--rayon-2)',
+              fontSize: 'var(--t-legende)',
+              fontWeight: 500,
+              background: 'var(--voile)',
+              border: '1px solid var(--voile-fort)',
+              color: 'var(--texte)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Layers size={13} strokeWidth={2} />
+            <span>{curseur === null ? 'Superposer' : 'Côte à côte'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPleinEcran(true)}
+            aria-label="Plein écran et zoom"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 'var(--rayon-2)',
+              background: 'var(--voile)',
+              border: '1px solid var(--voile-fort)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--texte)',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <Maximize2 size={14} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
+      {curseur === null ? (
+        <div className="comparaison">
+          {[
+            [a, pa, poidsA],
+            [b, pb, poidsB],
+          ].map(([d, p, w], i) => (
+            <figure key={i} style={{ margin: 0, position: 'relative' }}>
+              {p ? (
+                <img src={(p as PhotoCorps).image} alt="" onClick={() => setPleinEcran(true)} style={{ cursor: 'zoom-in' }} />
+              ) : (
+                <div className="vide faible" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '3 / 4', border: '1px dashed var(--voile-fort)', borderRadius: 'var(--rayon-2)' }}>
+                  Pas de photo
+                </div>
+              )}
+              <figcaption className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', textAlign: 'center', marginTop: 4 }}>
+                {dateCourte(d as string)}
+                {w ? ` · ${kg((w as { poids: number }).poids)} kg` : ''}
+              </figcaption>
+            </figure>
           ))}
         </div>
+      ) : pa && pb ? (
+        <div className="superposition" style={{ position: 'relative', aspectRatio: '3 / 4', borderRadius: 'var(--rayon-2)', overflow: 'hidden' }}>
+          <img src={pa.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={pb.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 0 0 ${curseur}%)` }} />
+          {/* Ligne blanche verticale */}
+          <div className="trait-curseur" style={{ position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, background: 'var(--blanc)', left: `${curseur}%`, zIndex: 1, pointerEvents: 'none' }} />
+          {/* Poignée ronde centrale bien visible */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: `${curseur}%`,
+              transform: 'translate(-50%, -50%)',
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'var(--barre-fond)',
+              border: '2px solid var(--blanc)',
+              boxShadow: '0 2px 12px var(--ombre-forte)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--blanc)',
+              pointerEvents: 'none',
+              zIndex: 2,
+            }}
+          >
+            <ArrowLeftRight size={13} strokeWidth={2.5} />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={curseur}
+            onChange={(e) => setCurseur(+e.target.value)}
+            aria-label="Curseur de comparaison avant/après"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, margin: 0, cursor: 'ew-resize', zIndex: 3 }}
+          />
+          <span className="etiquette g" style={{ position: 'absolute', bottom: 8, left: 8, padding: '3px 8px', borderRadius: 999, background: 'var(--fond-masque)', color: 'var(--blanc)', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
+            {dateCourte(a)}{poidsA ? ` · ${kg(poidsA.poids)} kg` : ''}
+          </span>
+          <span className="etiquette d" style={{ position: 'absolute', bottom: 8, right: 8, padding: '3px 8px', borderRadius: 999, background: 'var(--fond-masque)', color: 'var(--blanc)', fontSize: 11, pointerEvents: 'none', zIndex: 2 }}>
+            {dateCourte(b)}{poidsB ? ` · ${kg(poidsB.poids)} kg` : ''}
+          </span>
+        </div>
+      ) : (
+        <div className="faible" style={{ textAlign: 'center', padding: '16px 0' }}>
+          Il manque la photo « {POSES.find((p) => p.id === pose)?.nom} » à l’une des deux dates.
+        </div>
       )}
-      {!communes.length && <p className="faible petit-texte">Ces deux dates n’ont pas de pose en commun : choisis-en une autre.</p>}
 
       {pleinEcran && <PlanchePhotos photos={dates.flatMap(([, p]) => Object.values(p))} dates={[a, b]} pose={pose} onFermer={() => setPleinEcran(false)} />}
 
       {((poidsA && poidsB && poidsA.date !== poidsB.date) || ecarts.length > 0) && (
-        <div style={{ paddingTop: 10, borderTop: '1px solid var(--voile)' }}>
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--voile)' }}>
           <div className="faible" style={{ fontSize: 'var(--t-legende)', marginBottom: 6 }}>
             Entre ces deux dates
           </div>
@@ -525,54 +676,6 @@ function Comparaison({ dates, debutPhase }: { dates: [string, Partial<Record<Pos
   )
 }
 
-/** Deux photos l'une sur l'autre, un curseur à glisser pour passer de l'une à l'autre. */
-function Superposition({ avantPhoto, apresPhoto }: { avantPhoto: PhotoCorps; apresPhoto: PhotoCorps }) {
-  const [curseur, setCurseur] = useState(50)
-  return (
-    <div className="superposition" style={{ position: 'relative', aspectRatio: '3 / 4', width: '100%', borderRadius: 'var(--rayon-2)', overflow: 'hidden' }}>
-      <img src={avantPhoto.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-      <img src={apresPhoto.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', clipPath: `inset(0 0 0 ${curseur}%)` }} />
-      <div className="trait-curseur" style={{ position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1, background: 'var(--blanc)', left: `${curseur}%`, zIndex: 1, pointerEvents: 'none' }} />
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: `${curseur}%`,
-          transform: 'translate(-50%, -50%)',
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          background: 'var(--barre-fond)',
-          border: '2px solid var(--blanc)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--blanc)',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }}
-      >
-        <ArrowLeftRight size={13} strokeWidth={2.5} />
-      </div>
-      <input
-        type="range"
-        min={0}
-        max={100}
-        value={curseur}
-        onChange={(e) => setCurseur(+e.target.value)}
-        aria-label="Curseur de comparaison avant/après"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, margin: 0, cursor: 'ew-resize', zIndex: 3 }}
-      />
-      <span className="etiquette g" style={{ position: 'absolute', bottom: 8, left: 8, padding: '3px 8px', borderRadius: 999, background: 'var(--fond-masque)', color: 'var(--blanc)', fontSize: 'var(--t-legende)', pointerEvents: 'none', zIndex: 2 }}>
-        {dateCourte(avantPhoto.date).replace(/^\S+ /, '')}
-      </span>
-      <span className="etiquette d" style={{ position: 'absolute', bottom: 8, right: 8, padding: '3px 8px', borderRadius: 999, background: 'var(--fond-masque)', color: 'var(--blanc)', fontSize: 'var(--t-legende)', pointerEvents: 'none', zIndex: 2 }}>
-        {dateCourte(apresPhoto.date).replace(/^\S+ /, '')}
-      </span>
-    </div>
-  )
-}
-
 /**
  * Photos en plein écran, chacune zoomable seule : une date (vue d'un jour) ou deux côte à côte.
  * `comparerAvec` : depuis une date seule, un bouton la met à côté de cette autre date.
@@ -582,10 +685,6 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
   const [dates, setDates] = useState(depart)
   const [pose, setPose] = useState<Pose>(() => poseDepart ?? POSES.find((p) => photos.some((x) => x.date === depart[0] && x.pose === p.id))?.id ?? 'face')
   const photo = (d: string) => photos.find((p) => p.date === d && p.pose === pose)
-  const [superposer, setSuperposer] = useState(false)
-  // Seulement avec deux photos de la même pose.
-  const paire = dates.length === 2 && photo(dates[0]) && photo(dates[1]) ? ([photo(dates[0])!, photo(dates[1])!] as const) : null
-  const enSuperposition = superposer && !!paire
   return createPortal(
     <div
       className="comparaison-plein"
@@ -596,7 +695,7 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
     >
       <div className="ligne entre" style={{ padding: '0 4px' }}>
         <div style={{ display: 'inline-flex', gap: 4, background: 'var(--bord)', padding: 3, borderRadius: 'var(--rayon-2)' }}>
-          {POSES.filter((p) => dates.some((d) => photos.some((x) => x.date === d && x.pose === p.id))).map((p) => {
+          {POSES.map((p) => {
             const actifPose = pose === p.id
             return (
               <button
@@ -619,33 +718,9 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
             )
           })}
         </div>
-        <span style={{ display: 'inline-flex', gap: 6 }}>
-        {paire && (
-          <button
-            type="button"
-            aria-pressed={enSuperposition}
-            onClick={() => setSuperposer(!enSuperposition)}
-            style={{
-              background: 'var(--voile-fort)',
-              border: 'none',
-              borderRadius: 'var(--rayon-2)',
-              padding: '4px 10px',
-              color: 'var(--blanc)',
-              fontSize: 'var(--t-legende)',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Layers size={14} strokeWidth={2} />
-            <span style={{ whiteSpace: 'nowrap' }}>{enSuperposition ? 'Côte à côte' : 'Superposer'}</span>
-          </button>
-        )}
         <button
           type="button"
           onClick={onFermer}
-          aria-label="Fermer"
           style={{
             background: 'var(--voile-fort)',
             border: 'none',
@@ -659,21 +734,15 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
             gap: 4,
           }}
         >
-          <X size={16} strokeWidth={2} />
+          <X size={14} strokeWidth={2} />
+          <span>Fermer</span>
         </button>
-        </span>
       </div>
-      {enSuperposition ? (
-        <div className="comparaison-plein-superpose">
-          <Superposition avantPhoto={paire[0]} apresPhoto={paire[1]} />
-        </div>
-      ) : (
-        <div className="comparaison-plein-photos" style={{ flex: 1, minHeight: 0, gap: 4, ...(dates.length === 1 ? { gridTemplateColumns: '1fr' } : {}) }}>
-          {dates.map((d, i) => (
-            <PhotoZoomable key={`${i}-${pose}-${d}`} image={photo(d)?.image} date={d} />
-          ))}
-        </div>
-      )}
+      <div className="comparaison-plein-photos" style={{ flex: 1, minHeight: 0, gap: 4, ...(dates.length === 1 ? { gridTemplateColumns: '1fr' } : {}) }}>
+        {dates.map((d, i) => (
+          <PhotoZoomable key={`${i}-${pose}-${d}`} image={photo(d)?.image} date={d} />
+        ))}
+      </div>
       {dates.length === 1 && comparerAvec && comparerAvec !== dates[0] && (
         <button
           type="button"
@@ -686,7 +755,7 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
         </button>
       )}
       <div style={{ textAlign: 'center', fontSize: 11, opacity: 0.6, color: 'var(--texte-2)', padding: '2px 0' }}>
-        {enSuperposition ? 'Glisse pour passer d’une photo à l’autre' : 'Écarte deux doigts pour zoomer · glisse pour te déplacer · touche deux fois pour réinitialiser'}
+        Écarte deux doigts pour zoomer · glisse pour te déplacer · touche deux fois pour réinitialiser
       </div>
     </div>,
     document.body,

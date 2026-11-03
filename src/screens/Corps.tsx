@@ -49,7 +49,7 @@ export default function Corps({ catalogue, page, onPage }: { catalogue: Catalogu
       {page === 'phases' && <Objectifs catalogue={catalogue} />}
       {page === 'pesees' && <ListePesees catalogue={catalogue} />}
       {page === 'mensurations' && <Mesures catalogue={catalogue} />}
-      {page === 'photos' && <Photos debutPhase={phaseA(catalogue.objectifs, dateISO())?.debut} />}
+      {page === 'photos' && <Photos />}
     </div>
   )
 }
