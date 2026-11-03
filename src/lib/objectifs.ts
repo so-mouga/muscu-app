@@ -260,6 +260,19 @@ export function poidsDepart(pesees: PeseeSimple[], debut: string): number | null
 /** Moyenne des pesées des 7 jours qui finissent à `date`. */
 export const poidsSemaine = (pesees: PeseeSimple[], date: string) => moyennePoids(pesees.filter((p) => p.date > plusJours(date, -7) && p.date <= date))
 
+/**
+ * Évolution du poids sur une courbe, mesurée comme le chiffre affiché à côté : moyenne des 7 derniers jours
+ * face à celle des 7 premiers, pour qu'une pesée isolée ne fausse rien. Moins de 2 semaines : première face à dernière.
+ */
+export function ecartPesees(pesees: PeseeSimple[]): number | null {
+  if (pesees.length < 2) return null
+  const l = [...pesees].sort((a, b) => a.date.localeCompare(b.date))
+  const debut = l[0].date
+  const fin = l[l.length - 1].date
+  if (joursEntre(debut, fin) < 14) return l[l.length - 1].poids - l[0].poids
+  return moyennePoids(l.filter((p) => p.date > plusJours(fin, -7)))! - moyennePoids(l.filter((p) => p.date < plusJours(debut, 7)))!
+}
+
 /** Variation visée ramenée à la semaine. */
 export const rythmeParSemaine = (ecart: number, semaines: number) => Math.round((ecart / semaines) * 100) / 100
 

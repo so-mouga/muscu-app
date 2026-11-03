@@ -1,4 +1,4 @@
-import { dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
+import { ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -201,5 +201,22 @@ describe('phase dont la fin prévue est passée', () => {
     const n = dureeProlongee('2026-07-27', '2026-11-16', '2027-02-15')
     expect(n).toBe(33)
     expect(finApres('2026-07-27', n) > '2027-02-15').toBe(true)
+  })
+})
+
+describe('évolution du poids sur la courbe', () => {
+  it('moyenne des 7 derniers jours face aux 7 premiers : une pesée isolée ne fausse rien', () => {
+    const l = [
+      { date: '2026-10-01', poids: 80 },
+      { date: '2026-10-03', poids: 81 },
+      { date: '2026-10-20', poids: 81 },
+      { date: '2026-10-29', poids: 82 },
+      { date: '2026-10-31', poids: 83 },
+    ]
+    expect(ecartPesees(l)).toBeCloseTo(82.5 - 80.5)
+  })
+  it('moins de 2 semaines : première face à dernière ; une seule pesée : rien', () => {
+    expect(ecartPesees([{ date: '2026-10-01', poids: 80 }, { date: '2026-10-05', poids: 80.5 }])).toBeCloseTo(0.5)
+    expect(ecartPesees([{ date: '2026-10-01', poids: 80 }])).toBeNull()
   })
 })

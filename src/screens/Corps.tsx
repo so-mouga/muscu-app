@@ -10,7 +10,7 @@ import { db } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { paireDepart, poseCommune } from '../lib/photos'
-import { nomPhase, phaseA, phaseAffichee, poidsDepart, poidsSemaine } from '../lib/objectifs'
+import { ecartPesees, nomPhase, phaseA, phaseAffichee, poidsDepart, poidsSemaine } from '../lib/objectifs'
 import { objectifDuJour } from '../lib/nutrition'
 import type { Mesure, PhotoCorps } from '../types'
 import { confirmer } from '../components/Dialogues'
@@ -79,13 +79,17 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
     { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
   )
   const [noter, setNoter] = useState(false)
-  const [jours, setJours] = useState(30)
+  const [joursChoisis, setJours] = useState<number | null>(null)
 
   // Poids : moyenne sur 7 jours, courbe et écart sur la période choisie.
   const moyenne = poidsSemaine(pesees, aujourdhui)
-  const depuisCourbe = jours ? dateISO(new Date(Date.now() - jours * 86400000)) : ''
-  const points = pesees.filter((p) => p.date >= depuisCourbe).map((p) => ({ date: p.date, valeur: p.poids }))
-  const ecartPoids = points.length >= 2 ? points[points.length - 1].valeur - points[0].valeur : null
+  const dernierePesee = pesees[pesees.length - 1]
+  const pesesDepuis = (j: number) => pesees.filter((p) => !j || p.date >= dateISO(new Date(Date.now() - j * 86400000)))
+  // D'office, la plus courte période qui montre une courbe : plus de carte vide après un temps sans pesée.
+  const jours = joursChoisis ?? [30, 91, 182, 0].find((j) => pesesDepuis(j).length >= 2) ?? 30
+  const surPeriode = pesesDepuis(jours)
+  const points = surPeriode.map((p) => ({ date: p.date, valeur: p.poids }))
+  const ecartPoids = ecartPesees(surPeriode)
 
   // Phase : objectif de poids, sans jugement.
   const totalPhase = phase?.total
@@ -157,11 +161,11 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
 
       <section className="carte corps-carte">
         <strong className="corps-titre">Poids</strong>
-        {moyenne !== null && (
+        {dernierePesee && (
           <div className="ligne entre">
-            <span className="corps-chiffre">{kg(Math.round(moyenne * 10) / 10)} kg</span>
+            <span className="corps-chiffre">{kg(moyenne !== null ? Math.round(moyenne * 10) / 10 : dernierePesee.poids)} kg</span>
             <span className="faible petit-texte corps-droite">
-              moyenne sur 7 jours
+              {moyenne !== null ? 'moyenne sur 7 jours' : `dernière pesée, le ${dateCourte(dernierePesee.date).replace(/^\S+ /, '')}`}
               {ecartPoids !== null && (
                 <>
                   <br />
