@@ -55,6 +55,10 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
   /** Exercice dont on règle l'objectif (index dans la séance). */
   const [objectif, setObjectif] = useState<number | null>(null)
 
+  // Premier passage : une phrase pour toute la séance, pas la même sur chaque exercice.
+  const decisions = terminees ? modele.exercices.map((p) => suggestionPour(exoAvecReglages(catalogue.exo(p.exoId), reglages), p, terminees).decision) : []
+  const premierPassage = decisions.includes('calibrer') ? 'À calibrer : démarre léger et ajuste jusqu’à l’effort visé dès la 1re série.' : decisions.includes('depart') ? 'Premier passage : ajuste au ressenti, l’appli retiendra ce que tu fais.' : ''
+
   return (
     <div>
       <div className="entete">
@@ -91,9 +95,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
 
       {deload && <div className="bandeau-deload">Semaine allégée : moitié des séries, charges −10 %, effort 6-7/10, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
-      {terminees && modele.exercices.some((p) => suggestionPour(exoAvecReglages(catalogue.exo(p.exoId), reglages), p, terminees).decision === 'calibrer') && (
-        <div className="faible">À calibrer : démarre léger et ajuste jusqu’à l’effort visé dès la 1re série.</div>
-      )}
+      {premierPassage && <div className="faible">{premierPassage}</div>}
 
       {modele.exercices.map((p0, i) => {
         const p = deload ? planDeload(p0) : p0
@@ -162,7 +164,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
                     </div>
                   ) : (
                     /* « Comme la dernière fois » n'apprend rien : la cible suffit. */
-                    sugg.decision !== 'pareil' && sugg.decision !== 'calibrer' && <div className="faible apercu-plan">{sugg.message}</div>
+                    sugg.decision !== 'pareil' && sugg.decision !== 'calibrer' && sugg.decision !== 'depart' && <div className="faible apercu-plan">{sugg.message}</div>
                   ))}
                 {p.chauffes.length > 0 && <div className="faible apercu-plan">Chauffe : {p.chauffes.join(' · ')}</div>}
                 {(p.note || exo.notes) && <div className="faible apercu-plan">{p.note ?? exo.notes}</div>}
