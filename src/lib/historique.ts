@@ -142,11 +142,12 @@ export function sensPerf(exo: Exercice, avant: Serie, apres: Serie): -1 | 0 | 1 
 
 /**
  * Évolution en % d'après la force estimée, corrigée par ce qui a vraiment été soulevé : une charge plus dure ou
- * des reps en plus ne font jamais un chiffre négatif, et mêmes charge et reps font 0, quel que soit l'effort noté.
+ * des reps en plus ne font jamais un chiffre négatif. Mêmes charge et reps : un point d'effort (2 à 3 %) n'est que du bruit de
+ * notation et fait 0 ; à partir de deux points, l'écart est réel (mêmes séries bien plus dures : la force baisse vraiment).
  */
 export function evolutionPct(exo: Exercice, avant: Serie, apres: Serie, pct: number): number {
   const sens = sensPerf(exo, avant, apres)
-  if (sens === 0) return 0
+  if (sens === 0) return Math.abs(pct) < 4 ? 0 : pct
   if (sens < 0 || pct > 0) return pct
   return avant.charge !== apres.charge && avant.charge ? (Math.abs(apres.charge - avant.charge) / Math.abs(avant.charge)) * 100 : avant.reps ? ((apres.reps - avant.reps) / avant.reps) * 100 : 0
 }

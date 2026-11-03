@@ -51,8 +51,9 @@ describe('force du Bilan : ce qui a vraiment été soulevé', () => {
   it('monter la charge alors que les reps repartent au bas : hausse, jamais une baisse de force', () => {
     expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 12)), avec('b', '2026-10-26', serie('b', 52.5, 8))])).toBeCloseTo(5)
   })
-  it('mêmes charge et reps avec un autre effort noté : 0 %', () => {
-    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 7)), avec('b', '2026-10-26', serie('b', 50, 10, 9))])).toBe(0)
+  it('mêmes charge et reps : un point d’effort ne compte pas, deux points oui', () => {
+    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 8)), avec('b', '2026-10-26', serie('b', 50, 10, 9))])).toBe(0)
+    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 7)), avec('b', '2026-10-26', serie('b', 50, 10, 9))])).toBeLessThan(-4)
   })
   it('moins de reps à la même charge reste une baisse', () => {
     expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10)), avec('b', '2026-10-26', serie('b', 50, 8))])).toBeLessThan(0)
