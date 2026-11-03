@@ -426,6 +426,18 @@ describe('charge décalée à la main', () => {
   })
 })
 
+describe('premier passage sans charge à trouver', () => {
+  const plan = { exoId: 'x', repos: 60, chauffes: [], finisseur: false, charge: null, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }
+  it('poids du corps : ni « à calibrer » ni « charge de départ »', () => {
+    const r = suggere(EXERCICES.tractions, plan, [])
+    expect(r).toMatchObject({ decision: 'depart', charges: [0], message: 'Premier passage : ajuste les reps au ressenti.' })
+  })
+  it('en temps : on parle du temps', () => {
+    const r = suggere(EXERCICES.gainage, { ...plan, charge: 0 }, [])
+    expect(r.message).toBe('Premier passage : ajuste le temps au ressenti.')
+  })
+})
+
 describe('chargeProposee', () => {
   const sugg = { decision: 'pareil', charges: [50, 50, 50], reps: [8, 8, 8], message: '' } as unknown as Parameters<typeof chargeProposee>[1]
   const faite = (charge: number): Serie => ({ id: 'x', exoId: 'x', type: 'normale', charge, reps: 8, rpe: 8, heure: 0 })

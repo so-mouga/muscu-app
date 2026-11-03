@@ -87,6 +87,15 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
   const derniere = historique.find((h) => h.length > 0)
 
   if (!derniere) {
+    // Rien à trouver au poids du corps ou en temps : pas de « à calibrer » ni de « charge de départ ».
+    const sansCharge = enTemps(exo) || exo.mode === 'poids_corps'
+    if (sansCharge)
+      return {
+        decision: 'depart',
+        charges: plan.series.map((p) => p.charge ?? plan.charge ?? 0),
+        reps: plan.series.map((p) => p.repsMin),
+        message: enTemps(exo) ? 'Premier passage : ajuste le temps au ressenti.' : 'Premier passage : ajuste les reps au ressenti.',
+      }
     if (plan.charge === null) {
       return {
         decision: 'calibrer',
