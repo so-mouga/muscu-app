@@ -11,7 +11,7 @@ import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '
 import { suiviCycle } from '../lib/motivation'
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
-import { debutCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
+import { debutCycle, ecartCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
 import { ciblesPrecedentes } from '../lib/objectifs'
@@ -23,7 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
-import { copieProgramme, nomSeanceLibre, programmesSansSeance, reposParDefaut } from '../lib/programme'
+import { copieProgramme, estDuJour, nomSeanceLibre, programmesSansSeance, reposParDefaut } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -287,6 +287,8 @@ function PageProgramme({
     return true
   }
   const aujourdhui = jourSemaine()
+  // « Garder pour le prochain cycle » : plus de question, mais l'écart avec l'Accueil doit rester expliqué.
+  const versionGardee = !!cycle && !!etat && !etat.fini && !catalogue.ecart && !!ecartCycle({ ...cycle, refus: undefined }, p, catalogue.modele)
 
   return (
     <div>
@@ -373,9 +375,11 @@ function PageProgramme({
           </div>
         ))}
 
+      {versionGardee && <div className="faible prog-version-gardee">Ton cycle suit encore l’ancienne version de ce programme. Tes changements serviront au prochain cycle.</div>}
+
       {entrees.map(({ e, i, m }) => {
         const faite = !!e.jour && faiteCetteSemaine(e.modeleId)
-        const duJour = enService && !enPause && !faite && e.jour === aujourdhui
+        const duJour = enService && !enPause && !faite && estDuJour(e, p.seances, catalogue.planning, aujourdhui)
         return (
         <div key={e.modeleId + i} className={'prog-seance' + (enPause ? ' en-pause' : '') + (duJour ? ' du-jour' : '')}>
           <button type="button" className={'prog-jour' + (e.jour ? '' : ' sans') + (faite ? ' faite' : '')} aria-label={`Jour de ${m!.nom} : ${e.jour ? JOURS[e.jour] : 'aucun'}${faite ? ', faite cette semaine' : ''}`} onClick={() => setChoixJour(i)}>

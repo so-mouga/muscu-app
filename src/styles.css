@@ -4356,6 +4356,10 @@ html[data-sens='fondu']::view-transition-new(root) {
   align-self: flex-start;
   margin-top: var(--e1);
 }
+.prog-version-gardee {
+  margin-bottom: var(--e3);
+  font-size: var(--t-petit);
+}
 .seance-jour-titre {
   display: flex;
   justify-content: space-between;

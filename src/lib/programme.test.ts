@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Programme, SeanceModele } from '../types'
-import { copieProgramme, nomSeanceLibre, programmesSansSeance } from './programme'
+import { copieProgramme, estDuJour, nomSeanceLibre, programmesSansSeance } from './programme'
 
 const seance = (id: string): SeanceModele => ({ id, nom: `Séance ${id}`, sousTitre: '', exercices: [{ exoId: 'presse', repos: 120, chauffes: [], finisseur: false, charge: 50, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }] })
 const programme: Programme = { id: 'p1', nom: 'Mon programme ', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'a', jour: 5 }] }
@@ -55,5 +55,22 @@ describe('programmesSansSeance', () => {
     const r = programmesSansSeance([programme, autre], 'a')
     expect(r).toHaveLength(1)
     expect(r[0].seances).toEqual([{ modeleId: 'b', jour: 3 }])
+  })
+})
+
+describe('estDuJour', () => {
+  const planning = (id: string, jour: number) => [{ modele: { id }, jour }]
+
+  it('suit le planning du cycle, pas le jour écrit dans le programme', () => {
+    const ligne = { modeleId: 'a', jour: 2 }
+    expect(estDuJour(ligne, [ligne], planning('a', 1), 2)).toBe(false)
+    expect(estDuJour(ligne, [ligne], planning('a', 1), 1)).toBe(true)
+  })
+
+  it('la même séance deux fois : seule la ligne de ce jour est marquée', () => {
+    const lignes = [{ modeleId: 'a', jour: 1 }, { modeleId: 'a', jour: 4 }]
+    const plan = [{ modele: { id: 'a' }, jour: 1 }, { modele: { id: 'a' }, jour: 4 }]
+    expect(estDuJour(lignes[0], lignes, plan, 4)).toBe(false)
+    expect(estDuJour(lignes[1], lignes, plan, 4)).toBe(true)
   })
 })

@@ -32,3 +32,12 @@ export const programmesSansSeance = (programmes: Programme[], modeleId: string):
 
 /** Repos entre les séries d'un exercice ajouté : court en temps, sur les mollets et les abdos, plus long sur les exercices à plusieurs articulations. */
 export const reposParDefaut = (exo: Exercice): number => (exo.mesure === 'temps' ? 60 : exo.muscle === 'mollets' || exo.muscle === 'abdos' ? 90 : exo.type === 'compose' ? 180 : 150)
+
+/**
+ * Cette ligne du programme est-elle la séance du jour ? Comme l'Accueil, on suit le planning en vigueur : pendant un cycle, celui du cycle.
+ * Si la même séance revient plusieurs fois dans le programme, seule la ligne de ce jour est marquée.
+ */
+export function estDuJour(ligne: { modeleId: string; jour?: number }, seances: { modeleId: string; jour?: number }[], planning: { modele: { id: string }; jour: number }[], jour: number): boolean {
+  if (!planning.some((x) => x.modele.id === ligne.modeleId && x.jour === jour)) return false
+  return ligne.jour === jour || !seances.some((x) => x.modeleId === ligne.modeleId && x.jour === jour)
+}
