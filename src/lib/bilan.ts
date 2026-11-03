@@ -40,7 +40,7 @@ export const debutPeriode = (semaines: number, aujourdhui = dateISO()) =>
  * Bilan d'entraînement en texte, à partager (coach, outil d'analyse) : vue d'ensemble, semaine par
  * semaine, volume et RPE par muscle, exercice par exercice, corps, autres sports, douleurs et notes.
  */
-export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): string {
+export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), retenir: string[] = []): string {
   const periode = d.seances.filter((s) => s.date >= debut && s.date <= fin).sort((a, b) => a.debut - b.debut)
   const travail = periode.filter((s) => !s.deload)
   const records = recordsParSeance(d.seances, d.exo)
@@ -62,12 +62,18 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO()): s
   if (d.objectifs?.length) {
     const phase = textePhase(d.objectifs, fin, jour)
     if (phase) lignes.push(`Phase : ${phase}`)
-    const autres = periodes(d.objectifs).filter((p) => p.debut <= fin && (p.fin ?? fin) >= depart && !(p.debut <= fin && !p.fin))
+    // Phases finies pendant la période : celle encore en cours à la fin de la période n'en fait pas partie.
+    const autres = periodes(d.objectifs).filter((p) => p.fin && p.fin >= depart && p.fin < fin)
     for (const p of autres) lignes.push(`Phase précédente pendant la période : ${p.phase === 'seche' ? 'sèche' : p.phase === 'prise' ? 'prise de muscle' : 'maintien'} du ${jour(p.debut)} au ${jour(p.fin!)}`)
   }
   const dernierPoids = [...d.pesees].filter((p) => p.date <= fin).sort((a, b) => b.date.localeCompare(a.date))[0]
   if (dernierPoids) lignes.push(`Poids actuel : ${kg(dernierPoids.poids)} kg`)
   lignes.push('Séries dures = RPE ≥ 7 (ou échec). RPE 10 = échec, 8 = 2 reps en réserve. PDC = poids du corps (+ lest).')
+
+  if (retenir.length) {
+    titre('À retenir')
+    lignes.push(...retenir)
+  }
 
   // Vue d'ensemble
   titre('Vue d’ensemble')

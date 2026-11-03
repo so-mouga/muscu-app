@@ -60,4 +60,20 @@ describe('bilan à partager', () => {
     expect(t).toMatch(/Phase : Sèche depuis le .*22 oct.* \(semaine 2 sur 12, fin prévue/)
     expect(t).toMatch(/Phase précédente pendant la période : prise de muscle du .* au .*21 oct/)
   })
+
+  it('une phase encore en cours n’est pas une phase précédente, même si la suivante est déjà prévue', () => {
+    const objectifs = [
+      { depuis: '2026-07-27', phase: 'prise' as const, finPrevue: '2026-11-16', volume: {} },
+      { depuis: '2026-11-16', phase: 'seche' as const, volume: {} },
+    ]
+    const t = genererBilan({ ...donnees([seance('s1', '2026-10-20', [50, 50, 50])]), objectifs }, '2026-10-19', '2026-10-29')
+    expect(t).toContain('Phase : Prise de muscle')
+    expect(t).not.toContain('Phase précédente')
+  })
+
+  it('reprend « À retenir » en tête', () => {
+    const t = genererBilan(donnees([seance('s1', '2026-10-20', [50, 50, 50])]), '2026-10-19', '2026-10-29', ['Prise qui marche.'])
+    expect(t.indexOf('== À retenir ==')).toBeLessThan(t.indexOf('== Vue d’ensemble =='))
+    expect(t).toContain('Prise qui marche.')
+  })
 })

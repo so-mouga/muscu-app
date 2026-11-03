@@ -8,7 +8,7 @@ import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
 import { BONUS_PRIORITE, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { analyser, essentiel, type Analyse } from '../lib/analyse'
+import { analyser, aRetenir, essentiel, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
 import { depuisDebut, semainesTenues } from '../lib/motivation'
@@ -74,7 +74,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
 
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
   const cibles = catalogue.ciblesA(fin)
-  const donnees: DonneesBilan = { seances, cycles, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycle && `Cycle « ${nomCycle(cycle)} » (${cycle.programme.nom}), semaine ${Math.max(1, etatCycle(cycle).n)}/${cycle.semaines}${cycle.priorites?.length ? `, priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
+  const donnees: DonneesBilan = { seances, cycles, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycle && `Cycle « ${nomCycle(cycle)} » (${cycle.programme.nom}), ${cycleFini ? 'terminé' : `semaine ${Math.max(1, etatCycle(cycle).n)}/${cycle.semaines}`}${cycle.priorites?.length ? `, priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
   const prevues = catalogue.planning.length
   const phaseEnCours = phaseA(catalogue.objectifs, fin)
   const phaseFin = phaseEnCours?.phase
@@ -90,7 +90,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
   const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}` })))
 
   const partager = async () => {
-    const texte = genererBilan(donnees, a.debut, fin)
+    const texte = genererBilan(donnees, a.debut, fin, aRetenir(a, avant.seances > 0 ? avant : null, cibles, false, phaseFin, depuisPhase))
     try {
       if (typeof navigator.share === 'function') await navigator.share({ title: 'Bilan d’entraînement', text: texte })
       else {
