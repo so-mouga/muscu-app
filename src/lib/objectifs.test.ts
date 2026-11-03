@@ -1,4 +1,4 @@
-import { ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
+import { dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -185,5 +185,21 @@ describe('cibles d’avant', () => {
   it('rien s’il n’y a qu’une version', () => {
     expect(ciblesPrecedentes(modifier([], '2026-11-03', { volume: { pecs: 25 } as never }, base), '2026-11-03')).toBeNull()
     expect(ciblesPrecedentes([], '2026-11-03')).toBeNull()
+  })
+})
+
+describe('phase dont la fin prévue est passée', () => {
+  const f = [{ depuis: '2026-07-27', phase: 'prise' as const, finPrevue: '2026-11-16', volume: {} }]
+
+  it('dépassée à partir de sa fin prévue, pas la veille', () => {
+    expect(phaseDuJour(f, '2026-11-15')?.depassee).toBe(false)
+    expect(phaseDuJour(f, '2026-11-16')?.depassee).toBe(true)
+  })
+
+  it('prolonger part d’aujourd’hui : la nouvelle fin est dans le futur, même après un long retard', () => {
+    // 15 févr. = 29 semaines après le début (203 jours) : 29 + 4 = 33 semaines.
+    const n = dureeProlongee('2026-07-27', '2026-11-16', '2027-02-15')
+    expect(n).toBe(33)
+    expect(finApres('2026-07-27', n) > '2027-02-15').toBe(true)
   })
 })

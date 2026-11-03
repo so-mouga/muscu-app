@@ -117,12 +117,12 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           <span className="ligne entre">
             <strong className="corps-titre">{nomPhase(phase.phase)}</strong>
             <span className="corps-detail-droite">
-              {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : `sem. ${phase.semaine}${totalPhase ? `/${totalPhase}` : ''}`}
+              {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : phase.depassee ? 'fin dépassée' : `sem. ${phase.semaine}${totalPhase ? `/${totalPhase}` : ''}`}
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
             </span>
           </span>
           {(phase.finPrevue || kcal) && !phase.aVenir && (
-            <span className="faible petit-texte">{[phase.finPrevue && `Jusqu’au ${fin(phase.finPrevue)}`, kcal && `${kcal.toLocaleString('fr-FR')} kcal par jour`].filter(Boolean).join(' · ')}</span>
+            <span className="faible petit-texte">{[phase.finPrevue && `${phase.depassee ? 'Prévue jusqu’au' : 'Jusqu’au'} ${fin(phase.finPrevue)}`, kcal && `${kcal.toLocaleString('fr-FR')} kcal par jour`].filter(Boolean).join(' · ')}</span>
           )}
           {vise !== null && depart !== null && (
             <span className="petit-texte">

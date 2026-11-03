@@ -118,11 +118,11 @@ export function periodes(frise: EtapeObjectifs[]): PeriodePhase[] {
 }
 
 /** Phase en cours à une date, avec son avancement en semaines. */
-export function phaseA(frise: EtapeObjectifs[], date: string): (PeriodePhase & { semaine: number; total?: number }) | null {
+export function phaseA(frise: EtapeObjectifs[], date: string): (PeriodePhase & { semaine: number; total?: number; depassee: boolean }) | null {
   const p = periodes(frise).find((x) => x.debut <= date && (!x.fin || date <= x.fin))
   if (!p) return null
   const semaines = (a: string, b: string) => Math.floor((Date.parse(b) - Date.parse(a)) / (7 * JOUR)) + 1
-  return { ...p, semaine: semaines(p.debut, date), ...(p.finPrevue && { total: Math.max(1, Math.round((Date.parse(p.finPrevue) - Date.parse(p.debut)) / (7 * JOUR))) }) }
+  return { ...p, semaine: semaines(p.debut, date), depassee: !!p.finPrevue && date >= p.finPrevue, ...(p.finPrevue && { total: Math.max(1, Math.round((Date.parse(p.finPrevue) - Date.parse(p.debut)) / (7 * JOUR))) }) }
 }
 
 /** Dernier jour d'une phase pour l'affichage : sa vraie fin, sinon sa fin prévue (ou aujourd'hui si elle est dépassée), sinon sans fin. */
@@ -136,14 +136,14 @@ export function phaseAffichee(frise: EtapeObjectifs[], aujourdhui: string) {
   const enCours = phaseA(frise, aujourdhui)
   if (enCours) return { ...enCours, aVenir: false as const }
   const prochaine = periodes(frise).find((p) => p.debut > aujourdhui)
-  return prochaine ? { ...prochaine, aVenir: true as const, semaine: 0, total: prochaine.finPrevue ? Math.max(1, Math.round((Date.parse(prochaine.finPrevue) - Date.parse(prochaine.debut)) / (7 * JOUR))) : undefined } : null
+  return prochaine ? { ...prochaine, aVenir: true as const, semaine: 0, depassee: false as const, total: prochaine.finPrevue ? Math.max(1, Math.round((Date.parse(prochaine.finPrevue) - Date.parse(prochaine.debut)) / (7 * JOUR))) : undefined } : null
 }
 
 /** Texte pour un bilan : « Sèche depuis le 3 nov. (semaine 3 sur 12, fin prévue le 25 janv.) ». `finPrevue` est le 1er jour d'après : on affiche la veille, son dernier jour. */
 export function textePhase(frise: EtapeObjectifs[], date: string, jour: (iso: string) => string): string | null {
   const p = phaseA(frise, date)
   if (!p) return null
-  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.total ? ` sur ${p.total}, fin prévue le ${jour(veille(p.finPrevue!))}` : ''}${p.ecartVise ? `, objectif ${ecartTexte(p.ecartVise)}` : ''})`
+  return `${nomPhase(p.phase)} depuis le ${jour(p.debut)} (semaine ${p.semaine}${p.depassee ? `, fin prévue dépassée depuis le ${jour(veille(p.finPrevue!))}` : p.total ? ` sur ${p.total}, fin prévue le ${jour(veille(p.finPrevue!))}` : ''}${p.ecartVise ? `, objectif ${ecartTexte(p.ecartVise)}` : ''})`
 }
 
 const virgule = (x: number) => String(Math.round(x * 100) / 100).replace('.', ',')
@@ -204,6 +204,10 @@ export function dureePhase(frise: EtapeObjectifs[], debut: string, semaines: num
   const f = debut <= aujourdhui ? modifier(frise, aujourdhui, { finPrevue: fin }) : enPlace(frise, debut, (e) => ({ ...e, finPrevue: fin }))
   return suite && suite > aujourdhui && fin && fin > aujourdhui && ancienne === suite ? decaler(f, suite, joursEntre(suite, fin)) : f
 }
+
+/** Durée (semaines depuis le début) d'une phase dont la fin prévue est passée, prolongée de 4 semaines à partir d'aujourd'hui. */
+export const dureeProlongee = (debut: string, finPrevue: string, aujourdhui: string) =>
+  Math.max(Math.round((Date.parse(finPrevue) - Date.parse(debut)) / (7 * JOUR)), Math.ceil(joursEntre(debut, aujourdhui) / 7)) + 4
 
 /** Change la date de début d'une phase en gardant sa durée : elle et les suivantes glissent ensemble. */
 export const deplacerPhase = (frise: EtapeObjectifs[], debut: string, vers: string) => decaler(frise, debut, joursEntre(debut, vers))

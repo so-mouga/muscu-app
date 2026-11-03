@@ -254,7 +254,9 @@ export default function Accueil({
             ? 'demain'
             : new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
         })`
-      : `${nomCourtPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`
+      : phase.depassee
+        ? `${nomCourtPhase(phase.phase)} · fin dépassée`
+        : `${nomCourtPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`
     : ''
 
   const texteCycle =

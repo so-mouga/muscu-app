@@ -12,6 +12,7 @@ import {
   CLE_SANS_OBJECTIF,
   deplacerPhase,
   dureePhase,
+  dureeProlongee,
   ecartPhase,
   ecartTexte,
   finApres,
@@ -84,7 +85,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
           <div className="ligne wrap" style={{ gap: 8, marginTop: 8 }}>
             <button
               className="btn petit"
-              onClick={() => enregistrer(dureePhase(frise, enCours.debut, semainesEntre(enCours.debut, enCours.finPrevue!) + 4, aujourdhui))}
+              onClick={() => enregistrer(dureePhase(frise, enCours.debut, dureeProlongee(enCours.debut, enCours.finPrevue!, aujourdhui), aujourdhui))}
             >
               Prolonger de 4 semaines
             </button>
@@ -133,7 +134,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                         border: '1px solid var(--bord)',
                       }}
                     >
-                      Sem. {enCours.semaine}{totalEnCours ? `/${totalEnCours}` : ''}
+                      Sem. {enCours.semaine}{totalEnCours && !enCours.depassee ? `/${totalEnCours}` : ''}
                     </span>
                     <button
                       type="button"
