@@ -7,6 +7,7 @@ import { MESURES, nomCle } from '../data/mesures'
 import { db, uid } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { photoReduite } from '../lib/image'
+import { paireDepart, poseCommune } from '../lib/photos'
 import { useRetour } from '../lib/nav'
 import type { Mesure, PhotoCorps, Pose } from '../types'
 import { confirmer } from '../components/Dialogues'
@@ -39,7 +40,7 @@ function parDate(photos: PhotoCorps[]) {
 }
 
 /** Onglet Photos de la page Corps : séances photo et comparaison de deux dates. */
-export default function Photos() {
+export default function Photos({ debutPhase }: { debutPhase?: string }) {
   const photos = useLiveQuery(() => db.photos.toArray(), [], [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const [prise, setPrise] = useState(false)
@@ -130,7 +131,7 @@ export default function Photos() {
 
       {importer && <ImportPhotos photos={photos} onFermer={() => setImporter(false)} />}
 
-      {dates.length >= 2 && <Comparaison dates={dates} />}
+      {dates.length >= 2 && <Comparaison dates={dates} debutPhase={debutPhase} />}
 
       {recentes.map(([date, poses]) => {
         const pPoids = avant(pesees, date)
@@ -407,11 +408,17 @@ function avant<T extends { date: string }>(liste: T[], date: string): T | undefi
 }
 
 /** Deux dates côte à côte (ou superposées avec un curseur), et les écarts de poids et de mensurations. */
-function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorps>>][] }) {
+function Comparaison({ dates, debutPhase }: { dates: [string, Partial<Record<Pose, PhotoCorps>>][]; debutPhase?: string }) {
   const liste = dates.map((d) => d[0])
-  const [a, setA] = useState(liste[liste.length - 1])
-  const [b, setB] = useState(liste[0])
-  const [pose, setPose] = useState<Pose>('face')
+  // Tant qu'on n'a rien choisi (ou si la date choisie a été supprimée) : les mêmes photos que sur la page Corps.
+  const pair = paireDepart([...liste].reverse(), debutPhase)
+  const [aChoisie, setA] = useState<string | null>(null)
+  const [bChoisie, setB] = useState<string | null>(null)
+  const a = aChoisie && liste.includes(aChoisie) ? aChoisie : pair.depart!
+  const b = bChoisie && liste.includes(bChoisie) ? bChoisie : pair.derniere!
+  const posesDe = (d: string) => Object.keys(dates.find((x) => x[0] === d)?.[1] ?? {}) as Pose[]
+  const [poseChoisie, setPose] = useState<Pose | null>(null)
+  const pose = poseChoisie ?? poseCommune(posesDe(a), posesDe(b)) ?? 'face'
   const [curseur, setCurseur] = useState<number | null>(null)
   const [pleinEcran, setPleinEcran] = useState(false)
   const [voirEcarts, setVoirEcarts] = useState(false)

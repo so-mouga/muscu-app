@@ -9,6 +9,7 @@ import { clesDe, CONSEILS_MESURE, MESURES, nomCle, PRINCIPALES, type DefMesure }
 import { db } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
+import { paireDepart, poseCommune } from '../lib/photos'
 import { nomPhase, phaseA, phaseAffichee, poidsDepart, poidsSemaine } from '../lib/objectifs'
 import { objectifDuJour } from '../lib/nutrition'
 import type { Mesure, PhotoCorps } from '../types'
@@ -48,7 +49,7 @@ export default function Corps({ catalogue, page, onPage }: { catalogue: Catalogu
       {page === 'phases' && <Objectifs catalogue={catalogue} />}
       {page === 'pesees' && <ListePesees catalogue={catalogue} />}
       {page === 'mensurations' && <Mesures catalogue={catalogue} />}
-      {page === 'photos' && <Photos />}
+      {page === 'photos' && <Photos debutPhase={phaseA(catalogue.objectifs, dateISO())?.debut} />}
     </div>
   )
 }
@@ -70,8 +71,8 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
     async () => {
       const dates = (await db.photos.orderBy('date').uniqueKeys()) as string[]
       if (!dates.length) return { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
-      const derniere = dates[dates.length - 1]
-      const depart = (enCours && dates.find((d) => d >= enCours.debut && d < derniere)) || (dates.length > 1 ? dates[0] : undefined)
+      const { depart, derniere } = paireDepart(dates, enCours?.debut)
+      if (!derniere) return { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
       return { depart, derniere, liste: await db.photos.where('date').anyOf([derniere, depart ?? derniere]).toArray() }
     },
     [enCours?.debut],
@@ -99,12 +100,11 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
   const principalesTriees = [...principales].sort((x, y) => (y === 'taille' ? 1 : 0) - (x === 'taille' ? 1 : 0))
   const derniereMesure = mesures[mesures.length - 1]
 
-  const photoDe = (d?: string) => {
-    const l = photos.liste.filter((p) => p.date === d)
-    return l.find((p) => p.pose === 'face') ?? l[0]
-  }
-  const pDepart = photoDe(photos.depart)
-  const pDerniere = photoDe(photos.derniere)
+  // Deux photos seulement dans la même pose ; sinon, la dernière seule.
+  const posesDe = (d?: string) => photos.liste.filter((p) => p.date === d)
+  const commune = poseCommune(posesDe(photos.depart).map((p) => p.pose), posesDe(photos.derniere).map((p) => p.pose))
+  const pDepart = commune && posesDe(photos.depart).find((p) => p.pose === commune)
+  const pDerniere = posesDe(photos.derniere).find((p) => p.pose === (commune ?? 'face')) ?? posesDe(photos.derniere)[0]
 
   return (
     <div>
@@ -248,7 +248,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
               <PhotoDatee photo={pDerniere} />
             </div>
             <button type="button" className="bilan-tous" onClick={() => onPage('photos')}>
-              <span>{pDepart ? 'Comparer et toutes les photos' : 'Toutes les photos'}</span>
+              <span>{photos.depart ? 'Comparer et toutes les photos' : 'Toutes les photos'}</span>
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
             </button>
           </>
