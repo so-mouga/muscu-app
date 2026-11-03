@@ -161,6 +161,39 @@ export function debutCycle(jours: number[], date = dateISO()): string {
   return jours.length && jours.every((x) => x < j) ? plusSemaines(ce, 1) : ce
 }
 
+/** Les semaines du cycle, dans l'ordre, avec celles en pause intercalées. */
+export function lignesCycle(c: Cycle): ({ pause: string } | { n: number; lundi: string })[] {
+  const fin = lundiDe(c, c.semaines)
+  const lignes: ({ pause: string } | { n: number; lundi: string })[] = []
+  for (let l = c.debut, n = 0; l <= fin; l = plusSemaines(l, 1)) {
+    if (c.pauses.includes(l)) lignes.push({ pause: l })
+    else lignes.push({ n: ++n, lundi: l })
+  }
+  return lignes
+}
+
+export type RegimeSemaine = 'normale' | 'allegee' | 'pause'
+
+export const regimeSemaine = (c: Cycle, l: string): RegimeSemaine => (c.pauses.includes(l) ? 'pause' : c.deloads.includes(etatCycle(c, l).n) ? 'allegee' : 'normale')
+
+/**
+ * Change une semaine, à venir ou en cours (lundi `l`). Pause : la suite glisse d'une semaine, et revient si on l'annule.
+ * Allégée : la suite est décalée. Ne plus l'alléger : le décalage s'annule, sauf pour la dernière semaine, qui reste une semaine normale.
+ */
+export function changerSemaine(c: Cycle, l: string, regime: RegimeSemaine): Cycle {
+  const actuel = regimeSemaine(c, l)
+  if (actuel === regime) return c
+  let r = c
+  if (actuel === 'pause') r = { ...r, pauses: r.pauses.filter((p) => p !== l) }
+  if (actuel === 'allegee') {
+    const { n } = etatCycle(r, l)
+    r = n === r.semaines ? { ...r, deloads: r.deloads.filter((d) => d !== n) } : { ...r, semaines: r.semaines - 1, deloads: r.deloads.filter((d) => d !== n).map((d) => (d > n ? d - 1 : d)) }
+  }
+  if (regime === 'pause') return mettreEnPause(r, l)
+  if (regime === 'allegee') return r.deloads.includes(etatCycle(r, l).n) ? r : deloadMaintenant(r, l)
+  return r
+}
+
 /** Met la semaine en cours en pause : la suite du cycle (déload compris) glisse d'une semaine. */
 export function mettreEnPause(c: Cycle, date = dateISO()): Cycle {
   const l = lundi(new Date(date + 'T12:00:00'))

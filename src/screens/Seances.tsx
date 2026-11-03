@@ -9,7 +9,7 @@ import VolumeMuscles from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, AvisCycle, LancerCycle, VueCycle } from '../components/Cycle'
 import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
-import { debutCycle, etatCycle, nomCycle } from '../lib/cycle'
+import { changerSemaine, debutCycle, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
@@ -292,7 +292,22 @@ function PageProgramme({
       )}
       <AvisCycle catalogue={catalogue} />
 
-      {entrees.length > 0 &&
+      {entrees.length > 0 && cycle && etat?.pause && !etat.fini ? (
+        <div className="carte pile">
+          <button type="button" className="prog-lien" onClick={onCycle}>
+            <span>
+              <strong className="semaine-pause">Cycle en pause</strong>
+              <span className="faible prog-sous">
+                Reprend le {new Date(lundiDe(cycle, etat.n) + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} : semaine {etat.n} sur {etat.total}
+              </span>
+            </span>
+            <ChevronRight size={20} className="muted" />
+          </button>
+          <button className="btn plein" onClick={() => void db.cycles.put(changerSemaine(cycle, lundi(), 'normale'))}>
+            Reprendre cette semaine
+          </button>
+        </div>
+      ) : entrees.length > 0 &&
         (cycle && etat && !etat.fini ? (
           <button className="liste-btn" onClick={onCycle}>
             <span>
@@ -300,9 +315,7 @@ function PageProgramme({
               <span className="faible prog-sous">
                 {etat.n <= 0
                   ? `Commence le ${new Date(cycle.debut + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`
-                  : etat.pause
-                    ? 'Cette semaine est en pause'
-                    : etat.deload
+                  : etat.deload
                       ? 'Cette semaine est allégée (déload)'
                       : prochainDeload
                         ? `Semaine allégée (déload) : la ${prochainDeload}e`
@@ -323,7 +336,7 @@ function PageProgramme({
             ) : (
               <div className="ligne entre">
                 <span className="faible">Suis-le semaine par semaine pendant 6 semaines : la dernière est allégée pour récupérer.</span>
-                <Aide texte={AIDE_CYCLE} />
+                <Aide titre="Un cycle" texte={AIDE_CYCLE} />
               </div>
             )}
             <button className="btn primaire plein" onClick={() => setLancer(true)}>
@@ -338,7 +351,7 @@ function PageProgramme({
         ))}
 
       {entrees.map(({ e, i, m }) => (
-        <div key={e.modeleId + i} className="prog-seance">
+        <div key={e.modeleId + i} className={'prog-seance' + (etat?.pause && !etat.fini ? ' en-pause' : '')}>
           <button type="button" className={'prog-jour' + (e.jour ? '' : ' sans')} aria-label={`Jour de ${m!.nom} : ${e.jour ? JOURS[e.jour] : 'aucun'}`} onClick={() => setChoixJour(i)}>
             {e.jour ? jourCourt(e.jour) : 'sans jour'}
           </button>

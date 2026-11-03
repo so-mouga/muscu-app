@@ -11,7 +11,7 @@ import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
-import { etatCycle, planDeload } from '../lib/cycle'
+import { changerSemaine, etatCycle, lundiDe, planDeload } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
@@ -467,8 +467,23 @@ export default function Accueil({
         </div>
 
         {/* La séance d'abord : elle prend la place qui reste, « Démarrer » reste au même endroit. */}
-        <div className={aLancer || !proposee ? 'seance-jour' : 'seance-jour sans-action'}>
-          {catalogue.sansProgramme ? (
+        <div className={(aLancer || !proposee) && !etat?.pause ? 'seance-jour' : 'seance-jour sans-action'}>
+          {cycle && etat?.pause && !etat.fini ? (
+            <>
+              <div className="seance-jour-haut">
+                <span className="seance-jour-etat semaine-pause">Semaine en pause</span>
+                <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>
+                  Faire une séance ›
+                </button>
+              </div>
+              <p className="faible">
+                Reprend le {new Date(lundiDe(cycle, etat.n) + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} : semaine {etat.n} sur {etat.total}.
+              </p>
+              <button type="button" className="btn plein" onClick={() => void db.cycles.put(changerSemaine(cycle, lundi(), 'normale'))}>
+                Reprendre cette semaine
+              </button>
+            </>
+          ) : catalogue.sansProgramme ? (
             <>
               <div className="seance-jour-haut">
                 <span className="seance-jour-etat">Ton programme</span>

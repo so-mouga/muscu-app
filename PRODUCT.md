@@ -87,6 +87,8 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Programme et Exercices** (3 nov. 2026, après inventaire et maquette cliquable validés, un commit par écran) : page Programme et lancement `93393ce`, séance, réglage et liste d'ajout `935a92e`, Changer de programme `03b6452`, page du cycle et fusion du Bilan du cycle `1049fec`, fiche `f006bcc`, liste dans Progrès et retrait de l'onglet `282445a`, formulaire. Le détail est dans `AGENTS.md`.
 
+- **Limite connue, semaine en pause** : le rappel de séance Android ne sait pas qu'une semaine est en pause (il garde le planning) et peut sonner quand même.
+
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)

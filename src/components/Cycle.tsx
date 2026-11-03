@@ -1,15 +1,15 @@
-import { ChevronRight, MoreHorizontal } from 'lucide-react'
+import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { lancerCycle, type Catalogue } from '../catalogue'
 import { db } from '../db'
 import { dateCourte, dateISO, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
-import { appliquerEcart, BONUS_PRIORITE, debutCycle, deloadMaintenant, DUREE_DEFAUT, etatCycle, garderEcart, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle } from '../lib/cycle'
+import { appliquerEcart, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, garderEcart, lignesCycle, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { useRetour } from '../lib/nav'
 import type { Cycle, Muscle, Programme } from '../types'
 import { confirmer } from './Dialogues'
-import Aide from './Aide'
+import Aide, { LigneAide } from './Aide'
 
 export const AIDE_CYCLE =
   'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine de déload à la fin : 5 de travail + 1 de déload). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, tu choisis s’il s’applique aux semaines qui restent ou seulement au prochain cycle.'
@@ -18,7 +18,7 @@ export const AIDE_DELOAD =
 
 const debutSemaine = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
-export { Aide } from './Aide'
+export { Aide, LigneAide } from './Aide'
 
 /**
  * Programme modifié pendant le cycle : le dit tant qu'on n'a pas répondu, quel que soit le chemin pris
@@ -111,7 +111,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="ligne entre">
           <h2>{cycle ? 'Modifier le cycle' : `Lancer ${progChoisi?.nom ?? 'un cycle'}`}</h2>
-          <Aide texte={AIDE_CYCLE} />
+          <Aide titre="Un cycle" texte={AIDE_CYCLE} />
         </div>
         {!cycle && <div className="faible">{resume}</div>}
 
@@ -152,7 +152,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
         <div className="champ">
           <span className="ligne entre">
             <span>Semaines allégées (déload)</span>
-            <Aide texte={AIDE_DELOAD} />
+            <Aide titre="Le déload" texte={AIDE_DELOAD} />
           </span>
           <div className="chips">
             {Array.from({ length: semaines }, (_, i) => i + 1).map((n) => (
@@ -243,13 +243,11 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
   }
   const prevues = semaineType(cycle.programme).map((e) => cycle.modeles.find((m) => m.id === e.modeleId)).filter((m) => !!m)
 
-  // Lignes : chaque semaine du cycle, avec les semaines de pause intercalées.
-  const fin = lundiDe(cycle, cycle.semaines)
-  const lignes: ({ pause: string } | { n: number; lundi: string })[] = []
-  for (let l = cycle.debut, n = 0; l <= fin; l = dateISO(new Date(Date.parse(l + 'T12:00:00') + 7 * 86400000))) {
-    if (cycle.pauses.includes(l)) lignes.push({ pause: l })
-    else lignes.push({ n: ++n, lundi: l })
-  }
+  const lignes = lignesCycle(cycle)
+  /** Semaine ouverte : son lundi et son numéro, s'il n'est pas en pause. */
+  const [semaine, setSemaine] = useState<string | null>(null)
+  useRetour(semaine !== null, () => setSemaine(null))
+  const modifiable = (l: string) => !etat.fini && l >= lundi()
 
   const terminer = async () => {
     setMenu(false)
@@ -257,16 +255,6 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
     await db.cycles.update(cycle.id, { fin: dateISO() })
     onFermer()
   }
-  const alleger = async () => {
-    setMenu(false)
-    if (await confirmer('Les séances seront allégées et la fin du cycle reculera d’une semaine.', { titre: `Alléger la semaine ${etat.n} ?`, oui: 'Alléger cette semaine' })) await db.cycles.put(deloadMaintenant(cycle))
-  }
-  const pause = async () => {
-    setMenu(false)
-    if (await confirmer('Elle ne comptera pas, et tout le reste du cycle glissera d’une semaine.', { titre: 'Mettre cette semaine en pause ?', oui: 'Mettre en pause' })) await db.cycles.put(mettreEnPause(cycle))
-  }
-  const enCours = !etat.fini && etat.n >= 1
-
   return (
     <div>
       <div className="entete">
@@ -289,12 +277,26 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
 
       <div className="carte">
         {lignes.map((x) => {
-          if ('pause' in x)
+          if ('pause' in x) {
+            const pendant = seances.filter((s) => lundi(new Date(s.date + 'T12:00:00')) === x.pause)
             return (
-              <div key={x.pause} className="semaine-cycle">
-                <span className="faible">Pause · semaine du {debutSemaine(x.pause)}</span>
-              </div>
+              <SemaineCycle key={x.pause} classe="pause" surAppui={modifiable(x.pause) ? () => setSemaine(x.pause) : undefined}>
+                <div className="ligne entre">
+                  <span className="semaine-pause">En pause</span>
+                  <span className="faible">{debutSemaine(x.pause)}</span>
+                </div>
+                {pendant.length > 0 && (
+                  <div className="ligne wrap" style={{ gap: 'var(--e1)' }}>
+                    {pendant.map((s) => (
+                      <span key={s.id} className="pastille ok">
+                        ✓ {s.nom}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </SemaineCycle>
             )
+          }
           const faites = seances.filter((s) => semaineDe(s.date) === x.n)
           const deload = cycle.deloads.includes(x.n)
           const courante = x.n === etat.n && !etat.pause && !etat.fini
@@ -304,10 +306,11 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
               {deload && <span className="semaine-allegee"> · allégée</span>}
             </span>
           )
+          const surAppui = modifiable(x.lundi) ? () => setSemaine(x.lundi) : undefined
           if (courante) {
             const restantes = [...faites]
             return (
-              <div key={x.n} className="semaine-cycle courante">
+              <SemaineCycle key={x.n} classe="courante" surAppui={surAppui}>
                 <div className="ligne entre">
                   {titre}
                   <span className="faible">{debutSemaine(x.lundi)}</span>
@@ -329,22 +332,24 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
                     </span>
                   ))}
                 </div>
-              </div>
+              </SemaineCycle>
             )
           }
           const passee = x.lundi < lundi()
           return (
-            <div key={x.n} className="semaine-cycle ligne entre">
-              {titre}
-              {passee || faites.length ? (
-                <span className={faites.length >= prevues.length ? 'tenue' : 'faible'}>
-                  {faites.length >= prevues.length ? '✓ ' : ''}
-                  {faites.length} sur {prevues.length}
-                </span>
-              ) : (
-                <span className="faible">{debutSemaine(x.lundi)}</span>
-              )}
-            </div>
+            <SemaineCycle key={x.n} surAppui={surAppui}>
+              <div className="ligne entre">
+                {titre}
+                {passee || faites.length ? (
+                  <span className={faites.length >= prevues.length ? 'tenue' : 'faible'}>
+                    {faites.length >= prevues.length ? '✓ ' : ''}
+                    {faites.length} sur {prevues.length}
+                  </span>
+                ) : (
+                  <span className="faible">{debutSemaine(x.lundi)}</span>
+                )}
+              </div>
+            </SemaineCycle>
           )
         })}
       </div>
@@ -355,31 +360,12 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
           <ChevronRight size={20} className="muted" />
         </button>
       )}
-      <div className="ligne entre faible" style={{ padding: 'var(--e2) var(--e1)' }}>
-        <span>C’est quoi, un cycle ?</span>
-        <Aide texte={AIDE_CYCLE} />
-      </div>
+      <LigneAide libelle="C’est quoi, un cycle ?" titre="Un cycle" texte={AIDE_CYCLE} />
 
       {menu && (
         <div className="modal-fond" onClick={() => setMenu(false)}>
           <div className="modal pile" onClick={(e) => e.stopPropagation()}>
             <h3>Ce cycle</h3>
-            {enCours && (
-              <button className="liste-btn" disabled={etat.pause || etat.deload} onClick={() => void alleger()}>
-                <span>
-                  Alléger cette semaine (déload)
-                  <span className="faible prog-sous">Fatigué : la suite du cycle est décalée d’une semaine</span>
-                </span>
-              </button>
-            )}
-            {enCours && (
-              <button className="liste-btn" disabled={etat.pause} onClick={() => void pause()}>
-                <span>
-                  Mettre cette semaine en pause
-                  <span className="faible prog-sous">Vacances, maladie : elle ne compte pas</span>
-                </span>
-              </button>
-            )}
             <button className="liste-btn" onClick={() => (setMenu(false), setModifier(true))}>
               <span>Modifier la durée et le nom</span>
             </button>
@@ -393,6 +379,62 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: C
         </div>
       )}
       {modifier && <LancerCycle catalogue={catalogue} cycle={cycle} onFermer={() => setModifier(false)} />}
+      {semaine && (
+        <FenetreSemaine
+          cycle={cycle}
+          lundiSemaine={semaine}
+          onChoix={(r) => {
+            const c = changerSemaine(cycle, semaine, r)
+            setSemaine(null)
+            if (c !== cycle) void db.cycles.put(c)
+          }}
+          onFermer={() => setSemaine(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Une ligne de semaine : un appui l'ouvre si elle est en cours ou à venir ; les semaines passées restent figées. */
+function SemaineCycle({ classe = '', surAppui, children }: { classe?: string; surAppui?: () => void; children: ReactNode }) {
+  if (!surAppui) return <div className={'semaine-cycle ' + classe}>{children}</div>
+  return (
+    <button type="button" className={'semaine-cycle ' + classe} onClick={surAppui}>
+      <span className="semaine-cycle-corps">{children}</span>
+      <ChevronRight size={18} className="muted" />
+    </button>
+  )
+}
+
+/** Normale, allégée ou en pause : un seul geste pour alléger, partir en vacances ou revenir en arrière. */
+function FenetreSemaine({ cycle, lundiSemaine, onChoix, onFermer }: { cycle: Cycle; lundiSemaine: string; onChoix: (r: RegimeSemaine) => void; onFermer: () => void }) {
+  const regime = regimeSemaine(cycle, lundiSemaine)
+  const dimanche = dateISO(new Date(Date.parse(lundiSemaine + 'T12:00:00') + 6 * 86400000))
+  const n = etatCycle(cycle, lundiSemaine).n
+  const options: [RegimeSemaine, string, string][] = [
+    ['normale', 'Normale', regime === 'pause' ? 'La pause est annulée : la suite revient d’une semaine' : regime === 'allegee' ? 'Le programme complet' : 'Le programme complet'],
+    ['allegee', 'Allégée (déload)', 'Moitié moins de séries, charges −10 %. La suite est décalée d’une semaine'],
+    ['pause', 'En pause', 'Vacances, maladie : elle ne compte pas, la suite glisse d’une semaine'],
+  ]
+  return (
+    <div className="modal-fond" onClick={onFermer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <div>
+          <h2>{regime === 'pause' ? 'Semaine en pause' : `Semaine ${n}`}</h2>
+          <div className="faible">
+            Du {debutSemaine(lundiSemaine)} au {debutSemaine(dimanche)}
+          </div>
+        </div>
+        {options.map(([id, nom, aide]) => (
+          <button key={id} type="button" className="liste-btn" aria-pressed={regime === id} onClick={() => onChoix(id)}>
+            <span>
+              {nom}
+              <span className="faible prog-sous">{regime === id ? 'Ce qui est prévu pour l’instant' : aide}</span>
+            </span>
+            {regime === id && <Check size={20} />}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

@@ -1,109 +1,63 @@
-import { useState } from 'react'
-import { HelpCircle, X } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { ChevronRight, HelpCircle } from 'lucide-react'
+import { useRetour } from '../lib/nav'
 
-/**
- * Bouton d'aide sans jargon : icône help-circle discrète qui ouvre une bulle d'explication au clic.
- */
-export function Aide({ texte, titre }: { texte: string; titre?: string }) {
+/** L'explication, dans une fenêtre du bas : elle ne peut pas sortir de l'écran, et le retour Android la ferme. */
+function FenetreAide({ titre, texte, onFermer }: { titre?: string; texte: ReactNode; onFermer: () => void }) {
+  useRetour(true, onFermer)
+  return createPortal(
+    <div
+      className="modal-fond"
+      onClick={(e) => {
+        e.stopPropagation()
+        onFermer()
+      }}
+    >
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        {titre && <h2>{titre}</h2>}
+        <div>{texte}</div>
+        <button type="button" className="btn plein" onClick={onFermer}>
+          Compris
+        </button>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+/** Petit ⓘ à côté d'un mot : une zone d'appui bien plus grande que l'icône. */
+export function Aide({ texte, titre }: { texte: ReactNode; titre?: string }) {
   const [ouvert, setOuvert] = useState(false)
-
   return (
-    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+    <>
       <button
         type="button"
+        className="aide-bouton"
         aria-label={titre ? `Aide sur ${titre}` : 'Explication'}
         onClick={(e) => {
           e.stopPropagation()
-          setOuvert(!ouvert)
-        }}
-        style={{
-          background: 'none',
-          border: 'none',
-          padding: 2,
-          margin: '0 2px',
-          cursor: 'pointer',
-          color: 'var(--texte-2)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: 0.8,
-          transition: 'color 0.15s ease, opacity 0.15s ease',
-          verticalAlign: 'middle',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--texte)'
-          e.currentTarget.style.opacity = '1'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--texte-2)'
-          e.currentTarget.style.opacity = '0.8'
+          setOuvert(true)
         }}
       >
         <HelpCircle size={14} strokeWidth={2} />
       </button>
+      {ouvert && <FenetreAide titre={titre} texte={texte} onFermer={() => setOuvert(false)} />}
+    </>
+  )
+}
 
-      {ouvert && (
-        <>
-          {/* Backdrop transparent pour fermer au clic en dehors */}
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 998 }}
-            onClick={(e) => {
-              e.stopPropagation()
-              setOuvert(false)
-            }}
-          />
-
-          {/* Bulle / Popover Dark Glassmorphism */}
-          <div
-            className="popover-aide"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              marginTop: 6,
-              width: 250,
-              maxWidth: '80vw',
-              padding: '12px 14px',
-              borderRadius: 'var(--rayon-2)',
-              background: 'var(--barre-fond)',
-              border: '1px solid var(--bord-haut)',
-              boxShadow: '0 8px 30px var(--ombre-forte), inset 0 1px 0 var(--bord)',
-              color: 'var(--texte)',
-              fontSize: 'var(--t-legende)',
-              lineHeight: 1.45,
-              zIndex: 999,
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              {titre ? (
-                <strong style={{ fontSize: 'var(--t-petit)', color: 'var(--accent)' }}>{titre}</strong>
-              ) : (
-                <span />
-              )}
-              <button
-                type="button"
-                onClick={() => setOuvert(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 2,
-                  color: 'var(--texte-2)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                }}
-                aria-label="Fermer"
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <div style={{ color: 'var(--texte-salle)' }}>{texte}</div>
-          </div>
-        </>
-      )}
-    </span>
+/** Une question sur toute sa largeur : tout le texte est cliquable. */
+export function LigneAide({ libelle, texte, titre }: { libelle: string; texte: ReactNode; titre?: string }) {
+  const [ouvert, setOuvert] = useState(false)
+  return (
+    <>
+      <button type="button" className="ligne-aide" onClick={() => setOuvert(true)}>
+        <span>{libelle}</span>
+        <ChevronRight size={18} className="muted" />
+      </button>
+      {ouvert && <FenetreAide titre={titre} texte={texte} onFermer={() => setOuvert(false)} />}
+    </>
   )
 }
 

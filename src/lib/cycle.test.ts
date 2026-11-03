@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { appliquerEcart, avecPriorites, debutCycle, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
+import { appliquerEcart, avecPriorites, changerSemaine, debutCycle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -170,5 +170,43 @@ describe('début d’un cycle', () => {
   })
   it('sans jour : cette semaine', () => {
     expect(debutCycle([], '2026-11-08')).toBe('2026-11-02')
+  })
+})
+
+describe('changer une semaine', () => {
+  const seance = { id: 'a', nom: 'A', sousTitre: '', exercices: [] }
+  const c0 = () => nouveauCycle('c', { id: 'p', nom: 'P', seances: [{ modeleId: 'a', jour: 1 }] }, () => seance, '2026-10-19', 6, [6])
+
+  it('une pause à venir décale la suite, l’annuler remet tout comme avant', () => {
+    const a = c0()
+    const b = changerSemaine(a, '2026-11-09', 'pause')
+    expect(regimeSemaine(b, '2026-11-09')).toBe('pause')
+    expect(etatCycle(b, '2026-11-16').n).toBe(4)
+    expect(etatCycle(b, '2026-11-30')).toMatchObject({ n: 6, deload: true, fini: false })
+    const r = changerSemaine(b, '2026-11-09', 'normale')
+    expect(r.pauses).toEqual([])
+    expect(etatCycle(r, '2026-11-23').n).toBe(6)
+  })
+
+  it('alléger puis annuler revient au cycle de départ', () => {
+    const a = c0()
+    const b = changerSemaine(a, '2026-11-02', 'allegee')
+    expect(b).toMatchObject({ semaines: 7, deloads: [3, 7] })
+    expect(changerSemaine(b, '2026-11-02', 'normale')).toMatchObject({ semaines: 6, deloads: [6] })
+  })
+
+  it('la dernière semaine allégée redevient normale sans raccourcir le cycle', () => {
+    expect(changerSemaine(c0(), '2026-11-23', 'normale')).toMatchObject({ semaines: 6, deloads: [] })
+  })
+
+  it('passer d’allégée à pause, et de pause à allégée', () => {
+    const b = changerSemaine(changerSemaine(c0(), '2026-11-02', 'allegee'), '2026-11-02', 'pause')
+    expect(b).toMatchObject({ semaines: 6, deloads: [6], pauses: ['2026-11-02'] })
+    expect(changerSemaine(b, '2026-11-02', 'allegee')).toMatchObject({ semaines: 7, deloads: [3, 7], pauses: [] })
+  })
+
+  it('même régime : rien ne change', () => {
+    const a = c0()
+    expect(changerSemaine(a, '2026-11-02', 'normale')).toBe(a)
   })
 })
