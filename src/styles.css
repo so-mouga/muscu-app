@@ -2232,7 +2232,7 @@ button.pastille.cliquable {
 }
 /* Le bouton Enregistrer collé en bas ne doit pas cacher les derniers champs. */
 .page-dessus .saisie-mesures {
-  padding-bottom: 96px;
+  padding-bottom: 16px;
 }
 
 /* Fenêtres de l'appli (remplacent confirm / alert) */

@@ -548,7 +548,7 @@ function JourChoisi({
       {saisie && <FenetreJour saisie={saisie} date={date} catalogue={catalogue} journal={journal} poidsDuJour={pesee} poidsRepere={poidsRepere} onFermer={() => setSaisie(null)} />}
       {saisieMesures && (
         <div className="page-dessus">
-          <SaisieMesures initial={mesure ? { date, valeurs: mesure.valeurs } : { date, valeurs: {} }} derniere={mesures[mesures.length - 1]} onFermer={() => setSaisieMesures(false)} />
+          <SaisieMesures initial={mesure ? { date, valeurs: mesure.valeurs } : { date, valeurs: {} }} mesures={mesures} onFermer={() => setSaisieMesures(false)} />
         </div>
       )}
       {voirMesures && (

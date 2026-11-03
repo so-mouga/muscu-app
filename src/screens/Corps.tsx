@@ -313,7 +313,7 @@ function Mesures({ catalogue }: { catalogue: Catalogue }) {
       <Mensurations mesures={mesures} depuis={phaseA(catalogue.objectifs, dateISO())?.debut} onSaisir={setSaisie} />
       {saisie && (
         <div className="page-dessus">
-          <SaisieMesures initial={saisie === 'nouvelle' ? undefined : saisie} derniere={mesures[mesures.length - 1]} onFermer={() => setSaisie(null)} />
+          <SaisieMesures initial={saisie === 'nouvelle' ? mesures.find((m) => m.date === dateISO()) : saisie} mesures={mesures} onFermer={() => setSaisie(null)} />
         </div>
       )}
     </>
@@ -537,45 +537,85 @@ function ValeursMesure({ def, mesures }: { def: DefMesure; mesures: Mesure[] }) 
   )
 }
 
-/** Saisie d'une prise de mensurations : tout d'un coup, chaque champ facultatif. */
-export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesure; derniere?: Mesure; onFermer: () => void }) {
-  const [date, setDate] = useState(initial?.date ?? dateISO())
-  const [textes, setTextes] = useState<Record<string, string>>(() =>
-    Object.fromEntries(Object.entries(initial?.valeurs ?? {}).map(([k, v]) => [k, String(v).replace('.', ',')]))
-  )
-  const [active, setActive] = useState<string>('poitrine')
-  const [conseilOuvert, setConseilOuvert] = useState(false)
-  const modifie = JSON.stringify(textes) !== JSON.stringify(Object.fromEntries(Object.entries(initial?.valeurs ?? {}).map(([k, v]) => [k, String(v).replace('.', ',')])))
-  const fermer = () => {
-    // Saisie en cours : on garde l'écran et on demande avant de perdre les valeurs.
-    if (modifie) {
-      void confirmer('Les mesures saisies seront perdues.', { titre: 'Quitter sans enregistrer ?', oui: 'Quitter sans enregistrer', non: 'Continuer', danger: true }).then((ok) => ok && onFermer())
-      return 'rester' as const
-    }
-    onFermer()
-  }
-  useRetour(true, fermer)
-  // Référence pour les champs : la prise d'avant (celle qu'on modifie n'est pas sa propre référence).
-  const ref = initial && derniere?.date === initial.date ? undefined : derniere
-
-  const valeurs = Object.fromEntries(
+const enTextes = (v: Record<string, number> = {}) => Object.fromEntries(Object.entries(v).map(([k, x]) => [k, String(x).replace('.', ',')]))
+const lireValeurs = (textes: Record<string, string>) =>
+  Object.fromEntries(
     Object.entries(textes)
       .map(([k, t]) => [k, parseFloat(t.replace(',', '.'))] as const)
       .filter(([, v]) => v > 0 && v < 300)
   )
-  const enregistrer = async () => {
-    await db.transaction('rw', db.mesures, async () => {
-      if (initial && initial.date !== date) await db.mesures.delete(initial.date)
-      const meme = initial?.date === date ? undefined : await db.mesures.get(date)
-      await db.mesures.put({ date, valeurs: { ...meme?.valeurs, ...valeurs } })
+
+/**
+ * Saisie d'une prise de mensurations : tout d'un coup, chaque champ facultatif. Pas de bouton : chaque
+ * valeur est gardée peu après la frappe, et tout de suite en quittant ou si l'appli passe en arrière-plan.
+ */
+export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure; mesures: Mesure[]; onFermer: () => void }) {
+  const [date, setDate] = useState(initial?.date ?? dateISO())
+  const [textes, setTextes] = useState<Record<string, string>>(() => enTextes(initial?.valeurs))
+  const [active, setActive] = useState<string>('poitrine')
+  const [conseilOuvert, setConseilOuvert] = useState(false)
+  // Ce qui est en base pour cette saisie : la date et les valeurs, pour n'écrire que ce qui a changé.
+  const enBase = useRef({ date: initial?.date, valeurs: JSON.stringify(lireValeurs(enTextes(initial?.valeurs))) })
+  const aEcrire = useRef({ date, textes })
+  aEcrire.current = { date, textes }
+  const minuteur = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const supprimee = useRef(false)
+
+  const ecrire = () => {
+    clearTimeout(minuteur.current)
+    if (supprimee.current) return
+    const { date: d, textes: t } = aEcrire.current
+    const valeurs = lireValeurs(t)
+    const texte = JSON.stringify(valeurs)
+    const avant = enBase.current
+    if (avant.date === d && avant.valeurs === texte) return
+    if (!avant.date && !Object.keys(valeurs).length) return
+    enBase.current = { date: Object.keys(valeurs).length ? d : undefined, valeurs: texte }
+    void db.transaction('rw', db.mesures, async () => {
+      if (avant.date && avant.date !== d) await db.mesures.delete(avant.date)
+      if (Object.keys(valeurs).length) await db.mesures.put({ date: d, valeurs })
+      else await db.mesures.delete(d)
     })
+  }
+  useEffect(() => {
+    clearTimeout(minuteur.current)
+    minuteur.current = setTimeout(ecrire, 400)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, textes])
+  useEffect(() => {
+    const cachee = () => document.visibilityState === 'hidden' && ecrire()
+    document.addEventListener('visibilitychange', cachee)
+    window.addEventListener('pagehide', ecrire)
+    return () => {
+      document.removeEventListener('visibilitychange', cachee)
+      window.removeEventListener('pagehide', ecrire)
+      ecrire()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const fermer = () => {
+    ecrire()
     onFermer()
   }
+  useRetour(true, fermer)
+
+  /** Une prise existe déjà à cette date : ses valeurs rejoignent celle-ci, celles qu'on vient de noter passent devant. */
+  const changerDate = async (d: string) => {
+    if (!d || d === date) return
+    const deja = await db.mesures.get(d)
+    setTextes((t) => ({ ...enTextes(deja?.valeurs), ...t }))
+    setDate(d)
+  }
+
   const supprimer = async () => {
-    if (!initial || !(await confirmer(`Supprimer la prise du ${dateCourte(initial.date)} ?`, { oui: 'Supprimer la prise', danger: true }))) return
-    await db.mesures.delete(initial.date)
+    if (!enBase.current.date || !(await confirmer(`Supprimer la prise du ${dateCourte(enBase.current.date)} ?`, { oui: 'Supprimer la prise', danger: true }))) return
+    supprimee.current = true
+    clearTimeout(minuteur.current)
+    await db.mesures.delete(enBase.current.date)
     onFermer()
   }
+  // Référence pour chaque champ : la dernière valeur connue avant cette prise.
+  const repere = (cle: string) => [...mesures].filter((m) => m.date < date && m.valeurs[cle] !== undefined).sort((a, b) => a.date.localeCompare(b.date)).at(-1)?.valeurs[cle]
 
   const champ = (cle: string, label?: string) => (
     <div key={cle} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -593,7 +633,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
       >
         <input
           inputMode="decimal"
-          placeholder={ref?.valeurs[cle] !== undefined ? kg(ref.valeurs[cle]) : '—'}
+          placeholder={repere(cle) !== undefined ? kg(repere(cle)!) : '—'}
           value={textes[cle] ?? ''}
           onFocus={() => setActive(cle.replace(/_[gd]$/, ''))}
           onChange={(e) => setTextes((x) => ({ ...x, [cle]: e.target.value }))}
@@ -691,7 +731,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
   }
 
   return (
-    <div style={{ paddingBottom: 110 }}>
+    <div style={{ paddingBottom: 24 }}>
       <div className="entete" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button
           type="button"
@@ -729,7 +769,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
           type="date"
           value={date}
           max={dateISO()}
-          onChange={(e) => e.target.value && setDate(e.target.value)}
+          onChange={(e) => void changerDate(e.target.value)}
           style={{
             background: 'var(--voile)',
             border: '1px solid var(--voile-fort)',
@@ -779,7 +819,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
         </button>
         {conseilOuvert && (
           <div style={{ marginTop: 6, color: 'var(--texte-2)', lineHeight: 1.4 }}>
-            {CONSEILS_MESURE} Remplis seulement ce que tu mesures ; en gris clair, ta dernière valeur de référence.
+            {CONSEILS_MESURE} Remplis seulement ce que tu mesures ; en gris clair, ta dernière valeur. Tout est gardé dès que tu le notes.
           </div>
         )}
       </div>
@@ -800,12 +840,7 @@ export function SaisieMesures({ initial, derniere, onFermer }: { initial?: Mesur
         </div>
       </div>
 
-      <div className="barre-demarrer">
-        <button className="btn primaire grand" disabled={!Object.keys(valeurs).length} onClick={enregistrer}>
-          Enregistrer
-        </button>
-      </div>
-      {initial && (
+      {!!initial && (
         <button className="btn discret danger plein" style={{ marginBottom: 24 }} onClick={supprimer}>
           Supprimer cette prise
         </button>
