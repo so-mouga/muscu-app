@@ -194,6 +194,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   // Garde-fous : au moins 1 rep, et une confirmation si la charge dépasse de loin la cible (faute de frappe).
   const reference = Math.max(0, ...sugg.charges.map((c) => c ?? 0), ...faites.map((x) => x.charge))
   const chargeSuspecte = (c: number) => (reference > 0 ? c > reference * 1.5 && c - reference >= 20 : c > 300)
+  const repsSuspectes = (r: number) => r > Math.max(p.repsMax * 3, 50)
 
   const enregistrer = async (s: Serie) => {
     if ((s.reps <= 0 || aRegler) && !edition) return
@@ -202,8 +203,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       !(await confirmer(`C’est bien plus que d’habitude (${chargeTexte(exo, reference)}). Faute de frappe ?`, { titre: `Valider ${chargeTexte(exo, s.charge)} ?`, oui: 'Valider quand même', non: 'Corriger' }))
     )
       return
+    if (repsSuspectes(s.reps) && !(await confirmer(`C’est bien plus que prévu (${p.repsMax}). Faute de frappe ?`, { titre: `Valider ${s.reps} ${enTemps(exo) ? 's' : 'reps'} ?`, oui: 'Valider quand même', non: 'Corriger' })))
+      return
     if (!edition) {
-      if (performance.now() - derniereValidation < 1500) return
+      if (performance.now() - derniereValidation < 800) return
       derniereValidation = performance.now()
       if (cleBrouillon) oublierBrouillon(cleBrouillon)
     }
@@ -321,7 +324,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           onChange={(e) => {
             setChargeTxt(e.target.value)
             const v = parseFloat(e.target.value.replace(',', '.'))
-            if (!isNaN(v)) (setCharge(v), setARegler(false))
+            // Négatif : seulement au poids du corps (assistance).
+            if (!isNaN(v)) (setCharge(exo.mode === 'poids_corps' ? v : Math.max(0, v)), setARegler(false))
           }}
           onBlur={() => setChargeTxt(null)}
         />
