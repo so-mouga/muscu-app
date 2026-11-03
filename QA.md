@@ -56,7 +56,7 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - Programme modifié pendant un cycle : la carte « Ton cycle garde l'ancienne version » apparaît tout de suite, reste après la barre du bas ou l'appli fermée (rappel sur l'Accueil) ; « Garder pour le prochain cycle » n'entre jamais dans le cycle, même en acceptant ensuite un autre changement ; l'historique ne change pas.
 - Repères : sur la page Programme, frise du cycle, séance du jour en teinte orange (« auj. »), ✓ vert sur les séances faites cette semaine ; en haut du cycle, séances faites et semaines tenues.
 - Page du cycle : un appui sur une semaine en cours ou à venir propose Normale, Allégée ou En pause, y compris pour annuler et pour une semaine future ; en pause, « Reprendre cette semaine » sur l'Accueil et la page Programme, pas de « Démarrer » ; ⋯ (modifier, terminer) ; « Voir le bilan de ce cycle » ouvre le Bilan sur « Cycle » ; après la fin, « Dernier cycle » reste dans le Bilan et « Relancer sur 6 semaines » sur la page Programme.
-- « Volume par semaine » : une ligne qui donne la réponse, un appui pour les jauges Léger / Optimal / Beaucoup, « Ajuster les cibles ».
+- « Volume par semaine » : une ligne qui donne la réponse, un appui pour les jauges Léger / Optimal / Beaucoup, sur un écran ; un appui sur un muscle ouvre sa cible (« Annuler » ne garde rien) ; « Revenir à mes cibles d'avant » si une ancienne version existe.
 - Supprimer un programme, une séance (au moins un programme reste).
 
 ### 5. Exercices (dans Progrès, plus d'onglet)

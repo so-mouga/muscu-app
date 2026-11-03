@@ -1,4 +1,4 @@
-import { ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs } from './objectifs'
+import { ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
 
 describe('objectifs dans le temps', () => {
   let f = modifier([], '2026-09-01', { phase: 'prise', finPrevue: '2026-11-24' }, { pecs: 16 })
@@ -170,5 +170,20 @@ describe('objectifs propres à chaque phase', () => {
   it('la prise s’appelle « Prise de muscle », « Prise » quand la place manque', () => {
     expect(nomPhase('prise')).toBe('Prise de muscle')
     expect(nomCourtPhase('prise')).toBe('Prise')
+  })
+})
+
+describe('cibles d’avant', () => {
+  const base = { pecs: 10 } as never
+  it('retrouve la dernière version différente, même après un changement le jour même', () => {
+    let f = modifier([], '2026-10-01', { volume: { pecs: 14 } as never }, base)
+    f = modifier(f, '2026-10-20', { phase: 'prise' }, base)
+    f = modifier(f, '2026-11-03', { volume: { pecs: 25 } as never }, base)
+    f = modifier(f, '2026-11-03', { volume: { pecs: 30 } as never }, base)
+    expect(ciblesPrecedentes(f, '2026-11-03')).toEqual({ depuis: '2026-10-20', volume: { pecs: 14 } })
+  })
+  it('rien s’il n’y a qu’une version', () => {
+    expect(ciblesPrecedentes(modifier([], '2026-11-03', { volume: { pecs: 25 } as never }, base), '2026-11-03')).toBeNull()
+    expect(ciblesPrecedentes([], '2026-11-03')).toBeNull()
   })
 })

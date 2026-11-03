@@ -12,10 +12,11 @@ import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
 import { changerSemaine, debutCycle, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { etatVolume } from '../lib/volume'
+import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
+import { ciblesPrecedentes } from '../lib/objectifs'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dateISO, dureeEstimee, dureeTexte, jourSemaine, kg, lundi, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dateCourte, dateISO, dureeEstimee, dureeTexte, jourSemaine, kg, lundi, minutes, reposTexte, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
@@ -533,9 +534,17 @@ function FenetreRenommer({ titre = 'Renommer', nom, indice, videPermis = false, 
   )
 }
 
-/** Ce que le programme donne à chaque muscle : les jauges, et les cibles à ajuster. */
+/** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour ajuster sa cible. */
 function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Programme; onFermer: () => void }) {
   const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
+  const perso = catalogue.ciblesPerso
+  const nbAjustees = MUSCLES.filter((m) => ajustee(m.id, perso[m.id] ?? 0)).length
+  const avant = ciblesPrecedentes(catalogue.objectifs, dateISO())
+  const reprendre = async () => {
+    if (!avant) return
+    const ecarts = MUSCLES.filter((m) => (avant.volume[m.id] ?? 0) !== (perso[m.id] ?? 0)).map((m) => `${m.nom} : ${kg(perso[m.id] ?? 0)} → ${kg(avant.volume[m.id] ?? 0)}`)
+    if (await confirmer(ecarts.join(' · '), { titre: `Reprendre tes cibles du ${dateCourte(avant.depuis)} ?`, oui: 'Reprendre ces cibles' })) void changerObjectifs(catalogue, { volume: avant.volume })
+  }
   return (
     <div>
       <div className="entete">
@@ -544,12 +553,26 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
         </button>
         <h2 style={{ flex: 1 }}>Volume par semaine</h2>
       </div>
-      <div className="faible" style={{ marginBottom: 'var(--e3)' }}>
-        Ce que {p.nom} donne à chaque muscle{p.seances.some((e) => e.jour) ? ' (séances avec un jour)' : ''}, en séries dures : des séries proches de l’échec, à 7/10 d’effort ou plus. La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle.
+      <div className="faible volume-intro">
+        Séries dures par semaine dans {p.nom}, face à la zone utile.{' '}
+        <Aide
+          titre="Volume par semaine"
+          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ou ajuster sa cible.`}
+        />
       </div>
       <div className="carte">
-        <VolumeMuscles volume={volume} cibles={catalogue.cibles} perso={catalogue.ciblesPerso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
+        <VolumeMuscles volume={volume} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
       </div>
+      {avant && (
+        <button className="btn discret plein" onClick={() => void reprendre()}>
+          Revenir à mes cibles d’avant
+        </button>
+      )}
+      {nbAjustees > 0 && (
+        <button className="btn discret plein" onClick={() => void changerObjectifs(catalogue, { volume: ciblesConseillees() })}>
+          Revenir aux zones conseillées ({nbAjustees} ajustée{nbAjustees > 1 ? 's' : ''})
+        </button>
+      )}
     </div>
   )
 }

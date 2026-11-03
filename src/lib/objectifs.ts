@@ -91,6 +91,15 @@ export function modifier(frise: EtapeObjectifs[], date: string, changement: Part
   return tri([...frise.filter((e) => e.depuis !== date).map(apres), etape])
 }
 
+/** Dernière version des cibles, avant celles en vigueur : ce qu'on retrouve si on les a changées par erreur. */
+export function ciblesPrecedentes(frise: EtapeObjectifs[], date: string): { depuis: string; volume: Partial<Record<Muscle, number>> } | null {
+  const enVigueur = objectifsA(frise, date)
+  if (!enVigueur) return null
+  const signature = (v: Partial<Record<Muscle, number>>) => JSON.stringify(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)))
+  const avant = [...tri(frise)].reverse().find((e) => e.depuis < enVigueur.depuis && Object.keys(e.volume).length > 0 && signature(e.volume) !== signature(enVigueur.volume))
+  return avant ? { depuis: avant.depuis, volume: avant.volume } : null
+}
+
 /** Phases d'un seul tenant, de la plus ancienne à la plus récente. */
 export function periodes(frise: EtapeObjectifs[]): PeriodePhase[] {
   const res: PeriodePhase[] = []

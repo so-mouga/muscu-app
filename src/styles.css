@@ -5358,3 +5358,38 @@ button.semaine-cycle.courante {
 .depliable-chevron.ouvert {
   transform: rotate(90deg);
 }
+
+/* Volume par semaine : sur un écran, un appui par muscle */
+.volume-intro {
+  margin-bottom: var(--e2);
+}
+.ligne-volume {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  width: 100%;
+  padding: 3px 0;
+  background: none;
+  text-align: left;
+}
+.ligne-volume-corps {
+  flex: 1;
+  min-width: 0;
+  display: block;
+}
+.ligne-volume-corps .ligne {
+  display: flex;
+}
+.ligne-volume-corps .jauge {
+  display: block;
+}
+.volume-suivis summary {
+  min-height: var(--cible);
+  display: flex;
+  align-items: center;
+  list-style: none;
+  cursor: pointer;
+}
+.volume-suivis summary::-webkit-details-marker {
+  display: none;
+}
