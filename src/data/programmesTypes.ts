@@ -21,38 +21,52 @@ const s = (n: number, repsMin: number, repsMax: number, rpe = 8): SeriePlan[] =>
 const exo = (exoId: string, repos: number, series: SeriePlan[]): ExoPlan => ({ exoId, repos, series, charge: null, chauffes: [], finisseur: false })
 const seance = (id: string, nom: string, sousTitre: string, jour: number, exercices: ExoPlan[]): SeanceModele => ({ id, nom, sousTitre, jour, exercices })
 
+const FB_A = seance('fb_a', 'Full body A', 'presse, développé couché', 1, [
+  exo('presse', 150, s(3, 10, 12, 7)),
+  exo('dev_couche_halteres', 150, s(3, 8, 12, 7)),
+  exo('tirage_large', 150, s(3, 10, 12, 7)),
+  exo('elevation_laterale_halteres', 90, s(3, 12, 15)),
+  exo('curl_jambe_assis', 90, s(3, 10, 15)),
+  exo('extension_corde', 90, s(2, 10, 15)),
+])
+const FB_B = seance('fb_b', 'Full body B', 'soulevé de terre roumain, incliné', 3, [
+  exo('rdl_halteres', 150, s(3, 8, 12, 7)),
+  exo('incline_machine', 150, s(3, 8, 12, 7)),
+  exo('rowing_machine', 150, s(3, 10, 12, 7)),
+  exo('extension_jambes', 90, s(4, 10, 15)),
+  exo('elevation_poulie', 90, s(3, 12, 15)),
+  exo('curl_halteres', 90, s(3, 10, 12)),
+])
+const FB_C = seance('fb_c', 'Full body C', 'goblet squat, rowing', 5, [
+  exo('goblet_squat', 150, s(3, 10, 12, 7)),
+  exo('dev_couche_machine', 150, s(4, 8, 12, 7)),
+  exo('tirage_horizontal', 150, s(4, 10, 12, 7)),
+  exo('curl_jambe_assis', 90, s(2, 10, 15)),
+  exo('elevation_machine', 90, s(2, 12, 15)),
+  exo('face_pull', 90, s(2, 12, 15)),
+  exo('mollets_machine', 90, s(3, 10, 15)),
+])
+
 export const PROGRAMMES_TYPES: ProgrammeType[] = [
+  {
+    id: 'full_body_2',
+    nom: 'Full body 2 jours',
+    pour: '2 séances par semaine',
+    description: 'Tout le corps à chaque séance, surtout des machines et des haltères. Les deux séances couvrent tous les muscles suivis.',
+    seances: [
+      { ...FB_B, id: 'fb2_a', nom: 'Full body A', jour: 1 },
+      { ...FB_C, id: 'fb2_b', nom: 'Full body B', jour: 4 },
+    ],
+  },
   {
     id: 'full_body_3',
     nom: 'Full body 3 jours',
     pour: 'Débutant · 3 séances par semaine',
     description: 'Tout le corps à chaque séance, surtout des machines et des haltères : simple à apprendre, idéal pour démarrer ou reprendre.',
     seances: [
-      seance('fb_a', 'Full body A', 'presse, développé couché', 1, [
-        exo('presse', 150, s(3, 10, 12, 7)),
-        exo('dev_couche_halteres', 150, s(3, 8, 12, 7)),
-        exo('tirage_large', 150, s(3, 10, 12, 7)),
-        exo('elevation_laterale_halteres', 90, s(3, 12, 15)),
-        exo('curl_jambe_assis', 90, s(3, 10, 15)),
-        exo('extension_corde', 90, s(2, 10, 15)),
-      ]),
-      seance('fb_b', 'Full body B', 'soulevé de terre roumain, incliné', 3, [
-        exo('rdl_halteres', 150, s(3, 8, 12, 7)),
-        exo('incline_machine', 150, s(3, 8, 12, 7)),
-        exo('rowing_machine', 150, s(3, 10, 12, 7)),
-        exo('extension_jambes', 90, s(4, 10, 15)),
-        exo('elevation_poulie', 90, s(3, 12, 15)),
-        exo('curl_halteres', 90, s(3, 10, 12)),
-      ]),
-      seance('fb_c', 'Full body C', 'goblet squat, rowing', 5, [
-        exo('goblet_squat', 150, s(3, 10, 12, 7)),
-        exo('dev_couche_machine', 150, s(4, 8, 12, 7)),
-        exo('tirage_horizontal', 150, s(4, 10, 12, 7)),
-        exo('curl_jambe_assis', 90, s(2, 10, 15)),
-        exo('elevation_machine', 90, s(2, 12, 15)),
-        exo('face_pull', 90, s(2, 12, 15)),
-        exo('mollets_machine', 90, s(3, 10, 15)),
-      ]),
+      FB_A,
+      FB_B,
+      FB_C,
     ],
   },
   {

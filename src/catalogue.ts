@@ -122,11 +122,13 @@ export function useCatalogue(): Catalogue | null {
 /**
  * Choisit un programme tout prêt : ses séances sont copiées chez l'utilisateur (modifiables), le
  * programme est ajouté et devient le programme actif (sauf pendant un cycle). Recompo pointe vers les
- * séances de base.
+ * séances de base. `jours` : un jour pour chaque séance à jour fixe, dans l'ordre du programme ; sinon ceux du programme.
  */
-export async function installerProgramme(t: ProgrammeType, c: Catalogue): Promise<Programme> {
+export async function installerProgramme(t: ProgrammeType, c: Catalogue, jours?: number[]): Promise<Programme> {
   const suffixe = uid().slice(-5)
-  const seances = t.deBase ? t.seances : t.seances.map((m) => ({ ...structuredClone(m), id: `${m.id}_${suffixe}` }))
+  const aJour = t.seances.filter((m) => m.jour).sort((a, b) => a.jour! - b.jour!)
+  const jourDe = (m: SeanceModele) => (jours && m.jour ? jours[aJour.indexOf(m)] : m.jour)
+  const seances = t.seances.map((m) => ({ ...(t.deBase ? m : structuredClone(m)), id: t.deBase ? m.id : `${m.id}_${suffixe}`, jour: jourDe(m) }))
   const p: Programme = t.deBase
     ? (c.programmes.find((x) => x.id === ID_PROGRAMME_DEFAUT) ?? { id: ID_PROGRAMME_DEFAUT, nom: t.nom, description: t.pour, seances: seances.map((m) => ({ modeleId: m.id, jour: m.jour })) })
     : { id: 'p_' + uid(), nom: t.nom, description: t.pour, seances: seances.map((m) => ({ modeleId: m.id, jour: m.jour })) }
