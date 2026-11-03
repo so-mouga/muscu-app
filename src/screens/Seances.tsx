@@ -279,7 +279,7 @@ function PageProgramme({
   // Les repères de la semaine : ce qui est fait, et ce qui tombe aujourd'hui.
   const enPause = !!etat?.pause && !etat.fini
   const ceLundi = lundi()
-  const deLaSemaine = enService && !enPause ? (terminees ?? []).filter((s) => s.date >= ceLundi && !s.deload).map((s) => s.modeleId) : []
+  const deLaSemaine = enService && !enPause ? (terminees ?? []).filter((s) => s.date >= ceLundi).map((s) => s.modeleId) : []
   const faiteCetteSemaine = (modeleId: string) => {
     const i = deLaSemaine.indexOf(modeleId)
     if (i < 0) return false
