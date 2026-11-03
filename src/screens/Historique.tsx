@@ -108,13 +108,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
       </div>
     </>
   )
-  if (vue === 'bilan')
-    return (
-      <div>
-        {haut}
-        <Bilan catalogue={catalogue} onExo={onExo} onCorps={onCorps} />
-      </div>
-    )
+  if (vue === 'bilan') return <Bilan catalogue={catalogue} haut={haut} onExo={onExo} onCorps={onCorps} />
 
   return (
     <div>

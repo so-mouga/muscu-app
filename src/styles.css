@@ -4727,3 +4727,138 @@ html[data-sens='fondu']::view-transition-new(root) {
   border-radius: var(--e2);
   object-fit: cover;
 }
+
+/* Bilan */
+.bilan-periodes {
+  display: flex;
+  gap: var(--e1);
+  margin-bottom: var(--e1);
+}
+.bilan-periodes button {
+  flex: 1;
+  min-height: 36px;
+  border: none;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+}
+.bilan-periodes button.actif {
+  background: var(--voile-fort);
+  color: var(--texte);
+  font-weight: 600;
+}
+.bilan-periode {
+  margin: 0 0 var(--e3);
+  font-size: var(--t-legende);
+}
+.bilan-carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.bilan-carte h3 {
+  margin: 0;
+  font-size: var(--t-texte);
+  font-weight: 700;
+}
+.bilan-carte h3.avec-aide {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+}
+.bilan-carte p {
+  margin: 0;
+}
+.petit-texte {
+  font-size: var(--t-legende);
+}
+.bilan-retenir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte);
+  font-size: var(--t-petit);
+  text-align: left;
+}
+.bilan-intertitre {
+  margin-top: var(--e1);
+  color: var(--texte-2);
+  font-size: var(--t-legende);
+}
+.bilan-exo,
+.bilan-tous {
+  width: 100%;
+  min-height: var(--cible);
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte);
+  font-size: var(--t-petit);
+  text-align: left;
+}
+.bilan-exo:disabled {
+  opacity: 1;
+}
+.bilan-exo-texte {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.bilan-exo-texte .faible {
+  font-size: var(--t-legende);
+}
+.bilan-exo strong {
+  white-space: nowrap;
+}
+.bilan-tous {
+  justify-content: space-between;
+  font-weight: 600;
+}
+.tenue {
+  color: var(--ok);
+}
+.bilan-regularite {
+  font-size: var(--t-petit);
+}
+.bilan-jauge {
+  font-size: var(--t-petit);
+}
+.bilan-forme {
+  min-height: 28px;
+  flex-wrap: nowrap;
+  font-size: var(--t-petit);
+}
+.bilan-lien {
+  width: 100%;
+  min-height: var(--cible);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte);
+  text-align: left;
+}
+.bilan-lien > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+}
+.bilan-partager {
+  display: block;
+  width: 100%;
+  min-height: var(--cible);
+  margin-bottom: var(--e4);
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+}

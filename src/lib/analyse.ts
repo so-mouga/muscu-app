@@ -267,6 +267,34 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
   return r.slice(0, 5).length ? r.slice(0, 5) : ['Rien à signaler : continue comme ça.']
 }
 
+/** Une ligne d'« À retenir » à l'écran : elle peut mener à un exercice ou à la liste des blocages. */
+export interface LigneEssentielle {
+  texte: string
+  exoId?: string
+  blocages?: boolean
+}
+
+/**
+ * Ce qu'il faut retenir à l'écran, 3 lignes au plus, par ordre d'importance : douleurs, lecture de la
+ * phase, sommeil court, régularité en baisse, blocages (résumés), fatigue. Les muscles, les records et la
+ * bonne régularité ont leur carte dans le Bilan. Le texte partagé garde tout (`aRetenir`).
+ */
+export function essentiel(a: Analyse, avant: Analyse | null, phase?: Phase, depuisPhase?: Analyse): LigneEssentielle[] {
+  if (a.seances < 2) return []
+  const r: LigneEssentielle[] = a.douleurs.slice(0, 2).map((d) => ({ texte: `Douleur signalée sur ${d.exo.nom}${d.n > 1 ? ` (${d.n} séances)` : ''} : adapte la charge ou remplace l’exercice si ça persiste.`, exoId: d.exo.id }))
+  if (phase) for (const texte of lecturePhase(depuisPhase ?? a, phase)) r.push({ texte })
+  if (a.sommeil && a.sommeil.nuits >= 3 && a.sommeil.moyenne < 6.5) r.push({ texte: `Sommeil moyen ${heuresMinutes(a.sommeil.moyenne)} sur ${a.sommeil.nuits} nuits : sous 6 h 30, la récupération et les perfs en pâtissent.` })
+  if (a.prevues && a.faites < a.prevues * 0.75) r.push({ texte: `${a.faites} séances sur ${a.prevues} prévues : mieux vaut chaque semaine que des semaines chargées.` })
+  const bloques = a.stagnations
+  if (bloques.length === 1) r.push({ texte: `${bloques[0].exo.nom} : pas de progrès depuis ${bloques[0].semaines} semaines.${bloques[0].pistes.length ? ` Piste : ${bloques[0].pistes[0]}.` : ''}`, exoId: bloques[0].exo.id })
+  else if (bloques.length > 1) {
+    const commune = bloques[0].pistes.find((p) => bloques.every((s) => s.pistes.includes(p)))
+    r.push({ texte: `${bloques.length} exercices sans progrès.${commune ? ` Piste commune : ${commune}.` : ''}`, blocages: true })
+  }
+  if (avant && a.rpe !== null && avant.rpe !== null && a.energie !== null && avant.energie !== null && a.rpe >= avant.rpe + 0.5 && a.energie <= avant.energie - 0.5) r.push({ texte: 'Effort en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense au déload.' })
+  return r.slice(0, 3)
+}
+
 /**
  * Ce que disent les perfs et le poids selon la phase (règles simples, sans IA). Force = moyenne des
  * progressions de la période ; vitesse du poids en % par semaine entre la 1re et la dernière semaine pesées.
@@ -277,7 +305,7 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
   const p = a.poids && a.poids.semaines >= 2 ? a.poids : null
   const parSemaine = p ? (p.fin - p.debut) / p.semaines : null
   const pctSemaine = p && parSemaine !== null ? (parSemaine / p.debut) * 100 : null
-  const kgSem = (x: number) => `${x > 0 ? '+' : '−'}${kg(Math.abs(arrondi(x, 2)))} kg par semaine`
+  const kgSem = (x: number) => (arrondi(x, 2) === 0 ? 'stable' : `${x > 0 ? '+' : '−'}${kg(Math.abs(arrondi(x, 2)))} kg par semaine`)
   const forceTxt = force !== null ? `${force > 0 ? '+' : '−'}${kg(Math.abs(arrondi(force)))} %` : ''
 
   // Calories notées : tenues souvent (≥ 70 % de 4 jours ou plus) → c'est l'objectif qu'il faut revoir, sinon c'est l'écart.

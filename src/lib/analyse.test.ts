@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, aRetenir, lecturePhase, libelleMesure, type Analyse } from './analyse'
+import { analyser, aRetenir, essentiel, lecturePhase, libelleMesure, type Analyse } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -180,5 +180,15 @@ describe('force du Bilan mesurée comme les blocages', () => {
     const msg = aRetenir(a, null, cibles()).find((t) => t.startsWith('Sommeil'))
     expect(msg).toMatch(/sous 6 h 30/)
     expect(msg).not.toMatch(/7 h/)
+  })
+
+  it('À retenir à l’écran : 3 lignes au plus, la douleur d’abord, les blocages résumés en une ligne', () => {
+    const exo = (id: string) => ({ id, nom: id }) as never
+    const base = analyser(donnees(seances), '2026-10-05', '2026-10-18')
+    const a = { ...base, seances: 8, prevues: null, faites: 8, sommeil: null, douleurs: [{ exo: exo('smith'), date: '2026-10-18', n: 2 }], stagnations: [{ exo: exo('butterfly'), semaines: 5, seances: 4, pistes: ['pas de déload depuis 9 semaines'] }, { exo: exo('face'), semaines: 4, seances: 3, pistes: ['pas de déload depuis 9 semaines', 'séries très dures'] }] }
+    const l = essentiel(a, null)
+    expect(l.length).toBeLessThanOrEqual(3)
+    expect(l[0]).toMatchObject({ exoId: 'smith' })
+    expect(l.find((x) => x.blocages)?.texte).toBe('2 exercices sans progrès. Piste commune : pas de déload depuis 9 semaines.')
   })
 })
