@@ -1,4 +1,4 @@
-import { paireDepart, poseCommune } from './photos'
+import { paireDepart, poseCommune, posesCommunes } from './photos'
 
 describe('photos à comparer', () => {
   it('la première photo de la phase face à la dernière', () => {
@@ -15,5 +15,9 @@ describe('photos à comparer', () => {
     expect(poseCommune(['face', 'dos'], ['dos'])).toBe('dos')
     expect(poseCommune(['profil', 'face'], ['face', 'profil'])).toBe('face')
     expect(poseCommune(['face'], ['dos'])).toBeUndefined()
+  })
+  it('les poses à proposer sont seulement celles des deux dates, dans l’ordre', () => {
+    expect(posesCommunes(['dos', 'face', 'profil'], ['profil', 'dos'])).toEqual(['profil', 'dos'])
+    expect(posesCommunes(['face'], ['dos'])).toEqual([])
   })
 })

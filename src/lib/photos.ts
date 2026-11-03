@@ -2,8 +2,9 @@ import type { Pose } from '../types'
 
 const ORDRE: Pose[] = ['face', 'profil', 'dos']
 
-/** Pose présente aux deux dates (face d'abord) : on ne compare jamais une photo de face à une de dos. */
-export const poseCommune = (a: Pose[], b: Pose[]) => ORDRE.find((p) => a.includes(p) && b.includes(p))
+/** Poses présentes aux deux dates (face d'abord) : on ne compare jamais une photo de face à une de dos. */
+export const posesCommunes = (a: Pose[], b: Pose[]) => ORDRE.filter((p) => a.includes(p) && b.includes(p))
+export const poseCommune = (a: Pose[], b: Pose[]): Pose | undefined => posesCommunes(a, b)[0]
 
 /**
  * Deux dates à comparer d'office (dates de la plus ancienne à la plus récente) : la première depuis le

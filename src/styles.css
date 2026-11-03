@@ -1945,6 +1945,53 @@ body:has(.focus) {
   background: var(--noir);
   color: var(--blanc);
 }
+.comparaison-photo {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+}
+.comparaison-date {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: var(--cible);
+  padding: 4px 6px;
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+  font-size: var(--t-legende);
+  white-space: nowrap;
+}
+.comparaison-date > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.25;
+}
+.comparaison-date strong {
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.comparaison-date select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.comparaison-plein-superpose {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .comparaison-plein-photos {
   flex: 1;
   min-height: 0;
