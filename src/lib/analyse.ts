@@ -108,22 +108,21 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
       } else {
         const mAvant = ev.avant.serie
         const mApres = ev.apres.serie
-        if (ev.apres.score > ev.avant.score) {
-          const pct =
-            mAvant.charge > 0 && mApres.charge !== mAvant.charge
-              ? (((exo.assistance ? -1 : 1) * (mApres.charge - mAvant.charge)) / mAvant.charge) * 100
-              : mAvant.reps > 0
-                ? ((mApres.reps - mAvant.reps) / mAvant.reps) * 100
-                : 0
-          if (pct > 0)
-            progressions.push({
-              exo,
-              avant: mAvant.charge || mAvant.reps,
-              apres: mApres.charge || mApres.reps,
-              pct,
-              detail: `${chargeQte(exo, mAvant.charge, mAvant.reps)} → ${chargeQte(exo, mApres.charge, mApres.reps)}`,
-            })
-        }
+        const pct =
+          mAvant.charge > 0 && mApres.charge !== mAvant.charge
+            ? (((exo.assistance ? -1 : 1) * (mApres.charge - mAvant.charge)) / mAvant.charge) * 100
+            : mAvant.reps > 0
+              ? ((mApres.reps - mAvant.reps) / mAvant.reps) * 100
+              : 0
+        // Les baisses comptent comme les hausses. Sens contraire (lest ajouté mais moins de reps) : pas de chiffre sûr à donner.
+        if (Math.sign(pct) === Math.sign(ev.apres.score - ev.avant.score))
+          progressions.push({
+            exo,
+            avant: mAvant.charge || mAvant.reps,
+            apres: mApres.charge || mApres.reps,
+            pct,
+            detail: `${chargeQte(exo, mAvant.charge, mAvant.reps)} → ${chargeQte(exo, mApres.charge, mApres.reps)}`,
+          })
       }
     }
     const b = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase }, fin)
@@ -306,7 +305,8 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
   const parSemaine = p ? (p.fin - p.debut) / p.semaines : null
   const pctSemaine = p && parSemaine !== null ? (parSemaine / p.debut) * 100 : null
   const kgSem = (x: number) => (arrondi(x, 2) === 0 ? 'stable' : `${x > 0 ? '+' : '−'}${kg(Math.abs(arrondi(x, 2)))} kg par semaine`)
-  const forceTxt = force !== null ? `${force > 0 ? '+' : '−'}${kg(Math.abs(arrondi(force)))} %` : ''
+  const forceArrondie = force === null ? 0 : arrondi(force)
+  const forceTxt = force !== null ? `${forceArrondie > 0 ? '+' : forceArrondie < 0 ? '−' : '±'}${kg(Math.abs(forceArrondie))} %` : ''
 
   // Calories notées : tenues souvent (≥ 70 % de 4 jours ou plus) → c'est l'objectif qu'il faut revoir, sinon c'est l'écart.
   const c = a.calories ?? { ok: 0, trop: 0, pasAssez: 0 }

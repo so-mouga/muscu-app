@@ -192,3 +192,29 @@ describe('force du Bilan mesurée comme les blocages', () => {
     expect(l.find((x) => x.blocages)?.texte).toBe('2 exercices sans progrès. Piste commune : pas de déload depuis 9 semaines.')
   })
 })
+
+describe('force du Bilan : les exercices d’isolation comptent aussi', () => {
+  const avec = (id: string, date: string, parExo: Record<string, number>) =>
+    seance(id, date, [], { series: Object.entries(parExo).map(([exoId, charge], i) => ({ id: id + i, exoId, type: 'normale', charge, reps: 10, rpe: 8, heure: 0 })) } as Partial<Seance>)
+  const stables = { smith_incline: 50, tirage_large: 60 }
+  const l = [
+    avec('a', '2026-10-05', { ...stables, butterfly: 30, curl_jambe_assis: 40 }),
+    avec('b', '2026-10-12', { ...stables, butterfly: 30, curl_jambe_assis: 40 }),
+    avec('c', '2026-10-19', { ...stables, butterfly: 21, curl_jambe_assis: 28 }),
+    avec('d', '2026-10-26', { ...stables, butterfly: 21, curl_jambe_assis: 28 }),
+  ]
+
+  it('une isolation qui baisse entre dans la moyenne : (0 + 0 − 30 − 30) / 4 = −15 %', () => {
+    const a = analyser(donnees(l), '2026-10-05', '2026-11-01')
+    expect(a.progressions.map((p) => Math.round(p.pct))).toEqual([0, 0, -30, -30])
+    expect(lecturePhase({ ...a, poids: null }, 'seche')[0]).toContain('tes charges baissent (−15 % en moyenne)')
+  })
+
+  it('une force qui ne bouge pas s’écrit ±0 %, pas −0 %', () => {
+    const plat = [avec('a', '2026-10-05', stables), avec('b', '2026-10-12', stables)]
+    const a = analyser(donnees(plat), '2026-10-05', '2026-11-01')
+    const lignes = lecturePhase({ ...a, seances: 4, poids: { debut: 80, fin: 80.1, semaines: 3 } }, 'prise')
+    expect(lignes.join(' ')).toContain('(±0 %)')
+    expect(lignes.join(' ')).not.toContain('−0')
+  })
+})
