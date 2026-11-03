@@ -31,6 +31,7 @@ import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 import Echauffement, { echauffementActif } from '../components/Echauffement'
+import { dureeEchauffement } from '../data/echauffements'
 import Deplie from '../components/Deplie'
 
 function stocke<T>(cle: string, defaut: T): T {
@@ -485,12 +486,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const avancement = totalSeries ? seriesFaites / totalSeries : 0
   const restantes = totalSeries - seriesFaites
   const exosRestants = plans.filter((p, i) => nbFaites(p.exoId) < totalDe(i)).length
-  // Temps restant : ~1 min par série et le repos qui la suit.
+  // Temps restant : l'échauffement qui reste, ~1 min par série et le repos qui la suit (rien après la toute dernière).
+  const derniereAFaire = plans.reduce((d, p, i) => (nbFaites(p.exoId) < totalDe(i) ? i : d), -1)
   const resteSec = plans.reduce((a, p, i) => {
     const t = totalDe(i)
-    for (let k = nbFaites(p.exoId); k < t; k++) a += 60 + reposApres(p, k, t)
+    for (let k = nbFaites(p.exoId); k < t; k++) a += 60 + (i === derniereAFaire && k === t - 1 ? 0 : reposApres(p, k, t))
     return a
-  }, 0)
+  }, echauffementActif(seance) ? dureeEchauffement(seance.echauffement!.ids.filter((id) => !seance.echauffement!.faits.includes(id))) : 0)
 
   const ensuite = enCours >= 0 ? `${exos[enCours]?.nom} · série ${nbFaites(plans[enCours].exoId) + 1}/${totalDe(enCours)}` : 'Fin de séance'
   ensuiteRef.current = ensuite
@@ -1505,7 +1507,7 @@ function FinSeance({
             on={garder}
             onChange={setGarder}
             label="Enregistrer comme séance réutilisable"
-            aide="Tu pourras la relancer ou l’ajouter à un programme depuis l’onglet Programmes."
+            aide="Tu pourras la relancer ou l’ajouter à un programme depuis la page Programme."
           />
           {garder && <input placeholder="Nom de la séance" value={nomModele} onChange={(e) => setNomModele(e.target.value)} />}
         </div>

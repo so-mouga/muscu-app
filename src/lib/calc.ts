@@ -1,3 +1,4 @@
+import { dureeEchauffement, echauffementDe } from '../data/echauffements'
 import { EXERCICES, MUSCLES } from '../data/exercices'
 import type { Exercice, ExoPlan, Muscle, Programme, Seance, SeanceModele, Serie } from '../types'
 
@@ -201,8 +202,9 @@ export function dureePrevueExo(plans: ExoPlan[], i: number): number {
 }
 
 export function dureeEstimee(m: SeanceModele): number {
-  const s = m.exercices.reduce((a, _, i) => a + dureePrevueExo(m.exercices, i), 0)
-  return Math.round(s / 300) * 5
+  if (!m.exercices.length) return 0
+  const s = m.exercices.reduce((a, _, i) => a + dureePrevueExo(m.exercices, i), dureeEchauffement(echauffementDe(m)))
+  return Math.max(5, Math.round(s / 300) * 5)
 }
 
 /** Durée effective d'une séance : de la 1re à la dernière série si possible, sinon fin - début ; toujours plafonnée à 4 h (séance oubliée ouverte). */

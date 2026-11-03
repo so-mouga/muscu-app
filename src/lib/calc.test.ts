@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance, Serie } from '../types'
-import { calories, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import { calories, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -114,6 +114,13 @@ describe('durée habituelle et calories', () => {
   it('médiane des 3 dernières séances du même modèle', () => {
     expect(dureeHabituelle('a', [s(1, 50), s(2, 70), s(3, 62), s(4, 120, 'b'), s(0, 300)])).toBe(60)
     expect(dureeHabituelle('z', [s(1, 50)])).toBeNull()
+  })
+  it('durée prévue : jamais 0 min, échauffement compris', () => {
+    const plan = { exoId: 'presse', repos: 120, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }], chauffes: [], finisseur: false, charge: null }
+    expect(dureeEstimee({ id: 'a', nom: 'A', sousTitre: '', exercices: [plan] })).toBe(5)
+    expect(dureeEstimee({ id: 'a', nom: 'A', sousTitre: '', exercices: [] })).toBe(0)
+    const longue = { id: 'a', nom: 'A', sousTitre: '', exercices: Array.from({ length: 4 }, () => ({ ...plan, series: [...plan.series, ...plan.series, ...plan.series] })) }
+    expect(dureeEstimee({ ...longue, echauffement: ['cardio', 'jumping', 'moulinets', 'balances_jambes', 'chevilles', 'hanches_9090'] })).toBeGreaterThan(dureeEstimee(longue))
   })
   it('une séance au plafond de 4 h ne compte pas dans la durée habituelle', () => {
     expect(dureeHabituelle('a', [s(1, 300)])).toBeNull()
