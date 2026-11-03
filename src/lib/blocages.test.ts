@@ -108,6 +108,14 @@ describe('blocage', () => {
     ]
     const l = [...avant, ...apres].map((x) => seance(x, [['smith_incline', 52.5, 8, 8]]))
     expect(blocage(smith, l, '2026-11-02', frise)).toBeNull()
+    // 8 semaines stables avant la sèche, puis la sèche : au 1er matin d'après, aucune séance encore, le compte d'avant ne revient pas.
+    const avantSeche = semaines(8, '2026-07-13').map((x) => seance(x, [['smith_incline', 52.5, 8, 8]]))
+    const frise2 = [
+      { depuis: '2026-07-13', phase: 'prise' as const, volume: {} },
+      { depuis: '2026-09-07', phase: 'seche' as const, volume: {} },
+      { depuis: '2026-11-02', phase: 'maintien' as const, volume: {} },
+    ]
+    expect(blocage(smith, [...avantSeche, ...avant.map((x) => seance(x, [['smith_incline', 52.5, 8, 8]]))], '2026-11-02', frise2)).toBeNull()
     expect(blocage(smith, l, finDe(apres), frise)).toBeNull()
     expect(blocage(smith, l, finDe(apres))).not.toBeNull()
   })

@@ -90,6 +90,8 @@ export function blocage(exo: Exercice, seances: Seance[], jusqua: string, object
     }
     repartir = false
   }
+  // Dernières séances en sèche : le compte d'avant la sèche ne vaut plus.
+  if (repartir) return null
   // À la charge maximale du matériel, ce n'est pas un blocage : l'appli conseille déjà de ralentir la descente.
   if (exo.chargeMax !== undefined && plusDur >= durete(exo.chargeMax)) return null
   return semaines.size >= SEMAINES_BLOCAGE && nb >= 3 && jours(precedente, jusqua) <= 14 ? { semaines: semaines.size, seances: nb, depuis } : null
