@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { aujourdhui, ecrire, lireTable, onglet, ouvrirReglages, ouvrirSeanceDuJour, premierProgramme, seance, suivreErreurs } from './outils'
+import { aujourdhui, ecrire, lireTable, onglet, ouvrirReglages, ouvrirSauvegarde, ouvrirSeanceDuJour, premierProgramme, seance, suivreErreurs } from './outils'
 
 /**
  * Parcours qui feraient perdre des données s'ils cassaient : faire une séance, l'enregistrer et la
@@ -71,9 +71,8 @@ test('exporter puis importer dans une appli vide : tout revient à l’identique
   const avant = { seances: await lireTable(p, 'seances'), pesees: await lireTable(p, 'pesees'), journal: await lireTable(p, 'journal'), programmes: await lireTable(p, 'programmes') }
 
   await ouvrirReglages(p)
-  await p.getByRole('button', { name: 'Exporter…' }).click()
   const telechargement = p.waitForEvent('download')
-  await p.getByRole('button', { name: 'EXPORTER', exact: true }).click()
+  await p.getByRole('button', { name: 'Sauvegarder', exact: true }).click()
   const fichier = await (await telechargement).path()
 
   // Une autre appli, vide (autre contexte = autre stockage).
@@ -83,7 +82,7 @@ test('exporter puis importer dans une appli vide : tout revient à l’identique
   await q.goto('/')
   // Appli vide : les questions d'abord ; la croix mène à l'accueil, puis aux Réglages pour importer.
   await q.getByRole('button', { name: 'Quitter' }).click()
-  await ouvrirReglages(q)
+  await ouvrirSauvegarde(q)
   await q.locator('input[type=file]').setInputFiles(fichier)
   await q.getByRole('button', { name: 'Récupérer', exact: true }).click()
   await expect(q.getByText('Sauvegarde récupérée ✓')).toBeVisible()
@@ -107,9 +106,8 @@ test('récupérer une sauvegarde : « Compléter » ne change rien de ce qui exi
   await ecrire(p, 'seances', [seance('s1', jour, [{ charge: 50, reps: 10, rpe: 8 }])])
   await p.reload()
   await ouvrirReglages(p)
-  await p.getByRole('button', { name: 'Exporter…' }).click()
   const telechargement = p.waitForEvent('download')
-  await p.getByRole('button', { name: 'EXPORTER', exact: true }).click()
+  await p.getByRole('button', { name: 'Sauvegarder', exact: true }).click()
   const fichier = await (await telechargement).path()
 
   // Après cet export : une pesée corrigée, et une séance de plus.
@@ -117,6 +115,7 @@ test('récupérer une sauvegarde : « Compléter » ne change rien de ce qui exi
   await ecrire(p, 'seances', [seance('s2', jour, [{ charge: 55, reps: 8, rpe: 8 }])])
 
   // Compléter avec ce vieux fichier : rien à ajouter, et rien n'a bougé.
+  await p.getByRole('button', { name: 'Récupérer, photos, tableur' }).click()
   await p.locator('input[type=file]').setInputFiles(fichier)
   await expect(p.getByText('rien à ajouter')).toBeVisible()
   await expect(p.getByRole('button', { name: 'Compléter', exact: true }).last()).toBeDisabled()

@@ -6,15 +6,6 @@ import type { Seance } from '../types'
 
 export type Categorie = 'programmes' | 'historique' | 'exercices' | 'corps' | 'photos' | 'reglages'
 
-export const CATEGORIES: { id: Categorie; nom: string; detail: string }[] = [
-  { id: 'programmes', nom: 'Programmes et séances', detail: 'tes programmes, tes cycles et les séances que tu as créées ou modifiées' },
-  { id: 'historique', nom: 'Historique', detail: 'les séances faites, série par série, les objectifs et les autres activités' },
-  { id: 'exercices', nom: 'Exercices perso', detail: 'les exercices que tu as créés, avec leurs photos' },
-  { id: 'corps', nom: 'Corps et journal', detail: 'pesées, mensurations, sommeil et calories du jour' },
-  { id: 'photos', nom: 'Photos de progression', detail: 'lourd : à sauvegarder à part, de temps en temps' },
-  { id: 'reglages', nom: 'Réglages et objectifs', detail: 'phases (sèche, prise…) et volume par muscle datés, pas de charge, bips, équivalents, programme actif…' },
-]
-
 type NomTable = 'seances' | 'activites' | 'cycles' | 'pesees' | 'mesures' | 'journal' | 'reglages' | 'modeles' | 'exercices' | 'programmes' | 'photos'
 
 const TABLES: Record<Categorie, NomTable[]> = {
@@ -26,18 +17,9 @@ const TABLES: Record<Categorie, NomTable[]> = {
   reglages: ['reglages'],
 }
 
-const table = (n: NomTable) => db[n] as unknown as Table<unknown, string>
+export const CATEGORIES = Object.keys(TABLES) as Categorie[]
 
-/** Nombre d'éléments par catégorie sur ce téléphone. */
-export async function compter(): Promise<Record<Categorie, number>> {
-  const r = {} as Record<Categorie, number>
-  for (const c of CATEGORIES) {
-    let n = 0
-    for (const t of TABLES[c.id]) n += await table(t).count()
-    r[c.id] = n
-  }
-  return r
-}
+const table = (n: NomTable) => db[n] as unknown as Table<unknown, string>
 
 /** Fichier d'export des catégories choisies. Les exercices perso suivent toujours les programmes et
  * l'historique, sinon leurs séances afficheraient des exercices inconnus après import. */
@@ -81,15 +63,16 @@ export async function partagerOuTelecharger(nom: string, contenu: string, type: 
   telecharger(nom, contenu, type)
 }
 
-/** Exporte puis partage les catégories choisies ; le rappel de l'Accueil ne se calme que si l'historique est sauvegardé. */
+/** Exporte puis partage les catégories choisies ; le rappel de l'Accueil ne se calme que si l'historique est sauvegardé, et les photos ont leur propre date. */
 export async function sauvegarder(cats: Categorie[]) {
   const jour = new Date().toISOString().slice(0, 10)
-  await partagerOuTelecharger(`muscu-${jour}${cats.length === 1 ? '-' + cats[0] : ''}.json`, await exporter(cats), 'application/json')
+  await partagerOuTelecharger(`cran-${jour}${cats.length === 1 ? '-' + cats[0] : ''}.json`, await exporter(cats), 'application/json')
   if (cats.includes('historique')) await setReglage('dernierExport', Date.now())
+  if (cats.includes('photos')) await setReglage('dernierExportPhotos', Date.now())
 }
 
 /** Tout sauf les photos, trop lourdes pour une sauvegarde régulière. */
-export const CATEGORIES_COURANTES = CATEGORIES.filter((c) => c.id !== 'photos').map((c) => c.id)
+export const CATEGORIES_COURANTES = CATEGORIES.filter((c) => c !== 'photos')
 
 export interface Fichier {
   data: Record<string, unknown[]>
@@ -102,7 +85,7 @@ export interface Fichier {
 const CLES: Record<NomTable, string> = { seances: 'id', activites: 'id', cycles: 'id', pesees: 'date', mesures: 'date', journal: 'date', reglages: 'cle', modeles: 'id', exercices: 'id', programmes: 'id', photos: 'id' }
 
 /** Réglages présents même dans une appli vide : ils ne font pas une sauvegarde. */
-const REGLAGES_SANS_DONNEES = ['demarrage', 'dernierExport']
+const REGLAGES_SANS_DONNEES = ['demarrage', 'dernierExport', 'dernierExportPhotos']
 
 const nbDonnees = (t: NomTable, lignes: unknown[]) => (t === 'reglages' ? (lignes as { cle: string }[]).filter((l) => !REGLAGES_SANS_DONNEES.includes(l.cle)).length : lignes.length)
 
@@ -121,7 +104,7 @@ export function lire(texte: string): Fichier {
   }
   // Une séance restée ouverte dans le fichier rouvrirait l'écran de séance : elle n'a pas à revenir.
   if (data.seances) data.seances = (data.seances as Seance[]).filter((s) => !s.enCours)
-  const presentes = CATEGORIES.map((c) => ({ id: c.id, n: TABLES[c.id].reduce((a, t) => a + (data[t] ? nbDonnees(t, data[t]) : 0), 0) })).filter((c) => c.n > 0)
+  const presentes = CATEGORIES.map((id) => ({ id, n: TABLES[id].reduce((a, t) => a + (data[t] ? nbDonnees(t, data[t]) : 0), 0) })).filter((c) => c.n > 0)
   if (!presentes.length) throw new Error('Cette sauvegarde est vide : il n’y a rien à récupérer.')
   return { data, presentes, exporteLe: data.exporteLe }
 }

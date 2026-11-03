@@ -89,10 +89,13 @@ Lisible sous les néons et au soleil, utilisable mains moites : cibles de 44 px 
 
 - **Limite connue, semaine en pause** : le rappel de séance Android ne sait pas qu'une semaine est en pause (il garde le planning) et peut sonner quand même.
 
+- **Réglages** (3 nov. 2026, après inventaire et maquette cliquable validés) : export réparé dans l'APK 1.9, récupération sécurisée, page rangée. Le détail est dans `AGENTS.md`.
+
 **Le parcours d'entraînement est donc repris de l'Accueil à l'enregistrement.**
 
 ### À vérifier sur le téléphone (S25)
 
+- Réglages : place en largeur des 4 bips avec sa police, rappel et son heure, vrai bouton retour sur les pages Sauvegarde, Conseils et Lexique. À essayer avec sa famille : « sauvegarde tes données, puis retrouve-les ».
 - Export (APK 1.9) : le menu de partage s'ouvre, le fichier arrive dans Drive et se réimporte ; après le choix d'une appli, le message et la date se mettent à jour (sinon le menu de partage de Samsung ne signale pas le choix : la date reste fausse, mais sans danger). La date « Dernier export » notée avant la 1.9 était fausse : elle reste affichée jusqu'au prochain export.
 - Programme et Exercices : barre à 4 onglets avec sa police ; est-ce que l'onglet Exercices manque ; l'appui sur le jour se trouve-t-il ; la carte du cycle gêne-t-elle en modifiant ; clavier qui reste ouvert dans la recherche d'exercices ; poignée pour réordonner ; vrai bouton retour dans les fenêtres, l'aperçu, le ⋯ et depuis une fiche ; dépliables et courbe au doigt ; constats « ça monte / stable / bloqué » sur ses vraies séances. À essayer avec sa famille : « lance ce programme pour 6 semaines, puis change le jour d'une séance ».
 - Démarrage : vrai bouton retour Android à chaque question (depuis la 1re, l'appli se ferme), largeur des 7 jours et du titre « Ton programme » + « Faire une séance › » avec sa police, flash éventuel au chargement. À essayer avec sa famille : leurs vraies hésitations avant d'ajouter d'autres cas.
@@ -126,9 +129,7 @@ Limites connues du parcours :
 - **Retours groupés** : s'il annonce d'autres retours, les vérifier à l'écran et proposer un seul lot avant de coder.
 - **Principe « les explications restent visibles »** : il vaut pour les conseils. La méthode de calcul de la durée de séance peut rester derrière un ⓘ (écran « Voir »).
 
-### Reste à faire, dans l'ordre
-
-1. **Réglages.**
+### Reste à faire
 
 À traiter en refaisant ces écrans :
 
@@ -155,6 +156,5 @@ Limites connues du parcours :
 - **Halo du cercle de repos** : en ligne, mais aucun avis donné sur ce point précis. Sa fluidité sur le téléphone n'est pas confirmée non plus.
 - **Lueur de réussite** (record, série battue) : proposée, pas décidée.
 - **Lueur très légère en haut de l'écran** : proposée, pas essayée.
-- **« EXPORTER »** : encore en majuscules dans la sauvegarde, parce que le test le cherche tel quel. À passer en minuscules en refaisant la page Réglages.
 - **Écran de lancement Android** : il peut garder l'ancienne couleur. Le changer demanderait un nouvel APK.
 - **Exercices au poids du corps** : l'unité dit « kg de lest », sans la précision « − = assistance », à remettre si elle manque.

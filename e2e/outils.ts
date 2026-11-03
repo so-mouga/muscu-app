@@ -82,6 +82,13 @@ export async function ouvrirReglages(p: Page) {
   await expect(p.getByRole('heading', { name: 'Réglages' })).toBeVisible()
 }
 
+/** Ouvre les Réglages, puis la page Sauvegarde : récupérer une sauvegarde, photos, tableur. */
+export async function ouvrirSauvegarde(p: Page) {
+  await ouvrirReglages(p)
+  await p.getByRole('button', { name: 'Récupérer, photos, tableur' }).click()
+  await expect(p.getByRole('heading', { name: 'Sauvegarde' })).toBeVisible()
+}
+
 /** Ouvre un onglet de la barre du bas. */
 export const onglet = (p: Page, nom: string) => p.locator('nav button, .onglets button', { hasText: nom }).first().click()
 

@@ -1,10 +1,11 @@
-import { CLE_RAPPEL, natif, RAPPEL_DEFAUT, rappelDisponible, type Rappel } from '../lib/natif'
+import { ArrowLeft, ChevronRight, Mail } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
+import { CLE_RAPPEL, natif, RAPPEL_DEFAUT, rappelDisponible, type Rappel } from '../lib/natif'
 import { useRetour } from '../lib/nav'
-import { apercu, CATEGORIES, CATEGORIES_COURANTES, clesTelephone, compter, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type ClesTelephone, type Categorie, type Fichier } from '../lib/sauvegarde'
+import { apercu, CATEGORIES, CATEGORIES_COURANTES, clesTelephone, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type ClesTelephone, type Fichier } from '../lib/sauvegarde'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
 import { confirmer, informer } from '../components/Dialogues'
@@ -12,32 +13,171 @@ import { ListeLexique } from '../components/Lexique'
 import ReglesConseils from '../components/ReglesConseils'
 import Interrupteur from '../components/Interrupteur'
 
+type PageReglages = 'sauvegarde' | 'conseils' | 'lexique'
+
+const TITRES: Record<PageReglages, string> = { sauvegarde: 'Sauvegarde', conseils: 'Comment l’appli te conseille', lexique: 'Lexique' }
+
+const MESSAGE_FICHIER = 'Fichier créé ✓ Vérifie qu’il est bien arrivé.'
+
+/** Partage annulé : rien à dire. Sinon, on dit que rien n'a été sauvegardé. */
+const signalerEchec = (e: unknown) => {
+  if ((e as Error).name !== 'AbortError') void informer((e as Error).message, 'Sauvegarde impossible')
+}
+
+/** « aujourd'hui », « hier », « il y a 12 jours ». */
+function depuis(quand: number) {
+  const n = Math.floor((Date.now() - quand) / 86400000)
+  return n <= 0 ? 'aujourd’hui' : n === 1 ? 'hier' : `il y a ${n} jours`
+}
+
 export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue; onFermer?: () => void }) {
+  const [page, setPage] = useState<PageReglages | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const ouvrir = (p: PageReglages | null) => (setPage(p), setMessage(null))
+  useRetour(page !== null, () => ouvrir(null))
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [page])
+
+  const titre = page ? TITRES[page] : 'Réglages'
+  const retour = page ? () => ouvrir(null) : onFermer
+  return (
+    <div>
+      <div className="entete">
+        {retour && (
+          <button className="btn" onClick={retour} aria-label="Retour">
+            <ArrowLeft size={20} strokeWidth={2} />
+          </button>
+        )}
+        {page ? <h2 className="titre-souple">{titre}</h2> : <h1 className="titre-souple">{titre}</h1>}
+      </div>
+      {!page && <PagePrincipale onPage={ouvrir} message={message} onMessage={setMessage} />}
+      {page === 'sauvegarde' && <PageSauvegarde catalogue={catalogue} message={message} onMessage={setMessage} />}
+      {page === 'conseils' && <ReglesConseils />}
+      {page === 'lexique' && (
+        <div className="carte">
+          <ListeLexique />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglages) => void; message: string | null; onMessage: (m: string) => void }) {
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
+  const dernierPhotos = useLiveQuery(() => db.reglages.get('dernierExportPhotos'), [])
+  const nbPhotos = useLiveQuery(() => db.photos.count(), [], 0)
   const bipsReglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
   const sonValidation = useLiveQuery(() => db.reglages.get('sonValidation'), [])
   const bips = typeof bipsReglage?.valeur === 'number' ? bipsReglage.valeur : BIPS_DEFAUT
-  const [persistant, setPersistant] = useState<boolean | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const jour = new Date().toISOString().slice(0, 10)
 
-  useEffect(() => {
-    navigator.storage?.persisted?.().then(setPersistant, () => setPersistant(null))
-  }, [])
-
-  const [choixExport, setChoixExport] = useState(false)
-  const [fichier, setFichier] = useState<Fichier | null>(null)
-
-  /** Partage annulé : rien à dire. Sinon, on dit que rien n'a été sauvegardé. */
-  const signalerEchec = (e: unknown) => {
-    if ((e as Error).name !== 'AbortError') void informer((e as Error).message, 'Sauvegarde impossible')
+  const sauvegarderTout = async () => {
+    try {
+      await sauvegarder(CATEGORIES_COURANTES)
+      onMessage(MESSAGE_FICHIER)
+    } catch (e) {
+      signalerEchec(e)
+    }
   }
 
-  const exporter = async (cats: Categorie[]) => {
+  return (
+    <>
+      <div className="carte pile">
+        <h3>Tes données</h3>
+        <div>Elles sont sur ce téléphone, nulle part ailleurs.</div>
+        <div className="petit muted">
+          {dernierExport ? `Dernière sauvegarde : ${depuis(dernierExport.valeur as number)}` : 'Aucune sauvegarde pour l’instant'}
+          {nbPhotos > 0 && (
+            <>
+              <br />
+              {dernierPhotos ? `Photos : sauvegardées ${depuis(dernierPhotos.valeur as number)}` : 'Photos : jamais sauvegardées'}
+            </>
+          )}
+        </div>
+        <button className="btn primaire plein" onClick={sauvegarderTout}>
+          Sauvegarder
+        </button>
+        {message && <div className="petit">{message}</div>}
+        <button className="ligne-reglage" onClick={() => onPage('sauvegarde')}>
+          <span>Récupérer, photos, tableur</span>
+          <ChevronRight size={20} className="muted" />
+        </button>
+      </div>
+
+      <div className="carte pile">
+        <h3>{natif ? 'Sons et rappel' : 'Sons'}</h3>
+        <div>
+          Bip avant la fin du repos
+          <div className="chips chips-bips">
+            {[0, 3, 5, 10].map((n) => (
+              <button
+                key={n}
+                className={bips === n ? 'actif' : ''}
+                onClick={() => {
+                  void setReglage('bipsRepos', n)
+                  debloquerSon()
+                  if (n) tic()
+                }}
+              >
+                {n ? `${n} s` : 'Aucun'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Interrupteur
+          on={sonValidation?.valeur !== false}
+          onChange={(v) => {
+            void setReglage('sonValidation', v)
+            debloquerSon()
+            if (v) signalSerie('mieux')
+          }}
+          label="Son quand je valide une série"
+          aide="La vibration reste dans tous les cas."
+        />
+        <RappelSeance />
+      </div>
+
+      <div className="carte">
+        <h3>Aide</h3>
+        <button className="ligne-reglage" onClick={() => onPage('conseils')}>
+          <span>Comment l’appli te conseille</span>
+          <ChevronRight size={20} className="muted" />
+        </button>
+        <button className="ligne-reglage" onClick={() => onPage('lexique')}>
+          <span>Lexique</span>
+          <ChevronRight size={20} className="muted" />
+        </button>
+        <DonnerAvis />
+      </div>
+      <div className="version-appli">Cran, version du {__VERSION__}</div>
+    </>
+  )
+}
+
+/** Où sont les données, et le rare : récupérer une sauvegarde, sauvegarder les photos, le tableur. */
+function PageSauvegarde({ catalogue, message, onMessage }: { catalogue: Catalogue; message: string | null; onMessage: (m: string) => void }) {
+  const photos = useLiveQuery(
+    async () => {
+      let n = 0
+      let taille = 0
+      await db.photos.each((p) => {
+        n++
+        taille += p.image.length
+      })
+      return { n, mo: Math.max(1, Math.round(taille / 1e6)) }
+    },
+    [],
+    { n: 0, mo: 0 }
+  )
+  const dernierPhotos = useLiveQuery(() => db.reglages.get('dernierExportPhotos'), [])
+  const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
+  const [fichier, setFichier] = useState<Fichier | null>(null)
+  const jour = new Date().toISOString().slice(0, 10)
+
+  const sauvegarderPhotos = async () => {
     try {
-      await sauvegarder(cats)
-      setChoixExport(false)
-      setMessage('Fichier créé ✓ Vérifie qu’il est bien arrivé.')
+      await sauvegarder(['photos'])
+      onMessage(MESSAGE_FICHIER)
     } catch (e) {
       signalerEchec(e)
     }
@@ -56,7 +196,8 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
       }
     }
     try {
-      await partagerOuTelecharger(`muscu-series-${jour}.csv`, lignes.join('\n'), 'text/csv')
+      await partagerOuTelecharger(`cran-series-${jour}.csv`, lignes.join('\n'), 'text/csv')
+      onMessage(MESSAGE_FICHIER)
     } catch (e) {
       signalerEchec(e)
     }
@@ -72,67 +213,29 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
   }
 
   return (
-    <div>
-      <div className="entete">
-        {onFermer && (
-          <button className="btn" onClick={onFermer} aria-label="Retour">
-            ←
+    <>
+      {message && <div className="carte petit">{message}</div>}
+      <div className="carte pile">
+        <h3>Où sont tes données ?</h3>
+        <div className="petit muted">Sur ce téléphone seulement : pas de compte, pas de serveur. Si tu le perds, elles peuvent être perdues aussi.</div>
+        <div className="petit muted">Google peut en garder une copie si sa sauvegarde est activée, sans garantie, et plus du tout au-delà de 25 Mo. Ton fichier, lui, reste à toi : garde-le dans Drive ou par mail.</div>
+      </div>
+      {photos.n > 0 && (
+        <div className="carte pile">
+          <h3>Photos du corps</h3>
+          <div className="petit muted">
+            Plus lourdes, à part : {photos.n} photo{photos.n > 1 ? 's' : ''}, environ {photos.mo} Mo.{' '}
+            {dernierPhotos ? `Sauvegardées ${depuis(dernierPhotos.valeur as number)}.` : 'Jamais sauvegardées.'}
+          </div>
+          <button className="btn plein" onClick={sauvegarderPhotos}>
+            Sauvegarder mes photos
           </button>
-        )}
-        <h1 style={{ flex: 1 }}>Réglages</h1>
-      </div>
-
-      <DonnerAvis />
-
-      <RappelSeance />
-
-      <div className="carte pile">
-        <h3>Fin du repos</h3>
-        <div className="faible">Un bip à chaque seconde sur les dernières secondes du repos, pour te remettre en place avant la sonnerie.</div>
-        <div className="chips">
-          {[0, 3, 5, 10].map((n) => (
-            <button
-              key={n}
-              className={bips === n ? 'actif' : ''}
-              onClick={() => {
-                void setReglage('bipsRepos', n)
-                debloquerSon()
-                if (n) tic()
-              }}
-            >
-              {n ? `${n} dernières s` : 'Aucun bip'}
-            </button>
-          ))}
         </div>
-      </div>
-
-      <div className="carte pile">
-        <Interrupteur
-          on={sonValidation?.valeur !== false}
-          onChange={(v) => {
-            void setReglage('sonValidation', v)
-            debloquerSon()
-            if (v) signalSerie('mieux')
-          }}
-          label="Son à la validation d’une série"
-          aide="Un petit clic ; deux notes quand tu fais mieux que la dernière fois ; trois quand tu passes à l’exercice suivant. La vibration reste dans tous les cas."
-        />
-      </div>
-
-      <div className="carte pile">
-        <h3>Sauvegarde</h3>
-        <div className="faible">
-          Tes données sont stockées uniquement sur ce téléphone. Exporte-les chaque semaine (Drive, mail…) pour ne rien perdre en cas de changement de téléphone.
-        </div>
-        <div className="petit muted">
-          Dernier export :{' '}
-          {dernierExport ? new Date(dernierExport.valeur as number).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : 'jamais'}
-        </div>
-        <button className="btn primaire plein" onClick={() => setChoixExport(true)}>
-          Exporter…
-        </button>
-        <label className="btn plein">
-          Importer…
+      )}
+      <div className="carte">
+        <label className="ligne-reglage">
+          <span>Récupérer une sauvegarde</span>
+          <ChevronRight size={20} className="muted" />
           <input
             type="file"
             accept="application/json,.json"
@@ -143,91 +246,23 @@ export default function Reglages({ catalogue, onFermer }: { catalogue: Catalogue
             }}
           />
         </label>
-        <button className="btn discret plein" onClick={exporterCSV}>
-          Exporter les séries en tableur (CSV)
-        </button>
-        {message && <div className="petit">{message}</div>}
+        {nbSeances > 0 && (
+          <button className="ligne-reglage" onClick={exporterCSV}>
+            <span>Mes séries en tableur (CSV)</span>
+            <ChevronRight size={20} className="muted" />
+          </button>
+        )}
       </div>
-      {choixExport && <ChoixExport onExporter={exporter} onFermer={() => setChoixExport(false)} />}
       {fichier && (
         <ChoixImport
           fichier={fichier}
           onFini={(m) => {
             setFichier(null)
-            if (m) setMessage(m)
+            if (m) onMessage(m)
           }}
         />
       )}
-
-      <div className="carte pile">
-        <h3>Stockage</h3>
-        <div className="petit muted">
-          {persistant === true && '✓ Stockage persistant accordé : le navigateur ne l’effacera pas automatiquement.'}
-          {persistant === false && 'Stockage non persistant. Installe l’appli sur l’écran d’accueil (menu ⋮ → Installer) pour le renforcer.'}
-          {persistant === null && 'État du stockage inconnu.'}
-        </div>
-      </div>
-
-      <ReglesConseils />
-
-      <Lexique />
-
-      <div className="carte pile">
-        <h3>À propos</h3>
-        <div className="faible">
-          L’objectif de chaque séance est de refaire la précédente : c’est toi qui décides quand monter (fin de séance, ou « Voir » → ✎). Le pas de charge d’un exercice se règle dans sa fiche (Exercices → Modifier).
-        </div>
-        <div className="faible">Version du {__VERSION__}</div>
-      </div>
-    </div>
-  )
-}
-
-/** Case à cocher d'une catégorie de données. */
-function Case({ coche, onClick, nom, detail }: { coche: boolean; onClick: () => void; nom: string; detail: string }) {
-  return (
-    <button className={'liste-btn' + (coche ? ' coche' : '')} onClick={onClick}>
-      <span>
-        <strong>{nom}</strong>
-        <div className="faible">{detail}</div>
-      </span>
-      <span className="case">{coche ? '✓' : ''}</span>
-    </button>
-  )
-}
-
-const basculer = <T,>(x: T[], v: T) => (x.includes(v) ? x.filter((y) => y !== v) : [...x, v])
-
-function ChoixExport({ onExporter, onFermer }: { onExporter: (cats: Categorie[]) => void; onFermer: () => void }) {
-  useRetour(true, onFermer)
-  const nombres = useLiveQuery(compter, [])
-  const [cats, setCats] = useState<Categorie[]>(CATEGORIES_COURANTES)
-  return (
-    <div className="modal-fond" onClick={onFermer}>
-      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
-        <div>
-          <h2>Exporter</h2>
-          <div className="faible">Choisis ce que tu sauvegardes. Pour une sauvegarde complète, garde tout coché (et les photos de temps en temps).</div>
-        </div>
-        <div className="modal-defile">
-          {CATEGORIES.map((c) => (
-            <Case
-              key={c.id}
-              coche={cats.includes(c.id)}
-              onClick={() => setCats((x) => basculer(x, c.id))}
-              nom={`${c.nom}${nombres ? ` (${nombres[c.id]})` : ''}`}
-              detail={c.detail}
-            />
-          ))}
-        </div>
-        <button className="btn primaire grand" disabled={!cats.length} onClick={() => onExporter(cats)}>
-          EXPORTER
-        </button>
-        <button className="btn discret plein" onClick={onFermer}>
-          Annuler
-        </button>
-      </div>
-    </div>
+    </>
   )
 }
 
@@ -253,7 +288,7 @@ function ChoixImport({ fichier, onFini }: { fichier: Fichier; onFini: (message?:
 
   const sauvegarderAvant = async () => {
     try {
-      await sauvegarder(CATEGORIES.map((c) => c.id))
+      await sauvegarder(CATEGORIES)
       setCopie(true)
     } catch (e) {
       if ((e as Error).name !== 'AbortError') void informer((e as Error).message, 'Sauvegarde impossible')
@@ -319,22 +354,6 @@ function ChoixImport({ fichier, onFini }: { fichier: Fichier; onFini: (message?:
   )
 }
 
-/** Les termes de l'appli, repliés par défaut. */
-function Lexique() {
-  const [ouvert, setOuvert] = useState(false)
-  return (
-    <div className="carte pile">
-      <button type="button" className="groupe-repli" onClick={() => setOuvert(!ouvert)} aria-expanded={ouvert}>
-        <span>
-          <strong>Lexique</strong> <span className="faible">PDC, RPE, force estimée, déload…</span>
-        </span>
-        <span className="muted">{ouvert ? '▾' : '▸'}</span>
-      </button>
-      {ouvert && <ListeLexique />}
-    </div>
-  )
-}
-
 /**
  * Rappel de séance (appli Android 1.6 et plus) : les jours prévus par le planning, à l'heure choisie,
  * sauf si une séance a déjà été démarrée ce jour-là. Coupé par défaut. Android reçoit le réglage depuis App.
@@ -347,16 +366,10 @@ function RappelSeance() {
   const rappel = (r?.valeur as Rappel | undefined) ?? RAPPEL_DEFAUT
   const maj = (c: Partial<Rappel>) => setReglage(CLE_RAPPEL, { ...rappel, ...c })
   return (
-    <div className="carte pile">
-      <h3>🔔 Rappel de séance</h3>
+    <>
       {dispo ? (
         <>
-          <Interrupteur
-            on={rappel.actif}
-            onChange={(actif) => maj({ actif })}
-            label="Me le rappeler les jours prévus"
-            aide="Une notification les jours d’entraînement de ton programme, à l’heure choisie. Rien si tu as déjà commencé ta séance ce jour-là."
-          />
+          <Interrupteur on={rappel.actif} onChange={(actif) => maj({ actif })} label="Rappel les jours de séance" aide="Une notification, sauf si ta séance est commencée." />
           {rappel.actif && (
             <label className="ligne entre">
               <span>Heure</span>
@@ -365,9 +378,9 @@ function RappelSeance() {
           )}
         </>
       ) : (
-        <div className="faible">Il faut la dernière version de l’appli Android : installe-la depuis le bandeau de l’accueil (tes données sont gardées).</div>
+        <div className="faible">Pour le rappel de séance, il faut la dernière version de l’appli : installe-la depuis le bandeau de l’accueil, tes données sont gardées.</div>
       )}
-    </div>
+    </>
   )
 }
 
@@ -379,12 +392,12 @@ function DonnerAvis() {
   const corps = `Ce qui m’a plu :\n\n\nCe qui m’a bloqué ou pas clair :\n\n\nCe qui m’a manqué :\n\n\n---\nVersion du ${__VERSION__} · ${natif ? 'appli Android' : 'navigateur'} · ${navigator.userAgent}`
   const lien = `mailto:${CONTACT_AVIS}?subject=${encodeURIComponent('Cran : mon avis')}&body=${encodeURIComponent(corps)}`
   return (
-    <div className="carte pile">
-      <h3>💬 Donner mon avis</h3>
-      <div className="faible">Un bug, une idée, quelque chose de pas clair ? Ça ouvre un mail déjà préparé : écris ce que tu veux, même en deux mots.</div>
-      <a className="btn plein" href={lien}>
-        Écrire mon avis
-      </a>
-    </div>
+    <a className="ligne-reglage" href={lien}>
+      <span>
+        Donner mon avis
+        <span className="faible">Un bug, une idée, même en deux mots</span>
+      </span>
+      <Mail size={20} className="muted" />
+    </a>
   )
 }

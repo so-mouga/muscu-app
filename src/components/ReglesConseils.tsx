@@ -1,7 +1,8 @@
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
 /**
- * « Comment l'appli te conseille » (Réglages) : toutes les règles des conseils et alertes, en clair.
+ * « Comment l'appli te conseille » (page de Réglages) : toutes les règles des conseils et alertes, en clair.
  * À tenir à jour quand une règle change (lib/progression, blocages, analyse, motivation, cycle).
  */
 const REGLES: [string, string[]][] = [
@@ -15,7 +16,7 @@ const REGLES: [string, string[]][] = [
   [
     'Pendant la séance',
     [
-      '🏆 Nouveau record, dès la série validée : ta force estimée battue, sinon une charge jamais soulevée, sinon plus de reps (ou de temps) à cette charge. Jamais en déload.',
+      'Nouveau record, dès la série validée : ta force estimée battue, sinon une charge jamais soulevée, sinon plus de reps (ou de temps) à cette charge. Jamais en déload.',
       '« Monte d’un cran » : ta série d’avant dépasse le haut de la fourchette de 3 reps ou plus. Proposé : la charge + un pas de l’exercice (sauf au maximum du matériel).',
       '« Faute de frappe ? » : une charge bien plus lourde que d’habitude (plus de 1,5 fois et au moins 20 kg de plus).',
       'Exercice bloqué : une ligne sur la carte de l’exercice (voir « Exercice bloqué »).',
@@ -23,7 +24,7 @@ const REGLES: [string, string[]][] = [
     ],
   ],
   [
-    'En fin de séance : le conseil 💡',
+    'En fin de séance',
     [
       'En tête : combien d’exercices ont été mieux que la dernière fois, et les records.',
       'Le conseil n’existe que pour un exercice avec une fourchette de reps (ex. 8–12). Chaque série est jugée sur sa propre fourchette. Tu l’appliques ou non.',
@@ -45,9 +46,9 @@ const REGLES: [string, string[]][] = [
       'Après 10 jours ou plus sans séance : « mêmes charges que la dernière fois, baisse un peu si c’est trop dur ».',
       'Semaines tenues de suite (à partir de 2) : une semaine est tenue avec les trois quarts des séances prévues (3 → 2, 4 → 3). Le déload et une semaine en pause ne cassent pas la série.',
       'Sur ce bloc (cycle en cours, sinon phase, sinon 4 semaines) : ton exercice principal le plus pratiqué qui a progressé.',
-      'Déload à avancer (pendant un cycle) : ta force baisse sur 2 exercices et ton énergie est à 2/5 ou moins sur 2 des 3 dernières séances, ou ta force baisse sur 3 exercices (ces 10 derniers jours). Jamais dans les 3 semaines après un déload.',
+      'Déload à avancer (pendant un cycle) : ta force baisse sur 2 exercices et tu as répondu « Difficile » à 2 des 3 dernières séances, ou ta force baisse sur 3 exercices (ces 10 derniers jours). Jamais dans les 3 semaines après un déload.',
       'En haut, deux rappels au plus : nouvelle version de l’appli, cycle terminé, déload conseillé, programme modifié pendant le cycle, sauvegarde (après 7 jours sans export), mensurations.',
-      '🔔 Rappel de séance (appli Android, si tu l’actives) : les jours prévus à l’heure choisie, sauf si ta séance est déjà commencée.',
+      'Rappel de séance (appli Android, si tu l’actives) : les jours prévus à l’heure choisie, sauf si ta séance est déjà commencée.',
     ],
   ],
   [
@@ -77,28 +78,26 @@ const REGLES: [string, string[]][] = [
 ]
 
 export default function ReglesConseils() {
-  const [ouvert, setOuvert] = useState(false)
+  const [ouvert, setOuvert] = useState<string | null>(null)
   return (
-    <div className="carte pile">
-      <button type="button" className="groupe-repli" onClick={() => setOuvert(!ouvert)} aria-expanded={ouvert}>
-        <span>
-          <strong>Comment l’appli te conseille</strong> <span className="faible">montée de charge, records, blocages, bilan…</span>
-        </span>
-        <span className="muted">{ouvert ? '▾' : '▸'}</span>
-      </button>
-      {ouvert &&
-        REGLES.map(([titre, lignes]) => (
-          <div key={titre}>
-            <h4 style={{ margin: '10px 0 4px' }}>{titre}</h4>
-            <ul style={{ margin: 0, paddingLeft: 18 }} className="pile">
+    <div className="carte">
+      {REGLES.map(([titre, lignes]) => (
+        <div key={titre} className="regle-section">
+          <button type="button" className="ligne-reglage" onClick={() => setOuvert(ouvert === titre ? null : titre)} aria-expanded={ouvert === titre}>
+            <span>{titre}</span>
+            {ouvert === titre ? <ChevronDown size={20} className="muted" /> : <ChevronRight size={20} className="muted" />}
+          </button>
+          {ouvert === titre && (
+            <ul className="regle-lignes pile">
               {lignes.map((l) => (
                 <li key={l} className="petit">
                   {l}
                 </li>
               ))}
             </ul>
-          </div>
-        ))}
+          )}
+        </div>
+      ))}
     </div>
   )
 }

@@ -5455,3 +5455,50 @@ button.semaine-cycle.courante {
 .compare-import td + td {
   width: 76px;
 }
+
+/* Réglages : une ligne qui mène quelque part. */
+.titre-souple {
+  flex: 1;
+  min-width: 0;
+}
+.ligne-reglage {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e2);
+  width: 100%;
+  min-height: var(--cible);
+  padding: var(--e2) 0;
+  background: none;
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ligne-reglage + .ligne-reglage,
+.regle-section + .regle-section {
+  border-top: 1px solid var(--bord);
+}
+.ligne-reglage .faible {
+  display: block;
+}
+.chips-bips {
+  flex-wrap: nowrap;
+  margin-top: var(--e2);
+}
+.chips-bips button {
+  flex: 1;
+  justify-content: center;
+}
+.regle-lignes {
+  margin: 0 0 var(--e3);
+  padding-left: 18px;
+}
+.version-appli {
+  margin: var(--e4) 0;
+  font-size: var(--t-legende);
+  color: var(--texte-2);
+  text-align: center;
+}
+
