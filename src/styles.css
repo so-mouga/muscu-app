@@ -4251,9 +4251,6 @@ html[data-sens='fondu']::view-transition-new(root) {
   flex-direction: column;
   min-height: calc(100dvh - var(--bas-accueil) - env(safe-area-inset-bottom));
 }
-.accueil.premiere {
-  min-height: 0;
-}
 .accueil-entete {
   justify-content: space-between;
   margin-bottom: 0;

@@ -15,6 +15,14 @@ describe('programmes', () => {
     expect(c.actif.seances.some((e) => e.modeleId === 'bas_maison' && !e.jour)).toBe(true)
   })
 
+  it('sans programme : aucun planning, ni Recompo proposé d’office', () => {
+    const c = construireCatalogue([], [], [], undefined, undefined, [], [], true)
+    expect(c.sansProgramme).toBe(true)
+    expect(c.programmes).toEqual([])
+    expect(c.planning).toEqual([])
+    expect(c.modeles).toEqual([])
+  })
+
   it('le programme actif pilote le planning ; une séance peut revenir deux fois', () => {
     const programmes = [
       { id: 'a', nom: 'A', seances: [{ modeleId: 'haut_a', jour: 1 }] },

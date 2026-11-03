@@ -65,11 +65,11 @@ export const jourCourt = (j?: number) => (j ? JOURS[j].slice(0, 3) : '')
 
 /** Enregistre un programme ; le programme de départ (virtuel) est conservé dès qu'on en crée un autre. */
 async function sauverProgramme(p: Programme, catalogue: Catalogue) {
-  if ((await db.programmes.count()) === 0 && p.id !== ID_PROGRAMME_DEFAUT) await db.programmes.put(catalogue.programmes[0])
+  if (!catalogue.sansProgramme && (await db.programmes.count()) === 0 && p.id !== ID_PROGRAMME_DEFAUT) await db.programmes.put(catalogue.programmes[0])
   await db.programmes.put(p)
 }
 
-export default function Seances({ catalogue }: { catalogue: Catalogue }) {
+export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void }) {
   const [pile, setPile] = useState<Vue[]>([])
   const masquees = useLiveQuery(() => db.modeles.filter((m) => !!m.supprime).toArray(), [], [])
   const [voirTypes, setVoirTypes] = useState(false)
@@ -99,6 +99,13 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
   const ouvrirSeance = (m: SeanceModele, nouvelle = false, pourProgramme = false) =>
     ouvrir({ type: 'seance', m: structuredClone(m), nouvelle, pourProgramme })
   const nouvelleSeance = (pourProgramme = false) => ouvrirSeance({ id: 'm_' + uid(), nom: '', sousTitre: '', exercices: [] }, true, pourProgramme)
+  const nouveauProgramme = () => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)
+  useEffect(() => {
+    if (!creer) return
+    nouveauProgramme()
+    onCreerOuvert?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creer])
 
   if (vue?.type === 'seance')
     return (
@@ -162,7 +169,21 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
         </button>
       </div>
 
-      {onglet === 'programmes' && (
+      {onglet === 'programmes' && catalogue.sansProgramme && (
+        <div className="carte pile">
+          <strong>Pas encore de programme</strong>
+          <div className="faible">Réponds à quelques questions et Cran t’en propose un. Tu peux aussi créer le tien.</div>
+          <button className="btn primaire plein" onClick={onChoisirProgramme}>
+            Choisis ton programme
+          </button>
+          <button className="btn plein" onClick={nouveauProgramme}>
+            Créer le mien
+          </button>
+          <ChoixProgramme catalogue={catalogue} titre="Programmes tout prêts" />
+        </div>
+      )}
+
+      {onglet === 'programmes' && !catalogue.sansProgramme && (
         <>
           {catalogue.cycle ? (
             (() => {
@@ -275,7 +296,7 @@ export default function Seances({ catalogue }: { catalogue: Catalogue }) {
               </div>
             )
           })}
-          <button className="btn plein" style={{ marginBottom: 12 }} onClick={() => ouvrirProgramme({ id: 'p_' + uid(), nom: '', seances: [] }, true)}>
+          <button className="btn plein" style={{ marginBottom: 12 }} onClick={nouveauProgramme}>
             + Nouveau programme
           </button>
           <button type="button" className="groupe-repli" style={{ marginBottom: 14 }} onClick={() => setVoirTypes(!voirTypes)} aria-expanded={voirTypes}>

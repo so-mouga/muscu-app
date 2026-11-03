@@ -114,6 +114,7 @@ export default function App() {
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onJournal={() => (setVue('journal'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
+            onChoisirProgramme={() => setOnglet('seances')}
           />
         )}
         {!reglages && onglet === 'historique' && (
@@ -128,7 +129,7 @@ export default function App() {
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={setPageCorps} />}
-        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} />}
+        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setOnglet('seances')} />}
         {!reglages && onglet === 'exercices' && (
           <Exercices
             catalogue={catalogue}

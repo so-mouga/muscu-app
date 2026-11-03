@@ -6,6 +6,7 @@ import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
 import { dateISO } from './lib/calc'
 import { avecPriorites, cibles } from './lib/cycle'
+import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
 
@@ -24,8 +25,10 @@ export interface Catalogue {
   /** Exercice connu, ou un exercice de secours pour un id disparu. */
   exo: (id: string) => Exercice
   programmes: Programme[]
-  /** Programme qui pilote l'accueil (séance du jour, semaine). */
+  /** Programme qui pilote l'accueil (séance du jour, semaine). Sans programme : un programme vide, jamais affiché. */
   actif: Programme
+  /** Nouvel utilisateur qui n'a encore choisi aucun programme : `programmes` et `planning` sont vides. */
+  sansProgramme: boolean
   /** Séances du programme actif ayant un jour, triées par jour. */
   planning: EntreePlanning[]
   /** Cycle en cours : il pilote l'accueil avec sa propre copie du programme. */
@@ -49,7 +52,8 @@ export function construireCatalogue(
   actifId: string | undefined,
   cycle?: Cycle,
   objectifs: EtapeObjectifs[] = [],
-  cycles: Cycle[] = cycle ? [cycle] : []
+  cycles: Cycle[] = cycle ? [cycle] : [],
+  sansProgramme = false
 ): Catalogue {
   const parId = new Map<string, SeanceModele>(PROGRAMME.map((m) => [m.id, m]))
   for (const m of modelesDb) parId.set(m.id, m)
@@ -59,7 +63,7 @@ export function construireCatalogue(
   for (const e of exercicesDb) exercices[e.id] = EXERCICES[e.id]?.assistance ? { ...e, assistance: true } : e
 
   // Sans programme enregistré : le planning d'origine (jours portés par les séances) devient le premier programme.
-  const programmes: Programme[] = programmesDb.length
+  const programmes: Programme[] = programmesDb.length || sansProgramme
     ? programmesDb
     : [{ id: ID_PROGRAMME_DEFAUT, nom: 'Recompo 4 jours', description: 'Programme de départ', seances: tous.map((m) => ({ modeleId: m.id, jour: m.jour })) }]
   // Séances de base (programme Recompo) : dans la bibliothèque seulement si un programme s'en sert ou si l'utilisateur les a touchées.
@@ -72,7 +76,7 @@ export function construireCatalogue(
   }
   // Pendant un cycle : son programme et ses séances tels qu'au lancement (ou mis à jour à la demande).
   const duCycle = new Map((cycle?.modeles ?? []).map((m) => [m.id, m]))
-  const actif = cycle ? { ...cycle.programme, id: cycle.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0])
+  const actif = cycle ? { ...cycle.programme, id: cycle.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0] ?? { id: '', nom: '', seances: [] })
   const pourPlanning = (id: string) => duCycle.get(id) ?? (cycle ? undefined : modele(id))
   const perso = (date: string) => cibles(objectifsA(objectifs, date)?.volume, cycle, actif)
 
@@ -84,6 +88,7 @@ export function construireCatalogue(
       exercices[id] ?? { id, nom: id, muscle: 'pecs', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
     programmes,
     actif,
+    sansProgramme,
     planning: actif.seances
       .filter((e) => e.jour && pourPlanning(e.modeleId))
       .map((e) => ({ modele: pourPlanning(e.modeleId)!, jour: e.jour! }))
@@ -105,13 +110,13 @@ export function useCatalogue(): Catalogue | null {
   const actif = useLiveQuery(() => db.reglages.get('programmeActif'), [], null)
   const cycles = useLiveQuery(() => db.cycles.toArray(), [])
   const objectifs = useLiveQuery(() => db.reglages.bulkGet([CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME]), [], null)
-  return useMemo(
-    () =>
-      modeles && exercices && programmes && cycles && actif !== null && objectifs !== null
-        ? construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])), cycles)
-        : null,
-    [modeles, exercices, programmes, actif, cycles, objectifs]
-  )
+  const nbSeances = useLiveQuery(() => db.seances.count(), [], null)
+  const demarrageVu = useLiveQuery(() => db.reglages.get(CLE_DEMARRAGE).then((r) => !!r), [], null)
+  return useMemo(() => {
+    if (!modeles || !exercices || !programmes || !cycles || actif === null || objectifs === null || nbSeances === null || demarrageVu === null) return null
+    const sansProgramme = estSansProgramme(programmes.length, cycles.length, nbSeances, demarrageVu, modeles.some((m) => PROGRAMME.some((b) => b.id === m.id)))
+    return construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])), cycles, sansProgramme)
+  }, [modeles, exercices, programmes, actif, cycles, objectifs, nbSeances, demarrageVu])
 }
 
 /**
