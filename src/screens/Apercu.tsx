@@ -69,7 +69,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
         <div className="apercu-resume">
           <div className="ligne">
             <span>
-              ≈ {minutes(dureeEstimee(prevu))} prévues{habituelle ? ` · ${minutes(habituelle)} d’habitude` : ''}
+              ≈ {minutes(dureeEstimee(prevu))} prévues{habituelle && !deload ? ` · ${minutes(habituelle)} d’habitude` : ''}
             </span>
             <button
               type="button"
@@ -81,7 +81,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
             </button>
           </div>
           <div className="faible">
-            {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''} · {series} séries
+            {modele.exercices.length} exercice{modele.exercices.length > 1 ? 's' : ''} · {series} série{series > 1 ? 's' : ''}
             {finisseurs > 0 && <span className="texte-finisseur"> · {finisseurs} finisseur{finisseurs > 1 ? 's' : ''}</span>}
           </div>
         </div>

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Check, ChevronRight, Clock, CloudUpload, Download, Flame, Info, Moon, RefreshCw, Ruler, Scale, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, uid } from '../db'
-import { chargeQte, dateISO, duree, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi } from '../lib/calc'
+import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
 import { creneauxFaits } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
@@ -201,6 +201,8 @@ export default function Accueil({
   // Cycle en cours : semaine, déload, pause ; chaque séance lancée y est rattachée.
   const cycle = catalogue.cycle
   const etat = cycle && etatCycle(cycle)
+  // Semaine allégée : la durée de la séance allégée, pas celle d'une séance complète.
+  const dureeDe = (m: SeanceModele) => (etat?.deload && !etat.fini ? `≈ ${minutes(dureeEstimee({ ...m, exercices: m.exercices.map(planDeload) }))}` : dureeTexte(m, terminees))
   const contexte: ContexteCycle | undefined =
     cycle && etat && !etat.fini ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
   // On retient d'où la séance est lancée (accueil, ou « Voir ») pour y revenir si on l'annule.
@@ -363,7 +365,8 @@ export default function Accueil({
   const nbFaites = planning.filter(faite).length
   // 1re semaine : seuls les jours restants après avoir pris le programme comptent.
   const installeLe = (reglages.find((r) => r.cle === CLE_DEMARRAGE)?.valeur as EtatDemarrage | undefined)?.installeLe
-  const prevusSemaine = installeLe && installeLe >= debutSemaine ? planning.filter((e) => e.jour >= jourSemaine(new Date(installeLe + 'T12:00:00'))) : planning
+  const enPause = !!etat?.pause && !etat.fini
+  const prevusSemaine = enPause ? [] : installeLe && installeLe >= debutSemaine ? planning.filter((e) => e.jour >= jourSemaine(new Date(installeLe + 'T12:00:00'))) : planning
   // Semaines tenues (les trois quarts des séances prévues) : affichées à partir de 2, déloads et pauses ne cassent rien.
   const tenues = terminees ? semainesTenues(terminees, prevuDeSemaine((reglages.find((r) => r.cle === CLE_PREVUS)?.valeur as EtapePrevu[] | undefined) ?? [], cycles, terminees, planning.length), cycles, dateISO()) : 0
   // Un seul vrai progrès, depuis le début du cycle en cours, sinon de la phase, sinon en 4 semaines.
@@ -397,7 +400,7 @@ export default function Accueil({
         <span>
           {etiquetteProchaine(e)} : {e.modele.nom}
         </span>
-        <span className="seance-jour-duree">{dureeTexte(e.modele, terminees)}</span>
+        <span className="seance-jour-duree">{dureeDe(e.modele)}</span>
       </div>
       <ListeExosJour lignes={lignesDe(e.modele, false)} entiere />
       <div className="seance-jour-actions">
@@ -517,7 +520,7 @@ export default function Accueil({
               </div>
               <div className="seance-jour-titre">
                 <h2>{proposee.modele.nom}</h2>
-                <span className="seance-jour-duree">{dureeTexte(proposee.modele, terminees)}</span>
+                <span className="seance-jour-duree">{dureeDe(proposee.modele)}</span>
               </div>
               {variante && (
                 <button type="button" className="seance-jour-lien pas-de-salle" onClick={() => voir(variante)}>
@@ -657,7 +660,7 @@ export default function Accueil({
                                 <span className="choix-seance-corps">
                                   <span className="choix-seance-nom">{m.nom}</span>
                                   {m.sousTitre && <span className="faible choix-seance-sous">{m.sousTitre}</span>}
-                                  <span className="faible choix-seance-sous">{dureeTexte(m, terminees)}</span>
+                                  <span className="faible choix-seance-sous">{dureeDe(m)}</span>
                                 </span>
                                 {realisees(m) > 0 && (
                                   <span className="choix-seance-faite">
