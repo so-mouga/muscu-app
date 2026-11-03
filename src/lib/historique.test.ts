@@ -91,6 +91,14 @@ describe('audit historique', () => {
     expect(recordsParSeance([s1, s2], (id) => EXERCICES[id])).toEqual({ s1: 0, s2: 1 })
   })
 
+  it('poids du corps : le premier poids noté ne fait ni faux record ni référence impossible à battre', () => {
+    const t = (id: string, charge: number, reps: number): Serie => ({ id, exoId: 'tractions', type: 'normale', charge, reps, rpe: 8, heure: 0 })
+    const sans = seance('sans', '2026-10-01', [t('a', 5, 8)])
+    const avec = { ...seance('avec', '2026-10-08', [t('b', 5, 8)]), poidsCorps: 80 }
+    const plus = { ...seance('plus', '2026-10-15', [t('c', 5, 9)]), poidsCorps: 80 }
+    expect(recordsParSeance([sans, avec, plus], (id) => EXERCICES[id])).toEqual({ sans: 0, avec: 0, plus: 1 })
+  })
+
   it('« la dernière fois » ne prend jamais une séance de déload', () => {
     const normale = seance('n', '2026-10-01', [serie(60, 8)])
     const deload = { ...seance('d', '2026-10-08', [serie(52.5, 6, 6)]), deload: true }

@@ -18,10 +18,12 @@ export const semaineDe = (date: string) => lundi(new Date(date + 'T12:00:00'))
 
 /**
  * Score de performance d'une série, pour comparer un exercice avec lui-même : le 1RM estimé quand
- * il existe, sinon le temps tenu (exercice en temps), sinon la charge puis les reps.
+ * il existe, sinon le temps tenu (exercice en temps), sinon la charge puis les reps (poids du corps compris).
  */
 export function scoreSerie(exo: Exercice, x: Serie, poidsCorps?: number): number {
   if (enTemps(exo)) return x.reps
+  // Poids du corps : le lest puis les reps, avec ou sans pesée. Deux échelles (force estimée, lest × 1000) rendaient la référence impossible à battre.
+  if (exo.mode === 'poids_corps') return x.charge * 1000 + x.reps
   return e1rm(exo, x, poidsCorps) ?? (exo.assistance ? -x.charge : x.charge) * 1000 + x.reps
 }
 
