@@ -110,11 +110,13 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
 
   return (
     <div className="modal-fond" onClick={cycle ? () => void enregistrer() : onFermer}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+      <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
         <div className="ligne entre">
           <h2>{cycle ? 'Modifier le cycle' : `Lancer ${progChoisi?.nom ?? 'un cycle'}`}</h2>
           <Aide titre="Un cycle" texte={AIDE_CYCLE} />
         </div>
+        {/* Titre et bouton fixes : « Lancer le cycle » reste à l'écran, même avec tous les réglages. */}
+        <div className="modal-defile pile">
         {!cycle && <div className="faible">{resume}</div>}
 
         {!cycle && regler && (
@@ -214,6 +216,9 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
         </>
         )}
 
+        </div>
+
+        <div className="modal-pied pile">
         <button className="btn primaire grand" onClick={enregistrer}>
           {cycle ? 'Enregistrer' : 'Lancer le cycle'}
         </button>
@@ -225,6 +230,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
         <button className="btn discret plein" onClick={onFermer}>
           Annuler
         </button>
+        </div>
       </div>
     </div>
   )
