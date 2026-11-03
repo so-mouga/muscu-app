@@ -168,3 +168,28 @@ export function retirerDuPlan(plans: ExoPlan[], index: number, reposDefaut: (p: 
   const retire = plans[index]
   return plans.filter((_, i) => i !== index).map((p, i) => (i === index - 1 && p.enchaine && !retire?.enchaine ? delier(p, reposDefaut(p)) : p))
 }
+
+/** Reste-t-il à alterner avec un autre exercice du groupe ? Sinon, plus rien d'un superset à l'écran : un partenaire sauté ou fini ne compte plus. */
+export function alterneEncore(plans: ExoPlan[], index: number, sautes: string[], nbFaites: (exoId: string) => number, totalDe: (i: number) => number): boolean {
+  return groupeSuperset(plans, index).some((i) => i !== index && !sautes.includes(plans[i].exoId) && nbFaites(plans[i].exoId) < totalDe(i))
+}
+
+/**
+ * Échanger deux exercices pendant la séance. Dans un même groupe : les liens et les repos restent à leur place.
+ * Sinon, les groupes touchés sont déliés : l'exercice choisi ne devient pas le partenaire de quelqu'un sans qu'on l'ait demandé.
+ */
+export function echangerExos(plans: ExoPlan[], i: number, j: number, reposDefaut: (p: ExoPlan) => number): ExoPlan[] {
+  const r = [...plans]
+  const groupeI = groupeSuperset(plans, i)
+  if (groupeI.includes(j)) {
+    const lien = (p: ExoPlan) => ({ enchaine: p.enchaine, repos: p.repos, reposApres: p.reposApres })
+    r[i] = { ...plans[j], ...lien(plans[i]) }
+    r[j] = { ...plans[i], ...lien(plans[j]) }
+    return r
+  }
+  for (const k of [...groupeI, ...groupeSuperset(plans, j)]) r[k] = delier(plans[k], reposDefaut(plans[k]))
+  const a = r[i]
+  r[i] = r[j]
+  r[j] = a
+  return r
+}

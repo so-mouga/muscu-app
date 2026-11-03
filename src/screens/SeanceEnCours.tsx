@@ -24,7 +24,7 @@ import { arreterSeanceNatif, natif, pauseNatif, reposNatif, seanceNatif, suivreN
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
 import { reposParDefaut } from '../lib/programme'
-import { delier, estDansSuperset, groupeSuperset, prochainExoDeSeance, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
+import { alterneEncore, delier, echangerExos, estDansSuperset, groupeSuperset, prochainExoDeSeance, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
@@ -412,9 +412,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const echanger = async (i: number, j: number) => {
     setMachineDe(null)
     await majSeance(seance.id, (s) => {
-      const a = s.exercices[i]
-      s.exercices[i] = s.exercices[j]
-      s.exercices[j] = a
+      s.exercices = echangerExos(s.exercices, i, j, (p) => reposParDefaut(catalogue.exo(p.exoId)))
       s.courant = s.exercices[i].exoId
     })
     setToast(`Échangé : ${exos[j].nom} maintenant`)
@@ -691,8 +689,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const t = totalDe(enCours)
       const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
       const plus = hausse(exo, suggestions[enCours], historiqueDe(terminees, p.exoId)[0], n)
-      const groupe = groupeSuperset(plans, enCours)
-      const enSuperset = groupe.length > 1
+      const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
       return (
         <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
           {derniere?.mieux && <div className={'mieux-titre' + (vient ? ' vient-monter' : '')}>↑ {derniere.mieux} vs la dernière fois</div>}
@@ -769,8 +766,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             const t = totalDe(enCours)
             const derniereFois = historiqueDe(terminees, p.exoId)[0]
             const plus = hausse(exo, suggestions[enCours], derniereFois, n)
-            const groupe = groupeSuperset(plans, enCours)
-            const enSuperset = groupe.length > 1
+            const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
             return (
               <div className="focus-bloc pile saisie-focus">
                 {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}

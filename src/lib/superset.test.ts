@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { ExoPlan } from '../types'
 import {
+  alterneEncore,
+  echangerExos,
   delier,
   estDansSuperset,
   estEnchaine,
@@ -271,5 +273,30 @@ describe('delier', () => {
     expect(delier(makePlan('a', 3, 90, true), 150).repos).toBe(90)
     const seul = makePlan('a', 3, 0)
     expect(delier(seul, 150)).toBe(seul)
+  })
+})
+
+describe('un superset qui change pendant la séance', () => {
+  const p = (exoId: string, enchaine = false, repos = 90): ExoPlan => ({ exoId, repos, ...(enchaine && { enchaine }), series: [{ repsMin: 8, repsMax: 12, rpe: 8 }], chauffes: [], finisseur: false, charge: null })
+  const plans = [p('a', true, 0), p('b'), p('c')]
+
+  it('plus d’alternance si le partenaire est sauté ou fini', () => {
+    const total = () => 1
+    expect(alterneEncore(plans, 0, [], () => 0, total)).toBe(true)
+    expect(alterneEncore(plans, 0, ['b'], () => 0, total)).toBe(false)
+    expect(alterneEncore(plans, 0, [], (id) => (id === 'b' ? 1 : 0), total)).toBe(false)
+    expect(alterneEncore(plans, 2, [], () => 0, total)).toBe(false)
+  })
+
+  it('échanger avec un exercice hors du groupe délie le groupe et rend un vrai repos', () => {
+    const r = echangerExos(plans, 1, 2, () => 150)
+    expect(r.map((x) => x.exoId)).toEqual(['a', 'c', 'b'])
+    expect(r[0].enchaine).toBeUndefined()
+    expect(r[0].repos).toBe(150)
+  })
+
+  it('échanger dans le groupe garde les liens et les repos à leur place', () => {
+    const r = echangerExos(plans, 0, 1, () => 150)
+    expect(r.map((x) => [x.exoId, !!x.enchaine, x.repos])).toEqual([['b', true, 0], ['a', false, 90], ['c', false, 90]])
   })
 })
