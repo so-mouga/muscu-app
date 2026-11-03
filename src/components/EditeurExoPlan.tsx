@@ -3,6 +3,8 @@ import { Fragment, useRef, useState } from 'react'
 import { kg, lireChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
+import { reposParDefaut } from '../lib/programme'
+import { delier } from '../lib/superset'
 import type { Exercice, ExoPlan, TypeFinisseur } from '../types'
 import ChoixDuree from './ChoixDuree'
 import Interrupteur from './Interrupteur'
@@ -411,8 +413,13 @@ export default function EditeurExoPlan({ exo, plan, onValider, onSuivant, onPrec
               className="liste-btn"
               onClick={() =>
                 maj((q) => {
-                  q.enchaine = !q.enchaine || undefined
-                  if (q.enchaine && q.repos > 30) q.repos = 0
+                  if (q.enchaine) {
+                    q.repos = delier(q, reposParDefaut(exo)).repos
+                    q.enchaine = undefined
+                  } else {
+                    q.enchaine = true
+                    if (q.repos > 30) q.repos = 0
+                  }
                 })
               }
             >

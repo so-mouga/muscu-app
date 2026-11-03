@@ -22,7 +22,8 @@ import { suggestionDeload } from '../lib/cycle'
 import { arreterSeanceNatif, natif, pauseNatif, reposNatif, seanceNatif, suivreNatif } from '../lib/natif'
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
-import { estDansSuperset, groupeSuperset, prochainExoDeSeance, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
+import { reposParDefaut } from '../lib/programme'
+import { delier, estDansSuperset, groupeSuperset, prochainExoDeSeance, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
@@ -455,7 +456,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const g = groupeSuperset(plans, i)
     await majSeance(seance.id, (s) => {
       for (const k of g) {
-        s.exercices[k].enchaine = undefined
+        s.exercices[k] = delier(s.exercices[k], reposParDefaut(catalogue.exo(s.exercices[k].exoId)))
       }
     })
     setToast('Superset délié pour aujourd’hui')

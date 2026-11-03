@@ -152,3 +152,19 @@ export function reposApresSuperset(
   // Le suivant est plus loin dans le groupe : transition. Sinon, le tour est fini : repos complet.
   return suivant > index && p.enchaine ? reposDe(p) : reposDe(dernier)
 }
+
+/** Plan sorti de son superset : son repos était une transition (0 à 30 s), il retrouve un vrai repos entre les séries. */
+export function delier(p: ExoPlan, reposDefaut: number): ExoPlan {
+  if (!p.enchaine) return p
+  const { enchaine: _e, ...reste } = p
+  return p.repos > 30 ? reste : { ...reste, repos: p.reposApres ?? reposDefaut }
+}
+
+/**
+ * Retire un exercice de la liste. Celui d'avant ne reste lié que si l'exercice retiré était lié au suivant
+ * (A → B → C sans B reste A → C) ; sinon il sort du superset, au lieu de s'enchaîner avec un exercice jamais choisi.
+ */
+export function retirerDuPlan(plans: ExoPlan[], index: number, reposDefaut: (p: ExoPlan) => number): ExoPlan[] {
+  const retire = plans[index]
+  return plans.filter((_, i) => i !== index).map((p, i) => (i === index - 1 && p.enchaine && !retire?.enchaine ? delier(p, reposDefaut(p)) : p))
+}

@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { ExoPlan } from '../types'
 import {
+  delier,
   estDansSuperset,
   estEnchaine,
   groupeSuperset,
   prochainExoDeSeance,
   prochainExoDuGroupe,
   reposApresSuperset,
+  retirerDuPlan,
   suivantDansGroupe,
   tousLesGroupes,
 } from './superset'
@@ -228,5 +230,46 @@ describe('suivantDansGroupe', () => {
     expect(suivantDansGroupe(plans, 1, { a: 1, b: 0 })).toBe(0)
     expect(suivantDansGroupe(plans, 0, { a: 1, b: 2 })).toBe(0)
     expect(suivantDansGroupe(plans, 0, { a: 2, b: 2 })).toBeNull()
+  })
+})
+
+describe('retirerDuPlan', () => {
+  const repos = () => 150
+  const liste = () => [makePlan('a', 3, 0, true), makePlan('b'), makePlan('c')]
+
+  it('retirer le 2e d’un superset ne lie pas le 1er à l’exercice suivant, et lui rend un vrai repos', () => {
+    const r = retirerDuPlan(liste(), 1, repos)
+    expect(r.map((p) => p.exoId)).toEqual(['a', 'c'])
+    expect(r[0].enchaine).toBeUndefined()
+    expect(r[0].repos).toBe(150)
+    expect(estDansSuperset(r, 0)).toBe(false)
+  })
+  it('retirer le dernier exercice ne laisse pas un repos de 0 s', () => {
+    const r = retirerDuPlan([makePlan('a', 3, 0, true), makePlan('b')], 1, repos)
+    expect(r[0]).toMatchObject({ exoId: 'a', repos: 150 })
+    expect(r[0].enchaine).toBeUndefined()
+  })
+  it('retirer le milieu d’un enchaînement de trois garde les deux autres liés', () => {
+    const r = retirerDuPlan([makePlan('a', 3, 0, true), makePlan('b', 3, 0, true), makePlan('c')], 1, repos)
+    expect(r[0].enchaine).toBe(true)
+    expect(r[0].repos).toBe(0)
+    expect(estDansSuperset(r, 0)).toBe(true)
+  })
+  it('retirer un exercice seul ne change rien aux autres', () => {
+    const r = retirerDuPlan([makePlan('a', 3, 0, true), makePlan('b'), makePlan('c')], 2, repos)
+    expect(r[0].enchaine).toBe(true)
+    expect(r[1].enchaine).toBeFalsy()
+  })
+})
+
+describe('delier', () => {
+  it('reprend le repos après la dernière série s’il y en a un, sinon le repos par défaut', () => {
+    expect(delier({ ...makePlan('a', 3, 0, true), reposApres: 200 }, 150).repos).toBe(200)
+    expect(delier(makePlan('a', 3, 15, true), 150).repos).toBe(150)
+  })
+  it('garde un vrai repos déjà réglé, et ne touche pas à un exercice qui n’est pas lié', () => {
+    expect(delier(makePlan('a', 3, 90, true), 150).repos).toBe(90)
+    const seul = makePlan('a', 3, 0)
+    expect(delier(seul, 150)).toBe(seul)
   })
 })

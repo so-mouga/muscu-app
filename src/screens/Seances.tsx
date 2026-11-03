@@ -22,8 +22,8 @@ import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
-import { estDansSuperset, groupeSuperset } from '../lib/superset'
-import { copieProgramme, nomSeanceLibre } from '../lib/programme'
+import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
+import { copieProgramme, nomSeanceLibre, reposParDefaut } from '../lib/programme'
 import Deplie from '../components/Deplie'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
@@ -32,14 +32,13 @@ export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'sa
 export function planParDefaut(exo: Exercice): ExoPlan {
   // Exercice en temps (gainage…) : 3 × 30 s, repos court.
   if (exo.mesure === 'temps')
-    return { exoId: exo.id, repos: 60, series: [0, 1, 2].map(() => ({ repsMin: 30, repsMax: 30, rpe: 8 })), chauffes: [], finisseur: false, charge: 0 }
-  const petit = exo.muscle === 'mollets' || exo.muscle === 'abdos'
+    return { exoId: exo.id, repos: reposParDefaut(exo), series: [0, 1, 2].map(() => ({ repsMin: 30, repsMax: 30, rpe: 8 })), chauffes: [], finisseur: false, charge: 0 }
   const compose = exo.type === 'compose'
   // Un seul nombre de reps par série (3 × 10, 3 × 12) ; la fourchette reste une option avancée.
   const reps = compose ? 10 : 12
   return {
     exoId: exo.id,
-    repos: petit ? 90 : compose ? 180 : 150,
+    repos: reposParDefaut(exo),
     series: [0, 1, 2].map(() => ({ repsMin: reps, repsMax: reps, rpe: 8 })),
     chauffes: [],
     finisseur: false,
@@ -826,8 +825,7 @@ function Editeur({
   const [remplace, setRemplace] = useState<number | null>(null)
   const glisser = useGlisser('.exo-ligne', (de, vers) =>
     maj((x) => {
-      if (x.exercices[de]) x.exercices[de].enchaine = undefined
-      if (de > 0 && x.exercices[de - 1]) x.exercices[de - 1].enchaine = undefined
+      for (const i of [de, de - 1]) if (x.exercices[i]) x.exercices[i] = delier(x.exercices[i], reposParDefaut(catalogue.exo(x.exercices[i].exoId)))
       deplacer(x.exercices, de, vers)
     })
   )
@@ -1107,7 +1105,7 @@ function Editeur({
             const i = editIdx
             if (!(await confirmer(`Retirer « ${catalogue.exo(m.exercices[i].exoId).nom} » de la séance ?`, { oui: 'Retirer', danger: true }))) return
             setEditIdx(null)
-            maj((x) => x.exercices.splice(i, 1))
+            maj((x) => (x.exercices = retirerDuPlan(x.exercices, i, (p) => reposParDefaut(catalogue.exo(p.exoId)))))
           }}
         />
       )}
