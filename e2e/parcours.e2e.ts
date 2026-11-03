@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { aujourdhui, ecrire, lireTable, ouvrirReglages, ouvrirSeanceDuJour, seance, suivreErreurs } from './outils'
+import { aujourdhui, ecrire, lireTable, ouvrirReglages, ouvrirSeanceDuJour, premierProgramme, seance, suivreErreurs } from './outils'
 
 /**
  * Parcours qui feraient perdre des données s'ils cassaient : faire une séance, l'enregistrer et la
@@ -9,7 +9,7 @@ import { aujourdhui, ecrire, lireTable, ouvrirReglages, ouvrirSeanceDuJour, sean
 test('séance : valider, corriger une série, enregistrer, tout est là après rechargement', async ({ page: p }) => {
   const erreurs = suivreErreurs(p)
   await p.goto('/')
-  await p.getByRole('button', { name: 'Choisir' }).first().click()
+  await premierProgramme(p)
   // Si c'est un jour d'entraînement (comme lundi), l'accueil affiche « Démarrer ». Si c'est repos, « Voir la séance ».
   const btnDemarrer = p.getByRole('button', { name: 'Démarrer', exact: true })
   const btnVoirRepos = p.getByRole('button', { name: 'Voir la séance' })
@@ -62,7 +62,7 @@ test('exporter puis importer dans une appli vide : tout revient à l’identique
   // Pas de menu de partage dans le navigateur de test : l'export se télécharge.
   await p.addInitScript(() => Object.defineProperty(navigator, 'canShare', { value: undefined }))
   await p.goto('/')
-  await p.getByRole('button', { name: 'Choisir' }).first().click()
+  await premierProgramme(p)
   const jour = await aujourdhui(p)
   await ecrire(p, 'seances', [seance('s1', jour, [{ charge: 50, reps: 10, rpe: 8 }, { charge: 50, reps: 9, rpe: 9 }])])
   await ecrire(p, 'pesees', [{ date: jour, poids: 77.4 }])
@@ -81,6 +81,8 @@ test('exporter puis importer dans une appli vide : tout revient à l’identique
   const q = await ctx.newPage()
   const erreursQ = suivreErreurs(q)
   await q.goto('/')
+  // Appli vide : les questions d'abord ; la croix mène à l'accueil, puis aux Réglages pour importer.
+  await q.getByRole('button', { name: 'Quitter' }).click()
   await ouvrirReglages(q)
   await q.locator('input[type=file]').setInputFiles(fichier)
   await q.getByRole('button', { name: 'AJOUTER', exact: true }).click()

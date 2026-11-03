@@ -4967,6 +4967,9 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-page);
   text-wrap: balance;
 }
+.demarrage p {
+  margin: 0;
+}
 .demarrage-haut {
   display: grid;
   grid-template-columns: var(--cible) 1fr var(--cible);
@@ -5057,11 +5060,57 @@ html[data-sens='fondu']::view-transition-new(root) {
   min-height: 22px;
   font-weight: 600;
 }
+/* Écran le plus long sur un petit téléphone : le bouton reste à l'écran, le texte défile dessous. */
 .demarrage-bas {
+  position: sticky;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   gap: var(--e2);
+  margin-bottom: calc((var(--e4) + env(safe-area-inset-bottom)) * -1);
+  padding: var(--e2) 0 calc(var(--e4) + env(safe-area-inset-bottom));
+  background: var(--bg);
 }
 .demarrage-bas .btn {
   flex: none;
+}
+.demarrage-titre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+}
+.demarrage-titre span {
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.demarrage-seances {
+  padding: 2px var(--e4);
+  background: var(--surface-uni);
+  border-radius: var(--rayon-2);
+}
+.demarrage-seance {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  min-height: 42px;
+  border-top: 1px solid var(--bord);
+  font-size: var(--t-petit);
+}
+.demarrage-seance:first-child {
+  border-top: none;
+}
+.demarrage-seance strong {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+.demarrage-jour {
+  width: 32px;
+  color: var(--texte-2);
+}
+.demarrage-premiere {
+  color: var(--texte-salle);
+  font-size: var(--t-legende);
+  text-align: right;
 }

@@ -52,7 +52,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
     id: 'full_body_2',
     nom: 'Full body 2 jours',
     pour: '2 séances par semaine',
-    description: 'Tout le corps à chaque séance, surtout des machines et des haltères. Les deux séances couvrent tous les muscles suivis.',
+    description: 'Tout le corps à chaque séance, surtout des machines et des haltères.',
     seances: [
       { ...FB_B, id: 'fb2_a', nom: 'Full body A', jour: 1 },
       { ...FB_C, id: 'fb2_b', nom: 'Full body B', jour: 4 },
@@ -62,7 +62,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
     id: 'full_body_3',
     nom: 'Full body 3 jours',
     pour: 'Débutant · 3 séances par semaine',
-    description: 'Tout le corps à chaque séance, surtout des machines et des haltères : simple à apprendre, idéal pour démarrer ou reprendre.',
+    description: 'Tout le corps à chaque séance, surtout des machines et des haltères. Simple à apprendre.',
     seances: [
       FB_A,
       FB_B,
@@ -73,7 +73,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
     id: 'haut_bas_4',
     nom: 'Haut / Bas 4 jours',
     pour: 'Avec un peu d’expérience · 4 séances par semaine',
-    description: 'Deux séances haut du corps et deux bas du corps : plus de volume par muscle, avec les grands mouvements à la barre.',
+    description: 'Deux séances haut du corps, deux bas du corps, avec les grands mouvements à la barre.',
     seances: [
       seance('hb_haut1', 'Haut 1', 'développé couché, tirage', 1, [
         exo('dev_couche_barre', 180, s(3, 6, 10, 7)),
@@ -115,7 +115,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
     id: 'recompo_4',
     nom: 'Recompo 4 jours',
     pour: 'Avancé · 4 séances par semaine',
-    description: 'Haut du corps prioritaire (pecs, dos, épaules), jambes en entretien, finisseurs : pour qui connaît déjà ses charges.',
+    description: 'Priorité au haut du corps, jambes en entretien. Pour qui connaît déjà ses charges.',
     seances: PROGRAMME,
     deBase: true,
   },

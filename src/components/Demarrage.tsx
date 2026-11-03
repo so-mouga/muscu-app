@@ -1,9 +1,9 @@
 import { ArrowLeft, X } from 'lucide-react'
 import { useState } from 'react'
 import { changerObjectifs, installerProgramme, type Catalogue } from '../catalogue'
-import { PROGRAMMES_TYPES } from '../data/programmesTypes'
-import { dateISO, jourSemaine } from '../lib/calc'
-import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, recommande, type EtatDemarrage, type Etape, type Niveau, type Objectif } from '../lib/demarrage'
+import { PROGRAMMES_TYPES, type ProgrammeType } from '../data/programmesTypes'
+import { dateISO, dureeEstimee, jourSemaine, minutes } from '../lib/calc'
+import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, pourquoi, quand, recommande, seSuivent, type EtatDemarrage, type Etape, type Niveau, type Objectif } from '../lib/demarrage'
 import { transition, useRetour } from '../lib/nav'
 import { objectifsA } from '../lib/objectifs'
 import { setReglage } from '../db'
@@ -72,6 +72,27 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
 
   const position = seul ? undefined : POSITION[etat.etape]
   const n = etat.jours.length
+  const idPropose = recommande(n, etat.niveau)
+  const prendre = async (t: ProgrammeType, jours: number[]) => {
+    await setReglage(CLE_DEMARRAGE, { ...etat, quitte: true, installeLe: dateISO() })
+    await installerProgramme(t, catalogue, jours)
+    onInstalle()
+  }
+  const creer = (
+    <button
+      type="button"
+      className="demarrage-option"
+      onClick={() =>
+        void (async () => {
+          await setReglage(CLE_DEMARRAGE, { ...etat, quitte: true })
+          onCreer()
+        })()
+      }
+    >
+      <strong>Créer le mien</strong>
+      <span>Tes séances, tes exercices, tes jours</span>
+    </button>
+  )
   return (
     <div className="demarrage">
       <div className="demarrage-haut">
@@ -146,29 +167,82 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
         </>
       )}
 
-      {(etat.etape === 'proposition' || etat.etape === 'autres' || etat.etape === 'mien') && (
+      {etat.etape === 'proposition' && (
+        <Proposition etat={etat} idPropose={idPropose} onPrendre={prendre} onAutres={() => aller('autres')} />
+      )}
+
+      {(etat.etape === 'autres' || etat.etape === 'mien') && (
         <div className="demarrage-corps">
-          <button
-            type="button"
-            className="btn primaire plein"
-            onClick={() =>
-              void (async () => {
-                const t = PROGRAMMES_TYPES.find((x) => x.id === recommande(n, etat.niveau))!
-                const aJour = t.seances.filter((m) => m.jour)
-                const jours = ordreDesJours(joursRepartis(etat.jours, aJour.length, aJour.map((m) => m.jour!)), jourSemaine()).map((x) => x.jour)
-                await setReglage(CLE_DEMARRAGE, { ...etat, quitte: true, installeLe: dateISO() })
-                await installerProgramme(t, catalogue, jours)
-                onInstalle()
-              })()
-            }
-          >
-            Prendre ce programme
-          </button>
-          <button type="button" className="btn plein" onClick={onCreer}>
-            Créer le mien
-          </button>
+          <h1>{etat.etape === 'mien' ? 'Ton programme' : 'Les autres programmes'}</h1>
+          <div className="demarrage-choix">
+            {etat.etape === 'mien' && creer}
+            {PROGRAMMES_TYPES.filter((t) => etat.etape === 'mien' || t.id !== idPropose).map((t) => (
+              <button key={t.id} type="button" className="demarrage-option" onClick={() => aller('proposition', { choisi: t.id })}>
+                <strong>{t.nom}</strong>
+                <span>{t.description}</span>
+              </button>
+            ))}
+            {etat.etape === 'autres' && creer}
+          </div>
         </div>
       )}
     </div>
+  )
+}
+
+/** Le programme proposé, ou choisi dans la liste : une proposition que la personne peut refuser. */
+function Proposition({ etat, idPropose, onPrendre, onAutres }: { etat: EtatDemarrage; idPropose: string; onPrendre: (t: ProgrammeType, jours: number[]) => Promise<void>; onAutres: () => void }) {
+  const [occupe, setOccupe] = useState(false)
+  const t = PROGRAMMES_TYPES.find((x) => x.id === (etat.choisi ?? idPropose))!
+  const aJour = t.seances.filter((m) => m.jour).sort((a, b) => a.jour! - b.jour!)
+  const ordre = ordreDesJours(joursRepartis(etat.jours, aJour.length, aJour.map((m) => m.jour!)), jourSemaine())
+  const ajoutes = etat.jours.length ? ordre.filter((x) => !etat.jours.includes(x.jour)).map((x) => NOMS_JOURS[x.jour]) : []
+  const moyenne = Math.round(aJour.reduce((a, m) => a + dureeEstimee(m), 0) / aJour.length / 5) * 5
+  return (
+    <>
+      <div className="demarrage-corps">
+        <div className="demarrage-titre">
+          <span>{etat.choisi ? 'Ton choix' : 'On te propose'}</span>
+          <h1>{t.nom}</h1>
+        </div>
+        <p>{etat.choisi ? t.description : pourquoi(t.id, etat.jours.length)}</p>
+        {ajoutes.length > 0 && (
+          <p className="faible">
+            Ce programme demande {aJour.length} jours : on a ajouté {ajoutes.join(' et ')}.
+          </p>
+        )}
+        <div className="demarrage-seances">
+          {ordre.map((x, i) => (
+            <div key={x.jour} className="demarrage-seance">
+              <span className="demarrage-jour">{NOMS_JOURS[x.jour].slice(0, 3)}</span>
+              <strong>{aJour[i].nom}</strong>
+              {i === 0 && <span className="demarrage-premiere">1re séance, {quand(x.dans, x.jour)}</span>}
+            </div>
+          ))}
+        </div>
+        {t.id.startsWith('full_body') && etat.jours.length === aJour.length && seSuivent(etat.jours) && <p className="faible">Ces jours se suivent : un jour de repos entre deux séances aide à récupérer.</p>}
+        <p className="faible">
+          Environ {minutes(moyenne)} par séance. Le premier jour, commence léger : tu notes la charge qui te convient. Tout se modifie ensuite{etat.jours.length ? '' : ', jours compris'}.
+        </p>
+      </div>
+      <div className="demarrage-bas">
+        <button
+          type="button"
+          className="btn primaire plein"
+          disabled={occupe}
+          onClick={() => {
+            setOccupe(true)
+            void onPrendre(t, ordre.map((x) => x.jour)).finally(() => setOccupe(false))
+          }}
+        >
+          Prendre ce programme
+        </button>
+        {!etat.choisi && (
+          <button type="button" className="btn plein" onClick={onAutres}>
+            Voir les autres ou créer le mien
+          </button>
+        )}
+      </div>
+    </>
   )
 }
