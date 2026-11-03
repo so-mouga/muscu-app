@@ -166,6 +166,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const [chronoOuvert, setChronoOuvert] = useState(false)
   const [saisieManuelle, setSaisieManuelle] = useState(false)
   const [reglerPalier, setReglerPalier] = useState(false)
+  // Poids du corps sans lest : pas de « 0 kg » en grand. Une fois le lest demandé, les boutons restent pour cette série.
+  const [lestDemande, setLestDemande] = useState(false)
 
   // Pendant le repos, la validation reste possible mais passe au second plan.
   const enRepos = !edition && reposRestant > 0
@@ -312,7 +314,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   }
 
   // Charge et reps : l'un sous l'autre, ou côte à côte en plein écran (compact) pour tout voir sans défiler.
-  const stepperCharge = (
+  const stepperCharge = exo.mode === 'poids_corps' && charge === 0 && !lestDemande ? (
+    <div className="stepper sans-lest">
+      <div className="valeur">
+        <span className="poids-du-corps">Poids du corps</span>
+      </div>
+      <button onClick={() => (setLestDemande(true), setCharge(pas), setChargeTxt(null))}>+ lest</button>
+    </div>
+  ) : (
     <div className="stepper">
       <button onClick={() => !aRegler && (setCharge(chargeDecalee(exo, charge, -pas)), setChargeTxt(null))}>−</button>
       <div className="valeur">

@@ -3581,6 +3581,30 @@ button.phase-accueil {
   height: var(--salle-pas);
   font-size: var(--t-titre);
 }
+.stepper.sans-lest {
+  grid-template-columns: 1fr 96px;
+}
+.stepper.sans-lest button {
+  font-size: var(--t-texte);
+}
+.poids-du-corps {
+  font-size: var(--t-titre);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Même hauteur qu'un nombre et son unité : rien ne bouge d'un exercice à l'autre. */
+.steppers-duo .stepper.sans-lest {
+  grid-template-columns: 1fr;
+}
+.steppers-duo .stepper.sans-lest > .valeur {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(var(--salle-chiffre) * 1.1 + 24px);
+}
+.steppers-duo .stepper.sans-lest > button {
+  font-size: var(--t-texte);
+}
 .steppers-duo .stepper .valeur input {
   font-size: var(--salle-chiffre);
   font-weight: 800;
