@@ -76,7 +76,7 @@ async function sauverProgramme(p: Programme, catalogue: Catalogue) {
 /** Le programme tel qu'on le modifie : jamais la copie du cycle. */
 const programmeVivant = (catalogue: Catalogue, p: Programme) => catalogue.programmes.find((x) => x.id === p.id) ?? p
 
-export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void }) {
+export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerOuvert, onBilanCycle }: { catalogue: Catalogue; onChoisirProgramme: () => void; /** Ouvre le Bilan sur la période du cycle. */ onBilanCycle: () => void; /** Ouvre tout de suite un nouveau programme (« Créer le mien » du démarrage). */ creer?: boolean; onCreerOuvert?: () => void }) {
   const [pile, setPile] = useState<Vue[]>([])
   const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
   const vue = pile[pile.length - 1]
@@ -115,7 +115,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
         <Editeur key={vue.m.id} catalogue={catalogue} initial={vue.m} nouvelle={vue.nouvelle} entree={vue.entree} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
       </>
     )
-  if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={fermer} />
+  if (vue?.type === 'cycle' && catalogue.cycle) return <VueCycle catalogue={catalogue} cycle={catalogue.cycle} onFermer={fermer} onBilan={onBilanCycle} />
   if (vue?.type === 'volume') return <PageVolume catalogue={catalogue} p={programmeVivant(catalogue, vue.p)} onFermer={fermer} />
   if (vue?.type === 'changer')
     return (
@@ -160,6 +160,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
       onRetour={vue ? fermer : undefined}
       onSeance={ouvrirSeance}
       onCycle={() => ouvrir({ type: 'cycle' })}
+      onBilan={onBilanCycle}
       onVolume={() => ouvrir({ type: 'volume', p })}
       onChanger={() => ouvrir({ type: 'changer' })}
       onOuvrirProgramme={(x) => ouvrir({ type: 'programme', p: x })}
@@ -190,6 +191,7 @@ function PageProgramme({
   onRetour,
   onSeance,
   onCycle,
+  onBilan,
   onVolume,
   onChanger,
   onOuvrirProgramme,
@@ -203,6 +205,7 @@ function PageProgramme({
   onRetour?: () => void
   onSeance: (m: SeanceModele, entree: { programmeId: string; index: number }, choisirExos?: boolean) => void
   onCycle: () => void
+  onBilan: () => void
   onVolume: () => void
   onChanger: () => void
   onOuvrirProgramme: (p: Programme) => void
@@ -311,7 +314,7 @@ function PageProgramme({
         ) : (
           <div className="carte pile">
             {cycle ? (
-              <button type="button" className="prog-lien" onClick={onCycle}>
+              <button type="button" className="prog-lien" onClick={onBilan}>
                 <strong>Cycle terminé</strong>
                 <span className="faible">
                   Voir le bilan <ChevronRight size={14} className="ico-texte" />

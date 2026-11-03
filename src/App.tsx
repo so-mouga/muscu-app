@@ -12,6 +12,7 @@ import Exercices from './screens/Exercices'
 import Demarrage, { type ModeDemarrage } from './components/Demarrage'
 import IconeOnglet from './components/IconeOnglet'
 import Historique, { type VueProgression } from './screens/Historique'
+import { voirPeriodeCycle } from './screens/Bilan'
 import Reglages from './screens/Reglages'
 import SeanceEnCours from './screens/SeanceEnCours'
 import Seances from './screens/Seances'
@@ -100,6 +101,12 @@ export default function App() {
     }, id ? 'avant' : 'arriere')
     window.scrollTo({ top: 0 })
   }
+  const ouvrirBilanCycle = () => {
+    voirPeriodeCycle()
+    setDetailEtat(null)
+    setVue('bilan')
+    setOnglet('historique')
+  }
   // Retour Android : depuis un autre onglet, on revient à l'accueil ; depuis l'accueil, on quitte.
   useRetour(!enCours && onglet !== 'accueil', () => transition(() => setOngletEtat('accueil'), 'arriere'))
   const fermerReglages = () => (transition(() => setReglages(false), 'arriere'), window.scrollTo({ top: 0 }))
@@ -137,6 +144,7 @@ export default function App() {
             onReglages={() => (transition(() => setReglages(true), 'avant'), window.scrollTo({ top: 0 }))}
             onJournal={() => (setVue('journal'), setOnglet('historique'))}
             onProgrammes={() => setOnglet('seances')}
+            onBilanCycle={ouvrirBilanCycle}
             onChoisirProgramme={() => setDemarrageOuvert('programme')}
           />
         )}
@@ -152,7 +160,7 @@ export default function App() {
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={setPageCorps} />}
-        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} />}
+        {!reglages && onglet === 'seances' && <Seances catalogue={catalogue} onChoisirProgramme={() => setDemarrageOuvert('programme')} creer={creerProgramme} onCreerOuvert={() => setCreerProgramme(false)} onBilanCycle={ouvrirBilanCycle} />}
         {!reglages && onglet === 'exercices' && (
           <Exercices
             catalogue={catalogue}

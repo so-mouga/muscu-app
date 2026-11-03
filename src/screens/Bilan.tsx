@@ -6,12 +6,12 @@ import Aide from '../components/Aide'
 import { informer } from '../components/Dialogues'
 import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
-import { BONUS_PRIORITE, etatCycle, nomCycle } from '../lib/cycle'
+import { BONUS_PRIORITE, etatCycle, lundiDe, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { analyser, essentiel, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
-import { dateCourte, dateISO, kg, lundi } from '../lib/calc'
-import { semainesTenues } from '../lib/motivation'
+import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
+import { depuisDebut, semainesTenues } from '../lib/motivation'
 import { useRetour } from '../lib/nav'
 import { etatVolume, LIBELLE_VOLUME, zone } from '../lib/volume'
 import type { Muscle } from '../types'
@@ -27,12 +27,18 @@ const ecart = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${
 /** Ce qu'on retrouve au retour d'une fiche d'exercice : le Bilan est démonté pendant qu'elle est ouverte. */
 const memoire = { periode: '4' as Periode, tous: false, defilement: 0 }
 
+/** « Voir le bilan » d'un cycle : le Bilan s'ouvrira sur sa période. */
+export const voirPeriodeCycle = () => {
+  memoire.periode = 'cycle'
+  memoire.tous = false
+  memoire.defilement = 0
+}
+
 /**
  * Bilan des semaines finies : la réponse d'abord (À retenir), puis les exercices, la régularité, les
  * muscles et la forme. La semaine en cours n'y entre pas : l'accueil s'en occupe, et un lundi ne juge rien.
  */
 export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onCorps?: () => void }) {
-  const cycle = catalogue.cycle
   const [periodeChoisie, setPeriodeChoisie] = useState(memoire.periode)
   const [tous, setTousEtat] = useState(memoire.tous)
   const seances = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
@@ -67,9 +73,14 @@ export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: 
     : undefined
 
   const cetteSemaine = lundi()
+  // Le cycle en cours, sinon le dernier terminé : son bilan reste consultable.
+  const cycle = catalogue.cycle ?? [...cycles].sort((x, y) => y.debut.localeCompare(x.debut))[0]
   const cycleDispo = !!cycle && cycle.debut < cetteSemaine
+  const cycleFini = !!cycle && etatCycle(cycle).fini
   const periode: Periode = periodeChoisie === 'cycle' && !cycleDispo ? '4' : periodeChoisie
-  const fin = decaler(cetteSemaine, -1)
+  const finSemaines = decaler(cetteSemaine, -1)
+  const finCycle = cycle?.fin ?? (cycle ? decaler(lundiDe(cycle, cycle.semaines), 6) : finSemaines)
+  const fin = periode === 'cycle' && finCycle < finSemaines ? finCycle : finSemaines
   const debut = periode === 'cycle' && cycle ? cycle.debut : decaler(cetteSemaine, periode === '12' ? -91 : -28)
 
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
@@ -85,7 +96,9 @@ export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: 
   const finAvant = decaler(a.debut, -1)
   const avant = analyser(donnees, decaler(finAvant, -longueur), finAvant, prevues, phaseA(catalogue.objectifs, finAvant)?.phase)
   const lignes = essentiel(a, avant.seances > 0 ? avant : null, phaseFin, depuisPhase)
-  const exercices = lectureExercices(a)
+  // Sur un cycle : ce qui monte se lit en charges, de la 1re séance à la dernière.
+  const parCharges = periode === 'cycle' && cycle ? depuisDebut(seances.filter((s) => s.date <= fin), catalogue.exo, cycle.debut, 8) : []
+  const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}` })))
 
   if (tous)
     return (
@@ -163,7 +176,7 @@ export default function Bilan({ catalogue, haut, onExo, onCorps }: { catalogue: 
         {(
           [
             ['4', '4 sem.'],
-            ...(cycleDispo ? [['cycle', 'Cycle']] : []),
+            ...(cycleDispo ? [['cycle', cycleFini ? 'Dernier cycle' : 'Cycle']] : []),
             ['12', '3 mois'],
           ] as [Periode, string][]
         ).map(([id, nom]) => (
@@ -290,7 +303,7 @@ interface LigneExercice {
 }
 
 /** Records, progressions et blocages réunis : ce qui monte (les plus forts d'abord), ce qui bloque, et la piste qu'ils ont tous. */
-function lectureExercices(a: Analyse) {
+function lectureExercices(a: Analyse, parCharges: LigneExercice[] = []) {
   const records = new Map(a.records.map((r) => [r.exo.id, r.perf]))
   const avecRecord = (id: string, texte: string) => (records.has(id) ? `${texte} · record` : texte)
   const montent: LigneExercice[] = a.progressions
@@ -301,6 +314,12 @@ function lectureExercices(a: Analyse) {
     if (vus.has(r.exo.id)) continue
     vus.add(r.exo.id)
     montent.push({ id: r.exo.id, nom: r.exo.nom, detail: avecRecord(r.exo.id, records.get(r.exo.id)!) })
+  }
+  // Sur un cycle : avant → après en tête, et à la place de la force estimée.
+  for (const l of [...parCharges].reverse()) {
+    const i = montent.findIndex((x) => x.id === l.id)
+    const ancienne = i >= 0 ? montent.splice(i, 1)[0] : undefined
+    montent.unshift({ ...l, detail: records.has(l.id) ? `${l.detail} · record` : l.detail, valeur: ancienne?.valeur })
   }
   const pisteCommune = a.stagnations.length >= 2 ? a.stagnations[0].pistes.find((p) => a.stagnations.every((s) => s.pistes.includes(p))) : undefined
   const bloques: LigneExercice[] = a.stagnations.map((s) => ({

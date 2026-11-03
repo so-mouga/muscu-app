@@ -5270,3 +5270,25 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-petit);
   color: var(--texte-2);
 }
+
+/* Page du cycle */
+.semaine-cycle {
+  padding: var(--e2) 0;
+  border-bottom: 1px solid var(--bord);
+}
+.semaine-cycle:last-child {
+  border-bottom: 0;
+}
+.semaine-cycle.courante {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  margin: 0 calc(-1 * var(--e2));
+  padding: var(--e2);
+  border-bottom: 0;
+  border-radius: var(--rayon-2);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.semaine-allegee {
+  color: var(--texte-2);
+}

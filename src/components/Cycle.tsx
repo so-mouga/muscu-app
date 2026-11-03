@@ -1,16 +1,13 @@
+import { ChevronRight, MoreHorizontal } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { lancerCycle, type Catalogue } from '../catalogue'
-import { nomCle } from '../data/mesures'
 import { db } from '../db'
-import { chargeQte, dateCourte, dateISO, kg, lundi, semaineType, volumeParMuscle, volumePrevu } from '../lib/calc'
-import { depuisDebut } from '../lib/motivation'
+import { dateCourte, dateISO, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
 import { appliquerEcart, BONUS_PRIORITE, debutCycle, deloadMaintenant, DUREE_DEFAUT, etatCycle, garderEcart, lundiDe, MAX_PRIORITES, mettreEnPause, nomCycle } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import type { Cycle, Muscle, Programme } from '../types'
-import VolumeMuscles from './VolumeMuscles'
 import { confirmer } from './Dialogues'
 import Aide from './Aide'
 
@@ -110,7 +107,7 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
   ].join(' ')
 
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond" onClick={cycle ? () => void enregistrer() : onFermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <div className="ligne entre">
           <h2>{cycle ? 'Modifier le cycle' : `Lancer ${progChoisi?.nom ?? 'un cycle'}`}</h2>
@@ -231,11 +228,12 @@ export function LancerCycle({ catalogue, programme, cycle, onFermer, onLance }: 
   )
 }
 
-/** Vue du cycle en cours : semaine par semaine, et les actions (pause, déload, modifier, terminer). */
-export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue; cycle: Cycle; onFermer: () => void }) {
+/** Le cycle : où j'en suis, semaine par semaine. Le rare (déload, pause, modifier, terminer) est dans ⋯. */
+export function VueCycle({ catalogue, cycle, onFermer, onBilan }: { catalogue: Catalogue; cycle: Cycle; onFermer: () => void; onBilan: () => void }) {
   const [modifier, setModifier] = useState(false)
-  const [bilan, setBilan] = useState(false)
-  useRetour(!modifier && !bilan, onFermer)
+  const [menu, setMenu] = useState(false)
+  useRetour(!modifier, onFermer)
+  useRetour(menu, () => setMenu(false))
   const seances = useLiveQuery(() => db.seances.filter((s) => s.cycleId === cycle.id && !s.enCours).toArray(), [cycle.id], [])
   const etat = etatCycle(cycle)
   // Chaque séance va dans la semaine de sa date réelle (une semaine mise en pause après coup garde les siennes).
@@ -254,10 +252,20 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
   }
 
   const terminer = async () => {
+    setMenu(false)
     if (!(await confirmer('Son historique et son bilan sont conservés.', { titre: 'Terminer ce cycle maintenant ?', oui: 'Terminer le cycle', danger: true }))) return
     await db.cycles.update(cycle.id, { fin: dateISO() })
     onFermer()
   }
+  const alleger = async () => {
+    setMenu(false)
+    if (await confirmer('Les séances seront allégées et la fin du cycle reculera d’une semaine.', { titre: `Alléger la semaine ${etat.n} ?`, oui: 'Alléger cette semaine' })) await db.cycles.put(deloadMaintenant(cycle))
+  }
+  const pause = async () => {
+    setMenu(false)
+    if (await confirmer('Elle ne comptera pas, et tout le reste du cycle glissera d’une semaine.', { titre: 'Mettre cette semaine en pause ?', oui: 'Mettre en pause' })) await db.cycles.put(mettreEnPause(cycle))
+  }
+  const enCours = !etat.fini && etat.n >= 1
 
   return (
     <div>
@@ -265,222 +273,126 @@ export function VueCycle({ catalogue, cycle, onFermer }: { catalogue: Catalogue;
         <button className="btn" onClick={onFermer} aria-label="Retour">
           ←
         </button>
-        <div style={{ flex: 1 }}>
-          <h2>{etat.n <= 0 ? 'Cycle à venir' : etat.fini ? 'Cycle terminé' : 'Cycle en cours'}</h2>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2>{etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h2>
           <div className="faible">
-            {nomCycle(cycle)} · {cycle.semaines} semaines depuis le {debutSemaine(cycle.debut)}
+            {nomCycle(cycle)} · depuis le {debutSemaine(cycle.debut)}
             {cycle.priorites?.length ? ` · priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}` : ''}
           </div>
         </div>
-        <Aide texte={AIDE_CYCLE} />
+        {!etat.fini && (
+          <button className="icone" onClick={() => setMenu(true)} aria-label="Plus d’actions">
+            <MoreHorizontal size={22} />
+          </button>
+        )}
       </div>
 
       <div className="carte">
         {lignes.map((x) => {
-          if ('pause' in x) {
-            const pendant = seances.filter((s) => lundi(new Date(s.date + 'T12:00:00')) === x.pause)
+          if ('pause' in x)
             return (
-              <div key={x.pause} className="ligne-semaine pause">
-                <span className="faible">⏸ Pause · sem. du {debutSemaine(x.pause)}</span>
-                {pendant.length > 0 && (
-                  <div className="ligne wrap" style={{ gap: 4 }}>
-                    {pendant.map((s) => (
-                      <span key={s.id} className="pastille ok">
-                        ✓ {s.nom}
+              <div key={x.pause} className="semaine-cycle">
+                <span className="faible">Pause · semaine du {debutSemaine(x.pause)}</span>
+              </div>
+            )
+          const faites = seances.filter((s) => semaineDe(s.date) === x.n)
+          const deload = cycle.deloads.includes(x.n)
+          const courante = x.n === etat.n && !etat.pause && !etat.fini
+          const titre = (
+            <span>
+              <strong>Semaine {x.n}</strong>
+              {deload && <span className="semaine-allegee"> · allégée</span>}
+            </span>
+          )
+          if (courante) {
+            const restantes = [...faites]
+            return (
+              <div key={x.n} className="semaine-cycle courante">
+                <div className="ligne entre">
+                  {titre}
+                  <span className="faible">{debutSemaine(x.lundi)}</span>
+                </div>
+                <div className="ligne wrap" style={{ gap: 'var(--e1)' }}>
+                  {prevues.map((m, k) => {
+                    const i = restantes.findIndex((s) => s.modeleId === m.id)
+                    if (i >= 0) restantes.splice(i, 1)
+                    return (
+                      <span key={m.id + k} className={'pastille' + (i >= 0 ? ' ok' : '')}>
+                        {i >= 0 ? '✓ ' : ''}
+                        {m.nom}
                       </span>
-                    ))}
-                  </div>
-                )}
+                    )
+                  })}
+                  {restantes.map((s) => (
+                    <span key={s.id} className="pastille ok">
+                      ✓ {s.nom}
+                    </span>
+                  ))}
+                </div>
               </div>
             )
           }
-          const faites = seances.filter((s) => semaineDe(s.date) === x.n)
-          const deload = cycle.deloads.includes(x.n)
-          const courante = x.n === etat.n && !etat.pause
-          const restantes = [...faites]
+          const passee = x.lundi < lundi()
           return (
-            <div key={x.n} className={'ligne-semaine' + (courante ? ' courante' : '') + (deload ? ' deload' : '')}>
-              <div className="ligne entre">
-                <strong>
-                  S{x.n}
-                  {deload && ' · 🧘 déload'}
-                </strong>
+            <div key={x.n} className="semaine-cycle ligne entre">
+              {titre}
+              {passee || faites.length ? (
+                <span className={faites.length >= prevues.length ? 'tenue' : 'faible'}>
+                  {faites.length >= prevues.length ? '✓ ' : ''}
+                  {faites.length} sur {prevues.length}
+                </span>
+              ) : (
                 <span className="faible">{debutSemaine(x.lundi)}</span>
-              </div>
-              <div className="ligne wrap" style={{ gap: 4 }}>
-                {prevues.map((m, k) => {
-                  const i = restantes.findIndex((s) => s.modeleId === m.id)
-                  const fait = i >= 0
-                  if (fait) restantes.splice(i, 1)
-                  return (
-                    <span key={m.id + k} className={'pastille' + (fait ? ' ok' : '')}>
-                      {fait ? '✓ ' : ''}
-                      {m.nom}
-                    </span>
-                  )
-                })}
-                {restantes.map((s) => (
-                  <span key={s.id} className="pastille ok">
-                    ✓ {s.nom}
-                  </span>
-                ))}
-              </div>
+              )}
             </div>
           )
         })}
       </div>
 
-      {!etat.fini && etat.n >= 1 && (
-        <div className="carte pile">
-          <button
-            className="btn plein"
-            disabled={etat.pause}
-            onClick={async () =>
-              (await confirmer('Les séances seront allégées et la fin du cycle reculera d’une semaine.', { titre: `Passer la semaine ${etat.n} en déload ?`, oui: 'Passer en déload' })) &&
-              db.cycles.put(deloadMaintenant(cycle))
-            }
-          >
-            🧘 Déload maintenant
-          </button>
-          <div className="faible">Tu te sens cuit ? Cette semaine devient un déload, la suite du cycle est décalée d’une semaine.</div>
-          <button
-            className="btn plein"
-            disabled={etat.pause}
-            onClick={async () =>
-              (await confirmer('Elle ne comptera pas, et tout le reste du cycle glissera d’une semaine.', { titre: 'Mettre cette semaine en pause ?', oui: 'Mettre en pause' })) &&
-              db.cycles.put(mettreEnPause(cycle))
-            }
-          >
-            ⏸ Mettre cette semaine en pause
-          </button>
-          <div className="faible">Vacances, maladie : la semaine ne compte pas, tout le reste du cycle glisse d’une semaine.</div>
+      {cycle.debut < lundi() && (
+        <button className="liste-btn" onClick={onBilan}>
+          <span>Voir le bilan de ce cycle</span>
+          <ChevronRight size={20} className="muted" />
+        </button>
+      )}
+      <div className="ligne entre faible" style={{ padding: 'var(--e2) var(--e1)' }}>
+        <span>C’est quoi, un cycle ?</span>
+        <Aide texte={AIDE_CYCLE} />
+      </div>
+
+      {menu && (
+        <div className="modal-fond" onClick={() => setMenu(false)}>
+          <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+            <h3>Ce cycle</h3>
+            {enCours && (
+              <button className="liste-btn" disabled={etat.pause || etat.deload} onClick={() => void alleger()}>
+                <span>
+                  Alléger cette semaine (déload)
+                  <span className="faible prog-sous">Fatigué : la suite du cycle est décalée d’une semaine</span>
+                </span>
+              </button>
+            )}
+            {enCours && (
+              <button className="liste-btn" disabled={etat.pause} onClick={() => void pause()}>
+                <span>
+                  Mettre cette semaine en pause
+                  <span className="faible prog-sous">Vacances, maladie : elle ne compte pas</span>
+                </span>
+              </button>
+            )}
+            <button className="liste-btn" onClick={() => (setMenu(false), setModifier(true))}>
+              <span>Modifier la durée et le nom</span>
+            </button>
+            <button className="liste-btn" onClick={() => void terminer()}>
+              <span style={{ color: 'var(--danger)' }}>Terminer le cycle</span>
+            </button>
+            <button className="btn discret plein" onClick={() => setMenu(false)}>
+              Fermer
+            </button>
+          </div>
         </div>
       )}
-
-      <div className="ligne wrap" style={{ marginBottom: 24 }}>
-        <button className="btn" onClick={() => setBilan(true)}>
-          📊 Bilan{etat.fini ? '' : ' jusqu’ici'}
-        </button>
-        <button className="btn" onClick={() => setModifier(true)}>
-          Modifier
-        </button>
-        <button className="btn danger" onClick={terminer}>
-          Terminer le cycle
-        </button>
-      </div>
-
       {modifier && <LancerCycle catalogue={catalogue} cycle={cycle} onFermer={() => setModifier(false)} />}
-      {bilan && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
-    </div>
-  )
-}
-
-/** Bilan d'un cycle : assiduité, volume moyen face aux objectifs, records, poids et mesures. */
-export function BilanCycle({ cycle, catalogue, onFermer }: { cycle: Cycle; catalogue: Catalogue; onFermer: () => void }) {
-  useRetour(true, onFermer)
-  const toutes = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
-  const pesees = useLiveQuery(() => db.pesees.orderBy('date').toArray(), [], [])
-  const mesures = useLiveQuery(() => db.mesures.orderBy('date').toArray(), [], [])
-  if (!toutes) return null
-
-  const etat = etatCycle(cycle)
-  // Semaines écoulées (la semaine en cours ne compte qu'une fois finie), puis celles de travail.
-  const ecoulees = etat.fini ? cycle.semaines : Math.min(cycle.semaines, Math.max(0, etat.n - 1))
-  const normales = Array.from({ length: ecoulees }, (_, i) => i + 1).filter((n) => !cycle.deloads.includes(n))
-  const duCycle = toutes.filter((s) => s.cycleId === cycle.id)
-  const travail = duCycle.filter((s) => {
-    const e = etatCycle(cycle, s.date)
-    return !s.deload && !e.pause && normales.includes(e.n)
-  })
-  const prevues = semaineType(cycle.programme).length * normales.length
-  const volume = volumeParMuscle(travail, catalogue.exercices)
-  const moyen = Object.fromEntries(Object.entries(volume).map(([m, v]) => [m, normales.length ? Math.round((v / normales.length) * 10) / 10 : 0])) as typeof volume
-  const records = recordsParSeance(toutes, catalogue.exo)
-  const progres = depuisDebut(duCycle, catalogue.exo, cycle.debut, 8)
-  const nbRecords = duCycle.reduce((a, s) => a + (records[s.id] ?? 0), 0)
-
-  const finCycle = cycle.fin ?? dateISO()
-  const avantDebut = <T extends { date: string }>(l: T[]) => [...l].reverse().find((x) => x.date <= cycle.debut) ?? l.find((x) => x.date >= cycle.debut && x.date <= finCycle)
-  const derniere = <T extends { date: string }>(l: T[]) => [...l].reverse().find((x) => x.date <= finCycle)
-  const p0 = avantDebut(pesees)
-  const p1 = derniere(pesees)
-  const m0 = avantDebut(mesures)
-  const m1 = derniere(mesures)
-  const signe = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(Math.round(d * 10) / 10))} ${u}`
-  const ecartsMesures = m0 && m1 && m0.date !== m1.date ? Object.keys(m1.valeurs).filter((c) => m0.valeurs[c] !== undefined) : []
-
-  return (
-    <div className="modal-fond" onClick={onFermer}>
-      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
-        <div>
-          <h2>Bilan du cycle</h2>
-          <div className="faible">
-            {nomCycle(cycle)} · depuis le {debutSemaine(cycle.debut)}
-            {etat.fini ? '' : ` · ${ecoulees} semaine${ecoulees > 1 ? 's' : ''} écoulée${ecoulees > 1 ? 's' : ''}`}
-          </div>
-        </div>
-        <div className="tuiles">
-          <div className="tuile">
-            <strong>
-              {travail.length}/{prevues}
-            </strong>
-            <span className="faible">séances faites</span>
-          </div>
-          <div className="tuile">
-            <strong>{nbRecords}</strong>
-            <span className="faible">record{nbRecords > 1 ? 's' : ''} 🏆</span>
-          </div>
-          <div className="tuile">
-            <strong>{duCycle.filter((s) => s.deload).length}</strong>
-            <span className="faible">séance(s) de déload</span>
-          </div>
-        </div>
-
-        {progres.length > 0 && (
-          <div>
-            <h3>Depuis le début du cycle</h3>
-            <div className="faible" style={{ margin: '4px 0 8px' }}>Meilleure série de la 1re séance face à la dernière.</div>
-            {progres.map((p) => (
-              <div key={p.exo.id} className="ligne entre" style={{ gap: 8 }}>
-                <span>{p.exo.nom}</span>
-                <span className="faible" style={{ textAlign: 'right' }}>
-                  {chargeQte(p.exo, p.avant.charge, p.avant.reps)} → <strong className="plus">{chargeQte(p.exo, p.apres.charge, p.apres.reps)}</strong>
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div>
-          <h3>Volume moyen par semaine</h3>
-          <div className="faible" style={{ margin: '4px 0 8px' }}>
-            Séries dures sur les semaines de travail, face à tes objectifs.
-          </div>
-          {normales.length ? <VolumeMuscles volume={moyen} cibles={catalogue.cibles} /> : <div className="faible">Pas encore de semaine de travail terminée.</div>}
-        </div>
-
-        {(p0 && p1 && p0.date !== p1.date) || ecartsMesures.length ? (
-          <div>
-            <h3>Corps</h3>
-            {p0 && p1 && p0.date !== p1.date && (
-              <div className="ligne-mesure">
-                <span>Poids</span>
-                <strong>{signe(p1.poids - p0.poids, 'kg')}</strong>
-              </div>
-            )}
-            {ecartsMesures.map((c) => (
-              <div key={c} className="ligne-mesure">
-                <span>{nomCle(c)}</span>
-                <strong>{signe(m1!.valeurs[c] - m0!.valeurs[c], 'cm')}</strong>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <button className="btn discret plein" onClick={onFermer}>
-          Fermer
-        </button>
-      </div>
     </div>
   )
 }

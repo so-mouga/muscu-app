@@ -10,7 +10,6 @@ import { nomPhase, periodes, phaseAffichee, type Phase } from '../lib/objectifs'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
-import { BilanCycle } from '../components/Cycle'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
 import { etatCycle, planDeload } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
@@ -75,6 +74,7 @@ export default function Accueil({
   onObjectifs,
   onJournal,
   onProgrammes,
+  onBilanCycle,
   onChoisirProgramme,
   onObjectif,
 }: {
@@ -89,12 +89,12 @@ export default function Accueil({
   onJournal: () => void
   /** Ouvre l'onglet Programmes (gestion du cycle). */
   onProgrammes: () => void
+  onBilanCycle: () => void
   /** Sans programme : ouvre le choix du programme. */
   onChoisirProgramme: () => void
   /** Sans objectif : ouvre la question de l'objectif. */
   onObjectif: () => void
 }) {
-  const [bilan, setBilan] = useState(false)
   const [choix, setChoix] = useState(false)
   const [seanceFaiteModal, setSeanceFaiteModal] = useState<Seance | null>(null)
   const [ouvert, setOuvert] = useState<string | null>(null)
@@ -300,7 +300,7 @@ export default function Accueil({
     ),
     etat?.fini && (
       <div key="cycle" className="rappel-ligne">
-        <button type="button" className="texte" onClick={() => setBilan(true)}>
+        <button type="button" className="texte" onClick={onBilanCycle}>
           <RefreshCw size={16} strokeWidth={2} className="rappel-ico ok" />
           <span className="rappel-texte">Cycle terminé : voir le bilan</span>
         </button>
@@ -444,7 +444,6 @@ export default function Accueil({
         )}
       </div>
 
-      {bilan && cycle && <BilanCycle cycle={cycle} catalogue={catalogue} onFermer={() => setBilan(false)} />}
 
       {rappels}
 
