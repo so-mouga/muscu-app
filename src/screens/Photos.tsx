@@ -332,7 +332,6 @@ function GererPhotos({ date, photos, onFermer }: { date: string; photos: PhotoCo
  * photo par pose. Pratique pour reprendre ses anciennes photos de progression.
  */
 function ImportPhotos({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () => void }) {
-  useRetour(true, onFermer)
   const [date, setDate] = useState(dateISO())
   const [dateTouchee, setDateTouchee] = useState(false)
   const [choisies, setChoisies] = useState<Partial<Record<Pose, string>>>({})
@@ -351,8 +350,15 @@ function ImportPhotos({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: ()
     await enregistrerPhotos(date, choisies)
     onFermer()
   }
+  // Un appui à côté ou le retour gardent les photos choisies ; seul « Annuler » ne garde rien.
+  const fermer = () => {
+    if (!Object.keys(choisies).length) return onFermer()
+    void valider()
+    return 'rester' as const
+  }
+  useRetour(true, fermer)
   return (
-    <div className="modal-fond" onClick={onFermer}>
+    <div className="modal-fond" onClick={fermer}>
       <div className="modal pile" onClick={(e) => e.stopPropagation()}>
         <h2>Importer des photos</h2>
         <label className="champ">
