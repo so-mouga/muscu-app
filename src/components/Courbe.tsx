@@ -42,7 +42,7 @@ export default function Courbe({
       {/* Valeur du point actif au survol / clic (optionnellement masquée si affichée à côté) */}
       {!sansEnTete && (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6, padding: '0 2px' }}>
-          <div style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)' }}>
+          <div style={{ fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
             {format(p.valeur)}
           </div>
           <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>

@@ -812,7 +812,7 @@ export default function Accueil({
                     <Check size={18} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
                   </div>
                   <div>
-                    <h2 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 800 }}>{s.nom}</h2>
+                    <h2 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700 }}>{s.nom}</h2>
                     <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
                       {dateFormatee}
                     </div>

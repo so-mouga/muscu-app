@@ -98,8 +98,8 @@
   /* Cibles tactiles minimales */
   --cible: 44px;
   /* Accueil : hauteur de la barre d'onglets et petit écart au-dessus. */
-  --barre-onglets: 68px;
-  --bas-accueil: 84px;
+  --barre-onglets: 63px;
+  --bas-accueil: 79px;
   --cible-salle: 44px;
 
   /* Mouvement */
@@ -181,9 +181,14 @@ h1 {
 }
 h2 {
   font-size: var(--t-titre);
+  font-weight: 600;
 }
 h3 {
   font-size: var(--t-texte);
+  font-weight: 600;
+}
+strong {
+  font-weight: 600;
 }
 
 button {
@@ -250,10 +255,7 @@ select {
 
 .carte {
   background: var(--surface);
-  border: 1px solid var(--bord);
-  border-top: 1px solid var(--bord-haut);
   border-radius: var(--rayon);
-  box-shadow: 0 8px 24px var(--ombre-legere), inset 0 1px 0 var(--surface-2);
   padding: 16px;
   margin-bottom: 12px;
 }
@@ -274,7 +276,7 @@ select {
   border-radius: var(--rayon-2);
   background: var(--controle);
   border: 1px solid transparent;
-  font-weight: 600;
+  font-weight: 500;
 }
 button,
 [role="button"],
@@ -326,7 +328,7 @@ button:active:not(:disabled),
   width: 100%;
   min-height: var(--salle-valider);
   font-size: var(--t-texte);
-  font-weight: 600;
+  font-weight: 500;
 }
 .btn.plein {
   width: 100%;
@@ -383,14 +385,14 @@ button:active:not(:disabled),
   flex: 1 1 auto;
   min-width: 0;
   background: none;
-  padding: 12px 1px 14px;
+  padding: 8px 1px 10px;
   color: var(--texte-2);
   font-size: var(--t-legende);
   letter-spacing: -0.1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 600;
+  font-weight: 500;
   transition: color var(--duree-appui) ease;
 }
 .onglets button.actif {
@@ -434,7 +436,7 @@ button:active:not(:disabled),
   background: var(--controle);
   border: 1px solid transparent;
   font-size: var(--t-page);
-  font-weight: 700;
+  font-weight: 500;
 }
 .stepper .valeur {
   text-align: center;
@@ -468,7 +470,7 @@ button:active:not(:disabled),
   border-radius: var(--rayon-2);
   background: var(--controle);
   border: 1px solid transparent;
-  font-weight: 700;
+  font-weight: 500;
   font-size: var(--t-texte);
   padding: 0;
 }
@@ -518,7 +520,7 @@ button:active:not(:disabled),
   background: var(--surface-2);
   border: 1px solid var(--bord);
   color: var(--texte-2);
-  font-weight: 600;
+  font-weight: 500;
 }
 .chauffes button.fait {
   color: var(--ok);
@@ -570,7 +572,7 @@ button:active:not(:disabled),
 }
 .temps-petit {
   font-size: var(--t-petit);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .minuteur.fini {
@@ -858,7 +860,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   background: var(--surface-2);
   border: 1px solid var(--bord);
   font-size: var(--t-titre);
-  font-weight: 700;
+  font-weight: 500;
 }
 .mini-stepper strong {
   min-width: 44px;
@@ -901,7 +903,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   border-radius: 999px;
   background: var(--accent-voile);
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
@@ -997,7 +999,7 @@ html[data-sens='arriere']::view-transition-new(root) {
 }
 .groupe-titre {
   font-size: var(--t-petit);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--texte-3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1064,7 +1066,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   display: grid;
   place-items: center;
   font-size: var(--t-petit);
-  font-weight: 800;
+  font-weight: 700;
 }
 .serie-chauffe.fait {
   color: var(--texte-3);
@@ -1102,7 +1104,7 @@ html[data-sens='arriere']::view-transition-new(root) {
   border-bottom: 1px solid var(--bord);
   background: transparent;
   color: var(--texte);
-  font-weight: 700;
+  font-weight: 600;
   text-align: left;
 }
 .groupe-repli .nb {
@@ -1152,7 +1154,7 @@ html[data-sens='arriere']::view-transition-new(root) {
 .prochaine .label {
   display: block;
   font-size: var(--t-legende);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1160,7 +1162,7 @@ html[data-sens='arriere']::view-transition-new(root) {
 .prochaine .modifier {
   flex: 0 0 auto;
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 600;
   font-size: var(--t-petit);
 }
 .choix {
@@ -1189,7 +1191,7 @@ html[data-sens^='carte']::view-transition-new(root) {
 }
 .minuteur .btn.texte {
   font-size: var(--t-petit);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 
@@ -1224,7 +1226,7 @@ html[data-sens^='carte']::view-transition-new(root) {
 }
 .anneau-pct {
   font-size: var(--t-legende);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* Minuteur : bouton du temps (agrandir) */
@@ -1261,10 +1263,7 @@ body:has(.focus) {
 }
 .focus-bloc {
   background: var(--surface);
-  border: 1px solid var(--bord);
-  border-top-color: var(--bord-haut);
   border-radius: var(--rayon);
-  box-shadow: 0 8px 24px var(--ombre-legere);
   padding: 14px 16px;
 }
 .minuteur.grand,
@@ -1339,7 +1338,7 @@ body:has(.focus) {
 }
 .cible-grand {
   font-size: var(--t-titre);
-  font-weight: 800;
+  font-weight: 700;
 }
 /* En-tête de séance : avancement + chrono */
 .resume-seance {
@@ -1381,7 +1380,7 @@ body:has(.focus) {
 }
 .grille-mois .jour-nom {
   font-size: var(--t-legende);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--texte-3);
   padding-bottom: 2px;
 }
@@ -1495,7 +1494,7 @@ body:has(.focus) {
   justify-content: center;
   border-radius: var(--rayon-2);
   border: 2px solid var(--bord);
-  font-weight: 800;
+  font-weight: 700;
 }
 .liste-btn.coche {
   border-color: var(--accent);
@@ -1530,7 +1529,7 @@ body:has(.focus) {
   border-radius: var(--rayon-2);
   background: none;
   color: var(--texte-3);
-  font-weight: 700;
+  font-weight: 600;
   font-size: clamp(0.78rem, 2.7vw, 0.95rem);
   padding: 4px 2px;
   white-space: nowrap;
@@ -1619,7 +1618,7 @@ body:has(.focus) {
   background: var(--controle);
   color: var(--texte);
   font-size: var(--t-titre);
-  font-weight: 700;
+  font-weight: 500;
 }
 .objectif-stepper input,
 .objectif-stepper strong {
@@ -1664,7 +1663,7 @@ body:has(.focus) {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent);
   font-size: var(--t-legende);
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
   vertical-align: 1px;
 }
@@ -1801,7 +1800,7 @@ body:has(.focus) {
   border-radius: 50%;
   background: var(--surface-2);
   font-size: var(--t-legende);
-  font-weight: 800;
+  font-weight: 700;
 }
 .mesure-saisie.active .num-mesure {
   background: var(--accent);
@@ -2157,7 +2156,7 @@ body:has(.focus) {
   border-radius: var(--rayon-2);
   background: var(--surface);
   color: var(--accent);
-  font-weight: 700;
+  font-weight: 600;
   font-size: var(--t-legende);
   border: 1px solid var(--bord);
 }
@@ -2330,7 +2329,7 @@ button.pastille.cliquable {
   gap: 10px;
 }
 .lexique dt {
-  font-weight: 700;
+  font-weight: 600;
 }
 .lexique dd {
   margin: 2px 0 0;
@@ -2348,7 +2347,7 @@ button.pastille.cliquable {
 }
 .cible-focus {
   font-size: var(--t-titre);
-  font-weight: 800;
+  font-weight: 700;
   margin-right: 6px;
 }
 
@@ -2628,7 +2627,7 @@ button.semaine-bilan.cliquable {
 }
 .mieux-titre {
   color: var(--ok);
-  font-weight: 800;
+  font-weight: 600;
   font-size: var(--t-texte);
   margin-bottom: 4px;
 }
@@ -2706,7 +2705,7 @@ button.semaine-bilan.cliquable {
   display: grid;
   place-items: center;
   font-size: var(--t-petit);
-  font-weight: 800;
+  font-weight: 700;
 }
 .mouvement.fait .case {
   border-color: var(--accent);
@@ -4157,7 +4156,7 @@ html[data-sens='fondu']::view-transition-new(root) {
   padding-bottom: 2px;
 }
 .accueil-entete h1 {
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.4px;
 }
 .accueil .btn-reglages {
@@ -4388,7 +4387,7 @@ html[data-sens='fondu']::view-transition-new(root) {
 .seance-jour-titre h2 {
   min-width: 0;
   font-size: var(--t-page);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4407,7 +4406,7 @@ html[data-sens='fondu']::view-transition-new(root) {
   gap: var(--e2);
   min-width: 0;
   font-size: var(--t-titre);
-  font-weight: 800;
+  font-weight: 700;
 }
 .seance-jour-ico {
   flex-shrink: 0;
@@ -4470,7 +4469,7 @@ html[data-sens='fondu']::view-transition-new(root) {
   min-height: 48px;
   padding: 0;
   font-size: var(--t-texte);
-  font-weight: 600;
+  font-weight: 500;
 }
 .seance-jour-actions .btn.primaire {
   flex: 2;
@@ -4654,7 +4653,7 @@ html[data-sens='fondu']::view-transition-new(root) {
 .bilan-carte h3 {
   margin: 0;
   font-size: var(--t-texte);
-  font-weight: 700;
+  font-weight: 600;
 }
 .bilan-carte h3.avec-aide {
   display: inline-flex;
@@ -4774,7 +4773,7 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 .corps-titre {
   font-size: var(--t-texte);
-  font-weight: 700;
+  font-weight: 600;
 }
 .corps-detail-droite {
   display: inline-flex;
@@ -4960,7 +4959,7 @@ html[data-sens='fondu']::view-transition-new(root) {
   border-radius: var(--rayon-2);
   color: var(--texte-salle);
   font-size: var(--t-texte);
-  font-weight: 600;
+  font-weight: 500;
 }
 .demarrage-jours button[aria-pressed='true'] {
   background: var(--voile-fort);

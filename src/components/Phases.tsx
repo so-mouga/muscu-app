@@ -119,7 +119,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className={`point-phase phase-${enCours.phase}`} style={{ width: 10, height: 10 }} />
-                    <span style={{ fontSize: 'var(--t-texte)', fontWeight: 700, color: 'var(--texte)' }}>
+                    <span style={{ fontSize: 'var(--t-texte)', fontWeight: 600, color: 'var(--texte)' }}>
                       {nomPhase(enCours.phase)}
                     </span>
                   </div>
@@ -399,7 +399,7 @@ export default function Phases({ catalogue }: { catalogue: Catalogue }) {
                           border: '1px solid var(--voile-fort)',
                         }}
                       >
-                        <div style={{ fontSize: 'var(--t-petit)', fontWeight: 700, color: 'var(--texte)', marginBottom: 10 }}>{nomPhase(p.phase)} (à venir)</div>
+                        <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)', marginBottom: 10 }}>{nomPhase(p.phase)} (à venir)</div>
                         <EditeurPhase
                           p={p}
                           enCours={false}

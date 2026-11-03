@@ -398,7 +398,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
 
       {mesures.length > 0 && (
         <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>{depuis ? 'Depuis le début de la phase' : 'Depuis le début'}</h3>
+          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 600 }}>{depuis ? 'Depuis le début de la phase' : 'Depuis le début'}</h3>
           {principales.map(ligne)}
           {autres.length > 0 && principales.length > 0 && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>
@@ -595,7 +595,7 @@ export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure
                 background: estActif ? 'var(--accent)' : 'var(--voile)',
                 color: estActif ? 'var(--blanc)' : 'var(--texte-2)',
                 fontSize: 'var(--t-legende)',
-                fontWeight: 700,
+                fontWeight: 600,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -656,7 +656,7 @@ export function SaisieMesures({ initial, mesures, onFermer }: { initial?: Mesure
         >
           <ArrowLeft size={20} strokeWidth={2} />
         </button>
-        <h2 style={{ flex: 1, margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700 }}>
+        <h2 style={{ flex: 1, margin: 0, fontSize: 'var(--t-titre)', fontWeight: 600 }}>
           {initial ? 'Modifier la prise' : 'Mensurations'}
         </h2>
       </div>

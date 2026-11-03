@@ -465,7 +465,7 @@ function Comparaison({ dates }: { dates: [string, Partial<Record<Pose, PhotoCorp
 
   return (
     <div className="carte pile" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
-      <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>Comparer</h3>
+      <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 600 }}>Comparer</h3>
 
       {/* Sélecteurs de dates avec bouton d'inversion au centre */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
