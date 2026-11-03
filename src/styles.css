@@ -1945,6 +1945,22 @@ body:has(.focus) {
   background: var(--noir);
   color: var(--blanc);
 }
+.mesure-ligne {
+  border-bottom: 1px solid var(--bord);
+}
+.mesure-ligne .ligne-mesure {
+  border-bottom: none;
+}
+.mesure-ligne .ligne-mesure > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mesure-detail {
+  display: grid;
+  gap: 8px;
+  padding: 0 0 12px;
+}
 .comparaison-photo {
   display: block;
   width: 100%;

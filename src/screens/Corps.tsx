@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
 import Aide from '../components/Aide'
 import Courbe from '../components/Courbe'
 import { FenetreJour } from '../components/JournalMatin'
@@ -325,37 +325,42 @@ function Mesures({ catalogue }: { catalogue: Catalogue }) {
 }
 
 function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis?: string; onSaisir: (m: Mesure | 'nouvelle') => void }) {
-  const [active, setActive] = useState('taille')
-  const [cote, setCote] = useState<'g' | 'd'>('g')
+  /** Mesure dépliée : d'office la taille (la plus parlante), sinon la première ; null = tout est replié. */
+  const [choisie, setChoisie] = useState<string | null | undefined>(undefined)
   const [voirPrises, setVoirPrises] = useState(false)
   const [voirAutres, setVoirAutres] = useState(false)
-  // Mesure choisie plus bas dans la page : on remonte jusqu'à sa carte pour qu'on voie le changement.
-  const carte = useRef<HTMLDivElement>(null)
-  const choisir = (id: string, c?: 'g' | 'd') => {
-    setActive(id)
-    if (c) setCote(c)
-    carte.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-  const def = MESURES.find((m) => m.id === active)!
-  const remplies = new Set(MESURES.filter((m) => clesDe(m).some((c) => mesures.some((x) => x.valeurs[c] !== undefined))).map((m) => m.id))
-  // Côté affiché : celui choisi s'il a des valeurs, sinon l'autre.
-  const clesDef = clesDe(def)
-  const cleCourbe = def.cotes ? (serie(mesures, `${def.id}_${cote}`).length ? `${def.id}_${cote}` : clesDef.find((c) => serie(mesures, c).length) ?? clesDef[0]) : clesDef[0]
-  const points = serie(mesures, cleCourbe)
   // Clés déjà mesurées, dans l'ordre de la silhouette.
   const cles = MESURES.flatMap(clesDe).filter((c) => serie(mesures, c).length)
+  // La taille d'abord, comme sur la page Corps.
+  const principales = cles.filter((c) => PRINCIPALES.includes(c)).sort((x, y) => Number(y === 'taille') - Number(x === 'taille'))
+  const autres = cles.filter((c) => !PRINCIPALES.includes(c))
+  const ouverte = choisie === undefined ? (cles.includes('taille') ? 'taille' : principales[0] ?? cles[0]) : choisie
   const ligne = (c: string) => {
     const s = serie(mesures, c)
-    const d = s[s.length - 1].valeur - auRepere(s, depuis).valeur
-    const id = c.replace(/_[gd]$/, '')
+    const der = s[s.length - 1]
+    const d = der.valeur - auRepere(s, depuis).valeur
+    const def = MESURES.find((m) => clesDe(m).includes(c))!
+    const estOuverte = c === ouverte
     return (
-      <button key={c} className={'ligne-mesure' + (id === active ? ' active' : '')} onClick={() => choisir(id, c.endsWith('_d') ? 'd' : 'g')}>
-        <span>{nomCle(c)}</span>
-        <span>
-          <strong>{cm(s[s.length - 1].valeur)}</strong>
-          {s.length > 1 && <span className="ecart-mesure"> {signe(d)}</span>}
-        </span>
-      </button>
+      <div key={c} className="mesure-ligne">
+        <button type="button" className={'ligne-mesure' + (estOuverte ? ' active' : '')} aria-expanded={estOuverte} onClick={() => setChoisie(estOuverte ? null : c)}>
+          <span>{nomCle(c)}</span>
+          <span>
+            <strong>{cm(der.valeur)}</strong>
+            {s.length > 1 && <span className="ecart-mesure"> {signe(d)}</span>}
+            {estOuverte ? <ChevronDown size={16} strokeWidth={1.75} className="muted" /> : <ChevronRight size={16} strokeWidth={1.75} className="muted" />}
+          </span>
+        </button>
+        {estOuverte && (
+          <div className="mesure-detail">
+            <div className="ligne entre faible petit-texte">
+              <span>Dernière prise le {dateCourte(der.date).replace(/^\S+ /, '')}</span>
+              <Aide titre={def.nom} texte={def.consigne} />
+            </div>
+            {s.length >= 2 && <Courbe key={c} points={s} format={cm} label={`Évolution : ${nomCle(c)}`} sansEnTete />}
+          </div>
+        )}
+      </div>
     )
   }
 
@@ -388,70 +393,19 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
         <span>Prendre mes mensurations</span>
       </button>
 
-      {/* Carte silhouette & courbe de détail sans doublon */}
-      <div className="carte" ref={carte} style={{ padding: '16px', borderRadius: 'var(--rayon)', scrollMarginTop: 12, marginBottom: 12, overflow: 'hidden' }}>
-        <div className="mesures-haut">
-          <div style={{ width: '100%', maxWidth: 115, margin: '0 auto' }}>
-            <SilhouetteMesures active={active} onChoix={(id) => setActive(id)} remplies={remplies} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <span className="faible" style={{ fontSize: 'var(--t-petit)', fontWeight: 600 }}>
-                {MESURES.indexOf(def) + 1} ·
-              </span>
-              <h3 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700, color: 'var(--texte)' }}>
-                {def.nom}
-              </h3>
-              <Aide titre={def.nom} texte={def.consigne} />
-            </div>
-            <ValeursMesure def={def} mesures={mesures} depuis={depuis} />
-          </div>
-        </div>
-
-        {points.length >= 2 && (
-          <div style={{ marginTop: 10, width: '100%' }}>
-            {def.cotes && clesDef.every((c) => serie(mesures, c).length) && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-                {(['g', 'd'] as const).map((c) => {
-                  const actifCote = cleCourbe.endsWith('_' + c)
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      style={{
-                        padding: '3px 10px',
-                        fontSize: 'var(--t-legende)',
-                        fontWeight: actifCote ? 600 : 400,
-                        color: actifCote ? 'var(--texte)' : 'var(--texte-2)',
-                        background: actifCote ? 'var(--voile-fort)' : 'var(--surface-2)',
-                        border: '1px solid ' + (actifCote ? 'var(--voile-bord)' : 'var(--voile)'),
-                        borderRadius: 'var(--rayon-2)',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => setCote(c)}
-                    >
-                      {c === 'g' ? 'Gauche' : 'Droite'}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-            <Courbe key={cleCourbe} points={points} format={cm} label={`Évolution : ${def.nom}`} sansEnTete />
-          </div>
-        )}
-      </div>
+      {mesures.length === 0 && <p className="faible petit-texte">Une prise toutes les 2 à 4 semaines suffit. Mesure seulement ce que tu veux suivre.</p>}
 
       {mesures.length > 0 && (
         <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
           <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 700 }}>{depuis ? 'Depuis le début de la phase' : 'Depuis le début'}</h3>
-          {cles.filter((c) => PRINCIPALES.includes(c)).map(ligne)}
-          {cles.some((c) => !PRINCIPALES.includes(c)) && (
+          {principales.map(ligne)}
+          {autres.length > 0 && principales.length > 0 && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>
               <span>Autres mesures</span>
               <span className="muted">{voirAutres ? '▾' : '▸'}</span>
             </button>
           )}
-          {voirAutres && cles.filter((c) => !PRINCIPALES.includes(c)).map(ligne)}
+          {(voirAutres || !principales.length) && autres.map(ligne)}
         </div>
       )}
 
@@ -487,57 +441,6 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
       )}
 
     </>
-  )
-}
-
-/** Dernière valeur de la mesure (par côté) et son écart, avec le même repère que la liste en dessous. */
-function ValeursMesure({ def, mesures, depuis }: { def: DefMesure; mesures: Mesure[]; depuis?: string }) {
-  const lignes = clesDe(def)
-    .map((c) => ({ c, s: serie(mesures, c) }))
-    .filter((x) => x.s.length)
-  if (!lignes.length) return <div className="faible" style={{ fontSize: 'var(--t-petit)' }}>Pas encore mesuré.</div>
-  const memeJour = new Set(lignes.map((l) => l.s[l.s.length - 1].date)).size === 1
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {lignes.map(({ c, s }) => {
-        const der = s[s.length - 1]
-        const d = s.length > 1 ? der.valeur - auRepere(s, depuis).valeur : null
-        return (
-          <div key={c}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-              {def.cotes && <span className="faible" style={{ fontSize: 'var(--t-petit)', fontWeight: 600 }}>{c.endsWith('_g') ? 'G ' : 'D '}</span>}
-              <span style={{ fontSize: 'var(--t-titre)', fontWeight: 800, color: 'var(--texte)', letterSpacing: '-0.3px' }}>
-                {cm(der.valeur)}
-              </span>
-              {d !== null && (
-                <span
-                  style={{
-                    padding: '2px 7px',
-                    borderRadius: 999,
-                    fontSize: 'var(--t-legende)',
-                    fontWeight: 600,
-                    color: 'var(--texte-2)',
-                    background: 'var(--voile)',
-                  }}
-                >
-                  {signe(d)}
-                </span>
-              )}
-            </div>
-            {!memeJour && (
-              <div className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 1 }}>
-                le {dateCourte(der.date)}
-              </div>
-            )}
-          </div>
-        )
-      })}
-      {memeJour && (
-        <div className="faible" style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 1 }}>
-          le {dateCourte(lignes[0].s[lignes[0].s.length - 1].date)}
-        </div>
-      )}
-    </div>
   )
 }
 
