@@ -90,7 +90,11 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
 
   const ouvrir = (v: Vue) => (transition(() => setPile((x) => [...x, v]), 'avant'), window.scrollTo({ top: 0 }))
   const fermer = () => (transition(() => setPile((x) => x.slice(0, -1)), 'arriere'), window.scrollTo({ top: 0 }))
-  useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'apercu' || vue?.type === 'autresSeances', fermer)
+  useRetour(vue?.type === 'programme' || vue?.type === 'volume' || vue?.type === 'changer' || vue?.type === 'apercu' || vue?.type === 'autresSeances', () => {
+    fermer()
+    // Une seule page à la fois : tant qu'il en reste dessous, le prochain retour s'y arrête aussi.
+    return pile.length > 1 ? 'rester' : undefined
+  })
   const ouvrirSeance = (m: SeanceModele, entree: { programmeId: string; index: number }, choisirExos = false) => ouvrir({ type: 'seance', m: structuredClone(m), nouvelle: false, entree, choisirExos })
   const nouveauProgramme = async () => {
     const noms = new Set(catalogue.programmes.map((x) => x.nom))
