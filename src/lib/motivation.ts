@@ -20,10 +20,10 @@ export const seuilSemaine = (prevues: number) => Math.max(1, Math.round(prevues 
  * de déload ou mise en pause ne compte pas et ne casse pas la série ; la semaine en cours compte dès
  * qu'elle est tenue, sinon elle ne casse rien (elle n'est pas finie).
  */
-export function semainesTenues(seances: Seance[], prevuesParSemaine: number, cycles: Cycle[], aujourdhui: string): number {
+export function semainesTenues(seances: Seance[], prevuesParSemaine: number | ((lundi: string) => number), cycles: Cycle[], aujourdhui: string): number {
+  const prevuDe = typeof prevuesParSemaine === 'function' ? prevuesParSemaine : () => prevuesParSemaine
   const faites = seances.filter((s) => !s.enCours)
-  if (prevuesParSemaine <= 0 || !faites.length) return 0
-  const seuil = seuilSemaine(prevuesParSemaine)
+  if (!faites.length) return 0
   const premiere = semaineDe(faites.reduce((a, s) => (s.date < a ? s.date : a), faites[0].date))
   const parSemaine = new Map<string, number>()
   for (const s of faites) parSemaine.set(semaineDe(s.date), (parSemaine.get(semaineDe(s.date)) ?? 0) + 1)
@@ -36,8 +36,9 @@ export function semainesTenues(seances: Seance[], prevuesParSemaine: number, cyc
   let n = 0
   const enCours = semaineDe(aujourdhui)
   for (let l = enCours; l >= premiere; l = plusJours(l, -7)) {
-    if (sansEffort(l)) continue
-    const tenue = (parSemaine.get(l) ?? 0) >= seuil
+    // Rien de prévu cette semaine-là : elle ne compte pas et ne casse rien.
+    if (sansEffort(l) || prevuDe(l) <= 0) continue
+    const tenue = (parSemaine.get(l) ?? 0) >= seuilSemaine(prevuDe(l))
     if (tenue) n++
     else if (l !== enCours) break
   }

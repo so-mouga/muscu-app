@@ -55,7 +55,8 @@ export interface Analyse {
 }
 
 /** Tout ce qu'on peut dire d'une période, à partir des séances, pesées, mesures et activités. */
-export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesParSemaine = 0, phase?: Phase): Analyse {
+export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesParSemaine: number | ((lundi: string) => number) = 0, phase?: Phase): Analyse {
+  const prevuDe = typeof prevuesParSemaine === 'function' ? prevuesParSemaine : () => prevuesParSemaine
   const premiere = d.seances.reduce<string | null>((a, s) => (!a || s.date < a ? s.date : a), null)
   const depart = premiere && semaineDe(premiere) > semaineDe(debut) && semaineDe(premiere) <= semaineDe(fin) ? semaineDe(premiere) : semaineDe(debut)
   const debutEffectif = depart > semaineDe(debut) ? depart : debut
@@ -159,11 +160,11 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
     semaines,
     seances: periode.length,
     deloads: periode.length - travail.length,
-    prevues: prevuesParSemaine ? prevuesParSemaine * semaines.filter((l) => !pausees.has(l)).length : null,
+    prevues: semaines.some((l) => prevuDe(l) > 0) ? semaines.reduce((x, l) => x + (pausees.has(l) ? 0 : prevuDe(l)), 0) : null,
     ...(() => {
       // Par semaine : 5 séances une semaine ne rattrapent pas une semaine sautée.
-      if (!prevuesParSemaine) return { faites: periode.length, enPlus: 0 }
-      const parSem = semaines.map((l) => ({ n: periode.filter((s) => semaineDe(s.date) === l).length, prevu: pausees.has(l) ? 0 : prevuesParSemaine }))
+      if (!semaines.some((l) => prevuDe(l) > 0)) return { faites: periode.length, enPlus: 0 }
+      const parSem = semaines.map((l) => ({ n: periode.filter((s) => semaineDe(s.date) === l).length, prevu: pausees.has(l) ? 0 : prevuDe(l) }))
       return { faites: parSem.reduce((a, x) => a + Math.min(x.n, x.prevu), 0), enPlus: parSem.reduce((a, x) => a + Math.max(0, x.n - x.prevu), 0) }
     })(),
     temps: periode.reduce((a, s) => a + dureeReelle(s), 0),

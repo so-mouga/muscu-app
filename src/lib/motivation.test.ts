@@ -20,6 +20,15 @@ const seance = (id: string, date: string, series: S[], extra: Partial<Seance> = 
   }) as Seance
 const exo = (id: string) => EXERCICES[id]
 
+describe('semaines tenues après un changement de programme', () => {
+  const s = (date: string) => ({ id: date, date, enCours: false, series: [] }) as unknown as Seance
+  it('passer de 2 à 4 séances ne casse pas la série : chaque semaine garde son prévu', () => {
+    const faites = ['2026-10-05', '2026-10-08', '2026-10-12', '2026-10-15', '2026-10-19', '2026-10-22'].map(s)
+    expect(semainesTenues(faites, 4, [], '2026-10-26')).toBe(0)
+    expect(semainesTenues(faites, (l) => (l >= '2026-10-26' ? 4 : 2), [], '2026-10-26')).toBe(3)
+  })
+})
+
 describe('semaines tenues de suite', () => {
   // Semaines du lundi 5 oct. au lundi 26 oct. 2026 ; 4 séances prévues par semaine, tenue à 3.
   const semaine = (lundi: number, n: number) => Array.from({ length: n }, (_, i) => seance(`s${lundi}-${i}`, `2026-10-${String(lundi + i).padStart(2, '0')}`, []))

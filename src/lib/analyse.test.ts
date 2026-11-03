@@ -67,6 +67,17 @@ describe('force du Bilan : ce qui a vraiment été soulevé', () => {
   })
 })
 
+describe('régularité après un changement de programme', () => {
+  it('chaque semaine est jugée sur ce qui était prévu à ce moment-là, sans reproche', () => {
+    const l = ['2026-10-05', '2026-10-08', '2026-10-12', '2026-10-15', '2026-10-19', '2026-10-22', '2026-10-26'].map((d, i) => seance(`r${i}`, d, [50]))
+    const a = analyser(donnees(l), '2026-10-05', '2026-11-01', (lundi) => (lundi >= '2026-11-02' ? 4 : 2))
+    expect([a.faites, a.prevues]).toEqual([7, 8])
+    expect(essentiel(a, null).map((x) => x.texte).join()).not.toContain('prévues')
+    const b = analyser(donnees(l), '2026-10-05', '2026-11-01', 4)
+    expect([b.faites, b.prevues]).toEqual([7, 16])
+  })
+})
+
 describe('analyse d’une période', () => {
   const a = analyser(donnees(seances), '2026-10-05', '2026-11-01', 2)
   it('assiduité, volume, records, progressions, stagnations', () => {

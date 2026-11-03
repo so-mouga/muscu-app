@@ -85,7 +85,7 @@ export interface Fichier {
 const CLES: Record<NomTable, string> = { seances: 'id', activites: 'id', cycles: 'id', pesees: 'date', mesures: 'date', journal: 'date', reglages: 'cle', modeles: 'id', exercices: 'id', programmes: 'id', photos: 'id' }
 
 /** Réglages présents même dans une appli vide : ils ne font pas une sauvegarde. */
-const REGLAGES_SANS_DONNEES = ['demarrage', 'dernierExport', 'dernierExportPhotos']
+const REGLAGES_SANS_DONNEES = ['demarrage', 'dernierExport', 'dernierExportPhotos', 'prevusParSemaine']
 
 const nbDonnees = (t: NomTable, lignes: unknown[]) => (t === 'reglages' ? (lignes as { cle: string }[]).filter((l) => !REGLAGES_SANS_DONNEES.includes(l.cle)).length : lignes.length)
 

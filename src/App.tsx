@@ -1,7 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import { useCatalogue } from './catalogue'
-import { db } from './db'
+import { CLE_PREVUS, noterPrevu, type EtapePrevu } from './lib/prevu'
+import { db, setReglage } from './db'
 import { transition, useRetour } from './lib/nav'
 import { dateISO } from './lib/calc'
 import { CLE_DEMARRAGE, type EtatDemarrage } from './lib/demarrage'
@@ -69,6 +70,15 @@ export default function App() {
     if (!natif || rappel === null || jours === null) return
     void reglerRappel((rappel?.valeur as Rappel | undefined) ?? RAPPEL_DEFAUT, JSON.parse(jours))
   }, [rappel, jours])
+  // Le nombre de séances prévues, noté quand il change : les semaines passées restent jugées sur ce qui était prévu à leur époque.
+  const prevusNotes = useLiveQuery(() => db.reglages.get(CLE_PREVUS), [], null)
+  const nbPrevues = catalogue ? catalogue.planning.length : null
+  useEffect(() => {
+    if (prevusNotes === null || nbPrevues === null) return
+    const liste = (prevusNotes?.valeur as EtapePrevu[] | undefined) ?? []
+    const suite = noterPrevu(liste, dateISO(), nbPrevues)
+    if (suite !== liste) void setReglage(CLE_PREVUS, suite)
+  }, [prevusNotes, nbPrevues])
   // Une séance déjà faite (ou commencée) aujourd'hui : pas de rappel ce soir.
   const faiteAujourdhui = useLiveQuery(() => db.seances.where('date').equals(dateISO()).count(), [], 0)
   useEffect(() => void (natif && faiteAujourdhui > 0 && seanceDuJourNatif(dateISO())), [faiteAujourdhui])

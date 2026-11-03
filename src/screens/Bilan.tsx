@@ -12,6 +12,7 @@ import { analyser, aRetenir, essentiel, semainesFinies, type Analyse } from '../
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
 import { depuisDebut, semainesTenues } from '../lib/motivation'
+import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { etatVolume, LIBELLE_VOLUME, zone } from '../lib/volume'
 import type { Muscle } from '../types'
 
@@ -43,6 +44,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])
   const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
+  const prevusNotes = useLiveQuery(() => db.reglages.get(CLE_PREVUS), [])
   const donneesPretes = !!seances
 
   useEffect(() => {
@@ -79,7 +81,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps }: {
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
   const cibles = catalogue.ciblesA(fin)
   const donnees: DonneesBilan = { seances, cycles, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycle && `Cycle « ${nomCycle(cycle)} » (${cycle.programme.nom}), ${cycleFini ? 'terminé' : `semaine ${Math.max(1, etatCycle(cycle).n)}/${cycle.semaines}`}${cycle.priorites?.length ? `, priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
-  const prevues = catalogue.planning.length
+  const prevues = prevuDeSemaine((prevusNotes?.valeur as EtapePrevu[] | undefined) ?? [], cycles, seances, catalogue.planning.length)
   const phaseEnCours = phaseA(catalogue.objectifs, fin)
   const phaseFin = phaseEnCours?.phase
   const a = analyser(donnees, debut, fin, prevues, phaseFin)
