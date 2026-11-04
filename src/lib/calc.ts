@@ -290,6 +290,12 @@ export function tempsParExo(seance: Pick<Seance, 'debut' | 'series'>): Record<st
 }
 
 /** Chauffe « 25×8 » → charge et reps ; texte libre → null. */
+/** Séance allégée : un échauffement à 90 % ou plus de la charge du jour n'échauffe plus, il fait une série de plus. Pas pour un exercice assisté, où moins de kg est plus dur. */
+export function chauffeTropLourde(exo: Exercice, c: string, chargeDuJour: number | null | undefined): boolean {
+  const l = lireChauffe(c)
+  return !!l && !exo.assistance && !!chargeDuJour && chargeDuJour > 0 && l.charge >= chargeDuJour * 0.9
+}
+
 export function lireChauffe(c: string): { charge: number; reps: number } | null {
   const m = /^\s*([\d.,]+)\s*(?:kg)?\s*[×x*]\s*(\d+)\s*$/i.exec(c)
   return m ? { charge: parseFloat(m[1].replace(',', '.')), reps: parseInt(m[2]) } : null

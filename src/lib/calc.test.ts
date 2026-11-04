@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance, Serie } from '../types'
-import { lirePoids, poidsDecale, calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import { chauffeTropLourde, lirePoids, poidsDecale, calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -210,5 +210,19 @@ describe('poids tapé', () => {
     expect(poidsDecale(70.65, 0.1)).toBe(70.75)
     expect(poidsDecale(70.65, -0.1)).toBe(70.55)
     expect(poidsDecale(70.1, 0.2)).toBe(70.3)
+  })
+})
+
+describe('échauffement en séance allégée', () => {
+  const machine = EXERCICES.presse
+  it('écarte un échauffement à 90 % ou plus de la charge du jour', () => {
+    expect(chauffeTropLourde(machine, '45×2', 45)).toBe(true)
+    expect(chauffeTropLourde(machine, '41×2', 45)).toBe(true)
+    expect(chauffeTropLourde(machine, '35×4', 45)).toBe(false)
+  })
+  it('garde une consigne libre, une charge inconnue et un exercice assisté', () => {
+    expect(chauffeTropLourde(machine, '1 série facile de 4–5 reps', 45)).toBe(false)
+    expect(chauffeTropLourde(machine, '45×2', null)).toBe(false)
+    expect(chauffeTropLourde({ ...machine, assistance: true }, '45×2', 45)).toBe(false)
   })
 })

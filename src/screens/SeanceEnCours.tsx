@@ -16,7 +16,7 @@ import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { chargeQte, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, e1rm, ecartSerie, enTemps, kg, lireChauffe, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chauffeTropLourde, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, e1rm, ecartSerie, enTemps, kg, lireChauffe, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -158,6 +158,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [saisie, setSaisie] = useState(false)
   /** Plein écran : série en cours de correction. */
   const [corrige, setCorrige] = useState<string | null>(null)
+  const [seriesDe, setSeriesDe] = useState<number | null>(null)
   const reglageSon = useLiveQuery(() => db.reglages.get('sonValidation'), [])
   const sonValidation = reglageSon?.valeur !== false
   /** Fiche d'exécution ouverte depuis le plein écran. */
@@ -451,6 +452,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     setToast(`Échangé : ${exos[j].nom} maintenant`)
   }
 
+  /** − / + série pendant le repos. Après la fin d'un exercice, « + série » y ramène tout de suite. */
+  const ajusterSeries = (i: number, delta: number) => {
+    const p = plans[i]
+    return majSeance(seance.id, (s) => {
+      const faites = s.series.filter((x) => x.exoId === p.exoId).length
+      const total = Math.max(faites, p.series.length + (s.ajustSeries[p.exoId] ?? 0))
+      s.ajustSeries[p.exoId] = total + delta - p.series.length
+      if (delta > 0 && faites >= total) s.courant = p.exoId
+    })
+  }
+
   /** Changer d'ordre volontairement : cet exercice devient l'exercice en cours. */
   const faireMaintenant = async (i: number) => {
     await majSeance(seance.id, (s) => {
@@ -585,6 +597,12 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     </div>
   )
 
+  const reposTexte = () => {
+    if (!minuteur) return null
+    const reste = resteRepos(minuteur, maintenant)
+    return minuteur.pause !== undefined ? `Repos en pause · ${chrono(Math.ceil(reste))}` : reste > 0 ? `Repos ${chrono(Math.ceil(reste))}` : 'Repos terminé'
+  }
+
   // Fenêtres communes à la vue normale et au plein écran (Machine prise, remplacement, lien d'équivalents).
   const fenetres = (
     <>
@@ -626,6 +644,24 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onFermer={() => setMachineDe(null)}
         />
       )}
+      {seriesDe !== null && plans[seriesDe] && (
+        <FenetreSeries
+          seance={seance}
+          plan={plans[seriesDe]}
+          exo={exos[seriesDe]}
+          total={totalDe(seriesDe)}
+          cible={(k) => cibleSerie(exos[seriesDe], plans[seriesDe], suggestions[seriesDe], k, seance.series.filter((x) => x.exoId === plans[seriesDe].exoId))}
+          repos={reposTexte()}
+          noteAvant={noteAvant(plans[seriesDe].exoId)}
+          onAjuster={(d) => void ajusterSeries(seriesDe, d)}
+          onRevenir={() =>
+            void majSeance(seance.id, (x) => {
+              delete x.ajustSeries[plans[seriesDe].exoId]
+            })
+          }
+          onFermer={() => setSeriesDe(null)}
+        />
+      )}
       {choix && (
         <ChoixExo
           catalogue={catalogue}
@@ -645,8 +681,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     const serie = corrige ? seance.series.find((x) => x.id === corrige) : undefined
     const i = serie ? plans.findIndex((p) => p.exoId === serie.exoId) : -1
     if (!serie || i < 0) return null
-    const reste = minuteur ? resteRepos(minuteur, maintenant) : 0
-    const repos = !minuteur ? null : minuteur.pause !== undefined ? `Repos en pause · ${chrono(Math.ceil(reste))}` : reste > 0 ? `Repos ${chrono(Math.ceil(reste))}` : 'Repos terminé'
+    const repos = reposTexte()
     return (
       <FenetreCorrection
         key={serie.id}
@@ -727,18 +762,26 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           )}
           {exoFini ? (
             <>
-              <div className="ligne entre ligne-terminee">
-                <div className={'nouvel-exo-titre' + (vient ? ' vient-coche' : '')}>
-                  <Check size={16} /> <span>{exoFini} terminé</span>
+              <div className="fin-exo">
+                <div className={'fin-exo-titre' + (vient ? ' vient-coche' : '')}>
+                  <Check size={20} /> <span>{exoFini} terminé</span>
                 </div>
-                <button className="btn discret petit" onClick={() => setCorrige(derniereSerie!.id)} aria-label={`Corriger la série ${derniere!.k + 1}`}>
-                  Corriger
-                </button>
+                <div className="fin-exo-rang">
+                  <LigneSeries court exo={exos[derniere!.i]} faites={seance.series.filter((x) => x.exoId === plans[derniere!.i].exoId)} total={totalDe(derniere!.i)} cible={() => ''} onCorriger={(f) => setCorrige(f.id)} />
+                  <button className="btn petit" onClick={() => void ajusterSeries(derniere!.i, 1)}>
+                    + série
+                  </button>
+                </div>
               </div>
               <div className="faible">Exercice suivant</div>
             </>
           ) : (
-            <div className="faible">Prochaine série</div>
+            <div className="entete-prochaine">
+              <div className="faible">Prochaine série</div>
+              <button className="lien-prochaine" onClick={() => setSeriesDe(enCours)}>
+                Séries, note <ChevronRight size={16} />
+              </button>
+            </div>
           )}
           <div className="ligne entre">
             <h2>{exo.nom}</h2>
@@ -751,7 +794,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
-          {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} />}
+          {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} />}
           {(p.note || exo.notes) && <div className="faible"><Info size={14} className="ico-texte" /> {p.note ?? exo.notes}</div>}
         </div>
       )
@@ -771,7 +814,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return (
       <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
-        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} />}
+        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} legende={vueRepos && exoFini ? 'exercice fini' : undefined} />}
         {correction}
         {vueRepos ? (
           prochaine ?? blocTerminer
@@ -798,7 +841,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
-                <LigneSeries avant={n === 0 ? <ChauffesCochables seance={seance} plan={p} exo={exo} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
+                <LigneSeries avant={n === 0 && chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]).length ? <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
                 {(derniereFois?.[n] || plus) && (
                   <div className="faible">
                     {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n], false, false)} · effort {kg(derniereFois[n].rpe)}/10</>}
@@ -1052,7 +1095,7 @@ function LigneExoSeance({
           {repere && <div className="faible">Repère, sur l’équivalent : <strong>{repere}</strong>. Les charges ne se comparent pas d’une machine à l’autre : ajuste au ressenti.</div>}
           {(plan.note || exo.notes) && <div className="faible"><Info size={14} className="ico-texte" /> {plan.note ?? exo.notes}</div>}
           {noteAvant && !seance.notes[exo.id] && <div className="faible"><StickyNote size={14} className="ico-texte" /> La dernière fois : {noteAvant}</div>}
-          <ChauffesCochables seance={seance} plan={plan} exo={exo} />
+          <ChauffesCochables seance={seance} plan={plan} exo={exo} chargeDuJour={sugg.charges[0]} />
 
           <div className="ligne-seance-series">
             {Array.from({ length: total }, (_, n) => {
@@ -1660,19 +1703,91 @@ function FenetreCorrection({ seance, plan, exo, sugg, serie, total, repos, onFer
   )
 }
 
-function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void; vient?: string; /** Échauffements de l'exercice, avant S1. */ avant?: ReactNode }) {
+/**
+ * Séries et note d'un exercice pendant le repos. Dans une fenêtre, pas à l'écran : un appui par erreur à côté de « Passer » changeait la séance sans le dire.
+ * Tout s'écrit tout de suite, pour aujourd'hui seulement, et les séries restent sous les yeux quand on en ajoute ou en retire.
+ */
+function FenetreSeries({ seance, plan, exo, total, cible, repos, noteAvant, onAjuster, onRevenir, onFermer }: { seance: Seance; plan: ExoPlan; exo: Exercice; total: number; cible: (k: number) => string; repos: string | null; noteAvant?: string; onAjuster: (delta: number) => void; onRevenir: () => void; onFermer: () => void }) {
+  const faites = seance.series.filter((x) => x.exoId === exo.id)
+  const prevu = plan.series.length
+  const ecart = total - prevu
+  const [texte, setTexte] = useState(seance.notes[exo.id] ?? '')
+  const ecrire = (v: string) =>
+    void majSeance(seance.id, (s) => {
+      s.notes[exo.id] = v
+    })
+  useEffect(() => {
+    if (texte === (seance.notes[exo.id] ?? '')) return
+    const t = setTimeout(() => ecrire(texte), 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [texte])
+  const fermer = () => {
+    if (texte !== (seance.notes[exo.id] ?? '')) ecrire(texte)
+    onFermer()
+  }
+  useRetour(true, fermer)
+  return createPortal(
+    <div className="modal-fond" onClick={fermer}>
+      <div className="modal pile fenetre-series" onClick={(e) => e.stopPropagation()}>
+        <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
+          <div style={{ minWidth: 0 }}>
+            <h2>{exo.nom}</h2>
+            {repos && <div className="repos-correction">{repos}</div>}
+          </div>
+          <button className="btn-fermer" aria-label="Fermer" onClick={fermer}>
+            <X size={22} />
+          </button>
+        </div>
+        <LigneSeries court exo={exo} faites={faites} total={total} cible={cible} />
+        <div className="stepper-series">
+          <button aria-label="Retirer une série" disabled={total <= Math.max(faites.length, 1)} onClick={() => onAjuster(-1)}>
+            −
+          </button>
+          <span>
+            {total} série{total > 1 ? 's' : ''}
+          </span>
+          <button aria-label="Ajouter une série" onClick={() => onAjuster(1)}>
+            +
+          </button>
+        </div>
+        {ecart !== 0 && (
+          <div className="ecart-series">
+            <span>
+              Prévu : {prevu} · {ecart > 0 ? '+' : '−'}
+              {Math.abs(ecart)} aujourd’hui
+            </span>
+            {faites.length <= prevu && <button onClick={onRevenir}>Revenir à {prevu}</button>}
+          </div>
+        )}
+        <label className="pile note-series">
+          <span className="faible">Note</span>
+          <textarea rows={2} placeholder="Réglage machine, sensation, douleur…" value={texte} onChange={(e) => setTexte(e.target.value)} />
+        </label>
+        {noteAvant && !texte && <div className="faible">La dernière fois : {noteAvant}</div>}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+/** « 40 kg × 10 » devient « 40×10 ». */
+const compacte = (t: string) => t.replace(' kg', '').replace(' × ', '×')
+
+function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant, court }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void; vient?: string; /** Échauffements de l'exercice, avant S1. */ avant?: ReactNode; /** Forme courte : « S1 40×10 ». */ court?: boolean }) {
   // Toutes les séries de l'exercice, chacune une seule fois : faites (✎ pour corriger), en cours (▶, sa cible est affichée en grand à côté), à venir.
   const rangee = useRef<HTMLDivElement>(null)
   // Une seule rangée qui défile : la série en cours reste visible, même sur 5 séries.
   useEffect(() => {
     const el = rangee.current
     const c = el?.querySelector<HTMLElement>('.courante')
+    if (el && court) el.scrollLeft = el.scrollWidth
     if (!el || !c) return
     // Avec des échauffements : ils restent sous les yeux, la rangée ne glisse que pour garder S1 à l'écran.
     const debut = c.offsetLeft - el.offsetLeft
     el.scrollLeft = avant ? Math.max(0, debut + c.offsetWidth - el.clientWidth + 8) : debut - (el.clientWidth - c.offsetWidth) / 2
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [faites.length])
+  }, [faites.length, total])
   return (
     <div className={'ligne-series' + (avant ? ' avec-chauffes' : '')} ref={rangee}>
       {avant}
@@ -1681,16 +1796,16 @@ function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant }: { 
         if (f)
           return onCorriger ? (
             <button key={k} className={'faite' + (vient && k === faites.length - 1 ? ' ' + vient : '')} onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
-              S{k + 1} {serieTexte(exo, f, false, false)} <Pencil size={13} />
+              S{k + 1} {court ? compacte(serieTexte(exo, f, false, false)) : serieTexte(exo, f, false, false)} {!court && <Pencil size={13} />}
             </button>
           ) : (
             <span key={k} className="faite">
-              S{k + 1} {chargeQte(exo, f.charge, f.reps)} <Check size={14} />
+              S{k + 1} {court ? compacte(chargeQte(exo, f.charge, f.reps)) : chargeQte(exo, f.charge, f.reps)} <Check size={14} />
             </span>
           )
         return (
           <span key={k} className={k === faites.length ? 'courante' : ''}>
-            S{k + 1} {k === faites.length ? <Play size={13} fill="currentColor" /> : cible(k).split(' · ')[0]}
+            S{k + 1} {k === faites.length ? <Play size={13} fill="currentColor" /> : court ? compacte(cible(k).split(' · ')[0]) : cible(k).split(' · ')[0]}
           </span>
         )
       })}
@@ -1699,12 +1814,17 @@ function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant }: { 
 }
 
 /** Échauffements de l'exercice, cochables directement (plein écran). */
-function ChauffesCochables({ seance, plan, exo, enRangee = false }: { seance: Seance; plan: ExoPlan; exo: Exercice; /** Dans la rangée des séries : le mot au-dessus, sur la largeur des pastilles. */ enRangee?: boolean }) {
-  if (!plan.chauffes.length) return null
+/** Échauffements à montrer : en séance allégée, plus ceux qui atteignent presque la charge du jour. Le plan garde tout, les cases cochées gardent leur numéro. */
+const chauffesDuJour = (seance: Seance, plan: ExoPlan, exo: Exercice, chargeDuJour: number | null | undefined) =>
+  plan.chauffes.map((c, i) => ({ c, i })).filter(({ c }) => !(seance.deload && chauffeTropLourde(exo, c, chargeDuJour)))
+
+function ChauffesCochables({ seance, plan, exo, chargeDuJour, enRangee = false }: { seance: Seance; plan: ExoPlan; exo: Exercice; chargeDuJour: number | null | undefined; /** Dans la rangée des séries : le mot au-dessus, sur la largeur des pastilles. */ enRangee?: boolean }) {
+  const chauffes = chauffesDuJour(seance, plan, exo, chargeDuJour)
+  if (!chauffes.length) return null
   const pastilles = (
     <div className="chauffes-ligne">
       {!enRangee && <span className="titre">Échauffement</span>}
-      {plan.chauffes.map((c, i) => {
+      {chauffes.map(({ c, i }) => {
         const cle = `${exo.id}:${i}`
         const fait = !!seance.chauffes[cle]
         const l = lireChauffe(c)
@@ -1719,7 +1839,7 @@ function ChauffesCochables({ seance, plan, exo, enRangee = false }: { seance: Se
               })
             }
           >
-            {fait ? <Check size={16} /> : <Square size={16} />} {l ? (enRangee && plan.chauffes.length > 2 ? chargeQte(exo, l.charge, l.reps).replace(' kg', '') : chargeQte(exo, l.charge, l.reps)) : c}
+            {fait ? <Check size={16} /> : <Square size={16} />} {l ? (enRangee && chauffes.length > 2 ? chargeQte(exo, l.charge, l.reps).replace(' kg', '') : chargeQte(exo, l.charge, l.reps)) : c}
           </button>
         )
       })}

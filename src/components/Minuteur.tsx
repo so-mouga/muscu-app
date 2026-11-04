@@ -34,9 +34,11 @@ interface Props {
   variante?: 'barre' | 'grand' | 'bandeau'
   /** Barre : appui sur le temps → mode plein écran. */
   onAgrandir?: () => void
+  /** Cercle du plein écran : mot sous le temps (« exercice fini »). */
+  legende?: string
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -131,6 +133,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
               {fini ? <Check size={24} /> : enPause ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
             </div>
             <div className="temps-grand">{temps}</div>
+            {legende && <div className="legende-chrono">{legende}</div>}
           </Anneau>
         </button>
         <div className="ligne boutons-grand">{boutons}</div>

@@ -3760,6 +3760,21 @@ button.phase-accueil {
 .superset-avant .btn {
   flex: none;
 }
+/* Superset avec échauffements, écran peu haut : on resserre pour que tout tienne. */
+@media (max-height: 800px) {
+  .saisie-focus:has(.ensuite-superset):has(.chauffes-groupe),
+  .saisie-focus:has(.note-saisie):has(.chauffes-groupe) {
+    --salle-ecart: 3px;
+  }
+  .saisie-focus:has(.chauffes-groupe) .superset-badge-saisie {
+    display: none;
+  }
+  .saisie-focus:has(.chauffes-groupe) .ensuite-superset {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 /* Rare écran qui déborde (superset, 5 séries et échauffement, petit téléphone) : « Valider » reste à portée. */
 .focus:not(.tient):not(.fixe) .zone-valider {
   position: sticky;
@@ -3781,6 +3796,126 @@ button.phase-accueil {
   order: 10;
 }
 
+/* Fin d'un exercice, sous le temps : là où l'œil regarde déjà. Se tait si le cercle devient trop petit. */
+.legende-chrono {
+  color: var(--ok);
+  font-size: var(--t-petit);
+  font-weight: 600;
+  line-height: 1.2;
+}
+@container (max-height: 150px) {
+  .legende-chrono {
+    display: none;
+  }
+}
+.fin-exo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  padding-bottom: var(--e2);
+  margin-bottom: var(--e1);
+  border-bottom: 1px solid var(--voile-bord);
+}
+.fin-exo-titre {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--e2);
+  color: var(--ok);
+  font-size: var(--t-texte);
+  font-weight: 600;
+  line-height: 1.25;
+}
+.fin-exo-titre svg {
+  flex: 0 0 auto;
+}
+.fin-exo-rang {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+.fin-exo-rang .ligne-series {
+  flex: 1 1 0;
+  min-width: 0;
+  gap: var(--e1);
+}
+.fin-exo-rang .ligne-series > * {
+  padding-inline: var(--e2);
+}
+.fin-exo-rang .btn {
+  flex: none;
+  min-height: var(--salle-secondaire);
+}
+.entete-prochaine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+}
+.lien-prochaine {
+  min-height: var(--cible);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 0 0 var(--e2);
+  background: none;
+  color: var(--texte);
+  font-size: var(--t-petit);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.fenetre-series .ligne-series {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: var(--e1);
+}
+.fenetre-series .ligne-series > * {
+  flex: 0 0 auto;
+  min-height: var(--salle-secondaire);
+  padding: 0 10px;
+}
+.stepper-series {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+}
+.stepper-series button {
+  width: 88px;
+  height: var(--salle-pas);
+  padding: 0;
+  background: none;
+  color: var(--texte);
+  font-size: var(--t-titre);
+}
+.stepper-series button:disabled {
+  opacity: 0.3;
+}
+.stepper-series span {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ecart-series {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  min-height: var(--cible);
+  font-size: var(--t-petit);
+  color: var(--texte-2);
+}
+.ecart-series button {
+  min-height: var(--cible);
+  padding: 0;
+  background: none;
+  color: var(--texte);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.note-series textarea {
+  width: 100%;
+}
 /* Repos : le chrono se lit de loin ; tout tient dans la hauteur restante. */
 .focus.fixe {
   --anneau: min(100cqw, 100cqh, 210px);
