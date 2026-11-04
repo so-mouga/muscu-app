@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
 import { ObjectifApres } from '../components/EditeurObjectif'
+import InfosExo, { aDesInfos, NomInfos } from '../components/InfosExo'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
 import { cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
@@ -57,6 +58,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
   const nbHabituelles = terminees ? seancesHabituelles(modele.id, terminees).length : 0
   /** Exercice dont on règle l'objectif (index dans la séance). */
   const [objectif, setObjectif] = useState<number | null>(null)
+  const [infos, setInfos] = useState<string | null>(null)
 
   // Premier passage : une phrase pour toute la séance, pas la même sur chaque exercice.
   const decisions = terminees ? modele.exercices.map((p) => suggestionPour(exoAvecReglages(catalogue.exo(p.exoId), reglages), p, terminees).decision) : []
@@ -137,7 +139,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
               <Vignette exo={exo} taille={36} />
               <div className="apercu-exo-texte">
                 <strong>
-                  {i + 1}. {exo.nom}
+                  {i + 1}. <NomInfos nom={exo.nom} onClick={aDesInfos(exo) ? () => setInfos(p.exoId) : undefined} />
                 </strong>
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
                 {dansSuperset && (
@@ -191,6 +193,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
         )
       })}
 
+      {infos && <InfosExo exo={exoAvecReglages(catalogue.exo(infos), reglages)} onFermer={() => setInfos(null)} />}
       {objectif !== null && terminees && (
         <ObjectifApres
           exo={exoAvecReglages(catalogue.exo(modele.exercices[objectif].exoId), reglages)}

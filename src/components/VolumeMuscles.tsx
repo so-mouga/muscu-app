@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Info } from 'lucide-react'
 import { MUSCLES } from '../data/exercices'
 import { LigneAide } from './Aide'
+import InfosExo, { aDesInfos } from './InfosExo'
 import { premiereFois } from '../lib/animations'
 import { kg, type LigneVolume } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { ajustee, BONUS_PRIORITE_MUSCLE, cibleConseillee, etatVolume, LIBELLE_VOLUME, prioritaire, zone } from '../lib/volume'
-import type { Muscle } from '../types'
+import type { Exercice, Muscle } from '../types'
 
 interface Props {
   /** Séries dures par muscle sur la semaine prévue. */
@@ -15,6 +16,8 @@ interface Props {
   detail: Record<Muscle, LigneVolume[]>
   /** Le programme a des jours : seules ces séances comptent, et l'aide le dit. */
   avecJours: boolean
+  /** Pour ouvrir la fiche d'un exercice depuis sa ligne. */
+  exo: (id: string) => Exercice
   /** Cibles en vigueur (priorités du cycle comprises). */
   cibles: Record<Muscle, number>
   /** Les cibles réglées par l'utilisateur, et l'enregistrement d'un changement. */
@@ -32,7 +35,7 @@ export function NiveauJauge({ muscle, etat, valeur, max }: { muscle: Muscle; eta
  * Une jauge par muscle : séries dures de la semaine face à la zone utile, les muscles hors zone d'abord.
  * Rien à régler d'emblée : un appui sur un muscle montre ses exercices et sa cible, pour qu'aucun chiffre ne change en faisant défiler.
  */
-export default function VolumeMuscles({ volume, detail, avecJours, cibles, perso, onCibles }: Props) {
+export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, perso, onCibles }: Props) {
   const [choisi, setChoisi] = useState<Muscle | null>(null)
   const rang = { leger: 0, beaucoup: 1, optimal: 2, suivi: 3 }
   const jauges = MUSCLES.filter((m) => cibles[m.id] > 0).sort((a, b) => rang[etatVolume(a.id, volume[a.id], cibles[a.id])] - rang[etatVolume(b.id, volume[b.id], cibles[b.id])])
@@ -85,6 +88,7 @@ export default function VolumeMuscles({ volume, detail, avecJours, cibles, perso
           volume={volume[choisi]}
           lignes={detail[choisi]}
           avecJours={avecJours}
+          exo={exo}
           enVigueur={cibles[choisi]}
           depart={perso[choisi] ?? 0}
           onFin={(c) => {
@@ -98,8 +102,9 @@ export default function VolumeMuscles({ volume, detail, avecJours, cibles, perso
 }
 
 /** Un seul muscle : d'où vient son volume, puis sa cible. Un appui à côté ou le retour gardent le changement, « Annuler » ne garde rien. */
-function FenetreCible({ muscle, volume, lignes, avecJours, enVigueur, depart, onFin }: { muscle: Muscle; volume: number; lignes: LigneVolume[]; avecJours: boolean; enVigueur: number; depart: number; onFin: (cible?: number) => void }) {
+function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depart, onFin }: { muscle: Muscle; volume: number; lignes: LigneVolume[]; avecJours: boolean; exo: (id: string) => Exercice; enVigueur: number; depart: number; onFin: (cible?: number) => void }) {
   const [c, setC] = useState(depart)
+  const [infos, setInfos] = useState<string | null>(null)
   useRetour(true, () => onFin(c))
   const def = MUSCLES.find((m) => m.id === muscle)!
   const conseil = cibleConseillee(muscle)
@@ -122,18 +127,32 @@ function FenetreCible({ muscle, volume, lignes, avecJours, enVigueur, depart, on
         </div>
         <div className="modal-defile pile">
           <div className="volume-exos">
-            {lignes.map((l) => (
-              <div key={`${l.exoId}:${l.seance}`} className={`volume-exo${l.aide ? ' aide' : ''}`}>
-                <span className="volume-exo-nom">
-                  {l.nom}
-                  <span className="faible prog-sous">
-                    {l.seance}
-                    {l.aide ? ' · aide' : ''}
+            {lignes.map((l) => {
+              const avecInfos = aDesInfos(exo(l.exoId))
+              const contenu = (
+                <>
+                  <span className="volume-exo-nom">
+                    {l.nom}
+                    {avecInfos && <Info size={16} className="ico-texte volume-exo-info" />}
+                    <span className="faible prog-sous">
+                      {l.seance}
+                      {l.aide ? ' · aide' : ''}
+                    </span>
                   </span>
-                </span>
-                <span className="volume-exo-series">{kg(l.series)}</span>
-              </div>
-            ))}
+                  <span className="volume-exo-series">{kg(l.series)}</span>
+                </>
+              )
+              const classe = `volume-exo${l.aide ? ' aide' : ''}`
+              return avecInfos ? (
+                <button key={`${l.exoId}:${l.seance}`} type="button" className={classe} aria-label={`Comment faire : ${l.nom}`} onClick={() => setInfos(l.exoId)}>
+                  {contenu}
+                </button>
+              ) : (
+                <div key={`${l.exoId}:${l.seance}`} className={classe}>
+                  {contenu}
+                </div>
+              )
+            })}
             {lignes.length === 0 && <p className="faible petit-texte">Aucun exercice de ce programme ne le travaille pour l'instant.</p>}
             {lignes.some((l) => l.aide) && <p className="faible petit-texte">Un exercice qui aide compte pour moitié.</p>}
           </div>
@@ -179,6 +198,7 @@ function FenetreCible({ muscle, volume, lignes, avecJours, enVigueur, depart, on
             }
           />
         </div>
+        {infos && <InfosExo exo={exo(infos)} onFermer={() => setInfos(null)} />}
         <div className="modal-pied ligne volume-pied">
           <button type="button" className="btn discret" onClick={() => onFin()}>
             Annuler

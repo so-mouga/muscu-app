@@ -7,7 +7,7 @@ import { db } from '../db'
 import Aide from '../components/Aide'
 import { nomMuscle } from '../components/ChoixExo'
 import Courbe from '../components/Courbe'
-import { Consignes, resumeReglages } from '../components/InfosExo'
+import InfosExo, { aDesInfos, Consignes, NomInfos, resumeReglages } from '../components/InfosExo'
 import { ContenuReglages } from '../components/ReglagesMachine'
 import { consigne } from '../data/consignes'
 import { EXERCICES } from '../data/exercices'
@@ -118,6 +118,7 @@ export function Detail({
   const [mesure, setMesure] = useState<Mesure>(temps ? 'temps' : exo.suivreE1rm ? 'force' : 'charge')
   const [periode, setPeriode] = useState(91)
   const avec = seances.filter((s) => s.series.some((x) => x.exoId === exo.id))
+  const [infos, setInfos] = useState(false)
   const chrono = [...avec].reverse()
   const seriesDe = (s: Seance) => s.series.filter((x) => x.exoId === exo.id)
   const forceDe = (s: Seance) => Math.max(0, ...seriesDe(s).map((x) => e1rm(exo, x, s.poidsCorps) ?? 0))
@@ -138,13 +139,18 @@ export function Detail({
     .filter((p) => mesure !== 'force' || p.valeur > 0)
   const formatMesure = (v: number) => (mesure === 'temps' ? `${v} s` : mesure === 'charge' ? chargeTexte(exo, v) : `${kg(Math.round(v * 10) / 10)} kg`)
   const secondaires = exo.secondaires?.map((x) => nomMuscle(x.muscle).toLowerCase()).join(', ')
+  // Jamais fait : rien d'autre à lire, les consignes restent sur la page. Ensuite, elles sont derrière le ⓘ à côté du nom.
+  const consignesOuvertes = !!consigne(exo.id) && avec.length === 0
 
   return (
     <div>
+      {infos && <InfosExo exo={exo} onFermer={() => setInfos(false)} />}
       <div className="entete">
         <BoutonRetour onClick={onRetour} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>{exo.nom}</h2>
+          <h2>
+            <NomInfos nom={exo.nom} onClick={aDesInfos(exo) && !consignesOuvertes ? () => setInfos(true) : undefined} />
+          </h2>
           <div className="faible">
             {nomMuscle(exo.muscle)}
             {secondaires ? ` · aussi ${secondaires}` : ''}
@@ -267,8 +273,8 @@ export function Detail({
         </details>
       )}
 
-      {consigne(exo.id) && (
-        <details className="depliable" open={avec.length === 0}>
+      {consignesOuvertes && (
+        <details className="depliable" open>
           <summary>
             <span>Comment le faire</span>
             <ChevronRight size={20} className="muted depliable-chevron" />

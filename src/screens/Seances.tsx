@@ -595,7 +595,7 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
         />
       </div>
       <div className="carte">
-        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
+        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
       </div>
       {avant && (
         <button className="btn discret plein" onClick={() => void reprendre()}>

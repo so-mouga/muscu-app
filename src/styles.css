@@ -1739,6 +1739,14 @@ body:has(.focus) {
   min-width: 0;
   margin-bottom: 0;
 }
+/* Juste après le nom, dans le texte : la zone d'appui reste grande sans écarter les lignes. */
+.nom-infos {
+  white-space: nowrap;
+}
+.btn-infos.dans-nom {
+  margin: -12px -8px -12px -6px;
+  vertical-align: middle;
+}
 .ligne-exo > .btn-infos {
   margin-right: 4px;
 }
@@ -3055,6 +3063,15 @@ button.phase-accueil:active {
   display: flex;
   align-items: center;
   gap: var(--e3);
+  width: 100%;
+  padding: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+.volume-exo-info {
+  margin-left: var(--e1);
+  color: var(--texte-2);
 }
 .volume-exo-nom {
   flex: 1;

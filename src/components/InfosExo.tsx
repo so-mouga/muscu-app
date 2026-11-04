@@ -44,12 +44,15 @@ export const resumeReglages = (exo: Exercice) =>
       ? `Palier ${kg(exo.pas)} kg`
       : `Palier ${kg(exo.pas)} kg · charge max : ${exo.chargeMax !== undefined ? `${kg(exo.chargeMax)} kg` : 'pas réglée'}`
 
-/** Petit bouton ⓘ qui ouvre la fiche d'exécution. */
-export function BoutonInfos({ onClick }: { onClick: () => void }) {
+/** Il y a quelque chose à lire sur cet exercice (un exercice créé peut n'avoir ni consignes, ni note, ni photo). */
+export const aDesInfos = (exo: Exercice) => !!(consigne(exo.id) || exo.notes || exo.image)
+
+/** Petit bouton ⓘ qui ouvre la fiche d'exécution ; `dansNom` : juste après le nom, dans le texte. */
+export function BoutonInfos({ onClick, dansNom }: { onClick: () => void; dansNom?: boolean }) {
   return (
     <button
       type="button"
-      className="btn-infos"
+      className={`btn-infos${dansNom ? ' dans-nom' : ''}`}
       aria-label="Comment faire l’exercice"
       onClick={(e) => {
         e.stopPropagation()
@@ -58,6 +61,21 @@ export function BoutonInfos({ onClick }: { onClick: () => void }) {
     >
       <Info size={22} />
     </button>
+  )
+}
+
+/** Le nom et son ⓘ : collé au dernier mot, pour ne jamais se retrouver seul sur une ligne. */
+export function NomInfos({ nom, onClick }: { nom: string; onClick?: () => void }) {
+  if (!onClick) return <>{nom}</>
+  const i = nom.lastIndexOf(' ') + 1
+  return (
+    <>
+      {nom.slice(0, i)}
+      <span className="nom-infos">
+        {nom.slice(i)}
+        <BoutonInfos dansNom onClick={onClick} />
+      </span>
+    </>
   )
 }
 

@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { aDesInfos, NomInfos } from './InfosExo'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { kg, lireChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
@@ -205,7 +206,9 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
     <div className={`modal-fond${sansMontee ? ' sans-montee' : ''}`} onClick={valider}>
       <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
         <div className="modal-tete">
-          <h2>{exo.nom}</h2>
+          <h2>
+            <NomInfos nom={exo.nom} onClick={aDesInfos(exo) ? onInfos : undefined} />
+          </h2>
         </div>
         <div className="modal-defile pile">
         <div className="ligne entre">
@@ -400,12 +403,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
         </Deplie>
 
         <div className="exo-plan-plus">
-          {onInfos && (
-            <button type="button" className="liste-btn" onClick={onInfos}>
-              <span>Comment le faire</span>
-              <ChevronRight size={20} className="muted" />
-            </button>
-          )}
           {onRemplacer && (
             <button type="button" className="liste-btn" onClick={() => onRemplacer(resultat())}>
               <span>Remplacer par un autre exercice</span>

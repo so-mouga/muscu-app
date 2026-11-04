@@ -1,12 +1,11 @@
 import { useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
-import { consigne } from '../data/consignes'
 import { MUSCLES, ZONES, type Zone } from '../data/exercices'
 import { useRetour } from '../lib/nav'
 import type { Exercice, Muscle } from '../types'
 import FormExo from './FormExo'
 import IconeMuscle from './IconeMuscle'
-import InfosExo, { BoutonInfos } from './InfosExo'
+import InfosExo, { aDesInfos, BoutonInfos } from './InfosExo'
 import Vignette from './Vignette'
 
 export const nomMuscle = (m: Muscle) => MUSCLES.find((x) => x.id === m)?.nom ?? m
@@ -91,7 +90,7 @@ export default function ChoixExo({ catalogue, titre, muscle, exclure = [], equiv
         {onChoixMultiple ? <span className="case">{coche ? '✓' : ''}</span> : <span className="muted">+</span>}
       </button>
       {/* Rien à montrer sur un exercice créé sans consignes, ni note, ni photo. */}
-      {(consigne(e.id) || e.notes || e.image) && <BoutonInfos onClick={() => setInfos(e)} />}
+      {aDesInfos(e) && <BoutonInfos onClick={() => setInfos(e)} />}
       </div>
     )
   }
