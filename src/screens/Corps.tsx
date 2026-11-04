@@ -11,12 +11,13 @@ import { db } from '../db'
 import { dateCourte, dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { paireDepart, poseCommune } from '../lib/photos'
-import { ecartPesees, nomPhase, phaseA, phaseAffichee, poidsDepart, poidsSemaine } from '../lib/objectifs'
+import { ecartPesees, nomPhase, phaseA, phaseAffichee, phasesPassees, poidsDepart, poidsSemaine } from '../lib/objectifs'
 import { objectifDuJour } from '../lib/nutrition'
 import type { Mesure, PhotoCorps } from '../types'
 import { confirmer } from '../components/Dialogues'
 import PhotoDatee from '../components/PhotoDatee'
 import RecapPhase from '../components/RecapPhase'
+import { voirPhasesPrecedentes } from '../components/Phases'
 import { repere } from '../lib/recap'
 import Photos from './Photos'
 import Objectifs from './Objectifs'
@@ -78,6 +79,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
   const journal = useLiveQuery(() => db.journal.get(aujourdhui), [aujourdhui])
   const phase = phaseAffichee(catalogue.objectifs, aujourdhui)
   const enCours = phase && !phase.aVenir ? phase : null
+  const nbPassees = phasesPassees(catalogue.objectifs, aujourdhui).length
   // Photos : seulement celles du début de la phase et les dernières (elles sont lourdes).
   const photos = useLiveQuery(
     async () => {
@@ -169,6 +171,21 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
             Choisir ma phase
           </button>
         </section>
+      )}
+      {nbPassees > 0 && (
+        <button
+          type="button"
+          className="corps-phases-passees"
+          onClick={() => {
+            voirPhasesPrecedentes()
+            onPage('phases')
+          }}
+        >
+          <span>
+            Phases précédentes <span className="faible">({nbPassees})</span>
+          </span>
+          <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+        </button>
       )}
 
       <section className="carte corps-carte">

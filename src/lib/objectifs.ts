@@ -101,6 +101,14 @@ export function ciblesPrecedentes(frise: EtapeObjectifs[], date: string): { depu
 }
 
 /** Phases d'un seul tenant, de la plus ancienne à la plus récente. */
+/** Phases terminées, de la plus récente à la plus ancienne : ni celle en cours, ni celles à venir. */
+export function phasesPassees(frise: EtapeObjectifs[], aujourdhui: string): PeriodePhase[] {
+  const enCours = phaseA(frise, aujourdhui)
+  return periodes(frise)
+    .filter((p) => p.debut <= aujourdhui && p.debut !== enCours?.debut)
+    .reverse()
+}
+
 export function periodes(frise: EtapeObjectifs[]): PeriodePhase[] {
   const res: PeriodePhase[] = []
   for (const e of tri(frise)) {

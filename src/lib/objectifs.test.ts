@@ -1,4 +1,4 @@
-import { derniereSemainePhase, phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
+import { phasesPassees, derniereSemainePhase, phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs, ciblesPrecedentes } from './objectifs'
 
 describe('dernière semaine d’une phase', () => {
   it('les 7 derniers jours, pas avant, pas après', () => {
@@ -257,5 +257,21 @@ describe('phase écrite sur un mois du calendrier', () => {
   it('dans le mois en cours, la phase d’aujourd’hui', () => {
     expect(phaseDuMois(f, '2026-11-01', '2026-11-30', '2026-11-03')).toBe('prise')
     expect(phaseDuMois(f, '2026-11-01', '2026-11-30', '2026-11-25')).toBe('seche')
+  })
+})
+
+describe('phases passées', () => {
+  const frise = [
+    { depuis: '2026-01-05', phase: 'seche', finPrevue: '2026-03-02' },
+    { depuis: '2026-03-02', phase: 'maintien', finPrevue: '2026-04-06' },
+    { depuis: '2026-04-06', phase: 'prise', finPrevue: '2026-12-01' },
+    { depuis: '2026-12-01', phase: 'seche', finPrevue: '2027-02-01' },
+  ] as EtapeObjectifs[]
+  it('de la plus récente à la plus ancienne, sans celle en cours ni celles à venir', () => {
+    expect(phasesPassees(frise, '2026-11-04').map((p) => p.phase)).toEqual(['maintien', 'seche'])
+  })
+  it('aucune tant que la première phase est en cours', () => {
+    expect(phasesPassees(frise, '2026-02-01')).toEqual([])
+    expect(phasesPassees([], '2026-02-01')).toEqual([])
   })
 })

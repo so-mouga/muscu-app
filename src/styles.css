@@ -4869,6 +4869,31 @@ html[data-sens='fondu']::view-transition-new(root) {
 .corps-phase .ligne {
   flex-wrap: nowrap;
 }
+.corps-phases-passees {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: var(--cible);
+  padding: 0 var(--e1);
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+}
+.phases-passees {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--voile);
+  scroll-margin-top: var(--e6);
+}
+.phases-passees p {
+  margin: var(--e1) 0 0;
+}
+.phases-passees-titre {
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
 .corps-titre {
   font-size: var(--t-texte);
   font-weight: 600;

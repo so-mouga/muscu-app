@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, ChevronRight, Pencil } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
@@ -22,6 +22,7 @@ import {
   periodes,
   phaseA,
   PHASES,
+  phasesPassees,
   poidsDepart,
   rythmeParSemaine,
   supprimerPhase,
@@ -41,7 +42,15 @@ const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 const plusJours = (iso: string, n: number) => dateISO(new Date(Date.parse(iso + 'T12:00:00') + n * JOUR))
 const semainesEntre = (a: string, b: string) => Math.max(1, Math.round((Date.parse(b) - Date.parse(a)) / (7 * JOUR)))
 /** Ce qu'on retrouve au retour du récap d'une phase ; `edition` : la phase vient d'être choisie depuis le récap, son formulaire s'ouvre. */
-const memoire = { voirAvant: false, edition: false }
+const memoire = { voirAvant: null as boolean | null, edition: false, allerPassees: false }
+/** Assez peu de phases passées pour les montrer d'office : c'est ce qu'on vient chercher. */
+const PASSEES_OUVERTES = 3
+
+/** Le lien de Corps : la page s'ouvrira sur les phases précédentes, dépliées. */
+export const voirPhasesPrecedentes = () => {
+  memoire.voirAvant = true
+  memoire.allerPassees = true
+}
 const DUREES = [4, 8, 12, 16]
 const DUREE_DEFAUT: Record<Phase, number> = { prise: 12, seche: 8, maintien: 4 }
 const ECARTS: Record<Phase, number[]> = { prise: [1, 2, 3], seche: [-2, -4, -6], maintien: [] }
@@ -89,11 +98,17 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
   const frise = catalogue.objectifs
   const aujourdhui = dateISO()
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
-  const [voirAvant, setVoirAvantEtat] = useState(memoire.voirAvant)
+  const [choixVoirAvant, setChoixVoirAvant] = useState(memoire.voirAvant)
   const setVoirAvant = (v: boolean) => {
     memoire.voirAvant = v
-    setVoirAvantEtat(v)
+    setChoixVoirAvant(v)
   }
+  const blocPassees = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!memoire.allerPassees) return
+    memoire.allerPassees = false
+    requestAnimationFrame(() => blocPassees.current?.scrollIntoView({ block: 'start' }))
+  }, [])
   const [editionEnCours, setEditionEnCours] = useState(() => {
     const e = memoire.edition
     memoire.edition = false
@@ -105,7 +120,8 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
   const toutes = periodes(frise)
   const enCours = phaseA(frise, aujourdhui)
   const aVenir = toutes.filter((p) => p.debut > aujourdhui)
-  const passees = toutes.filter((p) => p.debut <= aujourdhui && p.debut !== enCours?.debut).reverse()
+  const passees = phasesPassees(frise, aujourdhui)
+  const voirAvant = choixVoirAvant ?? passees.length <= PASSEES_OUVERTES
   const derniere = toutes.at(-1)
   const peutAjouter = !!derniere && !derniere.fin && !!derniere.finPrevue && derniere.finPrevue > aujourdhui
   const finie = enCours?.finPrevue && enCours.finPrevue <= aujourdhui && !aVenir.length
@@ -512,8 +528,13 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
         )}
 
         {/* --- PHASES PRÉCÉDENTES --- */}
-        {passees.length > 0 && (
-          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid var(--voile)' }}>
+        {passees.length === 0 ? (
+          <div className="phases-passees">
+            <span className="phases-passees-titre">Phases précédentes</span>
+            <p className="faible petit-texte">Pas encore de phase terminée. Tu retrouveras ici le récap de chacune.</p>
+          </div>
+        ) : (
+          <div ref={blocPassees} className="phases-passees">
             <button
               type="button"
               className="groupe-repli"
