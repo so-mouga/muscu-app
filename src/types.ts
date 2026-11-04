@@ -161,6 +161,8 @@ export interface Seance {
   echauffement?: { ids: string[]; faits: string[]; fini?: boolean }
   /** Séance de déload : allégée, et ignorée pour la progression (objectifs, records, « dernière fois »). */
   deload?: boolean
+  /** Allégée pour ce jour seulement (« En allégé »), avec `deload` : ce n'est ni une semaine allégée, ni une vraie récupération. */
+  allegeeSeule?: boolean
 }
 
 export interface Objectif {

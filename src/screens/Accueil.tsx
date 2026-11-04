@@ -4,7 +4,7 @@ import { Check, ChevronRight, Clock, CloudUpload, Download, Flame, Info, Moon, R
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
-import { creneauxFaits } from '../lib/historique'
+import { creneauxFaits, creneauxRates } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { derniereSemainePhase, nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
 import { phaseFinie, reperesAPrendre } from '../lib/recap'
@@ -31,20 +31,22 @@ const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
 /** Contexte du cycle au démarrage : semaine en cours et déload éventuel. */
+const JOURS_COURTS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
+
 type ContexteCycle = { cycleId: string; semaine?: number; deload: boolean }
 
-async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle, echauffement: string[] = []) {
+async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle, echauffement: string[] = [], allegee = false) {
   try {
-    await creerSeance(modele, cycle, echauffement)
+    await creerSeance(modele, cycle, echauffement, allegee)
   } catch (e) {
     void informer(`${(e as Error).message}\n(version ${__VERSION__})`, 'Impossible de démarrer la séance')
   }
 }
 
-async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycle | undefined, echauffement: string[]) {
+async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycle | undefined, echauffement: string[], allegee: boolean) {
   debloquerSon()
   void seanceDuJourNatif(dateISO())
-  const deload = !!(modele && cycle?.deload)
+  const deload = !!(modele && (cycle?.deload || allegee))
   const poidsCorps = await dernierPoids()
   // Une seule séance en cours : un double appui sur « Démarrer » n'en crée pas une seconde, qui reviendrait plus tard.
   await db.transaction('rw', db.seances, async () => {
@@ -52,6 +54,7 @@ async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycl
     await db.seances.add({
       ...(cycle && { cycleId: cycle.cycleId, semaine: cycle.semaine }),
       ...(deload && { deload: true }),
+      ...(deload && !cycle?.deload && { allegeeSeule: true }),
       ...(echauffement.length && { echauffement: { ids: echauffement, faits: [] } }),
       id: uid(),
       date: dateISO(),
@@ -164,9 +167,6 @@ export default function Accueil({
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
 
   const { planning, actif } = catalogue
-  // Séances faites cette semaine pour un modèle (sa variante maison compte aussi).
-  const realisees = (m: SeanceModele) =>
-    semaine.filter((s) => s.modeleId === m.id || catalogue.modele(s.modeleId)?.varianteDe === m.id).length
   // Chaque séance faite coche le créneau le plus proche de son jour (une séance peut revenir deux fois).
   const idPlanning = (id?: string) => planning.find((e) => e.modele.id === id || catalogue.modele(id)?.varianteDe === e.modele.id)?.modele.id
   const coches = creneauxFaits(
@@ -190,6 +190,29 @@ export default function Accueil({
   const dansUnProgramme = new Set(catalogue.programmes.flatMap((p) => p.seances.map((e) => e.modeleId)))
   const horsProgramme = catalogue.modeles.filter((m) => !dansUnProgramme.has(m.id))
   const groupeOuvert = ouvert ?? actif.id
+  // Liste « Autre séance » : où on en est cette semaine, sans rien changer au planning.
+  const premiereDuProgramme = terminees?.filter((s) => idPlanning(s.modeleId)).reduce<string | undefined>((a, s) => (!a || s.date < a ? s.date : a), undefined)
+  const rates = creneauxRates(planning, coches, { jour, lundi: debutSemaine, premiere: premiereDuProgramme, pause: catalogue.cycle && etatCycle(catalogue.cycle).pause })
+  const etatChoix = (duProgramme: boolean, m: SeanceModele): { rate?: number; faiteLe?: string } => {
+    const faites = semaine.filter((s) => s.modeleId === m.id || catalogue.modele(s.modeleId)?.varianteDe === m.id).sort((a, b) => b.debut - a.debut)
+    const leJour = faites[0] && (faites[0].date === dateISO() ? 'auj.' : `${JOURS_COURTS[jourSemaine(new Date(faites[0].date + 'T12:00:00'))]}.`)
+    if (!duProgramme) return faites.length ? { faiteLe: leJour } : {}
+    const creneaux = planning.flatMap((e, i) => (e.modele.id === m.id ? [{ jour: e.jour, i }] : []))
+    if (!creneaux.length) return faites.length ? { faiteLe: leJour } : {}
+    const rate = creneaux.find((c) => rates.has(c.i) && c.jour !== jour)
+    // Une séance prévue aujourd'hui passe d'abord : elle n'a pas besoin d'être signalée comme ratée.
+    if (rate && !creneaux.some((c) => c.jour === jour && !coches.has(c.i))) return { rate: rate.jour }
+    return faites.length && creneaux.every((c) => coches.has(c.i)) ? { faiteLe: leJour } : {}
+  }
+  // Pas faites d'abord, puis ce qui reste à faire, puis ce qui est fait ; dans l'ordre de la semaine.
+  const trierChoix = (l: SeanceModele[]) => {
+    const rang = (m: SeanceModele) => {
+      const e = etatChoix(true, m)
+      return e.rate ? 0 : e.faiteLe !== undefined ? 2 : 1
+    }
+    const premierJour = (m: SeanceModele) => Math.min(8, ...planning.filter((e) => e.modele.id === m.id).map((e) => e.jour))
+    return [...l].sort((a, b) => rang(a) - rang(b) || premierJour(a) - premierJour(b))
+  }
 
   // Exercices où l'objectif dépasse la dernière fois : « à battre », avec la série visée et ce qu'elle demande de plus.
   const recentes = terminees && [...terminees].filter((s) => !s.deload).sort((a, b) => b.debut - a.debut)
@@ -214,13 +237,13 @@ export default function Accueil({
   const contexte: ContexteCycle | undefined =
     cycle && etat && !etat.fini ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
   // On retient d'où la séance est lancée (accueil, ou « Voir ») pour y revenir si on l'annule.
-  const lancer = (m?: SeanceModele, depuisApercu = false) => {
+  const lancer = (m?: SeanceModele, depuisApercu = false, allegee = false) => {
     try {
       localStorage.setItem('retourSeance', JSON.stringify(depuisApercu && m ? { apercu: m.id } : {}))
     } catch {
       /* stockage indisponible */
     }
-    return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [])
+    return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [], allegee)
   }
 
   // Échauffement activé depuis « Voir » : enregistré sur la séance (comme dans Programmes) et pris en compte tout de suite.
@@ -239,7 +262,7 @@ export default function Accueil({
     if (c?.modeles.some((m) => m.id === apercu.id)) void db.cycles.update(c.id, { modeles: c.modeles.map((m) => (m.id === apercu.id ? avec(m) : m)) })
     setApercuEtat(avec(apercu))
   }
-  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={() => lancer(apercu, true)} onEchauffement={changerEchauffement} onAjouter={() => onAjouterExercices(apercu.id)} onFermer={() => voir(null)} />
+  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={(allegee) => lancer(apercu, true, allegee)} onEchauffement={changerEchauffement} onAjouter={() => onAjouterExercices(apercu.id)} onFermer={() => voir(null)} />
 
   // Rappel des mensurations : seulement après 3 semaines sans en prendre.
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
@@ -710,22 +733,27 @@ export default function Accueil({
                         {g.seances.length === 0 ? (
                           <div className="faible">Aucune séance dans ce programme.</div>
                         ) : (
-                          g.seances.map((m) => {
+                          (g.actif ? trierChoix(g.seances) : g.seances).map((m) => {
                             const jours = g.prog ? g.prog.seances.filter((e) => e.modeleId === m.id && e.jour).map((e) => e.jour!) : []
-                            const duJour = jours.includes(jour)
+                            const etat = etatChoix(g.actif, m)
+                            // « auj. » seulement s'il reste à faire aujourd'hui, ou si rien d'autre n'est à dire.
+                            const duJour = jours.includes(jour) && !etat.rate
+                            const joursAffiches = etat.rate ? [etat.rate] : jours
                             return (
                               <button key={m.id} type="button" className={'choix-seance' + (duJour ? ' du-jour' : '')} onClick={() => voir(m)}>
-                                <span className="choix-seance-jour">{duJour ? 'auj.' : jours.map((j) => ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'][j]).join(' ')}</span>
+                                <span className="choix-seance-jour">{duJour ? 'auj.' : joursAffiches.map((j) => JOURS_COURTS[j]).join(' ')}</span>
                                 <span className="choix-seance-corps">
                                   <span className="choix-seance-nom">{m.nom}</span>
                                   {m.sousTitre && <span className="faible choix-seance-sous">{m.sousTitre}</span>}
                                   <span className="faible choix-seance-sous">{dureeDe(m)}</span>
                                 </span>
-                                {realisees(m) > 0 && (
+                                {etat.rate ? (
+                                  <span className="choix-seance-ratee">Pas faite</span>
+                                ) : etat.faiteLe !== undefined ? (
                                   <span className="choix-seance-faite">
-                                    <Check size={16} /> Faite
+                                    <Check size={16} /> Faite{duJour && etat.faiteLe === 'auj.' ? '' : ` ${etat.faiteLe}`}
                                   </span>
-                                )}
+                                ) : null}
                                 <ChevronRight size={20} className="muted" />
                               </button>
                             )

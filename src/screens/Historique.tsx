@@ -597,7 +597,7 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ color: 'var(--accent)' }}><Dumbbell size={18} strokeWidth={1.75} /></span>
         <div>
-          <div style={{ fontSize: 'var(--t-texte)', fontWeight: 600, color: 'var(--texte)' }}>{seance.nom}</div>
+          <div style={{ fontSize: 'var(--t-texte)', fontWeight: 600, color: 'var(--texte)' }}>{seance.nom}{seance.deload && <span className="etiquette-deload"> · Allégée</span>}</div>
           <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 1 }}>
             {duree(dureeReelle(seance))} · {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
           </div>
@@ -648,6 +648,7 @@ function DetailSeance({
         <BoutonRetour onClick={onRetour} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2>{seance.nom}</h2>
+          {seance.deload && <span className="etiquette-deload">Allégée</span>}
           <div className="faible" style={{ textTransform: 'capitalize' }}>
             {dateLongue(seance)}
           </div>

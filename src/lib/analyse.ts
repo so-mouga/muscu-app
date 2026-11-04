@@ -3,7 +3,7 @@ import { nomCle } from '../data/mesures'
 import type { Exercice, Muscle, Serie } from '../types'
 import { chargeQte, dateISO, estDure, heuresMinutes, kg, kgSouleves, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
-import { dureeReelle, evolutionForce, evolutionPct, scoreSerie, semaineDe } from './historique'
+import { dureeReelle, evolutionForce, evolutionPct, scoreSerie, seanceSemaineAllegee, semaineDe } from './historique'
 import { nomPhase, phaseA, type Phase } from './objectifs'
 import { diagnostic } from './blocages'
 
@@ -64,13 +64,14 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const travail = periode.filter((s) => !s.deload)
   const semaines: string[] = []
   for (let l = depart; l <= semaineDe(fin); l = dateISO(new Date(Date.parse(l + 'T12:00:00') + SEMAINE))) semaines.push(l)
-  const semainesDeload = new Set(periode.filter((s) => s.deload).map((s) => semaineDe(s.date)))
+  const semainesDeload = new Set(periode.filter(seanceSemaineAllegee).map((s) => semaineDe(s.date)))
   // Une semaine mise en pause ne compte ni dans le prévu, ni dans la moyenne de volume (sauf si on s'est entraîné quand même).
   const pausees = new Set((d.cycles ?? []).flatMap((c) => c.pauses))
   const nbTravail = Math.max(1, semaines.filter((l) => !semainesDeload.has(l) && !(pausees.has(l) && !periode.some((s) => semaineDe(s.date) === l))).length)
 
   // Volume moyen par semaine (hors déload)
-  const total = volumeParMuscle(travail, d.exercices)
+  // Une séance allégée pour un seul jour reste dans le volume de sa semaine, qui reste comptée.
+  const total = volumeParMuscle(periode.filter((s) => !seanceSemaineAllegee(s)), d.exercices)
   const volume = Object.fromEntries(MUSCLES.map((m) => [m.id, total[m.id] / nbTravail])) as Record<Muscle, number>
 
   // Records : on rejoue tout l'historique pour savoir ce qui a été battu pendant la période.

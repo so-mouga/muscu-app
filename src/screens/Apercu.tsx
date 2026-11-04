@@ -21,7 +21,7 @@ import { estDansSuperset, groupeSuperset } from '../lib/superset'
 interface Props {
   modele: SeanceModele
   catalogue: Catalogue
-  onDemarrer: () => void
+  onDemarrer: (allegee: boolean) => void
   /** Séance sans exercice : rien à démarrer, on va en ajouter. */
   onAjouter?: () => void
   /** Active ou coupe l'échauffement de cette séance (enregistré sur la séance, comme dans Programmes). */
@@ -31,7 +31,10 @@ interface Props {
   deload?: boolean
 }
 
-export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEchauffement, onFermer, deload = false }: Props) {
+export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEchauffement, onFermer, deload: semaineAllegee = false }: Props) {
+  // « En allégé » : pour cette séance seulement, avec les règles de la semaine allégée.
+  const [enAllege, setEnAllege] = useState(false)
+  const deload = semaineAllegee || enAllege
   useRetour(true, onFermer)
   useEffect(() => {
     document.body.classList.add('sans-onglets')
@@ -93,7 +96,22 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
 
       {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} />}
 
-      {deload && <div className="bandeau-deload">Semaine allégée : moitié des séries, charges −10 %, effort 6-7/10, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
+      {!semaineAllegee && !enAllege && modele.exercices.some((p) => terminees && historiqueDe(terminees, p.exoId).length > 0) && (
+        <button type="button" className="ligne-allege" onClick={() => setEnAllege(true)}>
+          <span>Pas en forme aujourd’hui ?</span>
+          <span className="texte-finisseur">En allégé ›</span>
+        </button>
+      )}
+      {enAllege && (
+        <div className="carte-allege">
+          <strong className="texte-finisseur">Séance allégée, pour aujourd’hui seulement</strong>
+          <p className="faible petit-texte">Moitié des séries, charges −10 %, effort 6-7/10, sans finisseur. Ton cycle ne bouge pas.</p>
+          <button type="button" className="carte-allege-retour" onClick={() => setEnAllege(false)}>
+            Revenir à la séance normale
+          </button>
+        </div>
+      )}
+      {semaineAllegee && <div className="bandeau-deload">Semaine allégée : moitié des séries, charges −10 %, effort 6-7/10, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
       {premierPassage && <div className="faible">{premierPassage}</div>}
 
@@ -192,7 +210,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
 
       <div className="barre-demarrer">
         {modele.exercices.length || !onAjouter ? (
-          <button className="btn primaire grand" onClick={onDemarrer}>
+          <button className="btn primaire grand" onClick={() => onDemarrer(enAllege)}>
             Démarrer
           </button>
         ) : (

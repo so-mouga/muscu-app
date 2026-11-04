@@ -1,6 +1,6 @@
 import type { Exercice, JourJournal, Pesee, Seance } from '../types'
 import { enTemps, heuresMinutes, kg } from './calc'
-import { scoreSerie, semaineDe } from './historique'
+import { scoreSerie, seanceSemaineAllegee, semaineDe } from './historique'
 import { phaseA, type EtapeObjectifs, type Phase } from './objectifs'
 
 const JOUR = 86400000
@@ -142,7 +142,7 @@ export function pistes(exo: Exercice, depuis: string, jusqua: string, c: Context
   const faites = c.seances.filter((s) => !s.enCours && s.date <= jusqua)
   // Le repère : le dernier déload, ou la reprise après un arrêt (s'arrêter 3 semaines, c'est aussi récupérer).
   const dates = [...new Set(faites.map((s) => s.date))].sort()
-  const dernierDeload = faites.filter((s) => s.deload).reduce<string | null>((a, s) => (!a || s.date > a ? s.date : a), null)
+  const dernierDeload = faites.filter(seanceSemaineAllegee).reduce<string | null>((a, s) => (!a || s.date > a ? s.date : a), null)
   const reprise = dates.reduce<string | null>((a, d, i) => (i && jours(dates[i - 1], d) >= JOURS_ARRET ? d : a), dates[0] ?? null)
   const repere = [dernierDeload, reprise].reduce<string | null>((a, d) => (d && (!a || d > a) ? d : a), null)
   if (repere && jours(repere, jusqua) > 42) r.push(`pas de semaine allégée depuis ${Math.floor(jours(repere, jusqua) / 7)} semaines`)
@@ -169,7 +169,7 @@ export function texteBlocage(d: Blocage & { pistes: string[] }): string {
  */
 export function deloadConseille(seances: Seance[], exo: (id: string) => Exercice, jusqua: string): { baisses: Exercice[]; energieBasse: boolean } | null {
   const faites = seances.filter((s) => !s.enCours && s.date <= jusqua)
-  if (faites.some((s) => s.deload && jours(s.date, jusqua) < 21)) return null
+  if (faites.some((s) => seanceSemaineAllegee(s) && jours(s.date, jusqua) < 21)) return null
   const dates = [...new Set(faites.map((s) => s.date))].sort()
   if (dates.some((d, i) => i && jours(dates[i - 1], d) >= 14 && jours(d, jusqua) < 21)) return null
   const recentes = faites.filter((s) => !s.deload && jours(s.date, jusqua) <= 10)

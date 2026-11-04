@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance, Serie } from '../types'
 import { delies, relies, repere } from './equivalents'
-import { bilan, creneauxFaits, historiqueDe, meilleureSerie, mieuxParSeance, parSemaine, recordsParSeance } from './historique'
+import { bilan, creneauxFaits, creneauxRates, historiqueDe, meilleureSerie, mieuxParSeance, parSemaine, recordsParSeance, seanceSemaineAllegee } from './historique'
 
 const exoId = Object.values(EXERCICES).find((e) => e.suivreE1rm && e.mode !== 'poids_corps')!.id
 const serie = (charge: number, reps: number, rpe = 8): Serie => ({ id: `${charge}-${reps}`, exoId, type: 'normale', charge, reps, rpe, heure: 0 })
@@ -103,5 +103,30 @@ describe('audit historique', () => {
     const normale = seance('n', '2026-10-01', [serie(60, 8)])
     const deload = { ...seance('d', '2026-10-08', [serie(52.5, 6, 6)]), deload: true }
     expect(historiqueDe([deload, normale], exoId)).toEqual([[serie(60, 8)]])
+  })
+})
+
+describe('séances ratées de la semaine', () => {
+  const planning = [{ jour: 1 }, { jour: 3 }, { jour: 5 }]
+  const o = { jour: 3, lundi: '2026-11-02', premiere: '2026-10-01' }
+  it('un créneau passé sans séance, ni celui du jour ni ceux à venir', () => {
+    expect([...creneauxRates(planning, new Set(), o)]).toEqual([0])
+    expect([...creneauxRates(planning, new Set(), { ...o, jour: 5 })]).toEqual([0, 1])
+    expect([...creneauxRates(planning, new Set([0]), o)]).toEqual([])
+    expect([...creneauxRates(planning, new Set(), { ...o, jour: 1 })]).toEqual([])
+  })
+  it('pas de faux « Pas faite » : programme tout neuf, lancé en milieu de semaine, ou semaine en pause', () => {
+    expect([...creneauxRates(planning, new Set(), { ...o, premiere: undefined })]).toEqual([])
+    // Lancé mercredi, 1re séance ce jour-là : lundi n'existait pas encore ; vendredi, mercredi non plus n'est pas ratée s'il a été fait.
+    expect([...creneauxRates(planning, new Set([1]), { ...o, jour: 5, premiere: '2026-11-04' })]).toEqual([])
+    expect([...creneauxRates(planning, new Set(), { ...o, pause: true })]).toEqual([])
+  })
+})
+
+describe('semaine allégée ou séance seule', () => {
+  it('distingue les deux', () => {
+    expect(seanceSemaineAllegee({ deload: true })).toBe(true)
+    expect(seanceSemaineAllegee({ deload: true, allegeeSeule: true })).toBe(false)
+    expect(seanceSemaineAllegee({})).toBe(false)
   })
 })

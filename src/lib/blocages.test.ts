@@ -187,6 +187,8 @@ describe('déload conseillé', () => {
   it('sans énergie basse, 2 exercices ne suffisent pas ; jamais juste après un déload', () => {
     expect(deloadConseille(l(4), exo, FIN)).toBeNull()
     expect(deloadConseille([seance('2026-10-15', [], { deload: true }), ...l(2)], exo, FIN)).toBeNull()
+    // Une séance allégée pour un seul jour n'est pas une récupération : le conseil reste actif.
+    expect(deloadConseille([seance('2026-10-15', [], { deload: true, allegeeSeule: true }), ...l(2)], exo, FIN)).not.toBeNull()
   })
 })
 
@@ -266,5 +268,17 @@ describe('piste du poids en prise', () => {
   })
   it('avec le début de phase, seule la prise compte : pas de piste', () => {
     expect(pistes(EXERCICES.smith_incline, '2026-06-01', '2026-08-31', { ...c, debutPhase: '2026-07-27' }).join()).not.toContain('poids qui ne monte pas')
+  })
+})
+
+describe('piste « pas de semaine allégée » et séance allégée pour un seul jour', () => {
+  const seances = ['2026-08-03', '2026-08-10', '2026-08-17', '2026-08-24', '2026-08-31', '2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28'].map((d) => seance(d, [['smith_incline', 50, 8, 8]]))
+  const c = (s: ReturnType<typeof seance>[]) => ({ seances: s, journal: [], pesees: [] })
+  it('une séance seule ne la fait pas repartir à zéro, une vraie semaine allégée si', () => {
+    const exercice = exo('smith_incline')
+    const seule = pistes(exercice, '2026-08-03', '2026-09-28', c([...seances, seance('2026-09-25', [['smith_incline', 45, 8, 6]], { deload: true, allegeeSeule: true })]))
+    const vraie = pistes(exercice, '2026-08-03', '2026-09-28', c([...seances, seance('2026-09-25', [['smith_incline', 45, 8, 6]], { deload: true })]))
+    expect(seule.some((p) => p.includes('pas de semaine allégée'))).toBe(true)
+    expect(vraie.some((p) => p.includes('pas de semaine allégée'))).toBe(false)
   })
 })

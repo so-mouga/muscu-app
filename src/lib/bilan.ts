@@ -2,7 +2,7 @@ import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
 import type { Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
 import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, sensationSeance, serieTexte, volumeParMuscle } from './calc'
-import { dureeReelle, evolutionForce, recordsParSeance, semaineDe } from './historique'
+import { dureeReelle, evolutionForce, recordsParSeance, seanceSemaineAllegee, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
 import { diagnostic, texteBlocage } from './blocages'
 
@@ -108,8 +108,8 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     const r = ssSens.length ? moyenne(ssSens.map((x) => x.val)) : null
     lignes.push(
       `Sem. du ${jour(l)} : ${ss.length} séance${ss.length > 1 ? 's' : ''} (${ss.map((s) => s.nom).join(', ')}) · ` +
-        `${ss.filter((s) => !s.deload).reduce((a, s) => a + s.series.filter(estDure).length, 0)} séries dures` +
-        (ss.some((s) => s.deload) ? ' · déload' : '') +
+        `${ss.filter((s) => !seanceSemaineAllegee(s)).reduce((a, s) => a + s.series.filter(estDure).length, 0)} séries dures` +
+        (ss.some(seanceSemaineAllegee) ? ' · déload' : ss.some((s) => s.allegeeSeule) ? ' · séance allégée' : '') +
         (r !== null ? ` · sensation ${niveauSensation(r)}` : '')
     )
   }
@@ -119,9 +119,9 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   // Dates au choix : une semaine coupée ferait croire à un volume trop faible.
   const entieres = semaines.filter((l) => l >= debut && dateISO(new Date(Date.parse(l + 'T12:00:00') + 6 * 86400000)) <= fin)
   const semainesVolume = semainesCoupees && entieres.length ? entieres : semaines
-  const parSemaine = semainesVolume.map((l) => volumeParMuscle(travail.filter((s) => semaineDe(s.date) === l), d.exercices))
+  const parSemaine = semainesVolume.map((l) => volumeParMuscle(periode.filter((s) => !seanceSemaineAllegee(s) && semaineDe(s.date) === l), d.exercices))
   // Moyenne sur les semaines de la période, sauf celles de déload (une semaine sans séance compte pour 0).
-  const semainesTravail = semainesVolume.filter((l) => !periode.some((s) => semaineDe(s.date) === l && s.deload) && !(d.cycles?.some((c) => c.pauses.includes(l)) && !periode.some((s) => semaineDe(s.date) === l)))
+  const semainesTravail = semainesVolume.filter((l) => !periode.some((s) => semaineDe(s.date) === l && seanceSemaineAllegee(s)) && !(d.cycles?.some((c) => c.pauses.includes(l)) && !periode.some((s) => semaineDe(s.date) === l)))
   for (const m of MUSCLES) {
     const valeurs = semainesVolume.map((_, k) => parSemaine[k][m.id])
     const total = valeurs.reduce((a, b) => a + b, 0)
@@ -147,7 +147,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     const avec = periode.filter((s) => s.series.some((x) => x.exoId === id))
     for (const s of avec) {
       const series = s.series.filter((x) => x.exoId === id)
-      lignes.push(`  ${jour(s.date)}${s.deload ? ' (déload)' : ''} : ${series.map((x) => serieTexte(exo, x)).join(', ')}${series.some((x) => x.douleur) ? ' ⚠ douleur' : ''}`)
+      lignes.push(`  ${jour(s.date)}${s.allegeeSeule ? ' (séance allégée)' : s.deload ? ' (déload)' : ''} : ${series.map((x) => serieTexte(exo, x)).join(', ')}${series.some((x) => x.douleur) ? ' ⚠ douleur' : ''}`)
     }
     // Tendance : meilleur 1RM estimé des séries de travail, des 2 premières aux 2 dernières séances (voir `evolutionForce`).
     const ev = evolutionForce(exo, avec.filter((s) => !s.deload))

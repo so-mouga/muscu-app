@@ -860,7 +860,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </button>
           </div>
         )}
-        {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> Semaine allégée : charges −10 %, effort 6-7/10, sans échec. Récupère, ne force pas.</div>}
+        {seance.deload && <div className="bandeau-deload"><Wind size={16} className="ico-texte" /> {seance.allegeeSeule ? 'Séance allégée' : 'Semaine allégée'} : charges −10 %, effort 6-7/10, sans échec. Récupère, ne force pas.</div>}
       </div>
 
       <div className="liste-seance">
@@ -1402,6 +1402,7 @@ function FinSeance({
             </span>
           </div>
         )}
+        {seance.deload && <strong className="texte-finisseur">Séance allégée</strong>}
         {seance.series.length > 0 ? <ResumeSeance seance={seance} exo={catalogue.exo} enLigne /> : <div className="faible">Aucune série validée : rien à enregistrer.</div>}
         {/* Ici plutôt qu'en bas : « Enregistrer » reste toujours visible, on n'irait jamais les chercher. */}
         {seance.series.length > 0 && (

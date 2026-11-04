@@ -1,5 +1,5 @@
 import type { Exercice, Seance, Serie } from '../types'
-import { dureeSeanceEffective, e1rm, enTemps, estDure, kgSouleves, lundi } from './calc'
+import { dateISO, dureeSeanceEffective, e1rm, enTemps, estDure, kgSouleves, lundi } from './calc'
 
 export interface Bilan {
   seances: number
@@ -163,6 +163,24 @@ export function meilleureSerie(series: Serie[], assistance = false): Serie | und
  * créneau de la même séance le plus proche avant son jour, sinon le prochain : faite jeudi, elle
  * coche le créneau du jeudi, pas celui du lundi.
  */
+/** Séance d'une semaine allégée : une séance allégée pour un seul jour n'en fait pas une. */
+export const seanceSemaineAllegee = (s: Pick<Seance, 'deload' | 'allegeeSeule'>) => !!s.deload && !s.allegeeSeule
+
+/**
+ * Créneaux de cette semaine passés sans séance, pour la liste « Autre séance ». Rien en semaine de pause,
+ * ni avant la toute première séance du programme (`premiere`) : un cycle commence le lundi même s'il est
+ * lancé le mercredi, et la séance de lundi n'existait pas encore pour la personne.
+ */
+export function creneauxRates(planning: { jour: number }[], coches: Set<number>, o: { jour: number; lundi: string; premiere?: string; pause?: boolean }): Set<number> {
+  const rates = new Set<number>()
+  if (o.pause || !o.premiere) return rates
+  planning.forEach((p, i) => {
+    const date = dateISO(new Date(Date.parse(o.lundi + 'T12:00:00') + (p.jour - 1) * 86400000))
+    if (p.jour < o.jour && !coches.has(i) && o.premiere! < date) rates.add(i)
+  })
+  return rates
+}
+
 export function creneauxFaits(planning: { id: string; jour: number }[], faites: { id: string; jour: number }[]): Set<number> {
   const pris = new Set<number>()
   for (const f of [...faites].sort((a, b) => a.jour - b.jour)) {

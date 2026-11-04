@@ -64,6 +64,14 @@ const REGLES: [string, string[]][] = [
     ],
   ],
   [
+    'Séance allégée',
+    [
+      'En allégé (écran « Voir ») : pour cette séance seulement, moitié des séries, charges −10 %, effort 6-7/10, sans finisseur. Ton cycle ne bouge pas.',
+      'Elle compte pour ta régularité et pour les muscles de la semaine (séries à 7/10 ou plus). Elle ne compte ni pour la « dernière fois », ni pour les progrès, les records et les blocages : la prochaine vraie séance reprend là où tu en étais.',
+      'Elle ne remplace pas une semaine allégée : le conseil d’alléger reste actif.',
+    ],
+  ],
+  [
     'Bilan : « À retenir »',
     [
       'Au plus 3 lignes, dans cet ordre : douleurs signalées, lecture de la phase, sommeil, séances sous 75 % du prévu, exercices bloqués (résumés en une ligne), fatigue. Le bilan regarde les semaines finies : la semaine en cours n’y entre pas. Le texte partagé est plus complet.',

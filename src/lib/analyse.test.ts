@@ -342,3 +342,24 @@ describe('Bilan sur des dates au choix', () => {
     expect(r.analyse.volume.dos).toBeCloseTo(analyser(donnees([seance('a', '2026-10-08', [50, 50])]), '2026-10-05', '2026-10-11', 3).volume.dos)
   })
 })
+
+describe('séance allégée pour un seul jour', () => {
+  const lundis = ['2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26']
+  const normales = lundis.map((l) => seance(l, l, [50, 50]))
+  const legere = (extra: Partial<Seance>) => seance('l', '2026-10-14', [45, 45], { deload: true, ...extra })
+  it('ne gonfle pas le volume : sa semaine reste comptée, et ses séries aussi', () => {
+    const sans = analyser(donnees(normales), '2026-10-05', '2026-11-01', 1)
+    const avec = analyser(donnees([...normales, legere({ allegeeSeule: true })]), '2026-10-05', '2026-11-01', 1)
+    expect(avec.volume.dos).toBeCloseTo(sans.volume.dos + 1 / 4)
+    expect(avec.seances).toBe(sans.seances + 1)
+  })
+  it('une vraie semaine allégée reste écartée du volume', () => {
+    const r = analyser(donnees([...normales.filter((s) => s.date !== '2026-10-12'), seance('l', '2026-10-12', [45, 45], { deload: true })]), '2026-10-05', '2026-11-01', 1)
+    expect(r.volume.dos).toBeCloseTo(1)
+  })
+  it('ne compte ni pour les records, ni pour les progrès', () => {
+    const forte = seance('f', '2026-10-14', [90, 90], { deload: true, allegeeSeule: true })
+    const r = analyser(donnees([...normales, forte]), '2026-10-05', '2026-11-01', 1)
+    expect(r.records.filter((x) => x.date === '2026-10-14')).toEqual([])
+  })
+})

@@ -91,3 +91,13 @@ describe('texte du bilan sur des dates au choix', () => {
     expect(ligne(coupe)).toBe(ligne(entier))
   })
 })
+
+describe('texte du bilan et séance allégée pour un seul jour', () => {
+  const d = { seances: [seance('a', '2026-10-05', [50, 50]), seance('b', '2026-10-07', [45], { deload: true, allegeeSeule: true })], pesees: [], mesures: [], exo: (id: string) => EXERCICES[id], exercices: EXERCICES, cibles: cibles() }
+  it('la nomme, et ne parle pas de déload', () => {
+    const t = genererBilan(d, '2026-10-05', '2026-10-11')
+    expect(t).toMatch(/séance allégée/)
+    expect(t).not.toMatch(/· déload/)
+    expect(t).not.toMatch(/\(déload\)/)
+  })
+})
