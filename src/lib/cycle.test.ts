@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { appliquerEcart, arretCycle, finArret, lundiArret, avecPriorites, changerSemaine, cycleDuBilan, debutCycle, finReelle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
+import { appliquerEcart, arretCycle, avantSonCycle, contexteCycle, finArret, lundiArret, avecPriorites, changerSemaine, cycleDuBilan, debutCycle, finReelle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -260,6 +260,30 @@ describe('cycle proposé par le Bilan', () => {
   })
   it('aucun cycle commencé', () => {
     expect(cycleDuBilan([b], '2026-12-28')).toBeUndefined()
+  })
+})
+
+describe('séance et cycle', () => {
+  const c = cycle({ id: 'c', debut: '2026-11-09', semaines: 7, deloads: [7] })
+  it('cycle à venir : une séance lancée avant son début ne lui appartient pas', () => {
+    expect(contexteCycle(c, '2026-11-04')).toBeUndefined()
+    expect(contexteCycle(c, '2026-11-08')).toBeUndefined()
+  })
+  it('dès son premier lundi, elle lui appartient, avec sa semaine', () => {
+    expect(contexteCycle(c, '2026-11-09')).toEqual({ cycleId: 'c', semaine: 1, deload: false })
+    expect(contexteCycle(c, '2026-12-23')).toEqual({ cycleId: 'c', semaine: 7, deload: true })
+  })
+  it('semaine en pause : rattachée au cycle, sans numéro de semaine ; cycle fini : plus rien', () => {
+    expect(contexteCycle({ ...c, pauses: ['2026-11-16'] }, '2026-11-17')).toEqual({ cycleId: 'c', semaine: undefined, deload: false })
+    expect(contexteCycle(c, '2026-12-28')).toBeUndefined()
+    expect(contexteCycle({ ...c, fin: '2026-11-20' }, '2026-11-21')).toBeUndefined()
+  })
+  it('réparation : seulement les séances datées d’avant le début de leur cycle', () => {
+    const debuts = new Map([['c', '2026-11-09']])
+    expect(avantSonCycle({ cycleId: 'c', date: '2026-11-04' }, debuts)).toBe(true)
+    expect(avantSonCycle({ cycleId: 'c', date: '2026-11-09' }, debuts)).toBe(false)
+    expect(avantSonCycle({ date: '2026-11-04' }, debuts)).toBe(false)
+    expect(avantSonCycle({ cycleId: 'disparu', date: '2026-11-04' }, debuts)).toBe(false)
   })
 })
 

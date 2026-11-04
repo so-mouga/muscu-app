@@ -13,7 +13,7 @@ import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
-import { arretCycle, etatCycle, lundiDe, planDeload, reprendreSemaine } from '../lib/cycle'
+import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
@@ -32,8 +32,6 @@ const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
 /** Contexte du cycle au démarrage : semaine en cours et déload éventuel. */
 const JOURS_COURTS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
-
-type ContexteCycle = { cycleId: string; semaine?: number; deload: boolean }
 
 async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle, echauffement: string[] = [], allegee = false) {
   try {
@@ -234,8 +232,7 @@ export default function Accueil({
   const etat = cycle && etatCycle(cycle)
   // Semaine allégée : la durée de la séance allégée, pas celle d'une séance complète.
   const dureeDe = (m: SeanceModele) => (etat?.deload && !etat.fini ? `≈ ${minutes(dureeEstimee({ ...m, exercices: m.exercices.map(planDeload) }))}` : dureeTexte(m, terminees))
-  const contexte: ContexteCycle | undefined =
-    cycle && etat && !etat.fini ? { cycleId: cycle.id, semaine: etat.n >= 1 && !etat.pause ? etat.n : undefined, deload: etat.deload } : undefined
+  const contexte = cycle && contexteCycle(cycle)
   // On retient d'où la séance est lancée (accueil, ou « Voir ») pour y revenir si on l'annule.
   const lancer = (m?: SeanceModele, depuisApercu = false, allegee = false) => {
     try {

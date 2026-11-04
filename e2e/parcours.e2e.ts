@@ -147,8 +147,11 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
   await p.goto('/manifest.webmanifest')
   const jour = await aujourdhui(p)
   const ancienne = seance('ancienne', jour, [{ charge: 52.5, reps: 8, rpe: 8 }])
+  // Rattachée par erreur à un cycle qui n'a pas encore commencé : la mise à jour retire ce lien, et rien d'autre.
+  const avantCycle = { ...seance('avant-cycle', '2020-01-06', [{ charge: 40, reps: 10, rpe: 8 }]), cycleId: 'a-venir' }
+  const cycleAVenir = { id: 'a-venir', debut: '2099-01-05', semaines: 6, deloads: [6], pauses: [], programmeId: 'p', programme: { id: 'p', nom: 'P', seances: [] }, modeles: [], volume: {} }
   await p.evaluate(
-    (s) =>
+    ({ s, avant, c }) =>
       new Promise<void>((ok, ko) => {
         const q = indexedDB.open('muscu', 60)
         q.onupgradeneeded = () => {
@@ -169,12 +172,14 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
           t('cycles', 'id')
           const tx = q.transaction!
           tx.objectStore('seances').put(s)
+          tx.objectStore('seances').put(avant)
+          tx.objectStore('cycles').put(c)
           tx.objectStore('pesees').put({ date: s.date, poids: 76.2 })
         }
         q.onsuccess = () => (q.result.close(), ok())
         q.onerror = () => ko(q.error)
       }),
-    ancienne
+    { s: ancienne, avant: avantCycle, c: cycleAVenir }
   )
 
   await p.goto('/')
@@ -183,7 +188,8 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
   const version = await p.evaluate(() => new Promise<number>((ok) => (indexedDB.open('muscu').onsuccess = (e) => ok((e.target as IDBOpenDBRequest).result.version))))
   expect(version).toBeGreaterThanOrEqual(70)
   expect(await lireTable(p, 'journal')).toEqual([])
-  expect(await lireTable(p, 'seances')).toEqual([ancienne])
+  const { cycleId: _, ...sansLien } = avantCycle
+  expect(await lireTable(p, 'seances')).toEqual(expect.arrayContaining([ancienne, sansLien]))
   expect(await lireTable(p, 'pesees')).toEqual([{ date: jour, poids: 76.2 }])
   await ouvrirSeanceDuJour(p, 'Séance test')
   await expect(p.locator('.recap-serie').first()).toContainText('52,5 kg × 8')

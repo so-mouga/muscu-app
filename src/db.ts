@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { EXERCICES } from './data/exercices'
 import { MODELES } from './data/programme'
-import { cycleEnFourchette } from './lib/cycle'
+import { avantSonCycle, cycleEnFourchette } from './lib/cycle'
 import { enFourchette } from './lib/programme'
 import type { Activite, Cycle, Exercice, JourJournal, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele } from './types'
 
@@ -62,6 +62,20 @@ db.version(8)
     }
     await tx.table('modeles').toCollection().modify((m: SeanceModele) => sansBloquer(() => (m.exercices = enFourchette(m, enTemps).exercices)))
     await tx.table('cycles').toCollection().modify((c: Cycle) => sansBloquer(() => Object.assign(c, cycleEnFourchette(c, enTemps))))
+  })
+
+// Une séance faite avant le début d'un cycle à venir lui était rattachée : le cycle affichait « 1 séance faite » avant d'avoir commencé.
+db.version(9)
+  .stores({})
+  .upgrade(async (tx) => {
+    const debuts = new Map((await tx.table('cycles').toArray()).map((c: Cycle) => [c.id, c.debut]))
+    await tx
+      .table('seances')
+      .filter((s: Seance) => avantSonCycle(s, debuts))
+      .modify((s: Seance) => {
+        delete s.cycleId
+        delete s.semaine
+      })
   })
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)

@@ -44,6 +44,21 @@ export function etatCycle(c: Cycle, date = dateISO()): EtatCycle {
   return { n, total: c.semaines, pause, deload: !pause && c.deloads.includes(n), fini: !!c.fin || n > c.semaines }
 }
 
+export type ContexteCycle = { cycleId: string; semaine?: number; deload: boolean }
+
+/** Ce qu'une séance lancée à cette date retient du cycle ; rien si le cycle n'a pas commencé ou s'il est fini. */
+export function contexteCycle(c: Cycle, date = dateISO()): ContexteCycle | undefined {
+  const e = etatCycle(c, date)
+  if (e.fini || e.n < 1) return undefined
+  return { cycleId: c.id, semaine: e.pause ? undefined : e.n, deload: e.deload }
+}
+
+/** Séance rattachée à un cycle qui n'avait pas encore commencé ce jour-là (anciennes versions de l'appli). */
+export const avantSonCycle = (s: { cycleId?: string; date: string }, debuts: Map<string, string>) => {
+  const debut = s.cycleId && debuts.get(s.cycleId)
+  return !!debut && s.date < debut
+}
+
 /** Lundi de la semaine `n` du cycle, en sautant les semaines en pause. */
 export function lundiDe(c: Cycle, n: number): string {
   let l = c.debut

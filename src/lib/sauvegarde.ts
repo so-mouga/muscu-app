@@ -1,8 +1,9 @@
 import type { Table } from 'dexie'
 import { MODELES } from '../data/programme'
 import { db, setReglage } from '../db'
+import { avantSonCycle } from './cycle'
 import { natif, partageFichierDisponible, partagerFichierNatif } from './natif'
-import type { Seance } from '../types'
+import type { Cycle, Seance } from '../types'
 
 export type Categorie = 'programmes' | 'historique' | 'exercices' | 'corps' | 'photos' | 'reglages'
 
@@ -171,12 +172,17 @@ export async function importer({ data, presentes }: Fichier, mode: 'completer' |
     for (const t of tables) {
       const cle = CLES[t]
       let lignes = (data[t] ?? []) as Record<string, unknown>[]
-      if (t === 'seances')
-        lignes = (lignes as unknown as Seance[]).map((s) => ({
-          ...s,
-          exercices: s.exercices ?? structuredClone(MODELES[s.modeleId ?? '']?.exercices ?? []),
-          ajustSeries: s.ajustSeries ?? {},
-        })) as unknown as Record<string, unknown>[]
+      if (t === 'seances') {
+        const debuts = new Map(((data.cycles ?? []) as unknown as Cycle[]).map((c) => [c.id, c.debut]))
+        lignes = (lignes as unknown as Seance[]).map((s) => {
+          const propre = { ...s, exercices: s.exercices ?? structuredClone(MODELES[s.modeleId ?? '']?.exercices ?? []), ajustSeries: s.ajustSeries ?? {} }
+          if (avantSonCycle(s, debuts)) {
+            delete propre.cycleId
+            delete propre.semaine
+          }
+          return propre
+        }) as unknown as Record<string, unknown>[]
+      }
       if (mode === 'remplacer') {
         // Une vieille sauvegarde sans cette marque ne doit pas relancer les questions du démarrage.
         const demarrage = t === 'reglages' && !lignes.some((l) => l.cle === 'demarrage') ? await table(t).get('demarrage') : undefined
