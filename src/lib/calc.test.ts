@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance, Serie } from '../types'
-import { calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import { lirePoids, poidsDecale, calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -193,5 +193,22 @@ describe('textes en clair', () => {
     expect(ecartSerie(s(10, 8, 9), s(10, 8, 7))).toEqual({ sens: 'egal', texte: 'mêmes reps, effort plus dur' })
     expect(ecartSerie(s(10, 8, 7), s(10, 8, 9))?.texte).toBe('mêmes reps, effort plus facile')
     expect(ecartSerie(s(10, 8, 8), s(10, 8, 8))?.texte).toBe('identique')
+  })
+})
+
+describe('poids tapé', () => {
+  it('garde les 2 chiffres après la virgule, sans arrondir', () => {
+    expect(lirePoids('70,65')).toBe(70.65)
+    expect(lirePoids('70.65')).toBe(70.65)
+    expect(lirePoids(' 72,3 ')).toBe(72.3)
+    expect(lirePoids('80')).toBe(80)
+  })
+  it('refuse ce qui n’est pas un poids', () => {
+    for (const t of ['', 'abc', '70,655', '25', '300', '-70']) expect(lirePoids(t)).toBeNull()
+  })
+  it('− et + gardent les centièmes', () => {
+    expect(poidsDecale(70.65, 0.1)).toBe(70.75)
+    expect(poidsDecale(70.65, -0.1)).toBe(70.55)
+    expect(poidsDecale(70.1, 0.2)).toBe(70.3)
   })
 })

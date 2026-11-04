@@ -13,6 +13,17 @@ export const RIR: Record<number, string> = {
 export const kg = (x: number | null | undefined) =>
   x === null || x === undefined ? '—' : x.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
 
+/** Poids tapé (virgule ou point, 2 chiffres après la virgule au plus), tel quel ; null s'il n'est pas reconnu. */
+export function lirePoids(texte: string): number | null {
+  const t = texte.trim().replace(',', '.')
+  if (!/^\d{2,3}(\.\d{1,2})?$/.test(t)) return null
+  const val = parseFloat(t)
+  return val > 30 && val < 250 ? val : null
+}
+
+/** Poids après un appui sur − ou + : garde les centièmes, sans erreur de calcul (70,65 + 0,1 = 70,75). */
+export const poidsDecale = (poids: number, delta: number) => Math.round((poids + delta) * 100) / 100
+
 /** `long` : « poids du corps » en toutes lettres (détail de séance) plutôt que « PDC » (là où la place manque). */
 export function chargeTexte(exo: Exercice, charge: number | null | undefined, long = false): string {
   if (charge === null || charge === undefined) return 'à calibrer'

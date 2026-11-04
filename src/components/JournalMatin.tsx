@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
 import { informer } from './Dialogues'
-import { dateISO, kg } from '../lib/calc'
+import { dateISO, kg, lirePoids, poidsDecale } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { objectifDuJour } from '../lib/nutrition'
 import type { JourJournal } from '../types'
@@ -79,10 +79,8 @@ export function FenetreJour({
   const titreCalories = date === hier ? 'Calories d’hier' : date === aujourdhui ? 'Calories du jour' : `Calories du ${court}`
 
   const enregistrerPoids = async () => {
-    const t = valPoids.trim().replace(',', '.')
-    const val = /^\d{2,3}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN
-    if (!(val > 30 && val < 250)) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
-    const arr = Math.round(val * 10) / 10
+    const arr = lirePoids(valPoids)
+    if (arr === null) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
     await db.pesees.put({ date, poids: arr })
     await db.seances.filter((s) => !s.poidsCorps && (s.date === date || (date === aujourdhui && s.enCours))).modify((s) => {
       s.poidsCorps = arr
@@ -92,7 +90,7 @@ export function FenetreJour({
 
   const ajusterPoids = (delta: number) => {
     const cur = parseFloat(valPoids.trim().replace(',', '.'))
-    if (Number.isFinite(cur)) setValPoids(kg(Math.round((cur + delta) * 10) / 10))
+    if (Number.isFinite(cur)) setValPoids(kg(poidsDecale(cur, delta)))
   }
 
   const fermer = () => {
