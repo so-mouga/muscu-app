@@ -43,6 +43,11 @@ const memeFourchette = (plan: ExoPlan) => plan.series.every((x) => x.repsMin ===
 /** « 10 » si toutes les séries ont la même borne, sinon « le bas de leur fourchette ». */
 const borneTexte = (plan: ExoPlan, b: 'repsMin' | 'repsMax') => (memeFourchette(plan) ? `${plan.series[0][b]}` : b === 'repsMin' ? 'le bas de leur fourchette' : 'le haut de leur fourchette')
 
+/** « 10 reps » ou « le bas de leur fourchette ». */
+const repsBorne = (plan: ExoPlan, b: 'repsMin' | 'repsMax') => (memeFourchette(plan) ? `${plan.series[0][b]} reps` : borneTexte(plan, b))
+/** « à 8 » ou « au bas de leur fourchette ». */
+const aLaBasse = (plan: ExoPlan) => (memeFourchette(plan) ? `à ${plan.series[0].repsMin}` : 'au bas de leur fourchette')
+
 function bilan(series: Serie[], plan: ExoPlan): Bilan | null {
   const ref = series.filter((s) => s.type === 'normale')
   const fin = series.filter(estFinisseur)
@@ -161,7 +166,7 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
       decision: 'augmenter',
       charges: plan.series.map((_, i) => plusDur(exo, chargeA(i))),
       reps: basDe,
-      message: `↑ ${exo.assistance ? '−' : '+'}${nombre(inc)}${unite} : toutes les séries au sommet de la fourchette au RPE visé. Reps repartent à ${borneTexte(plan, 'repsMin')}.`,
+      message: `↑ ${exo.assistance ? '−' : '+'}${nombre(inc)}${unite} : toutes les séries au sommet de la fourchette au RPE visé. Reps repartent ${aLaBasse(plan)}.`,
     }
   }
 
@@ -177,14 +182,14 @@ export function suggere(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
           return exo.mode === 'machine' || exo.mode === 'par_main' ? Math.max(0, arrondi(d)) : arrondi(d)
         }),
         reps: basDe,
-        message: `↓ Deux séances de suite sous ${borneTexte(plan, 'repsMin')} reps : on baisse un peu pour repartir propre.`,
+        message: `↓ Deux séances de suite sous ${repsBorne(plan, 'repsMin')} : on baisse un peu pour repartir propre.`,
       }
     }
     return {
       decision: 'consolider',
       charges: memesCharges(),
       reps: basDe,
-      message: `Reps sous ${borneTexte(plan, 'repsMin')} : même charge. Si ça se répète, elle baissera.`,
+      message: `Sous ${repsBorne(plan, 'repsMin')} : même charge. Si ça se répète, elle baissera.`,
     }
   }
 
@@ -274,7 +279,7 @@ const aFourchette = (plan: ExoPlan) => plan.series.some((x) => x.repsMin < x.rep
 
 /**
  * Conseil de surcharge pour la prochaine fois, d'après la double progression : seulement pour un
- * exercice avec une fourchette de reps (sinon on refait pareil). D'abord des reps dans la fourchette,
+ * exercice avec une vraie fourchette (même nombre des deux côtés : on refait pareil). D'abord des reps dans la fourchette,
  * puis la charge quand toutes les séries atteignent le haut. C'est une proposition : l'utilisateur
  * l'applique ou non. `historique` : séries de l'exercice par séance, la plus récente en premier.
  */
@@ -300,14 +305,14 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
         charges: p.charges,
         reps,
         titre: `💡 Même charge, vise ${bas}`,
-        message: `Pourquoi : ${derniere[k].reps} reps sur la ${ord(k)} série, sous le bas de ta fourchette (${bas}).\nSi ça se répète, baisse un peu.`,
+        message: `Pourquoi : ${derniere[k].reps} reps sur la ${ord(k)} série, sous le bas de ${memeFourchette(plan) ? `ta fourchette (${bas})` : 'sa fourchette'}.\nSi ça se répète, baisse un peu.`,
       }
   }
   if (!aFourchette(plan)) return null
   if (s.decision === 'augmenter') {
     const d = arrondi((s.charges[0] ?? 0) - derniere[0].charge)
     const palier = exo.mode === 'machine' && !exo.assistance ? ' (le palier de la machine)' : ''
-    return { ...s, titre: exo.assistance ? '💡 Moins d’assistance' : '💡 Tu peux monter', message: `Pourquoi : tes ${series(b!.faites)} ont atteint ${haut} reps à l’effort visé.\n${d < 0 ? '−' : '+'}${nombre(Math.abs(d))}${unite}${palier}, les reps repartent à ${bas}.` }
+    return { ...s, titre: exo.assistance ? '💡 Moins d’assistance' : '💡 Tu peux monter', message: `Pourquoi : ${b!.faites > 1 ? `tes ${series(b!.faites)} ont` : 'ta série a'} atteint ${repsBorne(plan, 'repsMax')} à l’effort visé.\n${d < 0 ? '−' : '+'}${nombre(Math.abs(d))}${unite}${palier}, les reps repartent ${aLaBasse(plan)}.` }
   }
   if (s.decision === 'plus_une_rep') {
     const plus = s.reps.map((_, i) => i).filter((i) => derniere[i] && s.reps[i] > derniere[i].reps)
@@ -317,7 +322,7 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
         : `tes séries étaient faciles (effort 7/10 ou moins)`
     return { ...s, titre: '💡 Tu peux viser plus', message: `Pourquoi : ${pourquoi}.\nLa charge montera quand toutes feront ${haut}.` }
   }
-  if (s.decision === 'baisser') return { ...s, titre: exo.assistance ? '💡 Un peu plus d’assistance' : '💡 Baisse un peu', message: `Pourquoi : deux séances de suite sous ${bas} reps.\nOn repart un peu plus ${exo.assistance ? 'aidé' : 'léger'} pour refaire des séries propres.` }
+  if (s.decision === 'baisser') return { ...s, titre: exo.assistance ? '💡 Un peu plus d’assistance' : '💡 Baisse un peu', message: `Pourquoi : deux séances de suite sous ${repsBorne(plan, 'repsMin')}.\nOn repart un peu plus ${exo.assistance ? 'aidé' : 'léger'} pour refaire des séries propres.` }
   // Haut atteint mais montée trop forte d'un coup (ou matériel au max) : le dire plutôt que se taire.
   if (s.decision === 'consolider' && b && b.top && b.rpeOk && b.garde) {
     const saut = s.message.match(/mais (.+) : confirme/)

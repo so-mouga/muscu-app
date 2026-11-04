@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EXERCICES } from '../data/exercices'
 import type { Programme, SeanceModele, Serie } from '../types'
 import { conseil } from './progression'
-import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance } from './programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, enFourchette } from './programme'
 
 const seance = (id: string): SeanceModele => ({ id, nom: `Séance ${id}`, sousTitre: '', exercices: [{ exoId: 'presse', repos: 120, chauffes: [], finisseur: false, charge: 50, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }] })
 const programme: Programme = { id: 'p1', nom: 'Mon programme ', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'a', jour: 5 }] }
@@ -119,5 +119,18 @@ describe('joursPris', () => {
   })
   it('une nouvelle séance voit tous les jours pris, sans ceux d’une séance supprimée', () => {
     expect(joursPris(seances, existe)).toEqual([1, 3])
+  })
+})
+
+describe('passage en fourchette', () => {
+  const plan = (series: { repsMin: number; repsMax: number }[], exoId = 'a') => ({ exoId, repos: 60, series: series.map((x) => ({ ...x, rpe: 8 })), chauffes: [], finisseur: false, charge: 50 })
+  it('le nombre devient le milieu, une fourchette existante ne bouge pas', () => {
+    const r = enFourchette({ exercices: [plan([{ repsMin: 10, repsMax: 10 }, { repsMin: 8, repsMax: 12 }])] }, () => false)
+    expect(r.exercices[0].series.map((x) => [x.repsMin, x.repsMax])).toEqual([[8, 12], [8, 12]])
+  })
+  it('un exercice en temps garde son nombre, et jamais moins d’une rep', () => {
+    const r = enFourchette({ exercices: [plan([{ repsMin: 30, repsMax: 30 }], 't'), plan([{ repsMin: 2, repsMax: 2 }])] }, (id) => id === 't')
+    expect(r.exercices[0].series[0].repsMin).toBe(30)
+    expect(r.exercices[1].series[0]).toMatchObject({ repsMin: 1, repsMax: 4 })
   })
 })

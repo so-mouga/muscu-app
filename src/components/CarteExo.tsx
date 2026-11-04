@@ -355,7 +355,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       <button onClick={() => setReps(Math.max(0, reps - pasQte))}>−</button>
       <div className="valeur">
         <input inputMode="numeric" value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
-        <span className="unite">{temps ? 'secondes tenues' : 'reps'}</span>
+        <span className="unite">
+          {temps ? 'secondes tenues' : 'reps'}
+          {compact && !finisseur && (!temps || p.repsMin < p.repsMax) && ` · vise ${p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`}`}
+        </span>
       </div>
       <button onClick={() => setReps(reps + pasQte)}>+</button>
     </div>

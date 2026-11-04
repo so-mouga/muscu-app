@@ -1,3 +1,4 @@
+import { enFourchette } from './programme'
 import { MUSCLES } from '../data/exercices'
 import type { Cycle, Exercice, ExoPlan, Muscle, Programme, SeanceModele } from '../types'
 import { dateISO, lundi } from './calc'
@@ -139,6 +140,12 @@ const signaturePlanning = (p: Programme) =>
 
 // Le sous-titre ne change rien à ce qu'on fait : il ne mérite pas de question.
 const signatureSeance = ({ sousTitre: _s, ...m }: SeanceModele) => signature(m)
+
+/** Mise à jour vers les fourchettes : la copie du cycle et les versions déjà refusées suivent, pour ne pas reposer de question. */
+export function cycleEnFourchette(c: Cycle, enTemps: (exoId: string) => boolean): Cycle {
+  const refus = c.refus && Object.fromEntries(Object.entries(c.refus).map(([id, sig]) => [id, id === CLE_PLANNING ? sig : signature(enFourchette(JSON.parse(sig) as SeanceModele, enTemps))]))
+  return { ...c, modeles: c.modeles.map((m) => enFourchette(m, enTemps)), ...(refus && { refus }) }
+}
 
 export function ecartCycle(c: Cycle, programme: Programme | undefined, modele: (id: string) => SeanceModele | undefined): EcartCycle | undefined {
   const dansCycle = new Set(c.programme.seances.map((e) => e.modeleId))

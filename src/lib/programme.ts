@@ -1,5 +1,16 @@
 import type { Exercice, Programme, SeanceModele } from '../types'
 
+/**
+ * Passage des nombres fixes aux fourchettes : le nombre devient le milieu (10 → 8–12). Assez large pour qu'une séance à
+ * quelques reps sous le nombre ne soit pas un raté, ni une montée de charge. Les exercices en temps gardent leur nombre.
+ */
+export const enFourchette = <T extends Pick<SeanceModele, 'exercices'>>(m: T, enTemps: (exoId: string) => boolean): T => ({
+  ...m,
+  exercices: m.exercices.map((p) =>
+    enTemps(p.exoId) ? p : { ...p, series: p.series.map((s) => (s.repsMin === s.repsMax ? { ...s, repsMin: Math.max(1, s.repsMin - 2), repsMax: s.repsMax + 2 } : s)) }
+  ),
+})
+
 /** Copie indépendante d'un programme : ses séances sont copiées aussi, modifier l'une ne change pas l'autre. */
 export function copieProgramme(p: Programme, modele: (id: string) => SeanceModele | undefined, id: () => string): { programme: Programme; seances: SeanceModele[] } {
   const nouveauxIds = new Map<string, string>()

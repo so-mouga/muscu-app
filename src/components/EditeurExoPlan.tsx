@@ -102,11 +102,12 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
   const [chauffes, setChauffes] = useState<LigneChauffe[]>(() => plan.chauffes.map(versLigne))
   const [aideFin, setAideFin] = useState(false)
   const [avance, setAvance] = useState(false)
-  // Fourchette de reps (8–12) : mise d'office sur un exercice ajouté ; on peut passer à un seul nombre par série.
-  const [fourchette, setFourchette] = useState(() => plan.series.some((s) => s.repsMin !== s.repsMax))
-
   const n = p.series.length
   const temps = exo.mesure === 'temps'
+  // Toujours une fourchette ; en temps, un seul nombre (pas de conseil de montée), sauf si une fourchette existe déjà.
+  const [fourchette] = useState(() => !temps || plan.series.some((s) => s.repsMin !== s.repsMax))
+  // Ce qu'on a ouvert : rien de changé, rien de réécrit (le réglage retouchait les charges et faisait croire à un programme modifié).
+  const depart = useRef({ p, charges, chauffes })
   const maj = (f: (q: ExoPlan) => void) =>
     setP((q) => {
       const c = structuredClone(q)
@@ -145,6 +146,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
 
 
   const resultat = (): ExoPlan => {
+    if (p === depart.current.p && charges === depart.current.charges && chauffes === depart.current.chauffes) return plan
     // Charge de départ générale = celle de la 1re série ; les autres séries ne la précisent que si elle diffère.
     const chargeGenerale = lireCharge(charges[0] ?? '')
     return {
@@ -155,7 +157,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
         const charge = lireCharge(charges[i] ?? '')
         return {
           ...base,
-          ...(fourchette ? {} : { repsMax: base.repsMin }),
           ...(charge !== undefined && charge !== chargeGenerale ? { charge } : {}),
           ...(s.repos !== undefined && s.repos !== p.repos ? { repos: s.repos } : {}),
         }
@@ -184,7 +185,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
     const t = setTimeout(() => onModifie?.(resultatRef.current()), 300)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p, charges, chauffes, fourchette])
+  }, [p, charges, chauffes])
 
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const chargeBase = lireCharge(charges[0] ?? '')
@@ -237,18 +238,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
             </Fragment>
           ))}
         </div>
-        {/* Fourchette juste sous le tableau : on voit tout de suite ce qu'elle change (deux nombres par série). */}
-        <button type="button" className={'interrupteur petit-inter' + (fourchette ? ' on' : '')} onClick={() => setFourchette(!fourchette)}>
-          <span>
-            {temps ? 'Fourchette de secondes (min – max)' : 'Fourchette de reps (min – max)'}
-            <div className="faible">
-              {fourchette
-                ? 'Vise le haut : en fin de séance, l’appli te conseille quand monter.'
-                : 'Sans fourchette, l’appli ne te conseille pas de monter. Active-la pour être guidé (ex. 12–15).'}
-            </div>
-          </span>
-          <span className="piste" />
-        </button>
+        {!temps && <div className="faible">{p.series.some((x) => x.repsMin < x.repsMax) ? 'Vise le haut : en fin de séance, l’appli te conseille quand monter.' : 'Même nombre des deux côtés : l’appli ne te conseille pas de monter.'}</div>}
         <div className="faible">
           Change la 1re série, les suivantes identiques suivent. La charge ne sert que la première fois ; pas d’idée ? Laisse « — ».
         </div>

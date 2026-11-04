@@ -1,6 +1,8 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { EXERCICES } from './data/exercices'
 import { MODELES } from './data/programme'
+import { cycleEnFourchette } from './lib/cycle'
+import { enFourchette } from './lib/programme'
 import type { Activite, Cycle, Exercice, JourJournal, Mesure, Pesee, PhotoCorps, Programme, Reglage, Seance, SeanceModele } from './types'
 
 export const db = new Dexie('muscu') as Dexie & {
@@ -43,6 +45,24 @@ db.version(4).stores({ mesures: 'date', photos: 'id, date' })
 db.version(5).stores({ activites: 'id, date' })
 db.version(6).stores({ cycles: 'id' })
 db.version(7).stores({ journal: 'date' })
+
+// Plus de nombre fixe de reps : tout passe en fourchette (choix de l'utilisateur, 4 nov. 2026). Les séances déjà faites ne changent pas.
+db.version(8)
+  .stores({})
+  .upgrade(async (tx) => {
+    const crees = new Map((await tx.table('exercices').toArray()).map((e: Exercice) => [e.id, e]))
+    const enTemps = (id: string) => (crees.get(id) ?? EXERCICES[id])?.mesure === 'temps'
+    // Une donnée inattendue reste telle quelle : la mise à jour ne doit jamais empêcher l'appli de s'ouvrir.
+    const sansBloquer = (f: () => void) => {
+      try {
+        f()
+      } catch {
+        /* laissée telle quelle */
+      }
+    }
+    await tx.table('modeles').toCollection().modify((m: SeanceModele) => sansBloquer(() => (m.exercices = enFourchette(m, enTemps).exercices)))
+    await tx.table('cycles').toCollection().modify((c: Cycle) => sansBloquer(() => Object.assign(c, cycleEnFourchette(c, enTemps))))
+  })
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
