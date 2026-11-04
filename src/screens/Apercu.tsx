@@ -96,7 +96,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
 
       {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} />}
 
-      {!semaineAllegee && !enAllege && modele.exercices.some((p) => terminees && historiqueDe(terminees, p.exoId).length > 0) && (
+      {!semaineAllegee && !enAllege && modele.exercices.length > 0 && (
         <button type="button" className="ligne-allege" onClick={() => setEnAllege(true)}>
           <span>Pas en forme aujourd’hui ?</span>
           <span className="texte-finisseur">En allégé ›</span>
