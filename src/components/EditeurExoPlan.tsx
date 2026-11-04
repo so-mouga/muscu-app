@@ -88,6 +88,8 @@ interface Props {
   onSuivant?: (p: ExoPlan) => void
   /** Enregistrer puis ouvrir l'exercice précédent (absent pour le premier). */
   onPrecedent?: (p: ExoPlan) => void
+  /** Ouvert par ‹ ou › : pas de montée, la fenêtre paraît rester à sa place. */
+  sansMontee?: boolean
   /** Remplacer l'exercice par un autre en gardant ce plan (séries, reps, effort, repos). */
   onRemplacer?: (p: ExoPlan) => void
   /** Ouvrir la fiche d'exécution par-dessus. */
@@ -95,7 +97,7 @@ interface Props {
   onRetirer?: () => void
 }
 
-export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuivant, onPrecedent, onRemplacer, onInfos, onRetirer }: Props) {
+export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuivant, onPrecedent, sansMontee, onRemplacer, onInfos, onRetirer }: Props) {
   const [p, setP] = useState<ExoPlan>(() => structuredClone(plan))
   // Charge de chaque série (texte saisi) : celle de la série, sinon la charge de départ générale.
   const [charges, setCharges] = useState(() => plan.series.map((s) => kg(s.charge ?? plan.charge ?? undefined).replace('—', '')))
@@ -200,7 +202,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
     .join(' · ')
 
   return (
-    <div className="modal-fond" onClick={valider}>
+    <div className={`modal-fond${sansMontee ? ' sans-montee' : ''}`} onClick={valider}>
       <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
         <div className="modal-tete">
           <h2>{exo.nom}</h2>

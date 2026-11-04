@@ -647,6 +647,11 @@ button:active:not(:disabled),
   overscroll-behavior: contain;
   animation: modal-monter var(--duree-longue) var(--sortie);
 }
+/* Passer d'un exercice à l'autre dans la même fenêtre : rien ne bouge. */
+.modal-fond.sans-montee,
+.modal-fond.sans-montee .modal {
+  animation: none;
+}
 /* Fenêtre longue : titre et bouton restent à l'écran, seule la liste défile. */
 .modal.modal-colonne {
   display: flex;

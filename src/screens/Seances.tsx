@@ -804,6 +804,8 @@ function Editeur({
   const habituelle = terminees && dureeHabituelle(m.id, terminees)
   const [choix, setChoix] = useState(choisirExos)
   const [editIdx, setEditIdx] = useState<number | null>(null)
+  /** Arrivé sur ce réglage par ‹ ou › : la fenêtre reste en place, seul l'exercice change. */
+  const [parFleche, setParFleche] = useState(false)
   const [infos, setInfos] = useState<Exercice | null>(null)
   const [plus, setPlus] = useState(false)
   const [fenetre, setFenetre] = useState<'nom' | 'sousTitre' | 'planB' | 'jour' | null>(null)
@@ -983,7 +985,7 @@ function Editeur({
                 </button>
               )}
               <Vignette exo={exo} taille={36} />
-              <button className="texte" onClick={() => setEditIdx(i)}>
+              <button className="texte" onClick={() => (setParFleche(false), setEditIdx(i))}>
                 <strong>{exo.nom}</strong>
                 {dansSuperset && <span className="badge-superset">Superset {groupe.indexOf(i) + 1}/{groupe.length}</span>}
                 {p.optionnel && <span className="faible"> (optionnel)</span>}
@@ -1107,6 +1109,7 @@ function Editeur({
       {editIdx !== null && m.exercices[editIdx] && (
         <EditeurExoPlan
           key={editIdx}
+          sansMontee={parFleche}
           exo={catalogue.exo(m.exercices[editIdx].exoId)}
           plan={m.exercices[editIdx]}
           onValider={(p) => {
@@ -1118,6 +1121,7 @@ function Editeur({
             editIdx > 0
               ? (p) => {
                   maj((x) => (x.exercices[editIdx] = p))
+                  setParFleche(true)
                   setEditIdx(editIdx - 1)
                 }
               : undefined
@@ -1126,6 +1130,7 @@ function Editeur({
             editIdx < m.exercices.length - 1
               ? (p) => {
                   maj((x) => (x.exercices[editIdx] = p))
+                  setParFleche(true)
                   setEditIdx(editIdx + 1)
                 }
               : undefined
@@ -1164,6 +1169,7 @@ function Editeur({
                 series: ancien.series.map(({ charge: _c, ...s }) => s),
               }
             })
+            setParFleche(false)
             setEditIdx(remplace)
             setRemplace(null)
           }}
