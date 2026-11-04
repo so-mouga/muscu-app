@@ -232,7 +232,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     if (minuteur && minuteur.pause !== undefined) void pauseNatif(c, minuteur.pause)
     else if (minuteur && minuteur.fin > Date.now()) void reposNatif(c, minuteur.fin, bips)
     else void seanceNatif(c)
-  }, [minuteur?.fin, minuteur?.pause, seance.series.length, seance.nom, reglages])
+  }, [minuteur?.fin, minuteur?.pause, seance.series.length, seance.nom, reglages, ensuiteRef.current])
   // Ce qui a été choisi depuis la notification (Pause, Reprendre, +30 s, Passer) : l'appli suit.
   useEffect(
     () =>

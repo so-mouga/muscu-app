@@ -21,7 +21,7 @@ import androidx.core.app.NotificationManagerCompat;
 /**
  * La séance en cours, tenue par Android : une notification affichée du début à la fin de la séance
  * (écran verrouillé, volet), qui suit l'état du repos :
- * - « seance » : chrono de la séance, un appui ramène dans l'appli ;
+ * - « seance » : nom de la séance, chrono et exercice à faire, un appui ramène dans l'appli ;
  * - « repos » : décompte, boutons Pause / +30 s / Passer, bips et alarme à la fin même écran éteint ;
  * - « pause » : temps restant figé, boutons Reprendre / Passer.
  * L'état est gardé dans les préférences pour survivre à la mise en veille de l'appli.
@@ -40,6 +40,8 @@ public final class MinuteurRepos {
     static final String REPRENDRE = "io.github.somouga.muscu.REPRENDRE";
     static final String FIN = "io.github.somouga.muscu.FIN";
     static final String DECOMPTE = "io.github.somouga.muscu.DECOMPTE";
+    static final String ENCORE = "io.github.somouga.muscu.ENCORE";
+    private static final int ORANGE = 0xFFF97316;
     private static final long[] VIBRATION = { 0, 300, 150, 300, 150, 600 };
     private static final Object VERROU_DECOMPTE = new Object();
     private static volatile long finEnCours = 0;
@@ -86,6 +88,11 @@ public final class MinuteurRepos {
         return PendingIntent.getActivity(c, 0, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
+    /** En séance et à la fin du repos, on parle de ce qu'il y a à faire maintenant, pas de ce qui vient « ensuite ». */
+    private static String aFaire(String texte) {
+        return texte.replaceFirst("^Ensuite : ", "");
+    }
+
     private static String chrono(long ms) {
         long s = Math.max(0, Math.round(ms / 1000.0));
         return (s / 60) + ":" + String.format(java.util.Locale.ROOT, "%02d", s % 60);
@@ -95,6 +102,7 @@ public final class MinuteurRepos {
     static void seance(Context c, long debut, String nom, String ensuite) {
         prefs(c).edit().putString("mode", "seance").putLong("debut", debut).putString("nom", nom).putString("texte", ensuite).putLong("fin", 0).putLong("reste", 0).apply();
         annulerAlarme(c);
+        NotificationManagerCompat.from(c).cancel(ID_FIN);
         afficher(c);
     }
 
@@ -126,6 +134,7 @@ public final class MinuteurRepos {
         String texte = p.getString("texte", "");
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CANAL_SEANCE)
             .setSmallIcon(R.drawable.ic_minuteur)
+            .setColor(ORANGE)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             // Pas de setSilent : Samsung (et Android) cachent les notifications « silencieuses » sur
@@ -135,7 +144,7 @@ public final class MinuteurRepos {
             // Android 16 : suivi en direct (Now Bar sur Samsung) quand le système l'accepte.
             .setRequestPromotedOngoing(true);
         if ("repos".equals(mode)) {
-            b.setContentTitle("⏱ Repos · " + nom)
+            b.setContentTitle("Repos")
                 .setContentText(texte)
                 .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
                 .setWhen(p.getLong("fin", 0))
@@ -146,14 +155,14 @@ public final class MinuteurRepos {
                 .addAction(0, "+30 s", diffusion(c, PLUS, 1))
                 .addAction(0, "Passer", diffusion(c, PASSER, 2));
         } else if ("pause".equals(mode)) {
-            b.setContentTitle("⏸ Repos en pause · " + chrono(p.getLong("reste", 0)) + " restantes")
+            b.setContentTitle("Pause · " + chrono(p.getLong("reste", 0)))
                 .setContentText(texte)
                 .setShowWhen(false)
                 .addAction(0, "Reprendre", diffusion(c, REPRENDRE, 5))
                 .addAction(0, "Passer", diffusion(c, PASSER, 2));
         } else if ("seance".equals(mode)) {
-            b.setContentTitle("🏋️ " + nom + " · séance en cours")
-                .setContentText(texte)
+            b.setContentTitle(nom)
+                .setContentText(aFaire(texte))
                 .setCategory(NotificationCompat.CATEGORY_WORKOUT)
                 .setWhen(p.getLong("debut", System.currentTimeMillis()))
                 .setShowWhen(true)
@@ -241,6 +250,12 @@ public final class MinuteurRepos {
         repos(c, System.currentTimeMillis() + p.getLong("reste", 0), p.getString("texte", ""), bips);
     }
 
+    /** Depuis l'alerte de fin : 30 s de repos en plus. */
+    static void encore(Context c) {
+        SharedPreferences p = prefs(c);
+        repos(c, System.currentTimeMillis() + 30000, p.getString("texte", ""), p.getInt("bips", 5));
+    }
+
     static void passer(Context c) {
         NotificationManagerCompat.from(c).cancel(ID_FIN);
         versSeance(c);
@@ -255,18 +270,21 @@ public final class MinuteurRepos {
         SharedPreferences p = prefs(c);
         p.edit().putString("mode", "seance").putLong("fin", 0).putLong("reste", 0).apply();
         NotificationManagerCompat nm = NotificationManagerCompat.from(c);
-        nm.cancel(ID_SEANCE);
+        // Le chrono de la séance reste affiché sous l'alerte.
+        afficher(c);
         NotificationCompat.Builder b = new NotificationCompat.Builder(c, CANAL_FIN)
             .setSmallIcon(R.drawable.ic_minuteur)
-            .setContentTitle("C’est l’heure de ta série 💪")
-            .setContentText(p.getString("texte", ""))
+            .setColor(ORANGE)
+            .setContentTitle("Repos fini")
+            .setContentText(aFaire(p.getString("texte", "")))
+            .addAction(0, "Encore 30 s", diffusion(c, ENCORE, 7))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVibrate(VIBRATION)
             .setDefaults(NotificationCompat.DEFAULT_SOUND)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
-            .setTimeoutAfter(120000)
+            .setTimeoutAfter(60000)
             .setDeleteIntent(diffusion(c, PASSER, 2))
             .setContentIntent(ouvrirAppli(c));
         try {

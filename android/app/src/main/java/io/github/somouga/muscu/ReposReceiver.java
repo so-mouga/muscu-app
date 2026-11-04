@@ -14,6 +14,7 @@ public class ReposReceiver extends BroadcastReceiver {
         else if (MinuteurRepos.PAUSE.equals(action)) MinuteurRepos.mettreEnPause(c);
         else if (MinuteurRepos.REPRENDRE.equals(action)) MinuteurRepos.reprendre(c);
         else if (MinuteurRepos.PASSER.equals(action)) MinuteurRepos.passer(c);
+        else if (MinuteurRepos.ENCORE.equals(action)) MinuteurRepos.encore(c);
         else if (MinuteurRepos.FIN.equals(action)) {
             MinuteurRepos.sonner(c);
             return;
