@@ -40,7 +40,7 @@ export const debutPeriode = (semaines: number, aujourdhui = dateISO()) =>
  * Bilan d'entraînement en texte, à partager (coach, outil d'analyse) : vue d'ensemble, semaine par
  * semaine, volume et RPE par muscle, exercice par exercice, corps, autres sports, douleurs et notes.
  */
-export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), retenir: string[] = []): string {
+export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), retenir: string[] = [], semainesCoupees = false): string {
   const periode = d.seances.filter((s) => s.date >= debut && s.date <= fin).sort((a, b) => a.debut - b.debut)
   const travail = periode.filter((s) => !s.deload)
   const records = recordsParSeance(d.seances, d.exo)
@@ -55,7 +55,9 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   const semaines: string[] = []
   for (let l = depart; l <= semaineDe(fin); l = dateISO(new Date(Date.parse(l + 'T12:00:00') + SEMAINE))) semaines.push(l)
   const nbSemaines = semaines.length
-  lignes.push(`BILAN D'ENTRAÎNEMENT · du ${jour(depart)} au ${jour(fin)} (${nbSemaines} semaine${nbSemaines > 1 ? 's' : ''})`)
+  // Dates au choix : la vraie date de début, pas le lundi de sa semaine.
+  const departEcrit = semaineDe(debut) === debut || depart > debut ? depart : debut
+  lignes.push(`BILAN D'ENTRAÎNEMENT · du ${jour(departEcrit)} au ${jour(fin)} (${nbSemaines} semaine${nbSemaines > 1 ? 's' : ''})`)
   if (d.programme) lignes.push(`Programme : ${d.programme}`)
   if (d.cycle) lignes.push(d.cycle)
   // Phase(s) de la période : en cours à la fin, et celles qui ont commencé ou fini pendant.
@@ -114,11 +116,14 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
 
   // Volume et RPE par muscle (semaines de travail)
   titre('Volume par muscle (séries dures par semaine, hors déload)')
-  const parSemaine = semaines.map((l) => volumeParMuscle(travail.filter((s) => semaineDe(s.date) === l), d.exercices))
+  // Dates au choix : une semaine coupée ferait croire à un volume trop faible.
+  const entieres = semaines.filter((l) => l >= debut && dateISO(new Date(Date.parse(l + 'T12:00:00') + 6 * 86400000)) <= fin)
+  const semainesVolume = semainesCoupees && entieres.length ? entieres : semaines
+  const parSemaine = semainesVolume.map((l) => volumeParMuscle(travail.filter((s) => semaineDe(s.date) === l), d.exercices))
   // Moyenne sur les semaines de la période, sauf celles de déload (une semaine sans séance compte pour 0).
-  const semainesTravail = semaines.filter((l) => !periode.some((s) => semaineDe(s.date) === l && s.deload) && !(d.cycles?.some((c) => c.pauses.includes(l)) && !periode.some((s) => semaineDe(s.date) === l)))
+  const semainesTravail = semainesVolume.filter((l) => !periode.some((s) => semaineDe(s.date) === l && s.deload) && !(d.cycles?.some((c) => c.pauses.includes(l)) && !periode.some((s) => semaineDe(s.date) === l)))
   for (const m of MUSCLES) {
-    const valeurs = semaines.map((_, k) => parSemaine[k][m.id])
+    const valeurs = semainesVolume.map((_, k) => parSemaine[k][m.id])
     const total = valeurs.reduce((a, b) => a + b, 0)
     if (!total && !d.cibles[m.id]) continue
     const moy = semainesTravail.length ? total / semainesTravail.length : 0

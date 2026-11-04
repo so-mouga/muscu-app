@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.util.Base64;
 import androidx.activity.result.ActivityResult;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
@@ -203,11 +204,21 @@ public class MinuteurReposPlugin extends Plugin {
         }
         dossier.mkdirs();
         try (FileOutputStream o = new FileOutputStream(f, !debut)) {
-            o.write(call.getString("texte", "").getBytes(StandardCharsets.UTF_8));
+            String texte = call.getString("texte", "");
+            o.write(Boolean.TRUE.equals(call.getBoolean("base64", false)) ? Base64.decode(texte, Base64.DEFAULT) : texte.getBytes(StandardCharsets.UTF_8));
             call.resolve();
         } catch (IOException e) {
             call.reject("Le fichier n’a pas pu être écrit sur le téléphone.");
         }
+    }
+
+    /** Menu de partage Android pour un texte (le bilan complet) : collé tel quel dans la conversation choisie. */
+    @PluginMethod
+    public void partagerTexte(PluginCall call) {
+        String titre = call.getString("titre", "");
+        Intent envoi = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, call.getString("texte", "")).putExtra(Intent.EXTRA_SUBJECT, titre);
+        getActivity().startActivity(Intent.createChooser(envoi, titre));
+        call.resolve();
     }
 
     /** Menu de partage Android pour le fichier écrit. `choisi` : faux si on l'a fermé sans choisir d'appli. */

@@ -30,7 +30,8 @@ interface PluginMinuteur {
   version(): Promise<{ versionName: string }>
   rappel(o: { actif: boolean; heure: string; jours: Record<string, string> }): Promise<{ autorise: boolean }>
   seanceDuJour(o: { date: string }): Promise<void>
-  fichierAjouter(o: { nom: string; texte: string; debut: boolean }): Promise<void>
+  fichierAjouter(o: { nom: string; texte: string; debut: boolean; base64?: boolean }): Promise<void>
+  partagerTexte(o: { titre: string; texte: string }): Promise<void>
   partagerFichier(o: { nom: string; type: string }): Promise<{ choisi: boolean }>
   addListener(evenement: 'action', f: (e: EtatNatif) => void): Promise<PluginListenerHandle>
 }
@@ -131,6 +132,29 @@ export async function partagerFichierNatif(nom: string, contenu: string, type: s
   for (let i = 0; i < parties.length; i++) await MinuteurRepos.fichierAjouter({ nom, texte: parties[i], debut: i === 0 })
   return (await MinuteurRepos.partagerFichier({ nom, type })).choisi
 }
+
+/** L'APK installé sait partager une image et du texte (2.0 et plus). */
+export const partageBilanDisponible = async () => {
+  const v = await versionInstallee()
+  return !!v && !plusRecente('2.0', v)
+}
+
+/** Écrit l'image côté Android, en base64 par morceaux, puis ouvre le menu de partage. Vrai si une appli a été choisie. */
+export async function partagerImageNatif(nom: string, image: Blob): Promise<boolean> {
+  const octets = new Uint8Array(await image.arrayBuffer())
+  // Multiple de 3 : chaque morceau se décode seul.
+  const taille = 300_000
+  let i = 0
+  do {
+    let binaire = ''
+    for (const o of octets.subarray(i, i + taille)) binaire += String.fromCharCode(o)
+    await MinuteurRepos.fichierAjouter({ nom, texte: btoa(binaire), debut: i === 0, base64: true })
+    i += taille
+  } while (i < octets.length)
+  return (await MinuteurRepos.partagerFichier({ nom, type: image.type })).choisi
+}
+
+export const partagerTexteNatif = (titre: string, texte: string) => MinuteurRepos.partagerTexte({ titre, texte })
 
 /**
  * Un APK plus récent est publié sur GitHub (publication « android-vX.Y » avec muscu.apk) : sa

@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle, Seance } from '../types'
-import { depuisDebut, exercicesDuBloc, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle } from './motivation'
+import { depuisDebut, exercicesDuBloc, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle, tenuesSurPeriode } from './motivation'
 import { nouveauCycle } from './cycle'
 
 type S = [exoId: string, charge: number, reps: number, rpe?: number]
@@ -134,5 +134,20 @@ describe('exercices du bloc', () => {
     expect(r.baisse.map((l) => l.exo.id)).toEqual([ids[1]])
     expect(r.stable.map((l) => l.exo.id)).toEqual([ids[2]])
     expect(r.uneFois.map((l) => l.exo.id)).toEqual([ids[3]])
+  })
+})
+
+describe('semaines tenues sur une période', () => {
+  const s = (date: string) => ({ id: date, date, enCours: false, series: [] }) as unknown as Seance
+  const seances = ['2026-10-05', '2026-10-07', '2026-10-12', '2026-10-19', '2026-10-21', '2026-10-26', '2026-10-28'].map(s)
+  it('compte les semaines entières tenues, avec son prévu', () => {
+    expect(tenuesSurPeriode(seances, 2, [], '2026-10-05', '2026-11-01')).toEqual({ n: 3, sur: 4 })
+  })
+  it('laisse de côté les semaines coupées et celles sans rien de prévu', () => {
+    expect(tenuesSurPeriode(seances, 2, [], '2026-10-07', '2026-10-29')).toEqual({ n: 1, sur: 2 })
+    expect(tenuesSurPeriode(seances, 0, [], '2026-10-05', '2026-11-01')).toEqual({ n: 0, sur: 0 })
+  })
+  it('ne compte pas les semaines avant la toute première séance', () => {
+    expect(tenuesSurPeriode(seances, 2, [], '2026-09-07', '2026-10-11')).toEqual({ n: 1, sur: 1 })
   })
 })

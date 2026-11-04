@@ -202,6 +202,43 @@ export function semainesFinies(dates: string[], lundiCetteSemaine: string): numb
   return Math.max(0, Math.round((Date.parse(lundiCetteSemaine) - Date.parse(premiere)) / SEMAINE))
 }
 
+const JOUR_MS = 86400000
+
+/** Dates du Bilan au choix : ce qui les empêche de donner un bilan, ou null. Moins de 7 jours ne permet de rien comparer. */
+export function erreurDates(du: string, au: string, aujourdhui: string): string | null {
+  if (!du || !au) return 'Choisis les deux dates.'
+  if (du > au) return 'La date de début doit venir avant la date de fin.'
+  if (au > aujourdhui) return 'Choisis une date de fin passée.'
+  if (Math.round((Date.parse(au) - Date.parse(du)) / JOUR_MS) + 1 < 7) return 'Choisis au moins 7 jours pour avoir un bilan.'
+  return null
+}
+
+/** Du premier lundi au dernier dimanche compris dans les dates ; null s'il n'y a aucune semaine entière. */
+export function semainesEntieres(debut: string, fin: string): { debut: string; fin: string; n: number } | null {
+  const plus = (iso: string, jours: number) => dateISO(new Date(Date.parse(iso + 'T12:00:00') + jours * JOUR_MS))
+  const lundi = semaineDe(debut) === debut ? debut : plus(semaineDe(debut), 7)
+  const dimanche = plus(semaineDe(plus(fin, 1)), -1)
+  if (lundi > dimanche) return null
+  return { debut: lundi, fin: dimanche, n: Math.round((Date.parse(dimanche) - Date.parse(lundi) + JOUR_MS) / SEMAINE) }
+}
+
+/**
+ * Bilan sur des dates au choix. Une semaine coupée ferait croire à des séances manquées et à des muscles
+ * trop peu travaillés : la régularité et le volume ne lisent que les semaines entières, et sans aucune
+ * semaine entière, il n'y a pas de prévu et le volume est ramené à la durée réelle.
+ */
+export function analyserDates(d: DonneesBilan, debut: string, fin: string, prevuesParSemaine: number | ((lundi: string) => number) = 0, phase?: Phase): { analyse: Analyse; entieres: number; coupees: boolean } {
+  const brut = analyser(d, debut, fin, prevuesParSemaine, phase)
+  const ent = semainesEntieres(debut, fin)
+  if (ent) {
+    const sur = analyser(d, ent.debut, ent.fin, prevuesParSemaine, phase)
+    return { analyse: { ...brut, prevues: sur.prevues, faites: sur.faites, enPlus: sur.enPlus, volume: sur.volume }, entieres: ent.n, coupees: ent.debut !== debut || ent.fin !== fin }
+  }
+  const semaines = (Date.parse(fin) - Date.parse(brut.debut) + JOUR_MS) / SEMAINE
+  const volume = Object.fromEntries(Object.entries(brut.volume).map(([m, v]) => [m, (v * brut.semaines.length) / semaines])) as Analyse['volume']
+  return { analyse: { ...brut, prevues: null, faites: 0, enPlus: 0, volume }, entieres: 0, coupees: true }
+}
+
 /**
  * « À retenir » : quelques phrases qui disent quoi faire, par des règles simples et sûres.
  * `avant` : la période précédente de même durée, pour les tendances.

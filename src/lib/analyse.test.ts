@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, aRetenir, essentiel, lecturePhase, libelleMesure, semainesFinies, type Analyse } from './analyse'
+import { analyser, analyserDates, aRetenir, erreurDates, essentiel, lecturePhase, libelleMesure, semainesEntieres, semainesFinies, type Analyse } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -294,5 +294,51 @@ describe('semaines finies pour les jauges de muscles', () => {
   })
   it('sans séance : zéro', () => {
     expect(semainesFinies([], '2026-11-02')).toBe(0)
+  })
+})
+
+describe('Bilan sur des dates au choix', () => {
+  it('refuse moins de 7 jours, des dates inversées ou manquantes, et une fin à venir', () => {
+    expect(erreurDates('2026-11-01', '2026-11-04', '2026-11-04')).toMatch(/au moins 7 jours/)
+    expect(erreurDates('2026-10-29', '2026-11-04', '2026-11-04')).toBeNull()
+    expect(erreurDates('2026-11-04', '2026-10-01', '2026-11-04')).toMatch(/avant la date de fin/)
+    expect(erreurDates('', '2026-11-04', '2026-11-04')).toMatch(/deux dates/)
+    expect(erreurDates('2026-10-01', '2026-11-05', '2026-11-04')).toMatch(/passée/)
+  })
+
+  it('trouve les semaines entières, du premier lundi au dernier dimanche', () => {
+    // Mardi 1er sept. → mercredi 4 nov. : du lundi 7 sept. au dimanche 1er nov.
+    expect(semainesEntieres('2026-09-01', '2026-11-04')).toEqual({ debut: '2026-09-07', fin: '2026-11-01', n: 8 })
+    expect(semainesEntieres('2026-10-05', '2026-11-01')).toEqual({ debut: '2026-10-05', fin: '2026-11-01', n: 4 })
+    // Mercredi → mardi : 7 jours, mais aucune semaine entière.
+    expect(semainesEntieres('2026-10-07', '2026-10-13')).toBeNull()
+  })
+
+  it('une semaine coupée ne fait croire ni à des séances manquées, ni à un volume trop bas', () => {
+    const lundis = ['2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26']
+    const tout = lundis.flatMap((l) => [seance(l, l, [50, 50])])
+    const entieres = analyser(donnees(tout), '2026-10-05', '2026-11-01', 1)
+    // Mêmes séances, avec un mercredi avant et un début de semaine après, sans séance.
+    const r = analyserDates(donnees(tout), '2026-09-30', '2026-11-04', 1)
+    expect(r.coupees).toBe(true)
+    expect(r.entieres).toBe(4)
+    expect(r.analyse.prevues).toBe(4)
+    expect(r.analyse.faites).toBe(4)
+    expect(r.analyse.volume.dos).toBeCloseTo(entieres.volume.dos)
+    expect(analyser(donnees(tout), '2026-09-30', '2026-11-04', 1).volume.dos).toBeLessThan(entieres.volume.dos)
+  })
+
+  it('des semaines entières ne changent rien', () => {
+    const r = analyserDates(donnees(seances), '2026-10-05', '2026-11-01', 1)
+    expect(r.coupees).toBe(false)
+    expect(r.analyse.volume).toEqual(analyser(donnees(seances), '2026-10-05', '2026-11-01', 1).volume)
+  })
+
+  it('sans semaine entière : pas de prévu, et le volume suit la durée réelle', () => {
+    const r = analyserDates(donnees([seance('a', '2026-10-08', [50, 50])]), '2026-10-07', '2026-10-13', 3)
+    expect(r.entieres).toBe(0)
+    expect(r.analyse.prevues).toBeNull()
+    // Une séance sur exactement 7 jours : tout son volume compte pour la semaine.
+    expect(r.analyse.volume.dos).toBeCloseTo(analyser(donnees([seance('a', '2026-10-08', [50, 50])]), '2026-10-05', '2026-10-11', 3).volume.dos)
   })
 })

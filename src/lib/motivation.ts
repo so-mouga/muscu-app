@@ -15,6 +15,14 @@ const plusJours = (iso: string, n: number) => dateISO(new Date(Date.parse(iso + 
 /** Séances qui suffisent pour qu'une semaine soit « tenue » : les trois quarts, arrondis (3 → 2, 4 → 3, 5 → 4). */
 export const seuilSemaine = (prevues: number) => Math.max(1, Math.round(prevues * 0.75))
 
+/** Semaine allégée ou en pause : elle ne compte pas comme une semaine tenue, et ne casse rien. */
+const semaineSansEffort = (cycles: Cycle[], lundi: string) =>
+  cycles.some((c) => {
+    if (!couvre(c, lundi)) return false
+    const e = etatCycle(c, lundi)
+    return e.pause || e.deload
+  })
+
 /**
  * Semaines « tenues » d'affilée : au moins les trois quarts des séances prévues (`seuilSemaine`). Une semaine
  * de déload ou mise en pause ne compte pas et ne casse pas la série ; la semaine en cours compte dès
@@ -27,12 +35,7 @@ export function semainesTenues(seances: Seance[], prevuesParSemaine: number | ((
   const premiere = semaineDe(faites.reduce((a, s) => (s.date < a ? s.date : a), faites[0].date))
   const parSemaine = new Map<string, number>()
   for (const s of faites) parSemaine.set(semaineDe(s.date), (parSemaine.get(semaineDe(s.date)) ?? 0) + 1)
-  const sansEffort = (lundi: string) =>
-    cycles.some((c) => {
-      if (!couvre(c, lundi)) return false
-      const e = etatCycle(c, lundi)
-      return e.pause || e.deload
-    })
+  const sansEffort = (lundi: string) => semaineSansEffort(cycles, lundi)
   let n = 0
   const enCours = semaineDe(aujourdhui)
   for (let l = enCours; l >= premiere; l = plusJours(l, -7)) {
@@ -43,6 +46,24 @@ export function semainesTenues(seances: Seance[], prevuesParSemaine: number | ((
     else if (l !== enCours) break
   }
   return n
+}
+
+/**
+ * Semaines tenues sur une période, pour l'image du bilan : semaines entières seulement, depuis la toute
+ * première séance, sans celles où rien n'était prévu ni les semaines allégées ou en pause.
+ */
+export function tenuesSurPeriode(seances: Seance[], prevuesParSemaine: number | ((lundi: string) => number), cycles: Cycle[], debut: string, fin: string): { n: number; sur: number } {
+  const prevuDe = typeof prevuesParSemaine === 'function' ? prevuesParSemaine : () => prevuesParSemaine
+  const faites = seances.filter((s) => !s.enCours)
+  const r = { n: 0, sur: 0 }
+  if (!faites.length) return r
+  const premiere = semaineDe(faites.reduce((a, s) => (s.date < a ? s.date : a), faites[0].date))
+  for (let l = semaineDe(debut); plusJours(l, 6) <= fin; l = plusJours(l, 7)) {
+    if (l < debut || l < premiere || semaineSansEffort(cycles, l) || prevuDe(l) <= 0) continue
+    r.sur++
+    if (faites.filter((s) => semaineDe(s.date) === l).length >= seuilSemaine(prevuDe(l))) r.n++
+  }
+  return r
 }
 
 /** Meilleure série de travail d'un exercice dans une séance (comme les records : `scoreSerie`). */

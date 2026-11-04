@@ -77,3 +77,17 @@ describe('bilan à partager', () => {
     expect(t).toContain('Prise qui marche.')
   })
 })
+
+describe('texte du bilan sur des dates au choix', () => {
+  const d = { seances: [seance('a', '2026-10-05', [50, 50]), seance('b', '2026-10-14', [50, 50])], pesees: [], mesures: [], exo: (id: string) => EXERCICES[id], exercices: EXERCICES, cibles: cibles() }
+  it('écrit la vraie date de début, pas le lundi de sa semaine', () => {
+    expect(genererBilan(d, '2026-10-07', '2026-10-20').split('\n')[0]).toMatch(/du .*7 oct/)
+    expect(genererBilan(d, '2026-10-05', '2026-10-18').split('\n')[0]).toMatch(/du .*5 oct/)
+  })
+  it('ne compte pas le volume des semaines coupées quand on le demande', () => {
+    const ligne = (t: string) => t.split('\n').find((l) => /Pectoraux|Pecs/.test(l))
+    const entier = genererBilan(d, '2026-10-12', '2026-10-18')
+    const coupe = genererBilan(d, '2026-10-07', '2026-10-21', [], true)
+    expect(ligne(coupe)).toBe(ligne(entier))
+  })
+})
