@@ -3041,6 +3041,43 @@ button.phase-accueil:active {
 .etat-volume.beaucoup {
   color: var(--alerte);
 }
+.volume-total {
+  color: var(--texte);
+}
+.volume-exos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  padding-bottom: var(--e3);
+  border-bottom: 1px solid var(--bord);
+}
+.volume-exo {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+}
+.volume-exo-nom {
+  flex: 1;
+  min-width: 0;
+}
+.volume-exo-series {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.volume-exo.aide .volume-exo-series {
+  font-weight: 400;
+  color: var(--texte-2);
+}
+.volume-exos .petit-texte {
+  margin: 0;
+  font-size: var(--t-petit);
+}
+.volume-fenetre .ligne-aide {
+  padding-inline: 0;
+}
+.volume-pied .btn:last-child {
+  flex: 1;
+}
 .ajuster-cibles {
   margin-top: 8px;
   border-top: 1px solid var(--bord);

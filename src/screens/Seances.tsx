@@ -18,7 +18,7 @@ import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
 import { ciblesPrecedentes } from '../lib/objectifs'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dateCourte, dateISO, dureeEstimee, dureeHabituelle, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dateCourte, dateISO, detailVolume, dureeEstimee, dureeHabituelle, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
@@ -569,9 +569,10 @@ function FenetreRenommer({ titre = 'Renommer', nom, indice, videPermis = false, 
   )
 }
 
-/** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour ajuster sa cible. */
+/** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour voir ses exercices et ajuster sa cible. */
 function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Programme; onFermer: () => void }) {
-  const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
+  const modeles = semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m)
+  const volume = volumePrevu(modeles, catalogue.exercices)
   const perso = catalogue.ciblesPerso
   const nbAjustees = MUSCLES.filter((m) => ajustee(m.id, perso[m.id] ?? 0)).length
   const avant = ciblesPrecedentes(catalogue.objectifs, dateISO())
@@ -587,14 +588,14 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
         <h2 style={{ flex: 1 }}>Volume par semaine</h2>
       </div>
       <div className="faible volume-intro">
-        Séries dures par semaine dans {p.nom}, face à la zone utile.{' '}
+        Séries par semaine dans {p.nom}, face à la zone utile.{' '}
         <Aide
           titre="Volume par semaine"
-          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ou ajuster sa cible.`}
+          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ses exercices et ajuster sa cible.`}
         />
       </div>
       <div className="carte">
-        <VolumeMuscles volume={volume} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
+        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
       </div>
       {avant && (
         <button className="btn discret plein" onClick={() => void reprendre()}>

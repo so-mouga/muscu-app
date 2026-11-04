@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
 import type { Seance, Serie } from '../types'
-import { chauffeTropLourde, lirePoids, poidsDecale, calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import { chauffeTropLourde, lirePoids, poidsDecale, calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, detailVolume, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -154,6 +154,22 @@ describe('volume prévu', () => {
     const v = volumePrevu([m, m])
     expect(v.pecs).toBe(8)
     expect(v.triceps).toBe(2)
+  })
+  it('détail par muscle : le total retombe sur le volume, le plus gros d’abord, les exercices qui aident marqués', () => {
+    const plan = (exoId: string, rpes: number[]) => ({ exoId, repos: 120, series: rpes.map((rpe) => ({ repsMin: 8, repsMax: 12, rpe })), chauffes: [], finisseur: false, charge: null })
+    const a = { id: 'a', nom: 'A', sousTitre: '', exercices: [plan('smith_incline', [8, 8, 6]), plan('butterfly', [9, 9, 9])] }
+    const b = { id: 'b', nom: 'B', sousTitre: '', exercices: [plan('butterfly', [6, 6])] }
+    const d = detailVolume([a, b])
+    expect(d.pecs.map((l) => [l.seance, l.series])).toEqual([['A', 3], ['A', 2]])
+    expect(d.triceps).toEqual([expect.objectContaining({ exoId: 'smith_incline', seance: 'A', series: 1, aide: true })])
+    const v = volumePrevu([a, b])
+    for (const m of Object.keys(d) as (keyof typeof d)[]) expect(d[m].reduce((s, l) => s + l.series, 0)).toBe(v[m])
+  })
+  it('détail : une séance prévue deux fois fait une seule ligne', () => {
+    const plan = { exoId: 'butterfly', repos: 120, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }, { repsMin: 8, repsMax: 12, rpe: 8 }], chauffes: [], finisseur: false, charge: null }
+    const m = { id: 'm', nom: 'M', sousTitre: '', exercices: [plan] }
+    expect(detailVolume([m, m]).pecs).toEqual([expect.objectContaining({ seance: 'M', series: 4 })])
+    expect(volumePrevu([m, m]).pecs).toBe(4)
   })
   it('semaine type : seulement les séances planifiées', () => {
     expect(semaineType({ id: 'p', nom: 'p', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b' }] }).map((e) => e.modeleId)).toEqual(['a'])

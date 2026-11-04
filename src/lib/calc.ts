@@ -137,16 +137,39 @@ export function volumeParMuscle(seances: Seance[], exercices: Record<string, Exe
 
 /** Séries dures prévues par muscle (RPE visé ≥ 7), comptées comme `volumeParMuscle`. */
 export function volumePrevu(modeles: SeanceModele[], exercices: Record<string, Exercice> = EXERCICES): Record<Muscle, number> {
-  const v = Object.fromEntries(MUSCLES.map((m) => [m.id, 0])) as Record<Muscle, number>
+  const detail = detailVolume(modeles, exercices)
+  return Object.fromEntries(MUSCLES.map((m) => [m.id, detail[m.id].reduce((a, l) => a + l.series, 0)])) as Record<Muscle, number>
+}
+
+/** Un exercice dans une séance, et ce qu'il donne à un muscle ; `aide` : muscle secondaire, compté pour moitié. */
+export interface LigneVolume {
+  exoId: string
+  nom: string
+  seance: string
+  series: number
+  aide: boolean
+}
+
+/** D'où vient le volume prévu de chaque muscle, du plus gros au plus petit : le total est exactement `volumePrevu`. */
+export function detailVolume(modeles: SeanceModele[], exercices: Record<string, Exercice> = EXERCICES): Record<Muscle, LigneVolume[]> {
+  const d = Object.fromEntries(MUSCLES.map((m) => [m.id, []])) as unknown as Record<Muscle, LigneVolume[]>
+  const ajouter = (muscle: Muscle, l: LigneVolume) => {
+    // Une séance prévue deux fois dans la semaine : une seule ligne, avec tout ce qu'elle donne.
+    const deja = d[muscle].find((x) => x.exoId === l.exoId && x.seance === l.seance)
+    if (deja) deja.series += l.series
+    else d[muscle].push(l)
+  }
   for (const m of modeles)
     for (const p of m.exercices) {
       const exo = exercices[p.exoId]
       if (!exo) continue
       const n = p.series.filter((s, i) => s.rpe >= 7 || (p.finisseur && i === p.series.length - 1)).length
-      v[exo.muscle] += n
-      for (const sec of exo.secondaires ?? []) v[sec.muscle] += sec.coef * n
+      if (!n) continue
+      ajouter(exo.muscle, { exoId: p.exoId, nom: exo.nom, seance: m.nom, series: n, aide: false })
+      for (const sec of exo.secondaires ?? []) ajouter(sec.muscle, { exoId: p.exoId, nom: exo.nom, seance: m.nom, series: sec.coef * n, aide: true })
     }
-  return v
+  for (const l of Object.values(d)) l.sort((a, b) => b.series - a.series || Number(a.aide) - Number(b.aide))
+  return d
 }
 
 /** Séances d'une semaine type : celles qui ont un jour (sinon toutes, s'il n'y a pas de planning). */
