@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EtapeObjectifs } from './objectifs'
-import { datesPhotosPhase, phaseFinie, recapMesures, recapPoids, repere, reperesAPrendre } from './recap'
+import { datesPhotosPhase, phaseFinie, recapMesures, recapPoids, repere, reperesAPrendre, reperesDeFin } from './recap'
 
 describe('repère du début de phase', () => {
   const l = (...d: string[]) => d.map((date) => ({ date }))
@@ -50,11 +50,38 @@ describe('fin et début de phase', () => {
   it('une phase de quelques jours, vite corrigée, ne déclenche rien', () => {
     expect(phaseFinie(frise([{ depuis: '2026-10-20', phase: 'prise' }, { depuis: '2026-10-25', phase: 'seche' }]), '2026-11-03')).toBeNull()
   })
-  it('repères : 7 premiers jours, seulement si rien de récent', () => {
+  it('repères : 7 premiers jours, et le rappel reste pour ce qui manque', () => {
     const f = frise([{ depuis: '2026-11-01', phase: 'seche' }])
-    expect(reperesAPrendre(f, '2026-11-03', [undefined])).toBe('2026-11-01')
-    expect(reperesAPrendre(f, '2026-11-03', ['2026-10-28'])).toBeNull()
-    expect(reperesAPrendre(f, '2026-11-08', [undefined])).toBeNull()
-    expect(reperesAPrendre([], '2026-11-03', [undefined])).toBeNull()
+    expect(reperesAPrendre(f, '2026-11-03', {})).toEqual({ debut: '2026-11-01', manque: ['photos', 'mensurations'] })
+    expect(reperesAPrendre(f, '2026-11-03', { photo: '2026-10-28' })?.manque).toEqual(['mensurations'])
+    expect(reperesAPrendre(f, '2026-11-03', { mesure: '2026-11-02' })?.manque).toEqual(['photos'])
+    expect(reperesAPrendre(f, '2026-11-03', { photo: '2026-10-28', mesure: '2026-11-02' })).toBeNull()
+    expect(reperesAPrendre(f, '2026-11-03', { photo: '2026-10-20', mesure: '2026-10-20' })?.manque).toEqual(['photos', 'mensurations'])
+    expect(reperesAPrendre(f, '2026-11-08', {})).toBeNull()
+    expect(reperesAPrendre([], '2026-11-03', {})).toBeNull()
+  })
+  it('fin de phase : la veille et le dernier jour seulement', () => {
+    // finPrevue = 1er jour d'après : le dernier jour est le 21.
+    const f = frise([{ depuis: '2026-11-01', phase: 'seche', finPrevue: '2026-11-22' }])
+    expect(reperesDeFin(f, '2026-11-19', {})).toBeNull()
+    expect(reperesDeFin(f, '2026-11-20', {})).toEqual({ debut: '2026-11-01', manque: ['photos', 'mensurations'], dernierJour: false })
+    expect(reperesDeFin(f, '2026-11-21', {})?.dernierJour).toBe(true)
+    expect(reperesDeFin(f, '2026-11-22', {})).toBeNull()
+  })
+  it('fin de phase : il reste pour ce qui manque, et une prise des 7 derniers jours compte', () => {
+    const f = frise([{ depuis: '2026-11-01', phase: 'seche', finPrevue: '2026-11-22' }])
+    expect(reperesDeFin(f, '2026-11-21', { photo: '2026-11-21' })?.manque).toEqual(['mensurations'])
+    expect(reperesDeFin(f, '2026-11-21', { photo: '2026-11-14', mesure: '2026-11-21' })).toBeNull()
+    expect(reperesDeFin(f, '2026-11-21', { photo: '2026-11-13', mesure: '2026-11-21' })?.manque).toEqual(['photos'])
+  })
+  it('fin de phase : rien sans date de fin, ni pour une phase de moins de 14 jours', () => {
+    expect(reperesDeFin(frise([{ depuis: '2026-11-01', phase: 'seche' }]), '2026-11-21', {})).toBeNull()
+    expect(reperesDeFin(frise([{ depuis: '2026-11-01', phase: 'seche', finPrevue: '2026-11-14' }]), '2026-11-13', {})).toBeNull()
+    expect(reperesDeFin(frise([{ depuis: '2026-11-01', phase: 'seche', finPrevue: '2026-11-15' }]), '2026-11-14', {})?.dernierJour).toBe(true)
+  })
+  it('fin de phase : une phase suivante déjà prévue donne le dernier jour', () => {
+    const f = frise([{ depuis: '2026-11-01', phase: 'seche', finPrevue: '2026-11-22' }, { depuis: '2026-11-22', phase: 'maintien' }])
+    expect(reperesDeFin(f, '2026-11-21', {})?.dernierJour).toBe(true)
+    expect(reperesDeFin(f, '2026-11-22', {})).toBeNull()
   })
 })

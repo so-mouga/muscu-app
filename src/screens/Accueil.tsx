@@ -7,8 +7,8 @@ import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTex
 import { creneauxFaits, creneauxRates } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { derniereSemainePhase, nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
-import { phaseFinie, reperesAPrendre } from '../lib/recap'
-import type { PageCorps } from './Corps'
+import { phaseFinie, reperesAPrendre, reperesDeFin, type Repere } from '../lib/recap'
+import { PriseCorps, type PageCorps } from './Corps'
 import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
@@ -32,6 +32,9 @@ const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
 /** Contexte du cycle au démarrage : semaine en cours et déload éventuel. */
 const JOURS_COURTS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
+/** Ce qu'il reste à prendre, en quelques mots : le rappel tient sur une ligne. */
+const tesReperes = (manque: Repere[]) => (manque.length > 1 ? 'tes repères' : manque[0])
+const ilYA = (date?: string) => (date ? `il y a ${Math.max(0, Math.floor((Date.now() - Date.parse(date + 'T12:00:00')) / 86400000))} j` : 'jamais')
 
 async function demarrer(modele?: SeanceModele, cycle?: ContexteCycle, echauffement: string[] = [], allegee = false) {
   try {
@@ -123,7 +126,7 @@ export default function Accueil({
   })
   const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
   // Dernière mesure et dernière photo ; null pendant le chargement, pour ne pas demander des repères déjà pris.
-  const dernieresPrises = useLiveQuery(async () => [(await db.mesures.orderBy('date').last())?.date, ((await db.photos.orderBy('date').uniqueKeys()) as string[]).at(-1)], [], null)
+  const dernieresPrises = useLiveQuery(async () => ({ mesure: (await db.mesures.orderBy('date').last())?.date, photo: ((await db.photos.orderBy('date').uniqueKeys()) as string[]).at(-1) }), [], null)
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
     try {
@@ -142,7 +145,10 @@ export default function Accueil({
       /* stockage indisponible */
     }
   }
+  /** Début ou fin de phase : le choix entre photos et mensurations, ou la prise elle-même. */
+  const [prise, setPrise] = useState<Repere | 'choix' | null>(null)
   useRetour(choix, () => setChoix(false))
+  useRetour(prise === 'choix', () => setPrise(null))
   useRetour(!!seanceFaiteModal, () => setSeanceFaiteModal(null))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
@@ -272,8 +278,11 @@ export default function Accueil({
   const seancesDuCycle = cycle && terminees ? terminees.filter((s) => s.cycleId === cycle.id).length : 0
   const arret = cycle && terminees ? arretCycle(cycle, terminees) : null
   const finDePhase = phaseFinie(catalogue.objectifs, dateISO())
-  const debutReperes = dernieresPrises ? reperesAPrendre(catalogue.objectifs, dateISO(), dernieresPrises) : null
-  const reperes = !!debutReperes && !fait(`reperes:${debutReperes}`)
+  const reperesDebut = dernieresPrises ? reperesAPrendre(catalogue.objectifs, dateISO(), dernieresPrises) : null
+  const reperes = reperesDebut && !fait(`reperes:${reperesDebut.debut}`) ? reperesDebut : null
+  const reperesFin = dernieresPrises ? reperesDeFin(catalogue.objectifs, dateISO(), dernieresPrises) : null
+  const finReperes = reperesFin && !fait(`fin-reperes:${reperesFin.debut}`) ? reperesFin : null
+  const prendre = (manque: Repere[]) => setPrise(manque.length > 1 ? 'choix' : manque[0])
 
   const joursExport = dernierExport ? Math.floor((Date.now() - (dernierExport.valeur as number)) / 86400000) : null
   const exportVieux = nbSeances > 0 && (joursExport === null || joursExport >= 7)
@@ -399,6 +408,17 @@ export default function Accueil({
         </button>
       </div>
     ),
+    finReperes && (
+      <div key="fin-reperes" className="rappel-ligne">
+        <button type="button" className="texte" onClick={() => prendre(finReperes.manque)}>
+          <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
+          <span className="rappel-texte">{finReperes.dernierJour ? 'Dernier jour de phase' : 'Fin de phase demain'} : {tesReperes(finReperes.manque)}</span>
+        </button>
+        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cette fin de phase" onClick={() => (masquer('mesures'), marquer(`fin-reperes:${finReperes.debut}`))}>
+          <X size={15} strokeWidth={2} />
+        </button>
+      </div>
+    ),
     exportVieux && !masque('export') && (
       <div key="export" className="rappel-ligne">
         <button type="button" className="texte" onClick={sauvegarderTout}>
@@ -415,15 +435,15 @@ export default function Accueil({
     ),
     reperes ? (
       <div key="reperes" className="rappel-ligne">
-        <button type="button" className="texte" onClick={() => onCorps()}>
+        <button type="button" className="texte" onClick={() => prendre(reperes.manque)}>
           <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
-          <span className="rappel-texte">Début de phase : note tes repères</span>
+          <span className="rappel-texte">Début de phase : {reperes.manque.length > 1 ? 'note ' : ''}{tesReperes(reperes.manque)}</span>
         </button>
-        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cette phase" onClick={() => (masquer('mesures'), marquer(`reperes:${debutReperes}`))}>
+        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cette phase" onClick={() => (masquer('mesures'), marquer(`reperes:${reperes.debut}`))}>
           <X size={15} strokeWidth={2} />
         </button>
       </div>
-    ) : mesuresEnRetard && !masque('mesures') && (
+    ) : mesuresEnRetard && !masque('mesures') && !finReperes && (
       <div key="mesures" className="rappel-ligne">
         <button type="button" className="texte" onClick={onMesures}>
           <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
@@ -780,6 +800,30 @@ export default function Accueil({
           </div>
         </div>
       )}
+
+      {prise === 'choix' && (
+        <div className="modal-fond" onClick={() => setPrise(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ligne entre choix-seance-titre">
+              <h2>{finReperes ? 'Fin de phase' : 'Début de phase'}</h2>
+              <button type="button" className="btn-fermer" onClick={() => setPrise(null)} aria-label="Fermer">
+                <X size={22} />
+              </button>
+            </div>
+            <div className="reperes-choix">
+              <button type="button" className="btn plein" onClick={() => setPrise('photos')}>
+                <span>Prendre les photos</span>
+                <span className="faible petit-texte">{ilYA(dernieresPrises?.photo)}</span>
+              </button>
+              <button type="button" className="btn plein" onClick={() => setPrise('mensurations')}>
+                <span>Noter les mensurations</span>
+                <span className="faible petit-texte">{ilYA(dernieresPrises?.mesure)}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {(prise === 'photos' || prise === 'mensurations') && <PriseCorps prise={prise} onFermer={() => setPrise(null)} />}
 
       {seanceFaiteModal && (() => {
         const s = seanceFaiteModal

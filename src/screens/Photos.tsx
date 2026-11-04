@@ -863,7 +863,7 @@ function PhotoZoomable({ image, date }: { image?: string; date: string }) {
 }
 
 /** Séance photo guidée : face, profil, dos, avec la photo précédente en transparence pour se placer pareil. */
-function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () => void }) {
+export function PriseGuidee({ photos, onFermer }: { photos: PhotoCorps[]; onFermer: () => void }) {
   // Retour Android = Terminer : on garde ce qui est pris (voir `terminer`).
   useRetour(true, () => void terminer())
   const video = useRef<HTMLVideoElement>(null)

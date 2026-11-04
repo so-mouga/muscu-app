@@ -66,9 +66,25 @@ export function phaseFinie(frise: EtapeObjectifs[], aujourdhui: string): { debut
   return finie ? { debut: finie.debut, enCours: false } : null
 }
 
-/** Début d'une phase, pendant 7 jours : phase en cours, sans mesure ni photo prise depuis une semaine avant son début. */
-export function reperesAPrendre(frise: EtapeObjectifs[], aujourdhui: string, dernieres: (string | undefined)[]): string | null {
+export type Prises = { mesure?: string; photo?: string }
+export type Repere = 'photos' | 'mensurations'
+export type ReperesPhase = { debut: string; manque: Repere[] }
+
+const manquants = (prises: Prises, depuis: string): Repere[] => [...(prises.photo && prises.photo >= depuis ? [] : (['photos'] as const)), ...(prises.mesure && prises.mesure >= depuis ? [] : (['mensurations'] as const))]
+
+/** Début d'une phase, pendant 7 jours : ce qui n'a pas été pris depuis une semaine avant son début. */
+export function reperesAPrendre(frise: EtapeObjectifs[], aujourdhui: string, prises: Prises): ReperesPhase | null {
   const p = periodes(frise).find((x) => x.debut <= aujourdhui && (!x.fin || aujourdhui <= x.fin))
   if (!p || aujourdhui > plusJours(p.debut, 6)) return null
-  return dernieres.some((d) => d && d >= plusJours(p.debut, -7)) ? null : p.debut
+  const manque = manquants(prises, plusJours(p.debut, -7))
+  return manque.length ? { debut: p.debut, manque } : null
+}
+
+/** Veille et dernier jour d'une phase d'au moins 14 jours dont la fin est connue : ce qui n'a pas été pris depuis une semaine. */
+export function reperesDeFin(frise: EtapeObjectifs[], aujourdhui: string, prises: Prises): (ReperesPhase & { dernierJour: boolean }) | null {
+  const p = periodes(frise).find((x) => x.debut <= aujourdhui && (!x.fin || aujourdhui <= x.fin))
+  const dernier = p && (p.fin ?? (p.finPrevue ? plusJours(p.finPrevue, -1) : undefined))
+  if (!p || !dernier || dernier < plusJours(p.debut, 13) || aujourdhui < plusJours(dernier, -1) || aujourdhui > dernier) return null
+  const manque = manquants(prises, plusJours(dernier, -7))
+  return manque.length ? { debut: p.debut, manque, dernierJour: aujourdhui === dernier } : null
 }

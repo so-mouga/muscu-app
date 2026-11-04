@@ -18,8 +18,8 @@ import { confirmer } from '../components/Dialogues'
 import PhotoDatee from '../components/PhotoDatee'
 import RecapPhase from '../components/RecapPhase'
 import { voirPhasesPrecedentes } from '../components/Phases'
-import { repere } from '../lib/recap'
-import Photos from './Photos'
+import { repere, type Repere } from '../lib/recap'
+import Photos, { PriseGuidee } from './Photos'
 import Objectifs from './Objectifs'
 import type { Catalogue } from '../catalogue'
 import Deplie from '../components/Deplie'
@@ -93,6 +93,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
     { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
   )
   const [noter, setNoter] = useState(false)
+  const [prise, setPrise] = useState<Repere | null>(null)
   const [joursChoisis, setJours] = useState<number | null>(null)
 
   // Poids : moyenne sur 7 jours, courbe et écart sur la période choisie.
@@ -116,7 +117,6 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
   // Mensurations : les principales, depuis le début de la phase (sinon depuis la première prise).
   const principales = PRINCIPALES.filter((c) => serie(mesures, c).length)
   const principalesTriees = [...principales].sort((x, y) => (y === 'taille' ? 1 : 0) - (x === 'taille' ? 1 : 0))
-  const derniereMesure = mesures[mesures.length - 1]
 
   // Deux photos seulement dans la même pose ; sinon, la dernière seule.
   const posesDe = (d?: string) => photos.liste.filter((p) => p.date === d)
@@ -256,10 +256,14 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
                 </div>
               )
             })}
-            <button type="button" className="bilan-tous" onClick={() => onPage('mensurations')}>
-              <span>Toutes les mesures{derniereMesure ? ` · dernière le ${dateCourte(derniereMesure.date).replace(/^\S+ /, '')}` : ''}</span>
-              <ChevronRight size={16} strokeWidth={1.75} className="muted" />
-            </button>
+            <div className="corps-boutons">
+              <button type="button" className="btn" onClick={() => setPrise('mensurations')}>
+                Noter
+              </button>
+              <button type="button" className="btn" onClick={() => onPage('mensurations')}>
+                Toutes ›
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -280,10 +284,14 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
               {pDepart && <PhotoDatee photo={pDepart} />}
               <PhotoDatee photo={pDerniere} />
             </div>
-            <button type="button" className="bilan-tous" onClick={() => onPage('photos')}>
-              <span>{photos.depart ? 'Comparer et toutes les photos' : 'Toutes les photos'}</span>
-              <ChevronRight size={16} strokeWidth={1.75} className="muted" />
-            </button>
+            <div className="corps-boutons">
+              <button type="button" className="btn" onClick={() => setPrise('photos')}>
+                Séance photo
+              </button>
+              <button type="button" className="btn" onClick={() => onPage('photos')}>
+                {photos.depart ? 'Comparer ›' : 'Toutes ›'}
+              </button>
+            </div>
           </>
         ) : (
           <>
@@ -296,6 +304,21 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
       </section>
 
       {noter && <FenetreJour saisie="poids" date={aujourdhui} catalogue={catalogue} journal={journal} poidsDuJour={pesees.find((p) => p.date === aujourdhui)?.poids} poidsRepere={pesees[pesees.length - 1]?.poids} onFermer={() => setNoter(false)} />}
+      {prise && <PriseCorps prise={prise} onFermer={() => setPrise(null)} />}
+    </div>
+  )
+}
+
+/** Séance photo ou mensurations du jour, par-dessus l'écran : le retour revient là où on était. */
+export function PriseCorps({ prise, onFermer }: { prise: Repere; onFermer: () => void }) {
+  const mesures = useLiveQuery(() => db.mesures.orderBy('date').toArray(), [])
+  const photos = useLiveQuery(() => (prise === 'photos' ? db.photos.toArray() : []), [prise])
+  // Rien avant d'avoir lu la base : la saisie reprend à son ouverture ce qui a déjà été noté aujourd'hui.
+  if (!mesures || !photos) return null
+  if (prise === 'photos') return <PriseGuidee photos={photos} onFermer={onFermer} />
+  return (
+    <div className="page-dessus">
+      <SaisieMesures initial={mesures.find((m) => m.date === dateISO())} mesures={mesures} onFermer={onFermer} />
     </div>
   )
 }
