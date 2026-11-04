@@ -4939,7 +4939,7 @@ html[data-sens='fondu']::view-transition-new(root) {
 .choix-dates {
   display: flex;
   gap: var(--e2);
-  margin-top: var(--e3);
+  margin: var(--e1) 0 var(--e3);
 }
 .choix-dates label {
   flex: 1;
@@ -4952,15 +4952,6 @@ html[data-sens='fondu']::view-transition-new(root) {
 .choix-dates input {
   width: 100%;
   min-width: 0;
-}
-.choix-dates-info {
-  margin: var(--e3) 0;
-}
-.choix-dates-info.alerte {
-  color: var(--alerte);
-}
-.choix-dates + .choix-dates-info + .btn {
-  width: 100%;
 }
 .partage-apercu {
   display: block;

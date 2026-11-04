@@ -199,6 +199,7 @@ export default function App() {
             exoInitial={exoInitial}
             onRetourExo={() => (setExoInitial(null), setVue('bilan'))}
             onCorps={(page) => (setCorpsDepuisProgres(true), ouvrirCorps(page))}
+            onProgramme={() => setOnglet('seances')}
           />
         )}
         {!reglages && onglet === 'corps' && <Corps catalogue={catalogue} page={pageCorps} onPage={(p) => transition(() => setPageCorps(p), p ? 'avant' : 'arriere')} />}

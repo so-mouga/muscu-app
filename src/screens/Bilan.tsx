@@ -4,7 +4,6 @@ import { Check, ChevronRight } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import Aide from '../components/Aide'
 import ChoixDates from '../components/ChoixDates'
-import { informer } from '../components/Dialogues'
 import PartageBilan from '../components/PartageBilan'
 import { NiveauJauge } from '../components/VolumeMuscles'
 import { db } from '../db'
@@ -14,7 +13,7 @@ import BoutonRetour from '../components/BoutonRetour'
 import { VueCycle } from '../components/Cycle'
 import { transition, useRetour } from '../lib/nav'
 import { MUSCLES } from '../data/exercices'
-import { analyser, analyserDates, aRetenir, essentiel, semainesFinies, type Analyse } from '../lib/analyse'
+import { analyser, analyserDates, aRetenir, erreurDates, essentiel, semainesFinies, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import type { ContenuImage } from '../lib/imageBilan'
 import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
@@ -34,8 +33,6 @@ const JOUR = 86400000
 const decaler = (iso: string, jours: number) => dateISO(new Date(Date.parse(iso + 'T12:00:00') + jours * JOUR))
 const arrondi = (x: number) => Math.round(x * 10) / 10
 const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
-/** Avec l'année quand elle n'est pas l'année en cours. */
-const jourAnnee = (iso: string) => `${jour(iso)}${iso.slice(0, 4) !== dateISO().slice(0, 4) ? ` ${iso.slice(0, 4)}` : ''}`
 const ecart = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(arrondi(d)))} ${u}`
 
 const CLE_DATES = 'bilanDates'
@@ -63,12 +60,13 @@ export const voirPeriodeCycle = () => {
  * Bilan des semaines finies : la réponse d'abord (À retenir), puis les exercices, la régularité, les
  * muscles et la forme. La semaine en cours n'y entre pas : l'accueil s'en occupe, et un lundi ne juge rien.
  */
-export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onSeance }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onTousExos?: () => void; onCorps?: () => void; /** Ouvre le détail d'une séance : le retour revient ici. */ onSeance: (id: string) => void }) {
+export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onProgramme, onSeance }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onTousExos?: () => void; onCorps?: () => void; onProgramme?: () => void; /** Ouvre le détail d'une séance : le retour revient ici. */ onSeance: (id: string) => void }) {
   const [periodeChoisie, setPeriodeChoisie] = useState(memoire.periode)
   const [cycleChoisi, setCycleChoisi] = useState(memoire.cycleId)
   const [choixCycle, setChoixCycle] = useState(false)
   const [dates, setDates] = useState(memoire.dates)
-  const [choixDates, setChoixDates] = useState(false)
+  // Ce qui est dans les champs : le bilan ne suit que des dates correctes.
+  const [saisieDates, setSaisieDates] = useState<Dates>(() => memoire.dates ?? { du: '', au: dateISO() })
   const [partage, setPartage] = useState(false)
   const [sous, setSous] = useState<SousVue | null>(() => {
     const s = memoire.sous
@@ -125,7 +123,11 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
   const cyclesPasses = [...cycles].filter((c) => c.debut < cetteSemaine && seancesDe(c.id).length).sort((a, b) => b.debut.localeCompare(a.debut))
   const arret = cycle ? arretCycle(cycle, seances) : null
   const cycleDispo = !!cycle && cycle.debut < cetteSemaine
-  const periode: Periode = (periodeChoisie === 'cycle' && !cycleDispo) || (periodeChoisie === 'dates' && !dates) ? '4' : periodeChoisie
+  const erreurSaisie = saisieDates.du ? erreurDates(saisieDates.du, saisieDates.au, dateISO()) : 'à choisir'
+  // Rien à montrer sur la période choisie : la page le dit, le bouton reste sélectionné, et les calculs portent sur 4 semaines.
+  const sansCycle = periodeChoisie === 'cycle' && !cycleDispo
+  const sansDates = periodeChoisie === 'dates' && (!dates || !!erreurSaisie)
+  const periode: Periode = sansCycle || sansDates ? '4' : periodeChoisie
   const surDates = periode === 'dates' && !!dates
   const finSemaines = decaler(cetteSemaine, -1)
   const finPrevueCycle = cycle?.fin ?? (cycle ? decaler(lundiDe(cycle, cycle.semaines), 6) : finSemaines)
@@ -245,14 +247,16 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
     setChoixCycle(false)
     window.scrollTo({ top: 0 })
   }
-  // « Cycles » mène directement au choix : pas de 2e étape.
+  // « Cycles » affiche le cycle tout de suite : le dernier, ou celui choisi avant. La liste reste derrière « Changer ».
   const ouvrirCycles = () => {
-    if (cyclesPasses.length >= 2) setChoixCycle(true)
-    else if (cyclesPasses.length === 1) choisirCycle(cyclesPasses[0].id)
-    else void informer('Aucun cycle avec des séances pour l’instant. Tu peux en lancer un depuis la page Programme.', 'Pas encore de cycle')
+    const c = cyclesPasses.find((x) => x.id === cycleChoisi) ?? cyclesPasses[0]
+    if (c) choisirCycle(c.id)
+    else choisirPeriode('cycle')
   }
-  const choisirDates = (du: string, au: string) => {
+  const changerDates = (du: string, au: string) => {
     const d = { du, au }
+    setSaisieDates(d)
+    if (!du || erreurDates(du, au, dateISO())) return
     memoire.dates = d
     try {
       localStorage.setItem(CLE_DATES, JSON.stringify(d))
@@ -260,9 +264,6 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
       /* gardées seulement jusqu'à la fermeture de l'appli */
     }
     setDates(d)
-    choisirPeriode('dates')
-    setChoixDates(false)
-    window.scrollTo({ top: 0 })
   }
 
   // Aucune semaine finie avec une séance : le bilan n'a encore rien à dire. Sinon, les périodes restent là, même vides.
@@ -285,15 +286,17 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
             ['4', '4 sem.', () => choisirPeriode('4')],
             ['12', '3 mois', () => choisirPeriode('12')],
             ['cycle', 'Cycles', ouvrirCycles],
-            ['dates', 'Dates', () => setChoixDates(true)],
+            ['dates', 'Dates', () => choisirPeriode('dates')],
           ] as [Periode, string, () => void][]
         ).map(([id, nom, choisir]) => (
-          <button key={id} type="button" className={periode === id ? 'actif' : ''} aria-pressed={periode === id} onClick={choisir}>
+          <button key={id} type="button" className={periodeChoisie === id ? 'actif' : ''} aria-pressed={periodeChoisie === id} onClick={choisir}>
             {nom}
           </button>
         ))}
       </div>
-      {surCycle && cyclesPasses.length >= 2 ? (
+      {periodeChoisie === 'dates' ? (
+        <ChoixDates du={saisieDates.du} au={saisieDates.au} erreur={erreurSaisie} dates={seances.map((s) => s.date)} onChange={changerDates} />
+      ) : sansCycle ? null : surCycle && cyclesPasses.length >= 2 ? (
         <button type="button" className="liste-btn bilan-choix-cycle" aria-label="Choisir un autre cycle" onClick={() => setChoixCycle(true)}>
           <span>
             {nomCycle(cycle)}
@@ -304,13 +307,6 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
           </span>
           <span className="faible petit-texte bilan-changer">Changer ›</span>
         </button>
-      ) : surDates ? (
-        <button type="button" className="liste-btn bilan-choix-cycle" aria-label="Changer les dates" onClick={() => setChoixDates(true)}>
-          <span>
-            Du {jourAnnee(debut)} au {jourAnnee(fin)}
-          </span>
-          <span className="faible petit-texte bilan-changer">Changer ›</span>
-        </button>
       ) : (
         <p className="faible bilan-periode">
           {surCycle && `${nomCycle(cycle)} · `}
@@ -318,7 +314,6 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
           {jour(a.debut)} au {jour(fin)}
         </p>
       )}
-      {choixDates && <ChoixDates du={dates?.du ?? debut} au={dates?.au ?? fin} dates={seances.map((s) => s.date)} onChoix={choisirDates} onFermer={() => setChoixDates(false)} />}
       {choixCycle && (
         <div className="modal-fond" onClick={() => setChoixCycle(false)}>
           <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
@@ -347,6 +342,43 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
       )}
     </>
   )
+
+  if (sansDates)
+    return (
+      <div>
+        {haut}
+        {choixPeriode}
+        <div className="carte bilan-carte">
+          <h3>{saisieDates.du ? 'Dates à corriger' : 'Choisis la date de début'}</h3>
+          <p className="faible petit-texte">{saisieDates.du ? erreurSaisie : 'Au moins 7 jours. Le bilan s’affiche ici dès que les dates sont bonnes : pas de bouton à toucher.'}</p>
+        </div>
+      </div>
+    )
+
+  if (sansCycle) {
+    const prochain = [...cycles].filter((c) => c.debut >= cetteSemaine).sort((x, y) => x.debut.localeCompare(y.debut))[0]
+    return (
+      <div>
+        {haut}
+        {choixPeriode}
+        <div className="carte bilan-carte">
+          <h3>{prochain ? 'Pas encore de cycle à lire' : 'Pas encore de cycle'}</h3>
+          <p className="faible petit-texte">
+            {!prochain
+              ? 'Lance un cycle depuis la page Programme : son bilan s’affichera ici.'
+              : prochain.debut === cetteSemaine
+                ? `Ton cycle a commencé lundi ${jour(prochain.debut).replace(/\.$/, '')}. Son bilan s’affiche ici dès lundi prochain, à la fin de sa première semaine.`
+                : `Ton cycle commence lundi ${jour(prochain.debut).replace(/\.$/, '')}. Son bilan s’affichera ici à la fin de sa première semaine.`}
+          </p>
+          {onProgramme && (
+            <button type="button" className="btn plein" onClick={onProgramme}>
+              Voir mon programme
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   if (!a.seances)
     return (

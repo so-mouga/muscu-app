@@ -60,9 +60,11 @@ interface Props {
   onRetourExo?: () => void
   /** Ouvre l'onglet Corps (poids, mensurations, photos). */
   onCorps?: (page?: PageCorps) => void
+  /** Ouvre l'onglet Programme. */
+  onProgramme?: () => void
 }
 
-export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, exoInitial, onRetourExo, onCorps }: Props) {
+export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, exoInitial, onRetourExo, onCorps, onProgramme }: Props) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
   const [fonduVue, setFonduVue] = useState(false)
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
@@ -131,7 +133,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
       {contenu}
     </div>
   )
-  if (vue === 'bilan') return dansVue(<Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => (changerVue('exercices'), window.scrollTo({ top: 0 }))} onCorps={onCorps} onSeance={setSeanceBilan} />)
+  if (vue === 'bilan') return dansVue(<Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => (changerVue('exercices'), window.scrollTo({ top: 0 }))} onCorps={onCorps} onProgramme={onProgramme} onSeance={setSeanceBilan} />)
   if (vue === 'exercices') return dansVue(<Exercices catalogue={catalogue} seances={terminees} haut={haut} initial={exoInitial} onRetourInitial={onRetourExo} />)
 
   return dansVue(
