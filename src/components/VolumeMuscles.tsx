@@ -6,7 +6,7 @@ import InfosExo, { aDesInfos } from './InfosExo'
 import { premiereFois } from '../lib/animations'
 import { kg, type LigneVolume } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { ajustee, BONUS_PRIORITE_MUSCLE, cibleConseillee, etatVolume, LIBELLE_VOLUME, prioritaire, zone } from '../lib/volume'
+import { BONUS_PRIORITE_MUSCLE, cibleConseillee, etatVolume, LIBELLE_VOLUME, prioritaire } from '../lib/volume'
 import type { Exercice, Muscle } from '../types'
 
 interface Props {
@@ -32,7 +32,7 @@ export function NiveauJauge({ muscle, etat, valeur, max }: { muscle: Muscle; eta
 }
 
 /**
- * Une jauge par muscle : séries dures de la semaine face à la zone utile, les muscles hors zone d'abord.
+ * Une jauge par muscle : séries dures de la semaine face à la cible, pleine quand elle est atteinte ; les muscles hors zone d'abord.
  * Rien à régler d'emblée : un appui sur un muscle montre ses exercices et sa cible, pour qu'aucun chiffre ne change en faisant défiler.
  */
 export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, perso, onCibles }: Props) {
@@ -46,23 +46,18 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
       {jauges.map((m) => {
         const v = volume[m.id]
         const cible = cibles[m.id]
-        const z = zone(m.id, cible)!
         const etat = etatVolume(m.id, v, cible)
-        // Échelle : un peu au-delà du haut de la zone, pour voir où l'on se situe.
-        const max = z.haut * 1.25
         return (
           <button key={m.id} type="button" className="ligne-volume" onClick={() => setChoisi(m.id)}>
             <span className="ligne-volume-corps">
               <span className="ligne entre petit">
                 <span>{m.nom}</span>
                 <span>
-                  <strong>{kg(v)}</strong> <span className={`etat-volume ${etat}`}>{LIBELLE_VOLUME[etat]}</span>
-                  {ajustee(m.id, cible) && <span className="faible"> · visé {kg(cible)}</span>}
+                  <strong>{kg(v)}</strong> <span className="faible">sur {kg(cible)}</span> <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
                 </span>
               </span>
               <span className="jauge">
-                <span className="zone-utile" style={{ left: `${(z.bas / max) * 100}%`, width: `${((z.haut - z.bas) / max) * 100}%` }} />
-                <NiveauJauge muscle={m.id} etat={etat} valeur={v} max={max} />
+                <NiveauJauge muscle={m.id} etat={etat} valeur={v} max={cible} />
               </span>
             </span>
             <ChevronRight size={16} className="muted" />
@@ -193,7 +188,7 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
                 <p>Ne comptent que les séries vraiment dures : 7/10 d’effort ou plus.</p>
                 <p>Un exercice qui aide, comme le triceps sur un développé, compte pour moitié : 3 séries y font 1,5.</p>
                 {avecJours && <p>Seules les séances qui ont un jour dans ton programme comptent.</p>}
-                <p>La zone verte de la jauge est celle où l’on progresse bien en général.</p>
+                <p>Barre pleine : ta cible est atteinte. « Beaucoup » veut dire que tu la dépasses nettement.</p>
               </div>
             }
           />

@@ -3004,7 +3004,7 @@ button.phase-accueil:active {
   background: var(--surface-2);
 }
 
-/* Volume par muscle en jauge : zone utile en fond, niveau de la semaine par-dessus. */
+/* Volume par muscle en jauge : une seule couleur sur du vide, pleine quand la cible est atteinte. */
 .jauge {
   position: relative;
   height: 8px;
@@ -3013,18 +3013,12 @@ button.phase-accueil:active {
   background: var(--surface-2);
   overflow: hidden;
 }
-.jauge .zone-utile {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: color-mix(in srgb, var(--ok) 22%, transparent);
-}
 .jauge .niveau {
   position: absolute;
   left: 0;
-  top: 2px;
-  bottom: 2px;
-  border-radius: 3px;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
   background: var(--accent);
 }
 .jauge .niveau.leger {

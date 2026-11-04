@@ -488,7 +488,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
           <div className="ligne entre">
             <h3 className="avec-aide">
               Muscles
-              <Aide titre="Séries dures" texte="Une série dure est une série proche de l’échec (effort 7/10 ou plus). C’est ce travail qui fait progresser le muscle. La zone verte de la jauge est la zone utile." />
+              <Aide titre="Séries dures" texte="Une série dure est une série proche de l’échec (effort 7/10 ou plus). C’est ce travail qui fait progresser le muscle. Barre pleine : ta cible est atteinte." />
             </h3>
             <span className="faible petit-texte">séries dures par semaine</span>
           </div>
@@ -497,7 +497,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
           ))}
           {dansZone.length > 0 && (
             <p className="petit-texte">
-              <span className="tenue">Dans la zone : </span>
+              <span className="tenue">Optimal : </span>
               {dansZone.map((m) => `${m.nom} ${kg(arrondi(a.volume[m.id]))}`).join(' · ')}
             </p>
           )}
@@ -596,20 +596,17 @@ function LigneExo({ nom, detail, valeur, onClick }: LigneExercice & { onClick?: 
 }
 
 function JaugeMuscle({ muscle, nom, valeur, cible }: { muscle: Muscle; nom: string; valeur: number; cible: number }) {
-  const z = zone(muscle, cible)!
   const etat = etatVolume(muscle, valeur, cible)
-  const max = z.haut * 1.25
   return (
     <div className="bilan-jauge">
       <div className="ligne entre">
         <span>{nom}</span>
         <span>
-          <strong>{kg(arrondi(valeur))}</strong> <span className={`etat-volume ${etat}`}>{LIBELLE_VOLUME[etat]}</span>
+          <strong>{kg(arrondi(valeur))}</strong> <span className="faible">sur {kg(cible)}</span> <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
         </span>
       </div>
       <div className="jauge">
-        <span className="zone-utile" style={{ left: `${(z.bas / max) * 100}%`, width: `${((z.haut - z.bas) / max) * 100}%` }} />
-        <NiveauJauge muscle={muscle} etat={etat} valeur={valeur} max={max} />
+        <NiveauJauge muscle={muscle} etat={etat} valeur={valeur} max={cible} />
       </div>
     </div>
   )

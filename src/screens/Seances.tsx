@@ -432,7 +432,7 @@ function PageProgramme({
           <span>
             Volume par semaine
             <span className="faible prog-sous">
-              {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles sont dans la zone utile'}
+              {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles sont à leur cible'}
             </span>
           </span>
           <ChevronRight size={20} className="muted" />
@@ -588,10 +588,10 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
         <h2 style={{ flex: 1 }}>Volume par semaine</h2>
       </div>
       <div className="faible volume-intro">
-        Séries par semaine dans {p.nom}, face à la zone utile.{' '}
+        Séries par semaine dans {p.nom}, face à ta cible. Barre pleine : cible atteinte.{' '}
         <Aide
           titre="Volume par semaine"
-          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} La zone verte est la zone utile pour progresser. Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ses exercices et ajuster sa cible.`}
+          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ses exercices et ajuster sa cible.`}
         />
       </div>
       <div className="carte">
@@ -604,7 +604,7 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
       )}
       {nbAjustees > 0 && (
         <button className="btn discret plein" onClick={() => void changerObjectifs(catalogue, { volume: ciblesConseillees() })}>
-          Revenir aux zones conseillées ({nbAjustees} ajustée{nbAjustees > 1 ? 's' : ''})
+          Revenir aux cibles conseillées ({nbAjustees} ajustée{nbAjustees > 1 ? 's' : ''})
         </button>
       )}
     </div>
