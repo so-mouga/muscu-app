@@ -113,6 +113,12 @@ public class MinuteurReposPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void pret(PluginCall call) {
+        MainActivity.appliPrete = true;
+        call.resolve();
+    }
+
+    @PluginMethod
     public void seance(PluginCall call) {
         if (autorise(call)) executer(call);
     }

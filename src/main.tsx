@@ -12,6 +12,7 @@ import UneFenetre from './UneFenetre'
 import './styles.css'
 import Dialogues from './components/Dialogues'
 import { installerFenetres } from './lib/fenetres'
+import { appliPrete } from './lib/natif'
 
 declare global {
   interface Window {
@@ -72,3 +73,8 @@ if (import.meta.env.PROD) {
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void verifierMiseAJour())
   window.addEventListener('load', () => void verifierMiseAJour())
 }
+
+// Le logo du démarrage reste jusqu'à ce que le contenu soit dessiné, pas seulement créé.
+const racine = document.getElementById('root')!
+const attendreContenu = () => (racine.children.length ? requestAnimationFrame(appliPrete) : requestAnimationFrame(attendreContenu))
+attendreContenu()

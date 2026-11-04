@@ -90,10 +90,12 @@ export default function App() {
     setPageCorps(page ?? null)
     setOnglet('corps')
   }
+  const changeOnglet = useRef(false)
   const setOnglet = (o: Onglet) => {
     if (o === onglet) return
-    const sens = ONGLETS.findIndex((x) => x[0] === o) > ONGLETS.findIndex((x) => x[0] === onglet) ? 'avant' : 'arriere'
-    transition(() => setOngletEtat(o), sens)
+    // Un fondu du contenu : la transition de page, avec sa capture d'écran, sautait une image à chaque onglet (mesuré sur le S25).
+    changeOnglet.current = true
+    setOngletEtat(o)
     window.scrollTo({ top: 0 })
   }
   const setDetail = (id: string | null, provenance?: Onglet) => {
@@ -119,7 +121,7 @@ export default function App() {
     setOnglet('historique')
   }
   // Retour Android : depuis un autre onglet, on revient à l'accueil ; depuis l'accueil, on quitte.
-  useRetour(!enCours && onglet !== 'accueil', () => transition(() => setOngletEtat('accueil'), 'arriere'))
+  useRetour(!enCours && onglet !== 'accueil', () => setOnglet('accueil'))
   useRetour(!enCours && corpsDepuisProgres && onglet === 'corps', () => {
     setCorpsDepuisProgres(false)
     setPageCorps(null)
@@ -130,6 +132,10 @@ export default function App() {
 
   // La séance se crée et se termine dans la base : pas de transition d'écran possible, un fondu en arrivant.
   const revientDeSeance = useRef(false)
+  useEffect(() => {
+    const t = setTimeout(() => (changeOnglet.current = false), 400)
+    return () => clearTimeout(t)
+  }, [onglet])
   useEffect(() => {
     if (enCours) revientDeSeance.current = true
     else if (revientDeSeance.current) {
@@ -164,7 +170,7 @@ export default function App() {
 
   return (
     <>
-      <div key={reglages ? 'reglages' : onglet} className={revientDeSeance.current ? 'fondu-entree' : undefined}>
+      <div key={reglages ? 'reglages' : onglet} className={revientDeSeance.current || changeOnglet.current ? 'fondu-entree' : undefined}>
         {reglages && <Reglages catalogue={catalogue} onFermer={fermerReglages} />}
         {!reglages && onglet === 'accueil' && (
           <Accueil

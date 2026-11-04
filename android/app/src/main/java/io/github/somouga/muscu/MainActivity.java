@@ -1,7 +1,10 @@
 package io.github.somouga.muscu;
 
+import android.graphics.Color;
 import android.os.Bundle;
+import android.os.SystemClock;
 import androidx.activity.OnBackPressedCallback;
+import androidx.core.splashscreen.SplashScreen;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
@@ -10,10 +13,20 @@ import com.getcapacitor.BridgeWebViewClient;
 
 public class MainActivity extends BridgeActivity {
 
+    /** L'appli a affiché son contenu (plugin, `pret`) : le logo du démarrage peut partir. */
+    static volatile boolean appliPrete;
+
+    private static final long ATTENTE_MAX_LOGO = 3000;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Le logo reste jusqu'au contenu, plutôt qu'un écran vide ; jamais plus de 3 s (pas de réseau, ancien site).
+        appliPrete = false;
+        long limite = SystemClock.uptimeMillis() + ATTENTE_MAX_LOGO;
+        SplashScreen.installSplashScreen(this).setKeepOnScreenCondition(() -> !appliPrete && SystemClock.uptimeMillis() < limite);
         registerPlugin(MinuteurReposPlugin.class);
         super.onCreate(savedInstanceState);
+        bridge.getWebView().setBackgroundColor(Color.parseColor("#0C0B0A"));
         // Toute première ouverture sans réseau : le site n'est pas encore en cache, on le dit clairement.
         bridge.setWebViewClient(
             new BridgeWebViewClient(bridge) {

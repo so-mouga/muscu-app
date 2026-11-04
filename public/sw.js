@@ -1,7 +1,8 @@
 // Service worker minimal : hors ligne d'abord.
-// Navigation : réseau puis cache. Fichiers statiques : cache puis réseau.
+// Navigation : réseau, ou le cache si le réseau tarde ou manque. Fichiers statiques : cache puis réseau.
 // Le cache n'est jamais vidé : une page ancienne doit toujours retrouver ses fichiers.
 const CACHE = 'muscu-v2'
+const ATTENTE_RESEAU = 1500
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icon.svg'])))
@@ -18,16 +19,21 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return
-  // La page (et la vérification de mise à jour) : toujours le réseau d'abord.
+  // La page (et la vérification de mise à jour) : le réseau d'abord, sans l'attendre plus de 1,5 s.
   if (req.mode === 'navigate' || new URL(req.url).pathname.endsWith('/index.html')) {
     // `no-cache` : jamais la page du cache HTTP (GitHub la garde 10 min), qui peut viser d'anciens fichiers.
+    const reseau = fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then((res) => {
+      const copie = res.clone()
+      // La copie s'écrit même si la page du cache a déjà répondu : la mise à jour arrive à l'ouverture suivante.
+      e.waitUntil(caches.open(CACHE).then((c) => c.put('./index.html', copie)))
+      return res
+    })
+    // Réseau faible à la salle : on n'attend pas plus de 1,5 s si une page est déjà en cache.
+    const repli = new Promise((ok) => setTimeout(ok, ATTENTE_RESEAU)).then(() => caches.match('./index.html'))
     e.respondWith(
-      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
-        .then((res) => {
-          caches.open(CACHE).then((c) => c.put('./index.html', res.clone()))
-          return res
-        })
-        .catch(() => caches.match('./index.html'))
+      Promise.race([reseau.catch(() => null), repli]).then(
+        (premiere) => premiere || caches.match('./index.html').then((cache) => cache || reseau)
+      )
     )
     return
   }

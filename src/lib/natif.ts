@@ -28,6 +28,7 @@ interface PluginMinuteur {
   arreter(): Promise<void>
   etat(): Promise<EtatNatif>
   version(): Promise<{ versionName: string }>
+  pret(): Promise<void>
   rappel(o: { actif: boolean; heure: string; jours: Record<string, string> }): Promise<{ autorise: boolean }>
   seanceDuJour(o: { date: string }): Promise<void>
   fichierAjouter(o: { nom: string; texte: string; debut: boolean; base64?: boolean }): Promise<void>
@@ -96,6 +97,11 @@ export function joursRappel(planning: { modele: { nom: string }; jour: number }[
 
 /** Une séance démarrée ce jour-là : pas de rappel. */
 export const seanceDuJourNatif = (date: string) => silencieux(() => MinuteurRepos.seanceDuJour({ date }))
+
+/** Le contenu est à l'écran : le logo du démarrage peut partir (APK 2.1 ; avant, rien à faire). */
+export const appliPrete = () => {
+  if (natif) MinuteurRepos.pret().catch(() => {})
+}
 
 /** Version de l'appli Android installée ; la 1.1 ne savait pas encore la donner. */
 async function versionInstallee(): Promise<string | null> {

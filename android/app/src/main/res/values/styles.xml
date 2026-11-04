@@ -13,11 +13,17 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Même fond que l'appli : pas de bandes grises autour de la page pendant qu'elle se charge. -->
+        <item name="android:windowBackground">@color/ic_launcher_background</item>
+        <!-- L'appli est toujours sombre : icônes claires dans les barres, même si le téléphone est en thème clair. -->
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
         <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>
