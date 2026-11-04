@@ -194,7 +194,7 @@ export default function App() {
             detail={detail}
             onDetail={setDetail}
             vue={vue}
-            onVue={(v) => transition(() => setVue(v), 'fondu')}
+            onVue={setVue}
             onExo={(id) => (setExoInitial(id), setVue('exercices'))}
             exoInitial={exoInitial}
             onRetourExo={() => (setExoInitial(null), setVue('bilan'))}

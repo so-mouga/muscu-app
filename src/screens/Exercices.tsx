@@ -22,8 +22,7 @@ import { confirmer } from '../components/Dialogues'
 type Filtre = 'tous' | Zone
 
 /** Partie Exercices de Progrès : est-ce que je progresse sur cet exercice ? Le titre et les parties sont dans `haut`. */
-export default function Exercices({ catalogue, haut, initial, onRetourInitial }: { catalogue: Catalogue; haut: ReactNode; /** Fiche ouverte depuis le Bilan : le retour y revient. */ initial?: string | null; onRetourInitial?: () => void }) {
-  const seances = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [], [])
+export default function Exercices({ catalogue, seances, haut, initial, onRetourInitial }: { catalogue: Catalogue; /** Déjà lues par Progrès : la liste ne s'affiche jamais avec un historique encore vide, où tout paraît « jamais fait ». */ seances: Seance[]; haut: ReactNode; /** Fiche ouverte depuis le Bilan : le retour y revient. */ initial?: string | null; onRetourInitial?: () => void }) {
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   const [choisi, setChoisiEtat] = useState<string | null>(initial ?? null)
   const [formulaire, setFormulaire] = useState<{ exo?: Exercice } | null>(null)

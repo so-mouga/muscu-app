@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import Exercices from './Exercices'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Pencil, Ruler, Smile, Trophy, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
@@ -64,6 +64,7 @@ interface Props {
 
 export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, exoInitial, onRetourExo, onCorps }: Props) {
   const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
+  const [fonduVue, setFonduVue] = useState(false)
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   /** Jour choisi dans le calendrier (aujourd'hui par défaut). */
   const [jourChoisi, setJourChoisi] = useState(dateISO())
@@ -86,7 +87,27 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   const records = useMemo(() => (terminees ? recordsParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
   const mieux = useMemo(() => (terminees ? mieuxParSeance(terminees, catalogue.exo) : {}), [terminees, catalogue])
 
-  if (!terminees) return null
+  const changerVue = (v: VueProgression) => {
+    if (v === vue) return
+    setFonduVue(true)
+    onVue(v)
+  }
+  const haut = (
+    <>
+      <div className="entete">
+        <h1>Progrès</h1>
+      </div>
+      <div className="segments" role="tablist">
+        {VUES.map(([id, nom]) => (
+          <button key={id} role="tab" aria-selected={vue === id} className={vue === id ? 'actif' : ''} onClick={() => changerVue(id)}>
+            {nom}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+  // Pendant le chargement, le titre et les parties restent : seul ce qui est dessous attend (une fiche ou une séance ouverte n'affiche pas ce haut).
+  if (!terminees) return detail || seanceBilan || (vue === 'exercices' && exoInitial) ? null : <div>{haut}</div>
   // Prévu à venir (et aujourd'hui tant que rien n'est fait) : planning du cycle en cours ou du programme actif.
   // Cycle arrivé au bout de ses semaines : on suit de nouveau le programme, comme l'accueil.
   const cycleEnService = catalogue.cycle && !etatCycle(catalogue.cycle).fini ? catalogue.cycle : undefined
@@ -104,24 +125,16 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
       />
     )
 
-  const haut = (
-    <>
-      <div className="entete">
-        <h1>Progrès</h1>
-      </div>
-      <div className="segments" role="tablist">
-        {VUES.map(([id, nom]) => (
-          <button key={id} role="tab" aria-selected={vue === id} className={vue === id ? 'actif' : ''} onClick={() => onVue(id)}>
-            {nom}
-          </button>
-        ))}
-      </div>
-    </>
+  // Changer de partie : le titre et les parties ne bougent pas, seul le contenu apparaît en fondu (voir .fondu-vue).
+  const dansVue = (contenu: ReactNode) => (
+    <div className={fonduVue ? 'fondu-vue' : undefined} onAnimationEnd={(e) => e.animationName === 'fondu' && setFonduVue(false)}>
+      {contenu}
+    </div>
   )
-  if (vue === 'bilan') return <Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => onVue('exercices')} onCorps={onCorps} onSeance={setSeanceBilan} />
-  if (vue === 'exercices') return <Exercices catalogue={catalogue} haut={haut} initial={exoInitial} onRetourInitial={onRetourExo} />
+  if (vue === 'bilan') return dansVue(<Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => changerVue('exercices')} onCorps={onCorps} onSeance={setSeanceBilan} />)
+  if (vue === 'exercices') return dansVue(<Exercices catalogue={catalogue} seances={terminees} haut={haut} initial={exoInitial} onRetourInitial={onRetourExo} />)
 
-  return (
+  return dansVue(
     <div>
       {haut}
 
@@ -150,7 +163,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
             onCorps={onCorps}
           />
       </>
-    </div>
+    </div>,
   )
 }
 

@@ -5826,6 +5826,9 @@ button.semaine-cycle.courante {
 .focus .minuteur.grand {
   animation: fondu var(--duree-courte) var(--sortie);
 }
+.fondu-vue > div > :not(.entete, .segments) {
+  animation: fondu var(--duree-courte) var(--sortie);
+}
 .comparaison-plein.sortie,
 .page-dessus.sortie {
   pointer-events: none;

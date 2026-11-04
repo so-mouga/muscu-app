@@ -103,7 +103,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onS
     requestAnimationFrame(() => window.scrollTo({ top: y }))
   }, [donneesPretes])
 
-  if (!seances) return null
+  if (!seances) return sous ? null : <div>{haut}</div>
 
   const ouvrirCorps = () => {
     memoire.defilement = window.scrollY
