@@ -206,7 +206,7 @@ export default function App() {
       </div>
       <nav className="onglets">
         {ONGLETS.map(([id, nom]) => (
-          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setCorpsDepuisProgres(false), setPageCorps(null), setDetailEtat(null), setProvenanceDetail(null), setExoInitial(null), setReglages(false), setOnglet(id))}>
+          <button key={id} className={onglet === id && !reglages ? 'actif' : ''} onClick={() => (setCorpsDepuisProgres(false), setPageCorps(null), setDetailEtat(null), setProvenanceDetail(null), exoInitial && setVue('bilan'), setExoInitial(null), setReglages(false), setOnglet(id))}>
             <IconeOnglet nom={id} />
             {nom}
           </button>

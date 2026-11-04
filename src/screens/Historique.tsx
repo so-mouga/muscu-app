@@ -131,7 +131,7 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
       {contenu}
     </div>
   )
-  if (vue === 'bilan') return dansVue(<Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => changerVue('exercices')} onCorps={onCorps} onSeance={setSeanceBilan} />)
+  if (vue === 'bilan') return dansVue(<Bilan catalogue={catalogue} haut={haut} onExo={onExo} onTousExos={() => (changerVue('exercices'), window.scrollTo({ top: 0 }))} onCorps={onCorps} onSeance={setSeanceBilan} />)
   if (vue === 'exercices') return dansVue(<Exercices catalogue={catalogue} seances={terminees} haut={haut} initial={exoInitial} onRetourInitial={onRetourExo} />)
 
   return dansVue(
