@@ -5891,39 +5891,32 @@ button.semaine-cycle.courante {
   font-size: var(--t-legende);
   font-weight: 500;
 }
-.ligne-allege {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--e2);
-  width: 100%;
-  min-height: var(--cible);
+/* Même hauteur coupé ou activé : rien ne saute dans la page. */
+.inter-allege {
+  min-height: 84px;
   margin-bottom: var(--e2);
   padding: var(--e2) var(--e3);
   border: none;
   border-radius: var(--rayon-2);
   background: var(--surface), var(--surface-uni);
   color: var(--texte);
+}
+.inter-allege > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.inter-allege strong {
   font-size: var(--t-petit);
-  text-align: left;
+  font-weight: 600;
 }
-.carte-allege {
-  margin-bottom: var(--e2);
-  padding: var(--e3);
-  border-radius: var(--rayon-2);
-  background: var(--surface), var(--surface-uni);
+.inter-allege .faible {
+  font-size: var(--t-legende);
+  font-weight: 400;
 }
-.carte-allege p {
-  margin: var(--e1) 0 0;
-}
-.carte-allege-retour {
-  min-height: var(--cible);
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--texte);
-  font-size: var(--t-petit);
-  text-decoration: underline;
+.inter-allege.on .piste {
+  background: var(--finisseur);
 }
 .choix-seance-faite {
   flex: none;

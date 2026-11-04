@@ -96,20 +96,14 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
 
       {onEchauffement && <ReglageEchauffement modele={modele} onChange={onEchauffement} />}
 
-      {!semaineAllegee && !enAllege && modele.exercices.length > 0 && (
-        <button type="button" className="ligne-allege" onClick={() => setEnAllege(true)}>
-          <span>Pas en forme aujourd’hui ?</span>
-          <span className="texte-finisseur">En allégé ›</span>
+      {!semaineAllegee && modele.exercices.length > 0 && (
+        <button type="button" role="switch" aria-checked={enAllege} className={'interrupteur inter-allege' + (enAllege ? ' on' : '')} onClick={() => setEnAllege(!enAllege)}>
+          <span>
+            <strong className={enAllege ? 'texte-finisseur' : undefined}>Séance allégée</strong>
+            <span className="faible">{enAllege ? 'Moitié des séries, charges −10 %, effort 6-7/10, sans finisseur. Ton cycle ne bouge pas.' : 'Pas en forme ? Pour aujourd’hui seulement.'}</span>
+          </span>
+          <span className="piste" />
         </button>
-      )}
-      {enAllege && (
-        <div className="carte-allege">
-          <strong className="texte-finisseur">Séance allégée, pour aujourd’hui seulement</strong>
-          <p className="faible petit-texte">Moitié des séries, charges −10 %, effort 6-7/10, sans finisseur. Ton cycle ne bouge pas.</p>
-          <button type="button" className="carte-allege-retour" onClick={() => setEnAllege(false)}>
-            Revenir à la séance normale
-          </button>
-        </div>
       )}
       {semaineAllegee && <div className="bandeau-deload">Semaine allégée : moitié des séries, charges −10 %, effort 6-7/10, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
