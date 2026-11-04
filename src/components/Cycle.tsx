@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react'
 import { lancerCycle, type Catalogue } from '../catalogue'
 import { db } from '../db'
 import { dateCourte, dateISO, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
-import { appliquerEcart, arretCycle, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, finReelle, finSemaineCycle, garderEcart, lignesCycle, lundiDe, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
+import { appliquerEcart, arretCycle, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, finArret, finReelle, lundiArret, garderEcart, lignesCycle, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { useRetour } from '../lib/nav'
 import { suiviCycle } from '../lib/motivation'
@@ -255,7 +255,8 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan, onSeance }: { ca
 
   const arret = arretCycle(cycle, seances)
   // Arrêté en route : les semaines jamais commencées ne sont plus à l'écran.
-  const lignes = lignesCycle(cycle).filter((x) => !arret || ('pause' in x ? x.pause : x.lundi) <= lundiDe(cycle, arret))
+  const dernierLundi = lundiArret(cycle, seances)
+  const lignes = lignesCycle(cycle).filter((x) => !dernierLundi || ('pause' in x ? x.pause : x.lundi) <= dernierLundi)
   const [ouverte, setOuverte] = useState<string | null>(null)
   const suivi = suiviCycle(cycle, seances, dateISO())
   /** Semaine ouverte : son lundi et son numéro, s'il n'est pas en pause. */
@@ -276,7 +277,7 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan, onSeance }: { ca
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1>{arret ? `Cycle arrêté après ${arret} semaine${arret > 1 ? 's' : ''}` : etat.fini ? 'Cycle terminé' : etat.n <= 0 ? 'Cycle à venir' : etat.pause ? 'Semaine en pause' : `Semaine ${etat.n} sur ${etat.total}`}</h1>
           <div className="faible">
-            {nomCycle(cycle)} · {etat.fini ? `${debutSemaine(cycle.debut)} → ${debutSemaine(arret ? finSemaineCycle(cycle, arret) : finReelle(cycle))}` : `${etat.n <= 0 ? 'commence le' : 'depuis le'} ${debutSemaine(cycle.debut)}`}
+            {nomCycle(cycle)} · {etat.fini ? `${debutSemaine(cycle.debut)} → ${debutSemaine(finArret(cycle, seances) ?? finReelle(cycle))}` : `${etat.n <= 0 ? 'commence le' : 'depuis le'} ${debutSemaine(cycle.debut)}`}
             {cycle.priorites?.length ? ` · priorité : ${cycle.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')}` : ''}
           </div>
         </div>

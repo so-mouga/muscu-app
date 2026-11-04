@@ -74,8 +74,18 @@ export function arretCycle(c: Cycle, seances: { cycleId?: string; date: string; 
   return n <= c.semaines - 2 ? Math.max(1, n) : null
 }
 
-/** Dernier jour (dimanche) de la semaine `n` du cycle. */
-export const finSemaineCycle = (c: Cycle, n: number) => dateISO(new Date(jours(lundiDe(c, n)) + 6 * 86400000))
+/** Cycle arrêté : le lundi de la semaine de sa dernière séance, même si cette semaine était en pause (elle ne compte pas dans les numéros). */
+export function lundiArret(c: Cycle, seances: { cycleId?: string; date: string; enCours?: boolean }[], date = dateISO()): string | null {
+  if (!arretCycle(c, seances, date)) return null
+  const dernier = seances.filter((s) => s.cycleId === c.id && !s.enCours).reduce((a, s) => (s.date > a ? s.date : a), '')
+  return lundi(new Date(dernier + 'T12:00:00'))
+}
+
+/** Cycle arrêté : le dimanche de la semaine de sa dernière séance. */
+export function finArret(c: Cycle, seances: { cycleId?: string; date: string; enCours?: boolean }[], date = dateISO()): string | null {
+  const l = lundiArret(c, seances, date)
+  return l && dateISO(new Date(jours(l) + 6 * 86400000))
+}
 
 /** Le cycle que le Bilan peut montrer : le dernier commencé avant cette semaine (un cycle à peine lancé n'a pas encore de semaine finie). */
 export function cycleDuBilan(cycles: Cycle[], cetteSemaine: string): Cycle | undefined {

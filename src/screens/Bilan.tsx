@@ -8,7 +8,7 @@ import PartageBilan from '../components/PartageBilan'
 import { NiveauJauge } from '../components/VolumeMuscles'
 import { db } from '../db'
 import { phaseA } from '../lib/objectifs'
-import { arretCycle, BONUS_PRIORITE, cycleDuBilan, etatCycle, finReelle, finSemaineCycle, lundiDe, nomCycle } from '../lib/cycle'
+import { arretCycle, BONUS_PRIORITE, cycleDuBilan, etatCycle, finArret, finReelle, lundiDe, nomCycle } from '../lib/cycle'
 import BoutonRetour from '../components/BoutonRetour'
 import { VueCycle } from '../components/Cycle'
 import { transition, useRetour } from '../lib/nav'
@@ -132,7 +132,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   const finSemaines = decaler(cetteSemaine, -1)
   const finPrevueCycle = cycle?.fin ?? (cycle ? decaler(lundiDe(cycle, cycle.semaines), 6) : finSemaines)
   // Arrêté en route : on le juge sur les semaines qu'il a vraiment duré.
-  const finCycle = cycle && arret ? finSemaineCycle(cycle, arret) : finPrevueCycle
+  const finCycle = (cycle && finArret(cycle, seances)) || finPrevueCycle
   const fin = surDates ? dates.au : periode === 'cycle' && finCycle < finSemaines ? finCycle : finSemaines
   const debut = surDates ? dates.du : periode === 'cycle' && cycle ? cycle.debut : decaler(cetteSemaine, periode === '12' ? -91 : -28)
 
@@ -330,7 +330,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
                   <span>
                     {nomCycle(c)}
                     <span className="faible prog-sous">
-                      {etatCycle(c).fini ? `${jour(c.debut)} → ${jour(arretCycle(c, seances) ? finSemaineCycle(c, arretCycle(c, seances)!) : finReelle(c))}${c.debut.slice(0, 4) !== cetteSemaine.slice(0, 4) ? ` ${c.debut.slice(0, 4)}` : ''}` : `Depuis le ${jour(c.debut)}`} · {seancesDe(c.id).length} séance{seancesDe(c.id).length > 1 ? 's' : ''}
+                      {etatCycle(c).fini ? `${jour(c.debut)} → ${jour(finArret(c, seances) ?? finReelle(c))}${c.debut.slice(0, 4) !== cetteSemaine.slice(0, 4) ? ` ${c.debut.slice(0, 4)}` : ''}` : `Depuis le ${jour(c.debut)}`} · {seancesDe(c.id).length} séance{seancesDe(c.id).length > 1 ? 's' : ''}
                     </span>
                   </span>
                   {surCycle && c.id === cycle?.id && <Check size={20} />}
