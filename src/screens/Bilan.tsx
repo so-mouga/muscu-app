@@ -488,7 +488,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
           <div className="ligne entre">
             <h3 className="avec-aide">
               Muscles
-              <Aide titre="Séries dures" texte="Une série dure est une série proche de l’échec (effort 7/10 ou plus). C’est ce travail qui fait progresser le muscle. Barre pleine : ta cible est atteinte." />
+              <Aide titre="Séries dures" texte="Une série dure est une série proche de l’échec (effort 7/10 ou plus). C’est ce travail qui fait progresser le muscle. Barre pleine : le conseil est atteint." />
             </h3>
             <span className="faible petit-texte">séries dures par semaine</span>
           </div>

@@ -3086,6 +3086,17 @@ button.phase-accueil:active {
 .volume-fenetre .ligne-aide {
   padding-inline: 0;
 }
+.volume-suivis {
+  margin-top: var(--e2);
+  font-size: var(--t-petit);
+}
+.volume-suivis .chips {
+  margin-top: var(--e2);
+}
+.volume-sans-conseil {
+  margin: 0;
+  font-size: var(--t-petit);
+}
 .volume-pied .btn:last-child {
   flex: 1;
 }
@@ -5760,16 +5771,6 @@ button.semaine-cycle.courante {
 .ligne-volume-corps .jauge {
   display: block;
 }
-.volume-suivis summary {
-  min-height: var(--cible);
-  display: flex;
-  align-items: center;
-  list-style: none;
-  cursor: pointer;
-}
-.volume-suivis summary::-webkit-details-marker {
-  display: none;
-}
 
 /* Récupérer une sauvegarde : le fichier face au téléphone. */
 .choix-prochaine.une-colonne {
@@ -5920,19 +5921,16 @@ button.semaine-cycle.courante {
 .depliable-chevron {
   transition: transform var(--duree) var(--sortie);
 }
-.depliable,
-.volume-suivis {
+.depliable {
   interpolate-size: allow-keywords;
 }
-.depliable::details-content,
-.volume-suivis::details-content {
+.depliable::details-content {
   block-size: 0;
   overflow: clip;
   opacity: 0;
   transition: block-size var(--duree) var(--sortie), opacity var(--duree-courte) var(--sortie), content-visibility var(--duree) allow-discrete;
 }
-.depliable[open]::details-content,
-.volume-suivis[open]::details-content {
+.depliable[open]::details-content {
   block-size: auto;
   opacity: 1;
 }

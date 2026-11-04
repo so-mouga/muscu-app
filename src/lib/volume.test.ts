@@ -1,4 +1,4 @@
-import { ajustee, ciblesConseillees, etatVolume, prioritaire, zone } from './volume'
+import { ciblesEnVigueur, etatVolume, zone } from './volume'
 
 describe('volume par muscle en jauge', () => {
   it('zone conseillée : léger, optimal, beaucoup', () => {
@@ -12,16 +12,16 @@ describe('volume par muscle en jauge', () => {
     expect(zone('trapezes', 0)).toBeNull()
   })
   it('cible ajustée : la zone part de la cible, beaucoup au-delà de +25 % ou du haut habituel', () => {
-    expect(ajustee('dos', 18)).toBe(true)
-    expect(ajustee('dos', 10)).toBe(false)
     expect(zone('dos', 18)).toEqual({ bas: 18, haut: 23 })
     expect(etatVolume('dos', 16, 18)).toBe('leger')
     expect(zone('biceps', 8)).toEqual({ bas: 8, haut: 16 })
   })
-  it('priorité = +4 au-dessus de la cible conseillée', () => {
-    expect(prioritaire('pecs', 14)).toBe(true)
-    expect(prioritaire('pecs', 12)).toBe(false)
-    expect(prioritaire('trapezes', 4)).toBe(false)
-    expect(ciblesConseillees().pecs).toBe(10)
+  it('plus de cible en chiffres : le conseil général, ou coupé', () => {
+    const v = ciblesEnVigueur({ quadriceps: 5, pecs: 16, ischios: 0, abdos: 3 })
+    expect(v.quadriceps).toBe(10)
+    expect(v.pecs).toBe(10)
+    expect(v.ischios).toBe(0)
+    expect(v.abdos).toBe(0)
+    expect(v.dos).toBe(0)
   })
 })

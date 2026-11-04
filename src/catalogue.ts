@@ -5,6 +5,7 @@ import { PROGRAMME } from './data/programme'
 import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
 import { dateISO, lundi } from './lib/calc'
+import { ciblesEnVigueur } from './lib/volume'
 import { avecPriorites, cibles, DUREE_DEFAUT, ecartCycle, etatCycle, finReelle, nouveauCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_SANS_OBJECTIF, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
@@ -41,7 +42,7 @@ export interface Catalogue {
   sansObjectif?: boolean
   /** Objectifs de séries dures par semaine, par muscle, en vigueur aujourd'hui (priorités du cycle comprises). */
   cibles: Record<Muscle, number>
-  /** Les mêmes, sans les priorités du cycle : ce que l'utilisateur a réglé dans Objectifs. */
+  /** Les mêmes, sans les priorités du cycle : ce que la personne a gardé ou coupé. */
   ciblesPerso: Record<Muscle, number>
   /** Objectifs de volume en vigueur à une date (bilan d'une période passée). */
   ciblesA: (date: string) => Record<Muscle, number>
@@ -84,7 +85,11 @@ export function construireCatalogue(
   const duCycle = new Map((pilote?.modeles ?? []).map((m) => [m.id, m]))
   const actif = pilote ? { ...pilote.programme, id: pilote.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0] ?? { id: '', nom: '', seances: [] })
   const pourPlanning = (id: string) => duCycle.get(id) ?? (pilote ? undefined : modele(id))
-  const perso = (date: string) => cibles(objectifsA(objectifs, date)?.volume, cycle, actif)
+  // Aujourd'hui et après : le conseil général, ou coupé. Le passé garde les cibles de l'époque (la frise n'est jamais réécrite).
+  const perso = (date: string) => {
+    const v = cibles(objectifsA(objectifs, date)?.volume, cycle, actif)
+    return date >= dateISO() ? ciblesEnVigueur(v) : v
+  }
 
   return {
     modeles,

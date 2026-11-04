@@ -14,11 +14,10 @@ import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
 import { arretCycle, debutCycle, ecartCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { ajustee, ciblesConseillees, etatVolume } from '../lib/volume'
-import { ciblesPrecedentes } from '../lib/objectifs'
+import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
-import { chargeTexte, dateCourte, dateISO, detailVolume, dureeEstimee, dureeHabituelle, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
+import { chargeTexte, dateISO, detailVolume, dureeEstimee, dureeHabituelle, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../types'
 import { ReglageEchauffement } from '../components/Echauffement'
@@ -432,7 +431,7 @@ function PageProgramme({
           <span>
             Volume par semaine
             <span className="faible prog-sous">
-              {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles sont à leur cible'}
+              {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles atteignent le conseil'}
             </span>
           </span>
           <ChevronRight size={20} className="muted" />
@@ -569,18 +568,11 @@ function FenetreRenommer({ titre = 'Renommer', nom, indice, videPermis = false, 
   )
 }
 
-/** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour voir ses exercices et ajuster sa cible. */
+/** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour voir ses exercices et couper son conseil. */
 function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Programme; onFermer: () => void }) {
   const modeles = semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m)
   const volume = volumePrevu(modeles, catalogue.exercices)
   const perso = catalogue.ciblesPerso
-  const nbAjustees = MUSCLES.filter((m) => ajustee(m.id, perso[m.id] ?? 0)).length
-  const avant = ciblesPrecedentes(catalogue.objectifs, dateISO())
-  const reprendre = async () => {
-    if (!avant) return
-    const ecarts = MUSCLES.filter((m) => (avant.volume[m.id] ?? 0) !== (perso[m.id] ?? 0)).map((m) => `${m.nom} : ${kg(perso[m.id] ?? 0)} → ${kg(avant.volume[m.id] ?? 0)}`)
-    if (await confirmer(ecarts.join(' · '), { titre: `Reprendre tes cibles du ${dateCourte(avant.depuis)} ?`, oui: 'Reprendre ces cibles' })) void changerObjectifs(catalogue, { volume: avant.volume })
-  }
   return (
     <div>
       <div className="entete">
@@ -588,25 +580,15 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
         <h2 style={{ flex: 1 }}>Volume par semaine</h2>
       </div>
       <div className="faible volume-intro">
-        Séries par semaine dans {p.nom}, face à ta cible. Barre pleine : cible atteinte.{' '}
+        Séries par semaine dans {p.nom}, face au conseil. Barre pleine : conseil atteint.{' '}
         <Aide
           titre="Volume par semaine"
-          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ses exercices et ajuster sa cible.`}
+          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ses exercices, ou couper son conseil si tu le travailles moins exprès.`}
         />
       </div>
       <div className="carte">
         <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
       </div>
-      {avant && (
-        <button className="btn discret plein" onClick={() => void reprendre()}>
-          Revenir à mes cibles d’avant
-        </button>
-      )}
-      {nbAjustees > 0 && (
-        <button className="btn discret plein" onClick={() => void changerObjectifs(catalogue, { volume: ciblesConseillees() })}>
-          Revenir aux cibles conseillées ({nbAjustees} ajustée{nbAjustees > 1 ? 's' : ''})
-        </button>
-      )}
     </div>
   )
 }

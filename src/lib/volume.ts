@@ -15,9 +15,6 @@ const def = (m: Muscle) => MUSCLES.find((x) => x.id === m)!
 /** Cible de l'appli (bas de la zone utile), 0 = suivi seulement. */
 export const cibleConseillee = (m: Muscle) => def(m).cible
 
-/** La cible diffère de celle de l'appli : réglée à la main (ou par le coach). */
-export const ajustee = (m: Muscle, cible: number) => cible !== cibleConseillee(m)
-
 /** Zone utile [bas, haut] pour cette cible, ou null sans cible. */
 export function zone(m: Muscle, cible: number): { bas: number; haut: number } | null {
   if (cible <= 0) return null
@@ -30,9 +27,5 @@ export function etatVolume(m: Muscle, v: number, cible: number): EtatVolume {
   return v < z.bas ? 'leger' : v > z.haut ? 'beaucoup' : 'optimal'
 }
 
-/** Priorité : +4 séries dures par semaine au-dessus de la cible conseillée. */
-export const BONUS_PRIORITE_MUSCLE = 4
-export const prioritaire = (m: Muscle, cible: number) => cibleConseillee(m) > 0 && cible >= cibleConseillee(m) + BONUS_PRIORITE_MUSCLE
-
-/** Les cibles conseillées par l'appli, pour tous les muscles (0 = suivi). */
-export const ciblesConseillees = () => Object.fromEntries(MUSCLES.map((m) => [m.id, m.cible])) as Record<Muscle, number>
+/** Plus de cible en chiffres : le conseil général de chaque muscle, ou rien si la personne l'a coupé. */
+export const ciblesEnVigueur = (v: Partial<Record<Muscle, number>>) => Object.fromEntries(MUSCLES.map((m) => [m.id, (v[m.id] ?? 0) > 0 ? m.cible : 0])) as Record<Muscle, number>

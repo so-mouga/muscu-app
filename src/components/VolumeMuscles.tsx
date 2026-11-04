@@ -3,10 +3,11 @@ import { ChevronRight, Info } from 'lucide-react'
 import { MUSCLES } from '../data/exercices'
 import { LigneAide } from './Aide'
 import InfosExo, { aDesInfos } from './InfosExo'
+import Interrupteur from './Interrupteur'
 import { premiereFois } from '../lib/animations'
 import { kg, type LigneVolume } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { BONUS_PRIORITE_MUSCLE, cibleConseillee, etatVolume, LIBELLE_VOLUME, prioritaire } from '../lib/volume'
+import { cibleConseillee, etatVolume, LIBELLE_VOLUME } from '../lib/volume'
 import type { Exercice, Muscle } from '../types'
 
 interface Props {
@@ -18,9 +19,9 @@ interface Props {
   avecJours: boolean
   /** Pour ouvrir la fiche d'un exercice depuis sa ligne. */
   exo: (id: string) => Exercice
-  /** Cibles en vigueur (priorités du cycle comprises). */
+  /** Conseils en vigueur (priorités du cycle comprises) ; 0 = pas de conseil. */
   cibles: Record<Muscle, number>
-  /** Les cibles réglées par l'utilisateur, et l'enregistrement d'un changement. */
+  /** Ce que la personne a gardé ou coupé, et l'enregistrement d'un changement. */
   perso: Record<Muscle, number>
   onCibles: (v: Record<Muscle, number>) => void
 }
@@ -32,8 +33,8 @@ export function NiveauJauge({ muscle, etat, valeur, max }: { muscle: Muscle; eta
 }
 
 /**
- * Une jauge par muscle : séries dures de la semaine face à la cible, pleine quand elle est atteinte ; les muscles hors zone d'abord.
- * Rien à régler d'emblée : un appui sur un muscle montre ses exercices et sa cible, pour qu'aucun chiffre ne change en faisant défiler.
+ * Une jauge par muscle : séries dures de la semaine face au conseil, pleine quand il est atteint ; les muscles hors zone d'abord.
+ * Rien à régler d'emblée : un appui sur un muscle montre ses exercices, et permet de couper son conseil.
  */
 export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, perso, onCibles }: Props) {
   const [choisi, setChoisi] = useState<Muscle | null>(null)
@@ -65,8 +66,8 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
         )
       })}
       {suivis.length > 0 && (
-        <details className="volume-suivis">
-          <summary className="faible">Aussi suivis, déjà travaillés par les autres exercices ({suivis.length})</summary>
+        <div className="volume-suivis">
+          <div className="faible">Aussi suivis, sans conseil</div>
           <div className="chips">
             {suivis.map((m) => (
               <button key={m.id} type="button" onClick={() => setChoisi(m.id)}>
@@ -74,7 +75,7 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
               </button>
             ))}
           </div>
-        </details>
+        </div>
       )}
       {choisi && (
         <FenetreCible
@@ -96,17 +97,16 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
   )
 }
 
-/** Un seul muscle : d'où vient son volume, puis sa cible. Un appui à côté ou le retour gardent le changement, « Annuler » ne garde rien. */
+/** Un seul muscle : d'où vient son volume, puis son conseil, à garder ou à couper. Un appui à côté ou le retour gardent le changement, « Annuler » ne garde rien. */
 function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depart, onFin }: { muscle: Muscle; volume: number; lignes: LigneVolume[]; avecJours: boolean; exo: (id: string) => Exercice; enVigueur: number; depart: number; onFin: (cible?: number) => void }) {
   const [c, setC] = useState(depart)
   const [infos, setInfos] = useState<string | null>(null)
   useRetour(true, () => onFin(c))
   const def = MUSCLES.find((m) => m.id === muscle)!
   const conseil = cibleConseillee(muscle)
-  const prio = prioritaire(muscle, c)
-  const fixer = (n: number) => setC(Math.max(0, Math.min(30, n)))
-  // Tant que la cible n'a pas bougé, le même état que sur la jauge (priorité du cycle comprise).
-  const etat = etatVolume(muscle, volume, c === depart ? enVigueur : c)
+  // Tant que rien n'a bougé, le même chiffre que sur la jauge (priorité du cycle comprise).
+  const cible = c === depart ? enVigueur : c
+  const etat = etatVolume(muscle, volume, cible)
   return (
     <div className="modal-fond" onClick={() => onFin(c)}>
       <div className="modal modal-colonne volume-fenetre" onClick={(e) => e.stopPropagation()}>
@@ -116,9 +116,13 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
             <strong className="volume-total">
               {kg(volume)} série{volume >= 2 ? 's' : ''} par semaine
             </strong>
-            {etat !== 'suivi' && <span className={`etat-volume ${etat}`}> · {LIBELLE_VOLUME[etat]}</span>}
+            {etat !== 'suivi' && (
+              <>
+                {' '}
+                sur {kg(cible)} <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
+              </>
+            )}
           </div>
-          <div className="faible">{conseil > 0 ? `Conseillé : ${conseil} à ${def.haut}.` : lignes.length ? 'Pas de cible conseillée : il travaille déjà avec les autres exercices.' : 'Pas de cible conseillée.'}</div>
         </div>
         <div className="modal-defile pile">
           <div className="volume-exos">
@@ -151,34 +155,10 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
             {lignes.length === 0 && <p className="faible petit-texte">Aucun exercice de ce programme ne le travaille pour l'instant.</p>}
             {lignes.some((l) => l.aide) && <p className="faible petit-texte">Un exercice qui aide compte pour moitié.</p>}
           </div>
-          <div className="ligne entre volume-cible">
-            <span>
-              Ta cible
-              {c === 0 && <span className="faible prog-sous">Suivi seulement</span>}
-            </span>
-            <span className="mini-stepper">
-              <button type="button" onClick={() => fixer(c - 1)} aria-label={`Moins pour ${def.nom}`}>
-                −
-              </button>
-              <strong>{kg(c)}</strong>
-              <button type="button" onClick={() => fixer(c + 1)} aria-label={`Plus pour ${def.nom}`}>
-                +
-              </button>
-            </span>
-          </div>
-          {conseil > 0 && (
-            <button type="button" className="liste-btn" aria-pressed={prio} onClick={() => setC(prio ? conseil : conseil + BONUS_PRIORITE_MUSCLE)}>
-              <span>
-                Priorité
-                <span className="faible prog-sous">{BONUS_PRIORITE_MUSCLE} séries de plus que le conseillé</span>
-              </span>
-              {prio && <span>✓</span>}
-            </button>
-          )}
-          {c !== conseil && (
-            <button type="button" className="btn discret plein" onClick={() => setC(conseil)}>
-              Revenir au conseillé ({kg(conseil)})
-            </button>
+          {conseil > 0 ? (
+            <Interrupteur on={c > 0} onChange={(v) => setC(v ? conseil : 0)} label="Conseil pour ce muscle" aide={c > 0 ? `Le conseil général : ${conseil} à ${def.haut} séries.` : 'Coupé : pas de barre ni de remarque.'} />
+          ) : (
+            <p className="faible petit-texte volume-sans-conseil">Pas de conseil : {lignes.length ? 'il travaille déjà avec les autres exercices, on le suit simplement.' : 'on le suit simplement.'}</p>
           )}
           <LigneAide
             libelle="Comment ça se compte ?"
@@ -188,7 +168,8 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
                 <p>Ne comptent que les séries vraiment dures : 7/10 d’effort ou plus.</p>
                 <p>Un exercice qui aide, comme le triceps sur un développé, compte pour moitié : 3 séries y font 1,5.</p>
                 {avecJours && <p>Seules les séances qui ont un jour dans ton programme comptent.</p>}
-                <p>Barre pleine : ta cible est atteinte. « Beaucoup » veut dire que tu la dépasses nettement.</p>
+                <p>Barre pleine : le conseil général est atteint. « Beaucoup » veut dire que tu le dépasses nettement.</p>
+                <p>Pour changer tes séries, modifie les exercices de tes séances.</p>
               </div>
             }
           />
