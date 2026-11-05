@@ -78,6 +78,17 @@ db.version(9)
       })
   })
 
+// « Mollets debout machine » retiré de la bibliothèque (doublon) : un programme Haut / Bas déjà pris passe sur « Mollets debout », dans la séance et sa copie du cycle. Les séances faites ne changent pas.
+db.version(10)
+  .stores({})
+  .upgrade(async (tx) => {
+    const remplacer = (m: SeanceModele) => {
+      for (const e of m.exercices) if (e.exoId === 'mollets_debout') e.exoId = 'mollets_machine'
+    }
+    await tx.table('modeles').toCollection().modify(remplacer)
+    await tx.table('cycles').toCollection().modify((c: Cycle) => c.modeles?.forEach(remplacer))
+  })
+
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
 
 export { historiqueDe } from './lib/historique'

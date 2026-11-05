@@ -1,4 +1,5 @@
 import { construireCatalogue, ID_PROGRAMME_DEFAUT, sansConseilsVolume } from './catalogue'
+import { ANCIENS_NOMS, EXERCICES, texteRecherche } from './data/exercices'
 import { nouveauCycle } from './lib/cycle'
 
 describe('programmes', () => {
@@ -90,5 +91,46 @@ describe('niveaux de volume', () => {
     expect(Object.values(c.cibles).every((v) => v === 0)).toBe(true)
     expect(Object.values(c.ciblesA('2020-06-01')).every((v) => v === 0)).toBe(true)
     expect(c.ciblesPerso.quadriceps).toBe(4)
+  })
+})
+
+describe('bibliothèque d’exercices', () => {
+  const copie = (id: string, nom: string) => ({ ...EXERCICES[id], nom, pas: 10 })
+
+  it('aucun nom en double, et aucun ancien nom repris par un autre exercice', () => {
+    const noms = Object.values(EXERCICES).map((e) => e.nom)
+    expect(new Set(noms).size).toBe(noms.length)
+    for (const [id, anciens] of Object.entries(ANCIENS_NOMS)) {
+      expect(EXERCICES[id], id).toBeDefined()
+      for (const a of anciens) expect(noms.filter((n) => n === a && n !== EXERCICES[id].nom)).toEqual([])
+    }
+  })
+
+  it('une copie restée à l’ancien nom affiche le nouveau et garde ses réglages ; un nom choisi reste', () => {
+    const c = construireCatalogue([], [copie('presse', 'Presse à cuisse'), copie('rowing_barre', 'Mon rowing')], [], undefined)
+    expect(c.exo('presse').nom).toBe('Presse à cuisses')
+    expect(c.exo('presse').pas).toBe(10)
+    expect(c.exo('rowing_barre').nom).toBe('Mon rowing')
+  })
+
+  it('l’assistance reste une assistance sur une copie', () => {
+    const id = Object.values(EXERCICES).find((e) => e.assistance)!.id
+    const { assistance: _, ...sans } = EXERCICES[id]
+    expect(construireCatalogue([], [sans], [], undefined).exo(id).assistance).toBe(true)
+  })
+
+  it('un exercice retiré : sa copie devient un exercice à soi, et un id seul reste lisible', () => {
+    const c = construireCatalogue([], [{ id: 'dev_arnold', nom: 'Développé Arnold', muscle: 'epaule_avant', type: 'compose', mode: 'par_main', pas: 2, suivreE1rm: true }], [], undefined)
+    expect(c.exo('dev_arnold')).toMatchObject({ nom: 'Développé Arnold', muscle: 'epaule_avant', perso: true })
+    expect(c.exo('fentes_arriere').nom).toBe('Fentes arriere')
+  })
+
+  it('la recherche trouve aussi les anciens noms et les noms anglais', () => {
+    const noms = (r: string) => Object.values(EXERCICES).filter((e) => texteRecherche(e).toLowerCase().includes(r.toLowerCase())).map((e) => e.id)
+    expect(noms('Tirage poitrine prise large')).toContain('tirage_large')
+    expect(noms('larry scott')).toEqual(['curl_pupitre'])
+    expect(noms('leg extension')).toEqual(['extension_jambes'])
+    expect(noms('planche')).toContain('gainage')
+    expect(noms('jambes tendues')).toContain('rdl')
   })
 })

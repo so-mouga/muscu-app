@@ -94,7 +94,7 @@ describe('analyse d’une période', () => {
     const l = Array.from({ length: 7 }, (_, i) => seance(`s${i}`, new Date(Date.parse('2026-09-21T12:00:00') + i * 7 * 86400000).toISOString().slice(0, 10), [50 + i * 2.5]))
     const b = analyser(donnees(l), '2026-10-05', '2026-11-08', 2)
     expect(b.stagnations.map((s) => s.exo.id)).toEqual(['tirage_large'])
-    expect(aRetenir(b, null, cibles()).join('\n')).toContain('Tirage poitrine prise large : pas de progrès depuis 6 semaines')
+    expect(aRetenir(b, null, cibles()).join('\n')).toContain('Tirage vertical prise large : pas de progrès depuis 6 semaines')
   })
   it('à retenir : assiduité, muscles, stagnation, recompo, records', () => {
     const t = aRetenir(a, null, cibles()).join('\n')

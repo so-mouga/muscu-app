@@ -150,8 +150,11 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
   // Rattachée par erreur à un cycle qui n'a pas encore commencé : la mise à jour retire ce lien, et rien d'autre.
   const avantCycle = { ...seance('avant-cycle', '2020-01-06', [{ charge: 40, reps: 10, rpe: 8 }]), cycleId: 'a-venir' }
   const cycleAVenir = { id: 'a-venir', debut: '2099-01-05', semaines: 6, deloads: [6], pauses: [], programmeId: 'p', programme: { id: 'p', nom: 'P', seances: [] }, modeles: [], volume: {} }
+  // Bibliothèque réduite : un programme avec un exercice retiré passe sur celui qu'on garde, une copie à l'ancien nom ne bouge pas en base.
+  const avecMollets = { id: 'hb', nom: 'Bas B', exercices: [{ exoId: 'mollets_debout', series: [{ reps: 10, charge: null }] }] }
+  const copie = { id: 'presse', nom: 'Presse à cuisse', muscle: 'quadriceps', type: 'compose', mode: 'machine', pas: 10, suivreE1rm: true }
   await p.evaluate(
-    ({ s, avant, c }) =>
+    ({ s, avant, c, m, e }) =>
       new Promise<void>((ok, ko) => {
         const q = indexedDB.open('muscu', 60)
         q.onupgradeneeded = () => {
@@ -173,13 +176,15 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
           const tx = q.transaction!
           tx.objectStore('seances').put(s)
           tx.objectStore('seances').put(avant)
-          tx.objectStore('cycles').put(c)
+          tx.objectStore('cycles').put({ ...c, modeles: [m] })
+          tx.objectStore('modeles').put(m)
+          tx.objectStore('exercices').put(e)
           tx.objectStore('pesees').put({ date: s.date, poids: 76.2 })
         }
         q.onsuccess = () => (q.result.close(), ok())
         q.onerror = () => ko(q.error)
       }),
-    { s: ancienne, avant: avantCycle, c: cycleAVenir }
+    { s: ancienne, avant: avantCycle, c: cycleAVenir, m: avecMollets, e: copie }
   )
 
   await p.goto('/')
@@ -191,6 +196,10 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
   const { cycleId: _, ...sansLien } = avantCycle
   expect(await lireTable(p, 'seances')).toEqual(expect.arrayContaining([ancienne, sansLien]))
   expect(await lireTable(p, 'pesees')).toEqual([{ date: jour, poids: 76.2 }])
+  const exosDe = (m: unknown) => (m as typeof avecMollets).exercices.map((x) => x.exoId)
+  expect((await lireTable(p, 'modeles')).map(exosDe)).toEqual([['mollets_machine']])
+  expect((await lireTable(p, 'cycles')).flatMap((c) => (c as { modeles: unknown[] }).modeles.map(exosDe))).toEqual([['mollets_machine']])
+  expect(await lireTable(p, 'exercices')).toEqual([copie])
   await ouvrirSeanceDuJour(p, 'Séance test')
   await expect(p.locator('.recap-serie').first()).toContainText('52,5 kg × 8')
   expect(erreurs).toEqual([])

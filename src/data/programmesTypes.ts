@@ -89,7 +89,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
         exo('rdl', 180, s(3, 8, 10, 7)),
         exo('extension_jambes', 90, s(3, 10, 15)),
         exo('curl_jambe_assis', 90, s(3, 10, 15)),
-        exo('mollets_debout', 90, s(3, 10, 15)),
+        exo('mollets_machine', 90, s(3, 10, 15)),
         exo('crunch_poulie', 90, s(3, 10, 15)),
       ]),
       seance('hb_haut2', 'Haut 2', 'incliné, rowing', 4, [

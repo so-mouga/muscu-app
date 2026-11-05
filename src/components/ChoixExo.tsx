@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
-import { MUSCLES, ZONES, type Zone } from '../data/exercices'
+import { MUSCLES, texteRecherche, ZONES, type Zone } from '../data/exercices'
 import { useRetour } from '../lib/nav'
 import type { Exercice, Muscle } from '../types'
 import FormExo from './FormExo'
@@ -16,7 +16,7 @@ export function parMuscle(exercices: Exercice[], recherche: string) {
   const r = sansAccents(recherche.trim())
   const visibles = exercices
     .filter((e) => !e.supprime)
-    .filter((e) => !r || sansAccents(e.nom + ' ' + nomMuscle(e.muscle)).includes(r))
+    .filter((e) => !r || sansAccents(texteRecherche(e)).includes(r))
     .sort((a, b) => {
       // Les exercices polyarticulaires (composés) d'abord, puis isolation
       if (a.type !== b.type) return a.type === 'compose' ? -1 : 1

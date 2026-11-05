@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
-import { EXERCICES, MUSCLES } from './data/exercices'
+import { ANCIENS_NOMS, EXERCICES, MUSCLES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
 import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
@@ -52,6 +52,9 @@ export interface Catalogue {
   pourDemarrer: (m: SeanceModele) => SeanceModele
 }
 
+/** Id sans exercice (retiré de la bibliothèque, séance d'essai) : son nom se lit quand même. */
+const nomLisible = (id: string) => (id.charAt(0).toUpperCase() + id.slice(1)).replace(/_/g, ' ')
+
 export const CLE_CONSEILS_VOLUME_MASQUES = 'conseilsVolumeMasques'
 /** Date fixe, pas « aujourd'hui » : une semaine finie plus tard relirait sinon une ancienne cible en chiffre. */
 const DEBUT_NIVEAUX = '2026-11-05'
@@ -71,7 +74,13 @@ export function construireCatalogue(
   const tous = [...parId.values()].filter((m) => !m.supprime)
   const exercices: Record<string, Exercice> = { ...EXERCICES }
   // Une version modifiée d'un exercice de base garde son sens : une assistance reste une assistance.
-  for (const e of exercicesDb) exercices[e.id] = EXERCICES[e.id]?.assistance ? { ...e, assistance: true } : e
+  // Elle suit aussi le nouveau nom si elle a encore l'ancien. Sans exercice de base (retiré de la liste) : elle appartient à la personne.
+  for (const e of exercicesDb) {
+    const base = EXERCICES[e.id]
+    exercices[e.id] = base
+      ? { ...e, nom: ANCIENS_NOMS[e.id]?.includes(e.nom) ? base.nom : e.nom, ...(base.assistance ? { assistance: true } : {}) }
+      : { ...e, perso: true }
+  }
 
   // Sans programme enregistré : le planning d'origine (jours portés par les séances) devient le premier programme.
   const programmes: Programme[] = programmesDb.length || sansProgramme
@@ -102,7 +111,7 @@ export function construireCatalogue(
     modele,
     exercices,
     exo: (id) =>
-      exercices[id] ?? { id, nom: id, muscle: 'pecs', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
+      exercices[id] ?? { id, nom: nomLisible(id), muscle: 'pecs', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
     programmes,
     actif,
     sansProgramme,
