@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronRight, Info, Pencil, Ruler } from 'lucide-react'
 import BoutonRetour from '../components/BoutonRetour'
 import Aide from '../components/Aide'
@@ -34,30 +34,57 @@ export type PageCorps = 'phases' | 'pesees' | 'mensurations' | 'photos' | `recap
 
 const TITRES: Record<'phases' | 'pesees' | 'mensurations' | 'photos', string> = { phases: 'Phases', pesees: 'Toutes les pesées', mensurations: 'Mensurations', photos: 'Photos' }
 
+/** Corps, puis sa page de détail, puis le récap d'une phase. */
+const profondeur = (p: PageCorps | null) => (!p ? 0 : p.startsWith('recap:') ? 2 : 1)
+
 /**
  * Onglet Corps (barre du bas) : une seule page dit si le corps change. La phase, le poids, les
  * mensurations et les photos, lus ensemble ; un appui ouvre le détail de chacun.
  */
 export default function Corps({ catalogue, page, onPage }: { catalogue: Catalogue; page: PageCorps | null; onPage: (p: PageCorps | null) => void }) {
   const debutRecap = page?.startsWith('recap:') ? page.slice(6) : null
-  useRetour(page !== null && !debutRecap, () => onPage(null))
-  useRetour(!!debutRecap, () => onPage('phases'))
-  useEffect(() => {
-    window.scrollTo({ top: 0 })
+  const sousPage = debutRecap ? 'phases' : page
+  // La page qu'on quitte reste montée, cachée : au retour, elle a encore son contenu, et on la retrouve à la même position.
+  const positions = useRef<number[]>([])
+  const aRetrouver = useRef(0)
+  const [phasesRelues, setPhasesRelues] = useState(0)
+  const aller = (p: PageCorps | null) => {
+    if (profondeur(p) > profondeur(page)) positions.current.push(window.scrollY)
+    else aRetrouver.current = positions.current.pop() ?? 0
+    onPage(p)
+  }
+  /** La phase vient de changer depuis le récap : la page Phases repart de zéro, en haut, avec le formulaire de la phase choisie. */
+  const apresSuite = () => {
+    setPhasesRelues((n) => n + 1)
+    aller('phases')
+    aRetrouver.current = 0
+  }
+  useRetour(page !== null && !debutRecap, () => aller(null))
+  useRetour(!!debutRecap, () => aller('phases'))
+  useLayoutEffect(() => {
+    window.scrollTo({ top: aRetrouver.current })
+    aRetrouver.current = 0
+    if (!page) positions.current = []
   }, [page])
-  if (!page) return <AccueilCorps catalogue={catalogue} onPage={onPage} />
-  if (debutRecap) return <RecapPhase catalogue={catalogue} debut={debutRecap} onRetour={() => onPage('phases')} onSuite={() => onPage('phases')} />
   return (
-    <div>
-      <div className="entete">
-        <BoutonRetour onClick={() => onPage(null)} label="Retour à Corps" />
-        <h2 style={{ flex: 1 }}>{TITRES[page as keyof typeof TITRES]}</h2>
+    <>
+      <div hidden={!!page}>
+        <AccueilCorps catalogue={catalogue} onPage={aller} />
       </div>
-      {page === 'phases' && <Objectifs catalogue={catalogue} onRecap={(debut) => onPage(`recap:${debut}`)} />}
-      {page === 'pesees' && <ListePesees catalogue={catalogue} />}
-      {page === 'mensurations' && <Mesures catalogue={catalogue} />}
-      {page === 'photos' && <Photos />}
-    </div>
+      {sousPage && (
+        <div hidden={!!debutRecap}>
+          <div className="entete">
+            <BoutonRetour onClick={() => aller(null)} label="Retour à Corps" />
+            <h2 style={{ flex: 1 }}>{TITRES[sousPage as keyof typeof TITRES]}</h2>
+          </div>
+          {sousPage === 'phases' && <Objectifs key={phasesRelues} catalogue={catalogue} onRecap={(debut) => aller(`recap:${debut}`)} />}
+          {sousPage === 'pesees' && <ListePesees catalogue={catalogue} />}
+          {sousPage === 'mensurations' && <Mesures catalogue={catalogue} />}
+          {sousPage === 'photos' && <Photos />}
+        </div>
+      )}
+      {debutRecap && <RecapPhase catalogue={catalogue} debut={debutRecap} onRetour={() => aller('phases')} onSuite={apresSuite} />}
+    </>
   )
 }
 
