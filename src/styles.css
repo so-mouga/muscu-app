@@ -3097,6 +3097,29 @@ button.phase-accueil:active {
   margin: 0;
   font-size: var(--t-petit);
 }
+/* Sur un petit écran, seul le nom passe à la ligne : les chiffres restent ensemble. */
+.ligne-volume-corps .ligne > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.volume-niveau {
+  display: grid;
+  gap: var(--e2);
+}
+.volume-niveaux {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--e1);
+  margin: 0;
+}
+.volume-niveaux button {
+  min-width: 0;
+  min-height: var(--cible);
+  padding: var(--e1);
+  font-size: var(--t-petit);
+  line-height: 1.15;
+  white-space: normal;
+}
 .volume-pied .btn:last-child {
   flex: 1;
 }

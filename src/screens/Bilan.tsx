@@ -398,6 +398,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
     .filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) !== 'optimal')
     .sort((x, y) => a.volume[x.id] / cibles[x.id] - a.volume[y.id] / cibles[y.id])
   const dansZone = muscles.filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) === 'optimal')
+  const sansConseil = MUSCLES.filter((m) => m.cible > 0 && cibles[m.id] <= 0 && a.volume[m.id] > 0)
   const notesCalories = a.calories.ok + a.calories.trop + a.calories.pasAssez
 
   return (
@@ -501,6 +502,26 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
               {dansZone.map((m) => `${m.nom} ${kg(arrondi(a.volume[m.id]))}`).join(' · ')}
             </p>
           )}
+          {sansConseil.length > 0 && (
+            <p className="petit-texte">
+              <span className="faible">Sans conseil : </span>
+              {sansConseil.map((m) => `${m.nom} ${kg(arrondi(a.volume[m.id]))}`).join(' · ')}
+            </p>
+          )}
+        </section>
+      )}
+
+      {catalogue.conseilsVolumeMasques && semainesFinies(seances.map((s) => s.date), cetteSemaine) >= 2 && (
+        <section className="carte bilan-carte">
+          <div className="ligne entre">
+            <h3>Muscles</h3>
+            <span className="faible petit-texte">séries dures par semaine</span>
+          </div>
+          <p className="petit-texte">
+            {MUSCLES.filter((m) => a.volume[m.id] > 0)
+              .map((m) => `${m.nom} ${kg(arrondi(a.volume[m.id]))}`)
+              .join(' · ')}
+          </p>
         </section>
       )}
 

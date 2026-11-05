@@ -1,4 +1,4 @@
-import { construireCatalogue, ID_PROGRAMME_DEFAUT } from './catalogue'
+import { construireCatalogue, ID_PROGRAMME_DEFAUT, sansConseilsVolume } from './catalogue'
 import { nouveauCycle } from './lib/cycle'
 
 describe('programmes', () => {
@@ -73,5 +73,22 @@ describe('cycle en cours', () => {
     const cycle = nouveauCycle('c', base.actif, base.modele, new Date().toISOString().slice(0, 10))
     const c = construireCatalogue([{ ...m, nom: 'Modifiée' }], [], [], undefined, cycle)
     expect(c.ecart?.seances.map((s) => s.nom)).toEqual(['Modifiée'])
+  })
+})
+
+describe('niveaux de volume', () => {
+  const frise = [{ depuis: '2020-01-01', volume: { quadriceps: 5, pecs: 18, ischios: 8, biceps: 6 } }]
+  it('à partir d’aujourd’hui les niveaux, le passé garde ses cibles, la frise ne change pas', () => {
+    const c = construireCatalogue([], [], [], undefined, undefined, frise)
+    expect(c.ciblesPerso).toMatchObject({ quadriceps: 4, pecs: 16, ischios: 8, biceps: 6, dos: 10 })
+    expect(c.ciblesA('2020-06-01')).toMatchObject({ quadriceps: 5, pecs: 18, ischios: 8, biceps: 6, dos: 0 })
+    expect(c.objectifs).toEqual(frise)
+    expect(c.ciblesA('2026-11-08')).toMatchObject({ quadriceps: 4, pecs: 16 })
+  })
+  it('conseils masqués : plus aucune cible à lire, les choix restent', () => {
+    const c = sansConseilsVolume(construireCatalogue([], [], [], undefined, undefined, frise))
+    expect(Object.values(c.cibles).every((v) => v === 0)).toBe(true)
+    expect(Object.values(c.ciblesA('2020-06-01')).every((v) => v === 0)).toBe(true)
+    expect(c.ciblesPerso.quadriceps).toBe(4)
   })
 })

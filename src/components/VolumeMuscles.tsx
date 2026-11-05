@@ -1,13 +1,15 @@
 import { useState } from 'react'
+import { CLE_CONSEILS_VOLUME_MASQUES, type Catalogue } from '../catalogue'
+import { setReglage } from '../db'
+import Interrupteur from './Interrupteur'
 import { ChevronRight, Info } from 'lucide-react'
 import { MUSCLES } from '../data/exercices'
 import { LigneAide } from './Aide'
 import InfosExo, { aDesInfos } from './InfosExo'
-import Interrupteur from './Interrupteur'
 import { premiereFois } from '../lib/animations'
 import { kg, type LigneVolume } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { cibleConseillee, etatVolume, LIBELLE_VOLUME } from '../lib/volume'
+import { cibleConseillee, cibleDuNiveau, etatVolume, zone, LIBELLE_VOLUME, niveauDe, phraseNiveau, type NiveauVolume } from '../lib/volume'
 import type { Exercice, Muscle } from '../types'
 
 interface Props {
@@ -21,9 +23,30 @@ interface Props {
   exo: (id: string) => Exercice
   /** Conseils en vigueur (priorités du cycle comprises) ; 0 = pas de conseil. */
   cibles: Record<Muscle, number>
-  /** Ce que la personne a gardé ou coupé, et l'enregistrement d'un changement. */
+  /** Le niveau choisi pour chaque muscle, et l'enregistrement d'un changement. */
   perso: Record<Muscle, number>
   onCibles: (v: Record<Muscle, number>) => void
+  /** Conseils masqués : les séries seules, sans barre ni choix. */
+  masque?: boolean
+}
+
+/** « zone 10 à 16 » : 10 est le bas de la zone, pas un objectif à ne pas dépasser. */
+const texteZone = (m: Muscle, cible: number) => {
+  const z = zone(m, cible)!
+  return `zone ${kg(z.bas)} à ${kg(z.haut)}`
+}
+
+const NIVEAUX: { id: NiveauVolume; nom: string }[] = [
+  { id: 'entretien', nom: 'Entretien' },
+  { id: 'normal', nom: 'Normal' },
+  { id: 'priorite', nom: 'Priorité' },
+  { id: 'sans', nom: 'Sans conseil' },
+]
+
+/** Tous les muscles d'un coup, en bas de « Volume par semaine ». Les choix restent : couper le réglage les retrouve. */
+export function MasquerConseilsVolume({ catalogue }: { catalogue: Catalogue }) {
+  const on = !!catalogue.conseilsVolumeMasques
+  return <Interrupteur on={on} onChange={(v) => void setReglage(CLE_CONSEILS_VOLUME_MASQUES, v)} label="Masquer les conseils de volume" aide={on ? 'Tes séries restent affichées, sans barre ni remarque. Tes choix reviennent si tu le coupes.' : 'Pour tous les muscles : le nombre de séries, sans barre ni remarque, ici et dans le Bilan.'} />
 }
 
 /** Le niveau d'une jauge : il se remplit la première fois qu'on le voit. */
@@ -34,13 +57,14 @@ export function NiveauJauge({ muscle, etat, valeur, max }: { muscle: Muscle; eta
 
 /**
  * Une jauge par muscle : séries dures de la semaine face au conseil, pleine quand il est atteint ; les muscles hors zone d'abord.
- * Rien à régler d'emblée : un appui sur un muscle montre ses exercices, et permet de couper son conseil.
+ * Rien à régler d'emblée : un appui sur un muscle montre ses exercices, et permet de choisir son niveau.
  */
-export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, perso, onCibles }: Props) {
+export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, perso, onCibles, masque }: Props) {
   const [choisi, setChoisi] = useState<Muscle | null>(null)
   const rang = { leger: 0, beaucoup: 1, optimal: 2, suivi: 3 }
   const jauges = MUSCLES.filter((m) => cibles[m.id] > 0).sort((a, b) => rang[etatVolume(a.id, volume[a.id], cibles[a.id])] - rang[etatVolume(b.id, volume[b.id], cibles[b.id])])
-  const suivis = MUSCLES.filter((m) => cibles[m.id] <= 0)
+  const suivis = MUSCLES.filter((m) => (masque ? cibleConseillee(m.id) : cibles[m.id]) <= 0)
+  const sansBarre = masque ? MUSCLES.filter((m) => cibleConseillee(m.id) > 0) : []
 
   return (
     <>
@@ -48,13 +72,17 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
         const v = volume[m.id]
         const cible = cibles[m.id]
         const etat = etatVolume(m.id, v, cible)
+        const niveau = niveauDe(m.id, perso[m.id])
         return (
           <button key={m.id} type="button" className="ligne-volume" onClick={() => setChoisi(m.id)}>
             <span className="ligne-volume-corps">
               <span className="ligne entre petit">
-                <span>{m.nom}</span>
                 <span>
-                  <strong>{kg(v)}</strong> <span className="faible">sur {kg(cible)}</span> <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
+                  {m.nom}
+                  {niveau !== 'normal' && <span className="faible"> · {niveau === 'priorite' ? 'priorité' : 'entretien'}</span>}
+                </span>
+                <span>
+                  <strong>{kg(v)}</strong> <span className="faible">· {texteZone(m.id, cible)}</span> <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
                 </span>
               </span>
               <span className="jauge">
@@ -65,6 +93,17 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
           </button>
         )
       })}
+      {sansBarre.map((m) => (
+        <button key={m.id} type="button" className="ligne-volume" onClick={() => setChoisi(m.id)}>
+          <span className="ligne-volume-corps">
+            <span className="ligne entre petit">
+              <span>{m.nom}</span>
+              <strong>{kg(volume[m.id])}</strong>
+            </span>
+          </span>
+          <ChevronRight size={16} className="muted" />
+        </button>
+      ))}
       {suivis.length > 0 && (
         <div className="volume-suivis">
           <div className="faible">Aussi suivis, sans conseil</div>
@@ -87,6 +126,7 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
           exo={exo}
           enVigueur={cibles[choisi]}
           depart={perso[choisi] ?? 0}
+          masque={masque}
           onFin={(c) => {
             setChoisi(null)
             if (c !== undefined && c !== (perso[choisi] ?? 0)) onCibles({ ...perso, [choisi]: c })
@@ -97,13 +137,14 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
   )
 }
 
-/** Un seul muscle : d'où vient son volume, puis son conseil, à garder ou à couper. Un appui à côté ou le retour gardent le changement, « Annuler » ne garde rien. */
-function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depart, onFin }: { muscle: Muscle; volume: number; lignes: LigneVolume[]; avecJours: boolean; exo: (id: string) => Exercice; enVigueur: number; depart: number; onFin: (cible?: number) => void }) {
+/** Un seul muscle : d'où vient son volume, puis ce qu'on veut pour lui. Un appui à côté ou le retour gardent le changement, « Annuler » ne garde rien. */
+function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depart, masque, onFin }: { muscle: Muscle; volume: number; lignes: LigneVolume[]; avecJours: boolean; exo: (id: string) => Exercice; enVigueur: number; depart: number; masque?: boolean; onFin: (cible?: number) => void }) {
   const [c, setC] = useState(depart)
   const [infos, setInfos] = useState<string | null>(null)
   useRetour(true, () => onFin(c))
   const def = MUSCLES.find((m) => m.id === muscle)!
-  const conseil = cibleConseillee(muscle)
+  const avecConseil = cibleConseillee(muscle) > 0
+  const niveau = niveauDe(muscle, c)
   // Tant que rien n'a bougé, le même chiffre que sur la jauge (priorité du cycle comprise).
   const cible = c === depart ? enVigueur : c
   const etat = etatVolume(muscle, volume, cible)
@@ -119,7 +160,7 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
             {etat !== 'suivi' && (
               <>
                 {' '}
-                sur {kg(cible)} <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
+                · {texteZone(muscle, cible)} <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
               </>
             )}
           </div>
@@ -155,10 +196,22 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
             {lignes.length === 0 && <p className="faible petit-texte">Aucun exercice de ce programme ne le travaille pour l'instant.</p>}
             {lignes.some((l) => l.aide) && <p className="faible petit-texte">Un exercice qui aide compte pour moitié.</p>}
           </div>
-          {conseil > 0 ? (
-            <Interrupteur on={c > 0} onChange={(v) => setC(v ? conseil : 0)} label="Conseil pour ce muscle" aide={c > 0 ? `Le conseil général : ${conseil} à ${def.haut} séries.` : 'Coupé : pas de barre ni de remarque.'} />
-          ) : (
+          {!avecConseil ? (
             <p className="faible petit-texte volume-sans-conseil">Pas de conseil : {lignes.length ? 'il travaille déjà avec les autres exercices, on le suit simplement.' : 'on le suit simplement.'}</p>
+          ) : (
+            !masque && (
+              <div className="volume-niveau">
+                <div className="petit">Pour ce muscle, tu veux :</div>
+                <div className="chips volume-niveaux">
+                  {NIVEAUX.map((n) => (
+                    <button key={n.id} type="button" className={niveau === n.id ? 'actif' : ''} aria-pressed={niveau === n.id} onClick={() => setC(cibleDuNiveau(muscle, n.id))}>
+                      {n.nom}
+                    </button>
+                  ))}
+                </div>
+                <p className="faible petit-texte volume-sans-conseil">{phraseNiveau(muscle, niveau)}</p>
+              </div>
+            )
           )}
           <LigneAide
             libelle="Comment ça se compte ?"
@@ -168,7 +221,7 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
                 <p>Ne comptent que les séries vraiment dures : 7/10 d’effort ou plus.</p>
                 <p>Un exercice qui aide, comme le triceps sur un développé, compte pour moitié : 3 séries y font 1,5.</p>
                 {avecJours && <p>Seules les séances qui ont un jour dans ton programme comptent.</p>}
-                <p>Barre pleine : le conseil général est atteint. « Beaucoup » veut dire que tu le dépasses nettement.</p>
+                {!masque && <p>Barre pleine : ce que tu as choisi pour ce muscle est atteint. « Beaucoup » veut dire que tu le dépasses.</p>}
                 <p>Pour changer tes séries, modifie les exercices de tes séances.</p>
               </div>
             }

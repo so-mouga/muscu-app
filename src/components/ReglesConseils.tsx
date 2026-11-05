@@ -85,7 +85,7 @@ const REGLES: [string, string[]][] = [
   [
     'Volume et objectifs',
     [
-      'Volume par muscle : Léger (sous la cible), Optimal, Beaucoup. Seules les séries dures comptent (effort de 7 ou plus), les muscles secondaires pour une demi-série. Dans le Bilan, les jauges attendent 2 semaines finies d’entraînement. Tu travailles un muscle moins exprès ? Coupe son conseil : plus de barre ni de remarque pour lui.',
+      'Volume par muscle : Léger (sous la cible), Optimal, Beaucoup. Seules les séries dures comptent (effort de 7 ou plus), les muscles secondaires pour une demi-série. Dans le Bilan, les jauges attendent 2 semaines finies d’entraînement. Pour chaque muscle, tu choisis : Normal (10 à 16 séries pour les gros muscles, 6 à 16 pour les plus petits), Entretien (4 à 8, pour le garder sans chercher à le faire grossir) Priorité (16 à 20, pour un point faible, sur 4 à 8 semaines) ou Sans conseil (tes séries restent, sans barre ni remarque). Pour tous les muscles d’un coup : « Masquer les conseils de volume », en bas de la page Volume.',
       'Poids visé d’une phase : dès que tu le choisis, l’appli donne le rythme par semaine et dit s’il est bon. Un mot si le rythme sort de +0,15 à +0,4 kg par semaine en prise, ou de −0,2 à −1 kg par semaine en sèche. Rien à viser en maintien.',
     ],
   ],

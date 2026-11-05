@@ -7,7 +7,7 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurExoPlan from '../components/EditeurExoPlan'
 import InfosExo from '../components/InfosExo'
 import Vignette from '../components/Vignette'
-import VolumeMuscles from '../components/VolumeMuscles'
+import VolumeMuscles, { MasquerConseilsVolume } from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '../components/Cycle'
 import { suiviCycle } from '../lib/motivation'
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
@@ -431,7 +431,7 @@ function PageProgramme({
           <span>
             Volume par semaine
             <span className="faible prog-sous">
-              {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles atteignent le conseil'}
+              {catalogue.conseilsVolumeMasques ? 'Tes séries, muscle par muscle' : legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles atteignent le conseil'}
             </span>
           </span>
           <ChevronRight size={20} className="muted" />
@@ -568,11 +568,12 @@ function FenetreRenommer({ titre = 'Renommer', nom, indice, videPermis = false, 
   )
 }
 
-/** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour voir ses exercices et couper son conseil. */
+/** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour voir ses exercices et choisir son niveau. */
 function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Programme; onFermer: () => void }) {
   const modeles = semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m)
   const volume = volumePrevu(modeles, catalogue.exercices)
   const perso = catalogue.ciblesPerso
+  const masque = !!catalogue.conseilsVolumeMasques
   return (
     <div>
       <div className="entete">
@@ -580,14 +581,17 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
         <h2 style={{ flex: 1 }}>Volume par semaine</h2>
       </div>
       <div className="faible volume-intro">
-        Séries par semaine dans {p.nom}, face au conseil. Barre pleine : conseil atteint.{' '}
+        {masque ? `Séries par semaine dans ${p.nom}.` : `Séries par semaine dans ${p.nom}, face au conseil. Barre pleine : conseil atteint.`}{' '}
         <Aide
           titre="Volume par semaine"
-          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''} Trop léger : ajoute une série ou un exercice pour ce muscle. Un appui sur un muscle pour voir ses exercices, ou couper son conseil si tu le travailles moins exprès.`}
+          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''}${masque ? ' Un appui sur un muscle pour voir ses exercices.' : ' Pour changer tes séries, modifie les exercices de tes séances. Un appui sur un muscle pour voir ses exercices, et choisir Entretien, Normal ou Priorité.'}`}
         />
       </div>
       <div className="carte">
-        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} />
+        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} masque={masque} />
+      </div>
+      <div className="carte">
+        <MasquerConseilsVolume catalogue={catalogue} />
       </div>
     </div>
   )

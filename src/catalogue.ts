@@ -1,12 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
-import { EXERCICES } from './data/exercices'
+import { EXERCICES, MUSCLES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
 import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
 import { dateISO, lundi } from './lib/calc'
 import { ciblesEnVigueur } from './lib/volume'
-import { avecPriorites, cibles, DUREE_DEFAUT, ecartCycle, etatCycle, finReelle, nouveauCycle, type EcartCycle } from './lib/cycle'
+import { avecPriorites, cibles, DUREE_DEFAUT, sourceCibles, ecartCycle, etatCycle, finReelle, nouveauCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_SANS_OBJECTIF, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
@@ -42,13 +42,19 @@ export interface Catalogue {
   sansObjectif?: boolean
   /** Objectifs de séries dures par semaine, par muscle, en vigueur aujourd'hui (priorités du cycle comprises). */
   cibles: Record<Muscle, number>
-  /** Les mêmes, sans les priorités du cycle : ce que la personne a gardé ou coupé. */
+  /** La personne a masqué les conseils de volume : `cibles` et `ciblesA` sont à 0, `ciblesPerso` garde ses choix. */
+  conseilsVolumeMasques?: boolean
+  /** Les mêmes, sans les priorités du cycle : les niveaux choisis par la personne. */
   ciblesPerso: Record<Muscle, number>
   /** Objectifs de volume en vigueur à une date (bilan d'une période passée). */
   ciblesA: (date: string) => Record<Muscle, number>
   /** Version d'une séance à lancer : celle du cycle si elle en fait partie, sinon la séance de la bibliothèque. */
   pourDemarrer: (m: SeanceModele) => SeanceModele
 }
+
+export const CLE_CONSEILS_VOLUME_MASQUES = 'conseilsVolumeMasques'
+/** Date fixe, pas « aujourd'hui » : une semaine finie plus tard relirait sinon une ancienne cible en chiffre. */
+const DEBUT_NIVEAUX = '2026-11-05'
 
 export function construireCatalogue(
   modelesDb: SeanceModele[],
@@ -85,10 +91,10 @@ export function construireCatalogue(
   const duCycle = new Map((pilote?.modeles ?? []).map((m) => [m.id, m]))
   const actif = pilote ? { ...pilote.programme, id: pilote.programmeId } : (programmes.find((p) => p.id === actifId) ?? programmes[0] ?? { id: '', nom: '', seances: [] })
   const pourPlanning = (id: string) => duCycle.get(id) ?? (pilote ? undefined : modele(id))
-  // Aujourd'hui et après : le conseil général, ou coupé. Le passé garde les cibles de l'époque (la frise n'est jamais réécrite).
+  // Depuis l'arrivée des niveaux : celui de chaque muscle. Avant, les cibles de l'époque (la frise n'est jamais réécrite).
   const perso = (date: string) => {
-    const v = cibles(objectifsA(objectifs, date)?.volume, cycle, actif)
-    return date >= dateISO() ? ciblesEnVigueur(v) : v
+    const v = objectifsA(objectifs, date)?.volume
+    return date >= DEBUT_NIVEAUX ? ciblesEnVigueur(sourceCibles(v, cycle, actif)) : cibles(v, cycle, actif)
   }
 
   return {
@@ -114,6 +120,12 @@ export function construireCatalogue(
   }
 }
 
+/** Conseils de volume masqués : plus aucune cible à lire, partout ; les choix de la personne restent pour le jour où elle les rallume. */
+export const sansConseilsVolume = (c: Catalogue): Catalogue => {
+  const zero = Object.fromEntries(MUSCLES.map((m) => [m.id, 0])) as Record<Muscle, number>
+  return { ...c, conseilsVolumeMasques: true, cibles: zero, ciblesA: () => zero }
+}
+
 /** null pendant le chargement. */
 export function useCatalogue(): Catalogue | null {
   const modeles = useLiveQuery(() => db.modeles.toArray(), [])
@@ -125,11 +137,13 @@ export function useCatalogue(): Catalogue | null {
   const nbSeances = useLiveQuery(() => db.seances.count(), [], null)
   const demarrageVu = useLiveQuery(() => db.reglages.get(CLE_DEMARRAGE).then((r) => !!r), [], null)
   const sansObjectif = useLiveQuery(() => db.reglages.get(CLE_SANS_OBJECTIF).then((r) => !!r?.valeur), [], null)
+  const masques = useLiveQuery(() => db.reglages.get(CLE_CONSEILS_VOLUME_MASQUES).then((r) => !!r?.valeur), [], null)
   return useMemo(() => {
-    if (!modeles || !exercices || !programmes || !cycles || actif === null || objectifs === null || nbSeances === null || demarrageVu === null || sansObjectif === null) return null
+    if (!modeles || !exercices || !programmes || !cycles || actif === null || objectifs === null || nbSeances === null || demarrageVu === null || sansObjectif === null || masques === null) return null
     const sansProgramme = estSansProgramme(programmes.length, cycles.length, nbSeances, demarrageVu, modeles.some((m) => PROGRAMME.some((b) => b.id === m.id)))
-    return { ...construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])), cycles, sansProgramme), sansObjectif }
-  }, [modeles, exercices, programmes, actif, cycles, objectifs, nbSeances, demarrageVu, sansObjectif])
+    const c = { ...construireCatalogue(modeles, exercices, programmes, actif?.valeur as string | undefined, cycles.find((c) => !c.fin), lireFrise(...(objectifs.map((r) => r?.valeur) as [unknown, unknown, unknown])), cycles, sansProgramme), sansObjectif }
+    return masques ? sansConseilsVolume(c) : c
+  }, [modeles, exercices, programmes, actif, cycles, objectifs, nbSeances, demarrageVu, sansObjectif, masques])
 }
 
 /**
