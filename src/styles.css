@@ -5581,9 +5581,106 @@ html[data-sens='fondu']::view-transition-new(root) {
 .fiche-perf {
   font-size: var(--t-titre);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
-.fiche-verdict {
-  margin: var(--e2) 0 var(--e1);
+.fiche-constat {
+  font-size: var(--t-titre);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.fiche-constat.faible {
+  font-size: var(--t-titre);
+}
+.fiche-bandeau {
+  display: block;
+  width: 100%;
+  margin-bottom: var(--e2);
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--rayon);
+  background: none;
+}
+.fiche-bandeau img {
+  display: block;
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+.fiche-case {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+}
+.fiche-case-photo {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-uni);
+  color: var(--texte);
+}
+.fiche-duo {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--e2);
+  margin-bottom: var(--e2);
+}
+.fiche-duo .liste-btn {
+  margin: 0;
+  min-height: var(--cible);
+  padding: var(--e2) var(--e2) var(--e2) var(--e3);
+  white-space: nowrap;
+}
+.fiche-duo.seul {
+  grid-template-columns: 1fr;
+}
+.fiche-seances {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  font-size: var(--t-petit);
+  font-variant-numeric: tabular-nums;
+}
+.fiche-seances > * {
+  padding: var(--e2) var(--e2) var(--e2) 0;
+  border-top: 1px solid var(--bord);
+}
+.fiche-seances > :nth-child(-n + 3) {
+  border-top: none;
+}
+.fiche-seances .fiche-marque {
+  padding-right: 0;
+  text-align: right;
+  font-weight: 600;
+}
+.fiche-seances .fiche-note {
+  grid-column: 1 / -1;
+  padding-top: 0;
+  border-top: none;
+}
+.fiche-allegee {
+  color: var(--finisseur);
+}
+.photo-exo-cadre {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+}
+.photo-exo-actions {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--e2);
+  padding: 0 var(--e1);
 }
 .alerte-texte {
   color: var(--alerte);

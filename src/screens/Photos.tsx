@@ -761,7 +761,7 @@ export function PlanchePhotos({ photos, dates: depart, pose: poseDepart, compare
 }
 
 /** Photo qu'on zoome à deux doigts (ou à la molette) et qu'on déplace au doigt, chacune de son côté. Deux appuis rapides : on revient. */
-function PhotoZoomable({ image, date }: { image?: string; date: string }) {
+export function PhotoZoomable({ image, date }: { image?: string; /** Absente : pas d'étiquette (photo d'un exercice). */ date?: string }) {
   const cadre = useRef<HTMLDivElement>(null)
   const [vue, setVue] = useState({ echelle: 1, x: 0, y: 0 })
   const doigts = useRef(new Map<number, { x: number; y: number }>())
@@ -802,7 +802,7 @@ function PhotoZoomable({ image, date }: { image?: string; date: string }) {
     return (
       <figure className="photo-zoom">
         <div className="vide faible">Pas de photo</div>
-        <figcaption className="etiquette">{dateCourte(date)}</figcaption>
+        {date && <figcaption className="etiquette">{dateCourte(date)}</figcaption>}
       </figure>
     )
 
@@ -854,10 +854,12 @@ function PhotoZoomable({ image, date }: { image?: string; date: string }) {
       }}
     >
       <img src={image} alt="" draggable={false} style={{ transform: `translate(${vue.x}px, ${vue.y}px) scale(${vue.echelle})` }} />
-      <figcaption className="etiquette">
-        {dateCourte(date)}
-        {vue.echelle > 1.05 ? ` · ×${Math.round(vue.echelle * 10) / 10}` : ''}
-      </figcaption>
+      {date && (
+        <figcaption className="etiquette">
+          {dateCourte(date)}
+          {vue.echelle > 1.05 ? ` · ×${Math.round(vue.echelle * 10) / 10}` : ''}
+        </figcaption>
+      )}
     </figure>
   )
 }

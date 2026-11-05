@@ -1,4 +1,4 @@
-import type { Exercice, JourJournal, Pesee, Seance } from '../types'
+import type { Exercice, JourJournal, Pesee, Seance, Serie } from '../types'
 import { enTemps, heuresMinutes, kg } from './calc'
 import { scoreSerie, seanceSemaineAllegee, semaineDe } from './historique'
 import { phaseA, type EtapeObjectifs, type Phase } from './objectifs'
@@ -37,7 +37,38 @@ export interface Blocage {
 /** Semaines d'entraînement sans progrès avant de parler de blocage. */
 export const SEMAINES_BLOCAGE = 6
 /** 3 semaines sans s'entraîner : on repart de zéro, la référence d'avant l'arrêt ne vaut plus. */
-const JOURS_ARRET = 21
+export const JOURS_ARRET = 21
+
+/**
+ * Compare chaque séance aux précédentes : progrès = charge plus dure, ou rep de plus à une charge déjà faite, rang par rang.
+ * Une seule mesure pour les blocages et le constat de la fiche ; `repartir` oublie la référence (après un arrêt ou une sèche).
+ */
+export function suiviProgres(exo: Exercice) {
+  const durete = (c: number) => (exo.assistance ? -c : c)
+  let plusDur = -Infinity
+  let meilleures = new Map<number, number[]>()
+  return {
+    plusDur: () => plusDur,
+    repartir: () => {
+      plusDur = -Infinity
+      meilleures = new Map()
+    },
+    progres: (series: Serie[]) => {
+      const parCharge = new Map<number, number[]>()
+      for (const x of series) parCharge.set(x.charge, [...(parCharge.get(x.charge) ?? []), x.reps])
+      let progres = false
+      for (const [charge, reps] of parCharge) {
+        reps.sort((a, b) => b - a)
+        const avant = meilleures.get(charge) ?? []
+        if (plusDur !== -Infinity && durete(charge) > plusDur) progres = true
+        if (avant.length && reps.some((r, i) => r > (avant[i] ?? 0))) progres = true
+        meilleures.set(charge, Array.from({ length: Math.max(reps.length, avant.length) }, (_, i) => Math.max(reps[i] ?? 0, avant[i] ?? 0)))
+      }
+      plusDur = Math.max(plusDur, ...[...parCharge.keys()].map(durete))
+      return progres
+    },
+  }
+}
 
 /**
  * Exercice bloqué : ni charge plus dure, ni reps en plus à une charge déjà faite, sur 6 semaines d'entraînement et au
@@ -50,8 +81,7 @@ export function blocage(exo: Exercice, seances: Seance[], jusqua: string, object
   const seriesDe = (s: Seance) => s.series.filter((x) => x.exoId === exo.id && x.type === 'normale' && x.reps > 0)
   const durete = (c: number) => (exo.assistance ? -c : c)
   const liste = seances.filter((s) => !s.enCours && !s.deload && s.date <= jusqua && seriesDe(s).length).sort((a, b) => a.debut - b.debut)
-  let plusDur = -Infinity
-  let meilleures = new Map<number, number[]>()
+  const suivi = suiviProgres(exo)
   let semaines = new Set<string>()
   let nb = 0
   let depuis = ''
@@ -63,24 +93,12 @@ export function blocage(exo: Exercice, seances: Seance[], jusqua: string, object
     precedente = s.date
     if (enSeche) continue
     if (repartir) {
-      plusDur = -Infinity
-      meilleures = new Map()
+      suivi.repartir()
       semaines = new Set()
       nb = 0
       depuis = s.date
     }
-    const parCharge = new Map<number, number[]>()
-    for (const x of seriesDe(s)) parCharge.set(x.charge, [...(parCharge.get(x.charge) ?? []), x.reps])
-    let progres = false
-    for (const [charge, reps] of parCharge) {
-      reps.sort((a, b) => b - a)
-      const avant = meilleures.get(charge) ?? []
-      if (plusDur !== -Infinity && durete(charge) > plusDur) progres = true
-      if (avant.length && reps.some((r, i) => r > (avant[i] ?? 0))) progres = true
-      meilleures.set(charge, Array.from({ length: Math.max(reps.length, avant.length) }, (_, i) => Math.max(reps[i] ?? 0, avant[i] ?? 0)))
-    }
-    plusDur = Math.max(plusDur, ...[...parCharge.keys()].map(durete))
-    if (progres) {
+    if (suivi.progres(seriesDe(s))) {
       depuis = s.date
       semaines = new Set()
       nb = 0
@@ -93,7 +111,7 @@ export function blocage(exo: Exercice, seances: Seance[], jusqua: string, object
   // Dernières séances en sèche : le compte d'avant la sèche ne vaut plus.
   if (repartir) return null
   // À la charge maximale du matériel, ce n'est pas un blocage : l'appli conseille déjà de ralentir la descente.
-  if (exo.chargeMax !== undefined && plusDur >= durete(exo.chargeMax)) return null
+  if (exo.chargeMax !== undefined && suivi.plusDur() >= durete(exo.chargeMax)) return null
   return semaines.size >= SEMAINES_BLOCAGE && nb >= 3 && jours(precedente, jusqua) <= 14 ? { semaines: semaines.size, seances: nb, depuis } : null
 }
 

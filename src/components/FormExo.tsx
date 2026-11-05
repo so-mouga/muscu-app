@@ -279,6 +279,8 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
             <span>Note</span>
             <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="ex. siège cran 4, dossier 2" />
           </label>
+          {/* Exercice de base : la photo se change sur sa fiche, ici elle ferait un 2e chemin. */}
+          {(!initial || initial.perso) && (
           <div className="champ">
             <span>Photo</span>
             {image && <img src={image} alt="" className="form-photo" />}
@@ -294,6 +296,7 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
               )}
             </div>
           </div>
+          )}
         </div>
       </details>
     </>

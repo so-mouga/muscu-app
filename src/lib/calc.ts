@@ -94,6 +94,27 @@ export function serieTexte(exo: Exercice, s: Serie, long = false, avecEffort = t
   return t
 }
 
+/** Les séries d'une séance en clair : « 65 kg × 10, 9, 8 », « 65 kg × 10, 9 · 60 kg × 8 » si la charge change. Drops et demi-reps gardent leur détail. */
+export function seriesEnClair(exo: Exercice, series: Serie[]): string {
+  const parties: string[] = []
+  let groupe: Serie[] = []
+  const vider = () => {
+    if (groupe.length) parties.push(chargeQte(exo, groupe[0].charge, groupe.map((x) => x.reps).join(', '), true))
+    groupe = []
+  }
+  for (const x of series) {
+    if (x.demiReps || x.suite?.length) {
+      vider()
+      parties.push(serieTexte(exo, x, true))
+    } else {
+      if (groupe.length && groupe[0].charge !== x.charge) vider()
+      groupe.push(x)
+    }
+  }
+  vider()
+  return parties.join(' · ')
+}
+
 /** Epley corrigé par le RPE. Les demi-reps ne comptent jamais. */
 export function e1rm(exo: Exercice, s: Serie, poidsCorps?: number): number | null {
   if (!exo.suivreE1rm || enTemps(exo) || s.reps <= 0) return null

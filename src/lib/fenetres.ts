@@ -25,7 +25,8 @@ function jouerSortie(couche: Element) {
   // Ni la valeur tapée ni le défilement ne sont copiés par cloneNode.
   avant.forEach((el, i) => {
     if (el instanceof HTMLInputElement) {
-      ;(apres[i] as HTMLInputElement).value = el.value
+      // Un champ de fichier refuse qu'on écrive sa valeur : l'écrire plantait quand une fenêtre se fermait après le choix d'une photo.
+      if (el.type !== 'file') (apres[i] as HTMLInputElement).value = el.value
       ;(apres[i] as HTMLInputElement).checked = el.checked
     } else if (el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
       ;(apres[i] as HTMLSelectElement).value = el.value

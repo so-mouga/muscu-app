@@ -16,7 +16,8 @@ import { delies, lireEquivalents, modifierEquivalents, relies } from '../lib/equ
 import { meilleureSerie } from '../lib/historique'
 import { transition, useRetour } from '../lib/nav'
 import type { Exercice, Seance } from '../types'
-import { Detail, lectureExo } from './Progression'
+import { lectureExo } from '../lib/constat'
+import { Detail } from './Progression'
 import { confirmer } from '../components/Dialogues'
 
 type Filtre = 'tous' | Zone

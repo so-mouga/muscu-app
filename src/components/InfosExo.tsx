@@ -83,7 +83,7 @@ export function NomInfos({ nom, onClick }: { nom: string; onClick?: () => void }
  * Fiche d'exécution par-dessus l'écran (séance, ajout d'exercices) : on la ferme et on reprend où on était.
  * Rendue dans <body> : ouverte depuis une carte d'exercice, elle doit couvrir aussi l'en-tête de la séance.
  */
-export default function InfosExo({ exo, onFermer, action }: { exo: Exercice; onFermer: () => void; /** Liste d'ajout : décider sur place, après avoir lu la fiche. */ action?: { texte: string; faire: () => void } }) {
+export default function InfosExo({ exo, onFermer, action, consignesSeules }: { exo: Exercice; onFermer: () => void; /** Depuis la fiche, qui montre déjà la photo et ses réglages. */ consignesSeules?: boolean; /** Liste d'ajout : décider sur place, après avoir lu la fiche. */ action?: { texte: string; faire: () => void } }) {
   const [reglages, setReglages] = useState(false)
   useRetour(true, onFermer)
   useRetour(reglages, () => setReglages(false))
@@ -124,14 +124,16 @@ export default function InfosExo({ exo, onFermer, action }: { exo: Exercice; onF
                 <X size={22} />
               </button>
             </div>
-            {exo.image && <img src={exo.image} alt={exo.nom} className="photo-grande" />}
+            {exo.image && !consignesSeules && <img src={exo.image} alt={exo.nom} className="photo-grande" />}
             <Consignes exo={exo} />
             {exo.notes && <div className="faible"><StickyNote size={14} className="ico-texte" /> {exo.notes}</div>}
             {!avecConsignes && !exo.notes && <div className="faible">Pas encore de consignes pour cet exercice.</div>}
-            <button className="fiche-reglages" onClick={() => setReglages(true)}>
-              <span>{resume}</span>
-              <ChevronRight size={20} />
-            </button>
+            {!consignesSeules && (
+              <button className="fiche-reglages" onClick={() => setReglages(true)}>
+                <span>{resume}</span>
+                <ChevronRight size={20} />
+              </button>
+            )}
             {action && (
               <button className="btn primaire plein" onClick={action.faire}>
                 {action.texte}

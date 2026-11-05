@@ -57,6 +57,14 @@ const REGLES: [string, string[]][] = [
     ],
   ],
   [
+    'Le constat d’un exercice',
+    [
+      'Ça monte : un progrès dans les 4 dernières semaines (charge plus dure, ou rep de plus à une charge déjà faite). Le gain affiché est compté sur 8 semaines, en vrais kilos ou en reps.',
+      'Stable : plus de progrès depuis au moins 4 semaines, ou aucun depuis le début. Un peu en dessous : tes séries récentes sont nettement moins bonnes que celles du début de ces 8 semaines.',
+      'Pas de jugement avant 3 séances (« Première fois », « Trop tôt pour dire »), ni après 4 semaines sans l’exercice (« Pas fait depuis… »). Les séances allégées ne comptent pas.',
+    ],
+  ],
+  [
     'Exercice bloqué',
     [
       'Bloqué : ni charge plus lourde, ni rep de plus à une charge déjà faite, sur 6 semaines d’entraînement et au moins 3 séances, avec l’exercice fait dans les 14 derniers jours. Monter la charge ou ajouter une rep sur une seule série, c’est un progrès. L’effort noté ne compte pas ici.',

@@ -17,6 +17,18 @@ const nombre = (t: string) => {
 }
 const texte = (v?: number) => (v === undefined ? '' : kg(v))
 
+/** Réduit et enregistre la photo choisie ; dit clairement si le fichier n'est pas lisible. */
+export async function changerPhoto(exoId: string, f: File): Promise<string | null> {
+  try {
+    const i = await photoReduite(f)
+    await modifierExercice(exoId, { image: i })
+    return i
+  } catch {
+    void informer('Choisis une photo au format JPEG ou PNG.', 'Impossible de lire cette image')
+    return null
+  }
+}
+
 /**
  * Ce qu'on ne découvre que devant la machine : palier, charge maximale, note et photo. Enregistré au
  * fil de l'eau. Le reste de l'exercice (nom, muscle, mode) se modifie depuis la fiche, dans Progrès.
@@ -61,15 +73,9 @@ export function ContenuReglages({ exo }: { exo: Exercice }) {
   const choisirPhoto = async (f?: File) => {
     if (!f) return
     setChargement(true)
-    try {
-      const i = await photoReduite(f)
-      setImage(i)
-      await modifierExercice(exo.id, { image: i })
-    } catch {
-      void informer('Choisis une photo au format JPEG ou PNG.', 'Impossible de lire cette image')
-    } finally {
-      setChargement(false)
-    }
+    const i = await changerPhoto(exo.id, f)
+    if (i) setImage(i)
+    setChargement(false)
   }
   const retirerPhoto = () => {
     setImage(undefined)
