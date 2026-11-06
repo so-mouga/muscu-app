@@ -21,7 +21,7 @@ const s = (n: number, repsMin: number, repsMax: number, rpe = 8): SeriePlan[] =>
 const exo = (exoId: string, repos: number, series: SeriePlan[]): ExoPlan => ({ exoId, repos, series, charge: null, chauffes: [], finisseur: false })
 const seance = (id: string, nom: string, sousTitre: string, jour: number, exercices: ExoPlan[]): SeanceModele => ({ id, nom, sousTitre, jour, exercices })
 
-const FB_A = seance('fb_a', 'Full body A', 'presse, développé couché', 1, [
+const FB_A = seance('fb_a', 'Full body A', '', 1, [
   exo('presse', 150, s(3, 10, 12, 7)),
   exo('dev_couche_halteres', 150, s(3, 8, 12, 7)),
   exo('tirage_large', 150, s(3, 10, 12, 7)),
@@ -29,7 +29,7 @@ const FB_A = seance('fb_a', 'Full body A', 'presse, développé couché', 1, [
   exo('curl_jambe_assis', 90, s(3, 10, 15)),
   exo('extension_corde', 90, s(2, 10, 15)),
 ])
-const FB_B = seance('fb_b', 'Full body B', 'soulevé de terre roumain, incliné', 3, [
+const FB_B = seance('fb_b', 'Full body B', '', 3, [
   exo('rdl_halteres', 150, s(3, 8, 12, 7)),
   exo('incline_machine', 150, s(3, 8, 12, 7)),
   exo('rowing_machine', 150, s(3, 10, 12, 7)),
@@ -37,7 +37,7 @@ const FB_B = seance('fb_b', 'Full body B', 'soulevé de terre roumain, incliné'
   exo('elevation_poulie', 90, s(3, 12, 15)),
   exo('curl_halteres', 90, s(3, 10, 12)),
 ])
-const FB_C = seance('fb_c', 'Full body C', 'goblet squat, rowing', 5, [
+const FB_C = seance('fb_c', 'Full body C', '', 5, [
   exo('goblet_squat', 150, s(3, 10, 12, 7)),
   exo('dev_couche_machine', 150, s(4, 8, 12, 7)),
   exo('tirage_horizontal', 150, s(4, 10, 12, 7)),
@@ -75,7 +75,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
     pour: 'Avec un peu d’expérience · 4 séances par semaine',
     description: 'Deux séances haut du corps, deux bas du corps, avec les grands mouvements à la barre.',
     seances: [
-      seance('hb_haut1', 'Haut 1', 'développé couché, tirage', 1, [
+      seance('hb_haut1', 'Haut 1', '', 1, [
         exo('dev_couche_barre', 180, s(3, 6, 10, 7)),
         exo('tirage_large', 150, s(3, 8, 12)),
         exo('dev_epaules_halteres', 150, s(3, 8, 12)),
@@ -84,7 +84,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
         exo('extension_corde', 90, s(2, 10, 15)),
         exo('curl_halteres', 90, s(2, 10, 12)),
       ]),
-      seance('hb_bas1', 'Bas 1', 'squat, soulevé de terre roumain', 2, [
+      seance('hb_bas1', 'Bas 1', '', 2, [
         exo('squat_barre', 180, s(3, 6, 10, 7)),
         exo('rdl', 180, s(3, 8, 10, 7)),
         exo('extension_jambes', 90, s(3, 10, 15)),
@@ -92,7 +92,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
         exo('mollets_machine', 90, s(3, 10, 15)),
         exo('crunch_poulie', 90, s(3, 10, 15)),
       ]),
-      seance('hb_haut2', 'Haut 2', 'incliné, rowing', 4, [
+      seance('hb_haut2', 'Haut 2', '', 4, [
         exo('dev_incline_halteres', 150, s(4, 8, 12)),
         exo('tirage_horizontal', 150, s(3, 8, 12)),
         exo('ecarte_poulie', 90, s(3, 12, 15)),
@@ -101,7 +101,7 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
         exo('triceps_tete', 90, s(2, 10, 15)),
         exo('curl_marteau_halteres', 90, s(2, 10, 12)),
       ]),
-      seance('hb_bas2', 'Bas 2', 'presse, hip thrust', 5, [
+      seance('hb_bas2', 'Bas 2', '', 5, [
         exo('presse', 150, s(3, 10, 12)),
         exo('hip_thrust_barre', 150, s(3, 8, 12)),
         exo('fentes_halteres', 120, s(2, 10, 12)),

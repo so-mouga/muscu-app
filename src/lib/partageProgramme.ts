@@ -4,6 +4,7 @@ import type { Cycle, Exercice, ExoPlan, Muscle, Programme, Seance, SeanceModele 
 import { chrono, dateCourte, dureeEstimee, kg, reposTexte, schemaPlan, semaineType, seriesEnClair, texteChauffe, volumePrevu } from './calc'
 import { etatCycle } from './cycle'
 import { historiqueDe } from './historique'
+import { sousTitrePerso } from './programme'
 import { nomPhase, phaseA, type EtapeObjectifs } from './objectifs'
 import { etatVolume } from './volume'
 
@@ -69,7 +70,7 @@ export function texteProgramme(p: Programme, d: DonneesProgramme, avecCharges: b
     }
     deja.set(m!.id, e.jour ?? 0)
     const duree = dureeEstimee(m!)
-    const precisions = [m!.sousTitre, duree ? `environ ${duree} min` : ''].filter(Boolean)
+    const precisions = [sousTitrePerso(m!), duree ? `environ ${duree} min` : ''].filter(Boolean)
     l.push(`${jour} · ${m!.nom}${precisions.length ? ` (${precisions.join(', ')})` : ''}`)
     const general = echauffementDe(m!)
       .map((id) => mouvement(id, d.mouvements ?? MOUVEMENTS))

@@ -8,6 +8,7 @@ import InfosExo, { aDesInfos, NomInfos } from '../components/InfosExo'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
 import { cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles, texteChauffe } from '../lib/calc'
+import { sousTitrePerso } from '../lib/programme'
 import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
 import { hausse, suggestionPour } from '../lib/progression'
@@ -70,7 +71,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
         <BoutonRetour onClick={onFermer} />
         <div className="apercu-titre">
           <h2>{modele.nom}</h2>
-          {modele.sousTitre && <div className="faible">{modele.sousTitre}</div>}
+          {sousTitrePerso(modele) && <div className="faible">{sousTitrePerso(modele)}</div>}
         </div>
       </div>
 

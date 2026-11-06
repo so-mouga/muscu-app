@@ -6381,3 +6381,15 @@ button.semaine-cycle.courante {
   font-size: var(--t-petit);
   text-align: left;
 }
+/* Ligne des premiers exercices d'une séance : une seule ligne, coupée si elle est trop longue. */
+.prog-ligne > span {
+  min-width: 0;
+}
+.prog-ligne > svg {
+  flex-shrink: 0;
+}
+.prog-sous.une-ligne {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

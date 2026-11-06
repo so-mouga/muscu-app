@@ -4,6 +4,7 @@ import { Check, ChevronRight, Clock, CloudUpload, Download, Flame, Info, Moon, R
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
+import { sousTitrePerso, sousTitreSeance } from '../lib/programme'
 import { creneauxFaits, creneauxRates } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { derniereSemainePhase, nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
@@ -61,7 +62,7 @@ async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycl
       date: dateISO(),
       modeleId: modele?.id,
       nom: modele?.nom ?? 'Séance libre',
-      sousTitre: modele?.sousTitre ?? 'exercices au choix',
+      sousTitre: modele ? sousTitrePerso(modele) : 'exercices au choix',
       // Déload : plan allégé (moitié des séries, RPE 6-7, sans finisseur).
       exercices: structuredClone(modele?.exercices ?? []).map((p) => (deload ? planDeload(p) : p)),
       debut: Date.now(),
@@ -761,7 +762,7 @@ export default function Accueil({
                                 <span className="choix-seance-jour">{duJour ? 'auj.' : joursAffiches.map((j) => JOURS_COURTS[j]).join(' ')}</span>
                                 <span className="choix-seance-corps">
                                   <span className="choix-seance-nom">{m.nom}</span>
-                                  {m.sousTitre && <span className="faible choix-seance-sous">{m.sousTitre}</span>}
+                                  {sousTitreSeance(m, (id) => catalogue.exo(id).nom) && <span className="faible choix-seance-sous">{sousTitreSeance(m, (id) => catalogue.exo(id).nom)}</span>}
                                   <span className="faible choix-seance-sous">{dureeDe(m)}</span>
                                 </span>
                                 {etat.rate ? (

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EXERCICES } from '../data/exercices'
 import type { Programme, SeanceModele, Serie } from '../types'
 import { conseil } from './progression'
-import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, enFourchette } from './programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, enFourchette, sousTitrePerso, sousTitreSeance } from './programme'
 
 const seance = (id: string): SeanceModele => ({ id, nom: `Séance ${id}`, sousTitre: '', exercices: [{ exoId: 'presse', repos: 120, chauffes: [], finisseur: false, charge: 50, series: [{ repsMin: 8, repsMax: 12, rpe: 8 }] }] })
 const programme: Programme = { id: 'p1', nom: 'Mon programme ', seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 3 }, { modeleId: 'a', jour: 5 }] }
@@ -132,5 +132,19 @@ describe('passage en fourchette', () => {
     const r = enFourchette({ exercices: [plan([{ repsMin: 30, repsMax: 30 }], 't'), plan([{ repsMin: 2, repsMax: 2 }])] }, (id) => id === 't')
     expect(r.exercices[0].series[0].repsMin).toBe(30)
     expect(r.exercices[1].series[0]).toMatchObject({ repsMin: 1, repsMax: 4 })
+  })
+})
+
+describe('ligne sous le nom d’une séance', () => {
+  const nom = (id: string) => ({ presse: 'Presse RENOMMEE', dev: 'Développé couché haltères', fin: 'Crunch' })[id] ?? id
+  const ex = (exoId: string, finisseur = false) => ({ exoId, repos: 90, series: [], charge: null, chauffes: [], finisseur })
+  const m = { sousTitre: 'presse, développé couché', exercices: [ex('presse'), ex('dev'), ex('fin', true)] }
+  it('un ancien sous-titre automatique laisse la place aux noms actuels des deux premiers exercices', () => {
+    expect(sousTitreSeance(m, nom)).toBe('Presse RENOMMEE, développé couché haltères')
+    expect(sousTitrePerso(m)).toBe('')
+  })
+  it('un sous-titre écrit par la personne reste, une séance vide n’a pas de ligne', () => {
+    expect(sousTitreSeance({ ...m, sousTitre: 'pecs prioritaire' }, nom)).toBe('pecs prioritaire')
+    expect(sousTitreSeance({ sousTitre: '', exercices: [] }, nom)).toBe('')
   })
 })

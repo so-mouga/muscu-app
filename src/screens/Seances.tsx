@@ -23,7 +23,7 @@ import type { Exercice, ExoPlan, Programme, Seance, SeanceModele } from '../type
 import { ReglageEchauffement } from '../components/Echauffement'
 import { deplacer, useGlisser } from '../lib/glisser'
 import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
-import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, reposParDefaut } from '../lib/programme'
+import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, reposParDefaut, sousTitrePerso, sousTitreSeance } from '../lib/programme'
 import Deplie from '../components/Deplie'
 import PartageProgramme from '../components/PartageProgramme'
 
@@ -416,7 +416,7 @@ function PageProgramme({
           <button type="button" className="prog-ligne" onClick={() => onSeance(m!, { programmeId: p.id, index: i })}>
             <span>
               {m!.nom}
-              {m!.sousTitre && <span className="faible prog-sous">{m!.sousTitre}</span>}
+              {sousTitreSeance(m!, (id) => catalogue.exo(id).nom) && <span className="faible prog-sous une-ligne">{sousTitreSeance(m!, (id) => catalogue.exo(id).nom)}</span>}
               <span className="faible prog-sous">{[`${m!.exercices.length} exercice${m!.exercices.length > 1 ? 's' : ''}`, dureeTexte(m!, terminees)].filter(Boolean).join(' · ')}</span>
             </span>
             <ChevronRight size={20} className="muted" />
@@ -752,7 +752,7 @@ function PageAutresSeances({ catalogue, terminees, onFermer, onOuvrir }: { catal
               <span>
                 {m.nom}
                 <span className="faible prog-sous">
-                  {[m.sousTitre, `${m.exercices.length} exercice${m.exercices.length > 1 ? 's' : ''}`, dureeTexte(m, terminees), m.varianteDe ? `variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : '', progs.length ? progs.join(', ') : 'dans aucun programme'].filter(Boolean).join(' · ')}
+                  {[sousTitrePerso(m), `${m.exercices.length} exercice${m.exercices.length > 1 ? 's' : ''}`, dureeTexte(m, terminees), m.varianteDe ? `variante de ${catalogue.modele(m.varianteDe)?.nom ?? '?'}` : '', progs.length ? progs.join(', ') : 'dans aucun programme'].filter(Boolean).join(' · ')}
                 </span>
               </span>
               <ChevronRight size={20} className="muted" />
@@ -903,8 +903,8 @@ function Editeur({
                 {jour ? JOURS[jour] : 'sans jour'}
               </button>
             )}
-            {programme && m.sousTitre ? ' · ' : ''}
-            {m.sousTitre}
+            {programme && sousTitrePerso(m) ? ' · ' : ''}
+            {sousTitrePerso(m)}
           </div>
         </div>
         <button className="icone" onClick={() => setPlus(true)} aria-label="Plus d’actions">
@@ -1008,7 +1008,7 @@ function Editeur({
               <span>Renommer</span>
             </button>
             <button className="liste-btn" onClick={() => (setPlus(false), setFenetre('sousTitre'))}>
-              <span>{m.sousTitre ? 'Modifier le sous-titre' : 'Ajouter un sous-titre'}</span>
+              <span>{sousTitrePerso(m) ? 'Modifier le sous-titre' : 'Ajouter un sous-titre'}</span>
             </button>
             <button className="liste-btn" onClick={() => (setPlus(false), setFenetre('planB'))}>
               <span>
@@ -1037,7 +1037,7 @@ function Editeur({
         </div>
       )}
       {fenetre === 'nom' && <FenetreRenommer nom={m.nom} onFin={(nom) => (setFenetre(null), maj((x) => (x.nom = nom)))} />}
-      {fenetre === 'sousTitre' && <FenetreRenommer titre="Sous-titre" nom={m.sousTitre} videPermis indice="ex. épaules + bras" onFin={(nom) => (setFenetre(null), maj((x) => (x.sousTitre = nom)))} />}
+      {fenetre === 'sousTitre' && <FenetreRenommer titre="Sous-titre" nom={sousTitrePerso(m)} videPermis indice="ex. épaules + bras" onFin={(nom) => (setFenetre(null), maj((x) => (x.sousTitre = nom)))} />}
       {fenetre === 'planB' && (
         <div className="modal-fond" onClick={() => setFenetre(null)}>
           <div className="modal pile" onClick={(e) => e.stopPropagation()}>

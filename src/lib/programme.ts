@@ -66,3 +66,17 @@ export function programmesAbandonnes(programmes: Programme[], actifId: string, o
 export function joursPris(seances: { modeleId: string; jour?: number }[], existe: (id: string) => boolean, exclu?: number): number[] {
   return seances.flatMap((e, i) => (e.jour && i !== exclu && existe(e.modeleId) ? [e.jour] : []))
 }
+
+/** Sous-titres que les programmes tout prêts écrivaient sur leurs séances : la liste de leurs premiers exercices, figée, qui ne suivait ni un renommage ni un remplacement. */
+const ANCIENS_SOUS_TITRES = ['presse, développé couché', 'soulevé de terre roumain, incliné', 'goblet squat, rowing', 'développé couché, tirage', 'squat, soulevé de terre roumain', 'incliné, rowing', 'presse, hip thrust']
+
+/** Le sous-titre écrit par la personne, sans les anciens sous-titres automatiques. */
+export const sousTitrePerso = (m: Pick<SeanceModele, 'sousTitre'>): string => (ANCIENS_SOUS_TITRES.includes(m.sousTitre) ? '' : m.sousTitre)
+
+/** Ligne sous le nom d'une séance : son sous-titre, sinon ses deux premiers exercices sous leur nom actuel. */
+export function sousTitreSeance(m: Pick<SeanceModele, 'sousTitre' | 'exercices'>, nomExo: (id: string) => string): string {
+  const perso = sousTitrePerso(m)
+  if (perso) return perso
+  const premiers = m.exercices.filter((x) => !x.finisseur).slice(0, 2)
+  return premiers.map((x) => nomExo(x.exoId)).map((n, i) => (i ? n.charAt(0).toLowerCase() + n.slice(1) : n)).join(', ')
+}
