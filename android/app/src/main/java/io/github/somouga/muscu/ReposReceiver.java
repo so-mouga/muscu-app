@@ -16,7 +16,9 @@ public class ReposReceiver extends BroadcastReceiver {
         else if (MinuteurRepos.PASSER.equals(action)) MinuteurRepos.passer(c);
         else if (MinuteurRepos.ENCORE.equals(action)) MinuteurRepos.encore(c);
         else if (MinuteurRepos.FIN.equals(action)) {
-            MinuteurRepos.sonner(c);
+            // Le son de fin dure près de 2 s : Android garde l'appli éveillée jusqu'à ce qu'il soit joué.
+            final PendingResult pr = goAsync();
+            MinuteurRepos.sonner(c, pr::finish);
             return;
         } else if (MinuteurRepos.DECOMPTE.equals(action)) {
             final PendingResult pr = goAsync();

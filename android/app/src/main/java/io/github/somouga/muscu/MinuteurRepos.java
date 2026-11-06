@@ -7,10 +7,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.media.AudioAttributes;
-import android.media.AudioManager;
-import android.media.RingtoneManager;
-import android.media.ToneGenerator;
 import android.os.Build;
 import android.os.PowerManager;
 import android.os.VibrationEffect;
@@ -30,7 +26,9 @@ public final class MinuteurRepos {
 
     /** Canal visible sur l'écran verrouillé (Samsung y cache les canaux « silencieux ») mais sans son. */
     static final String CANAL_SEANCE = "seance";
-    static final String CANAL_FIN = "fin-repos";
+    /** Le son de fin est joué par `SonsRepos` (un canal ne change plus de son une fois créé : nouvel identifiant). */
+    static final String CANAL_FIN = "fin-repos-2";
+    private static final String CANAL_FIN_AVANT = "fin-repos";
     private static final String ANCIEN_CANAL = "repos";
     static final int ID_SEANCE = 1;
     static final int ID_FIN = 2;
@@ -59,6 +57,7 @@ public final class MinuteurRepos {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationManager nm = c.getSystemService(NotificationManager.class);
         nm.deleteNotificationChannel(ANCIEN_CANAL);
+        nm.deleteNotificationChannel(CANAL_FIN_AVANT);
         NotificationChannel seance = new NotificationChannel(CANAL_SEANCE, "Séance en cours", NotificationManager.IMPORTANCE_DEFAULT);
         seance.setDescription("Le chrono de la séance et le décompte du repos");
         seance.setSound(null, null);
@@ -67,13 +66,10 @@ public final class MinuteurRepos {
         seance.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(seance);
         NotificationChannel fin = new NotificationChannel(CANAL_FIN, "Fin du repos", NotificationManager.IMPORTANCE_HIGH);
-        fin.setDescription("Sonne et vibre quand le repos est fini");
+        fin.setDescription("Vibre quand le repos est fini (le son suit le volume de la musique)");
         fin.enableVibration(true);
         fin.setVibrationPattern(VIBRATION);
-        fin.setSound(
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-            new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()
-        );
+        fin.setSound(null, null);
         fin.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
         nm.createNotificationChannel(fin);
     }
@@ -262,9 +258,10 @@ public final class MinuteurRepos {
     }
 
     /** L'alarme : quand le repos est fini, « C'est l'heure » sonne (appli en arrière-plan) et remplace la notification de séance. */
-    static void sonner(Context c) {
+    static void sonner(Context c, Runnable fini) {
         if (auPremierPlan) {
             versSeance(c);
+            if (fini != null) fini.run();
             return;
         }
         SharedPreferences p = prefs(c);
@@ -281,7 +278,6 @@ public final class MinuteurRepos {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVibrate(VIBRATION)
-            .setDefaults(NotificationCompat.DEFAULT_SOUND)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setTimeoutAfter(60000)
@@ -292,6 +288,7 @@ public final class MinuteurRepos {
         } catch (SecurityException e) {
             // Notifications refusées.
         }
+        SonsRepos.jouerFin(c, fini);
     }
 
     /** Décompte sonore et vibration des dernières secondes du repos en arrière-plan. */
@@ -315,13 +312,13 @@ public final class MinuteurRepos {
             } catch (Exception ignored) {}
         }
 
-        ToneGenerator tg = null;
+        // Le tintement de l'appli, au volume de la musique : l'ancien bip de notification ne s'entendait pas sous la musique.
+        SonsRepos.Tics tics = null;
         try {
-            AudioManager am = (AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
-            if (am != null && am.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
-                tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85);
-            }
+            tics = new SonsRepos.Tics(c);
+            SonsRepos.baisserMusique(c);
         } catch (Exception ignored) {}
+        boolean auBout = false;
 
         Vibrator vib = (Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE);
 
@@ -335,6 +332,7 @@ public final class MinuteurRepos {
                 long now = System.currentTimeMillis();
                 long resteMs = targetFin - now;
                 if (resteMs <= 200) {
+                    auBout = true;
                     break;
                 }
 
@@ -343,18 +341,18 @@ public final class MinuteurRepos {
                     derniereSecondeJouee = seconde;
                     boolean dernier = (seconde == 1);
 
-                    if (tg != null) {
+                    if (tics != null) {
                         try {
-                            tg.startTone(dernier ? ToneGenerator.TONE_PROP_BEEP2 : ToneGenerator.TONE_PROP_BEEP, dernier ? 120 : 90);
+                            tics.jouer(dernier);
                         } catch (Exception ignored) {}
                     }
 
                     if (vib != null && vib.hasVibrator()) {
                         try {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                vib.vibrate(VibrationEffect.createOneShot(dernier ? 60 : 30, VibrationEffect.DEFAULT_AMPLITUDE));
+                                vib.vibrate(VibrationEffect.createOneShot(dernier ? 150 : 80, VibrationEffect.DEFAULT_AMPLITUDE));
                             } else {
-                                vib.vibrate(dernier ? 60 : 30);
+                                vib.vibrate(dernier ? 150 : 80);
                             }
                         } catch (Exception ignored) {}
                     }
@@ -369,11 +367,13 @@ public final class MinuteurRepos {
                 }
             }
         } finally {
-            if (tg != null) {
+            if (tics != null) {
                 try {
-                    tg.release();
+                    tics.liberer();
                 } catch (Exception ignored) {}
             }
+            // Repos passé, mis en pause ou appli revenue à l'écran : la musique remonte tout de suite ; sinon, après le son de fin.
+            if (!auBout) SonsRepos.rendreMusique(c);
             if (wl != null && wl.isHeld()) {
                 try {
                     wl.release();
