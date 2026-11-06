@@ -1,4 +1,4 @@
-import { apercu, lire, type ClesTelephone } from './sauvegarde'
+import { apercu, contenuSauvegarde, lire, type ClesTelephone } from './sauvegarde'
 
 const vide: ClesTelephone = { seances: [], activites: [], cycles: [], pesees: [], mesures: [], journal: [], reglages: [], modeles: [], exercices: [], programmes: [], photos: [] }
 const sauvegarde = (o: object) => JSON.stringify({ app: 'muscu', ...o })
@@ -38,5 +38,14 @@ describe('comparer au téléphone', () => {
     const a = apercu(f, { ...vide, seances: ['a', 'b'], pesees: ['j1'], photos: ['ph'], programmes: ['p'] })
     expect(a.pertes).toBe('')
     expect(a.avecPhotos).toBe(false)
+  })
+})
+
+describe('ce que contient la sauvegarde', () => {
+  const rien = { programmes: 0, seances: 0, pesees: 0, mesures: 0, exercices: 0, photos: 0 }
+  it('en chiffres, sans ce qui est vide', () => {
+    expect(contenuSauvegarde({ programmes: 2, seances: 14, pesees: 23, mesures: 5, exercices: 3, photos: 4 })).toBe('Contient : 2 programmes, 14 séances, 23 pesées, tes mensurations, tes exercices et tes réglages. Les photos se sauvegardent à part.')
+    expect(contenuSauvegarde({ ...rien, seances: 1 })).toBe('Contient : 1 séance et tes réglages.')
+    expect(contenuSauvegarde(rien)).toBe('Contient : tes réglages.')
   })
 })

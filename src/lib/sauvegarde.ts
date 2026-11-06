@@ -75,6 +75,21 @@ export async function sauvegarder(cats: Categorie[]) {
 /** Tout sauf les photos, trop lourdes pour une sauvegarde régulière. */
 export const CATEGORIES_COURANTES = CATEGORIES.filter((c) => c !== 'photos')
 
+/** Ce que contient « Sauvegarder », en chiffres : « Contient : 2 programmes, 14 séances, tes réglages… ». */
+export function contenuSauvegarde(n: { programmes: number; seances: number; pesees: number; mesures: number; exercices: number; photos: number }): string {
+  const pluriel = (k: number, mot: string) => `${k} ${mot}${k > 1 ? 's' : ''}`
+  const parties = [
+    n.programmes ? pluriel(n.programmes, 'programme') : '',
+    n.seances ? pluriel(n.seances, 'séance') : '',
+    n.pesees ? pluriel(n.pesees, 'pesée') : '',
+    n.mesures ? 'tes mensurations' : '',
+    n.exercices ? 'tes exercices' : '',
+    'tes réglages',
+  ].filter(Boolean)
+  const liste = parties.length > 1 ? `${parties.slice(0, -1).join(', ')} et ${parties[parties.length - 1]}` : parties[0]
+  return `Contient : ${liste}.${n.photos ? ' Les photos se sauvegardent à part.' : ''}`
+}
+
 export interface Fichier {
   data: Record<string, unknown[]>
   /** Catégories qui ont quelque chose à récupérer, avec leur nombre d'éléments. */

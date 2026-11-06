@@ -34,6 +34,7 @@ Cran est un carnet d'entraînement pensé pour la salle : tu suis ton programme,
 • Aucun compte, aucune donnée envoyée sur Internet : tout est enregistré sur ton téléphone.
 • Sauvegarde en un appui vers Drive, ton mail ou où tu veux, et rappel si tu n'as pas sauvegardé depuis une semaine.
 • Export de tes séries en tableur (CSV).
+• Ton programme en texte, à envoyer à un coach ou à une IA, avec tes dernières charges si tu veux.
 
 Tout est en français, sans jargon : chaque terme technique est expliqué dans l'appli.
 

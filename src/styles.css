@@ -5056,6 +5056,27 @@ html[data-sens='fondu']::view-transition-new(root) {
   font-size: var(--t-legende);
   text-align: center;
 }
+.partage-intro {
+  margin: var(--e1) 0 0;
+}
+.partage-texte {
+  margin: 0;
+  padding: var(--e3);
+  background: var(--bg);
+  border-radius: var(--rayon-2);
+  font-family: inherit;
+  font-size: var(--t-petit);
+  line-height: 1.45;
+  color: var(--texte-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.partage-duo {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: var(--e2);
+}
 .bilan-partager {
   display: block;
   width: 100%;

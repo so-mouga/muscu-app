@@ -25,6 +25,7 @@ import { deplacer, useGlisser } from '../lib/glisser'
 import { delier, estDansSuperset, groupeSuperset, retirerDuPlan } from '../lib/superset'
 import { copieProgramme, estDuJour, fourchetteParDefaut, joursPris, nomSeanceLibre, programmesAbandonnes, programmesSansSeance, reposParDefaut } from '../lib/programme'
 import Deplie from '../components/Deplie'
+import PartageProgramme from '../components/PartageProgramme'
 
 export const JOURS = ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 
@@ -246,6 +247,7 @@ function PageProgramme({
   const [lancer, setLancer] = useState(false)
   const [menu, setMenu] = useState(false)
   const [renommer, setRenommer] = useState(false)
+  const [partager, setPartager] = useState(false)
   /** Position, dans le programme, de la séance dont on choisit le jour. */
   const [choixJour, setChoixJour] = useState<number | null>(null)
   const [ajout, setAjout] = useState<{ nom: string; jour?: number; existantes?: boolean } | null>(null)
@@ -462,6 +464,11 @@ function PageProgramme({
             <button className="liste-btn" onClick={() => void dupliquer()}>
               <span>Dupliquer</span>
             </button>
+            {entrees.length > 0 && (
+              <button className="liste-btn" onClick={() => (setMenu(false), setPartager(true))}>
+                <span>Partager ce programme</span>
+              </button>
+            )}
             <button className="liste-btn" onClick={() => void supprimer()}>
               <span style={{ color: 'var(--danger)' }}>Supprimer ce programme</span>
             </button>
@@ -472,6 +479,7 @@ function PageProgramme({
         </div>
       )}
       {renommer && <FenetreRenommer nom={p.nom} onFin={(nom) => (setRenommer(false), nom !== p.nom && maj((x) => (x.nom = nom)))} />}
+      {partager && <PartageProgramme programme={p} catalogue={catalogue} seances={terminees ?? []} onFermer={() => setPartager(false)} />}
       {choixJour !== null && (
         <div className="modal-fond" onClick={() => setChoixJour(null)}>
           <div className="modal pile" onClick={(ev) => ev.stopPropagation()}>

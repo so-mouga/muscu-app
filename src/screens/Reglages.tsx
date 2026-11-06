@@ -5,7 +5,7 @@ import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { CLE_RAPPEL, natif, RAPPEL_DEFAUT, rappelDisponible, type Rappel } from '../lib/natif'
 import { transition, useRetour } from '../lib/nav'
-import { apercu, CATEGORIES, CATEGORIES_COURANTES, clesTelephone, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type ClesTelephone, type Fichier } from '../lib/sauvegarde'
+import { apercu, CATEGORIES, CATEGORIES_COURANTES, clesTelephone, contenuSauvegarde, importer as importerDonnees, lire, partagerOuTelecharger, sauvegarder, type ClesTelephone, type Fichier } from '../lib/sauvegarde'
 import BoutonRetour from '../components/BoutonRetour'
 import { BIPS_DEFAUT } from '../components/Minuteur'
 import { debloquerSon, signalSerie, tic } from '../lib/appareil'
@@ -66,6 +66,10 @@ function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglag
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const dernierPhotos = useLiveQuery(() => db.reglages.get('dernierExportPhotos'), [])
   const nbPhotos = useLiveQuery(() => db.photos.count(), [], 0)
+  const contenu = useLiveQuery(
+    async () => ({ programmes: await db.programmes.count(), seances: await db.seances.filter((s) => !s.enCours).count(), pesees: await db.pesees.count(), mesures: await db.mesures.count(), exercices: await db.exercices.count(), photos: nbPhotos }),
+    [nbPhotos]
+  )
   const bipsReglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
   const sonValidation = useLiveQuery(() => db.reglages.get('sonValidation'), [])
   const bips = typeof bipsReglage?.valeur === 'number' ? bipsReglage.valeur : BIPS_DEFAUT
@@ -93,6 +97,7 @@ function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglag
             </>
           )}
         </div>
+        {contenu && <div className="petit muted">{contenuSauvegarde(contenu)}</div>}
         <button className="btn primaire plein" onClick={sauvegarderTout}>
           Sauvegarder
         </button>
