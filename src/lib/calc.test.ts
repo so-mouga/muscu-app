@@ -1,6 +1,6 @@
 import { PROGRAMME } from '../data/programme'
-import type { Seance, Serie } from '../types'
-import { chauffeTropLourde, lirePoids, poidsDecale, calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, detailVolume, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
+import type { Exercice, Seance, Serie } from '../types'
+import { chauffeDuJour, chauffeTropLourde, texteChauffe, lirePoids, poidsDecale, calories, seanceOubliee, dureeEstimee, dureeHabituelle, dureeTexte, e1rm, ecartSerie, lireDuree, detailVolume, reposApres, schemaPlan, semaineType, serieTexte, volumeParMuscle, volumePrevu, tempsParExo } from './calc'
 import { EXERCICES } from '../data/exercices'
 
 describe('volume hebdomadaire', () => {
@@ -240,5 +240,27 @@ describe('échauffement en séance allégée', () => {
     expect(chauffeTropLourde(machine, '1 série facile de 4–5 reps', 45)).toBe(false)
     expect(chauffeTropLourde(machine, '45×2', null)).toBe(false)
     expect(chauffeTropLourde({ ...machine, assistance: true }, '45×2', 45)).toBe(false)
+  })
+})
+
+describe('échauffements calculés le jour de la séance', () => {
+  const pile: Exercice = { id: 'p', nom: 'Pile', muscle: 'pecs', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true }
+  const barre: Exercice = { ...pile, id: 'b', pas: 2.5, barre: 20 }
+  it('en % : la charge du jour, arrondie au palier actuel de la machine', () => {
+    expect(chauffeDuJour(pile, '50%×8', 65)).toEqual({ charge: 35, reps: 8 })
+    expect(chauffeDuJour(pile, '70%×4', 65)).toEqual({ charge: 45, reps: 4 })
+    expect(chauffeDuJour({ ...pile, pas: 2.5 }, '50%×8', 65)).toEqual({ charge: 32.5, reps: 8 })
+  })
+  it('jamais sous la barre vide, et en % tant que la charge n’est pas connue', () => {
+    expect(chauffeDuJour(barre, '50%×8', 30)).toEqual({ charge: 20, reps: 8 })
+    expect(texteChauffe(pile, '50%×8', null)).toBe('50 % × 8')
+  })
+  it('une chauffe écrite en kg reste telle quelle', () => {
+    expect(chauffeDuJour(pile, '25×8', 65)).toEqual({ charge: 25, reps: 8 })
+    expect(texteChauffe(pile, '1 série facile', 65)).toBe('1 série facile')
+  })
+  it('séance allégée : à 90 % ou plus, ce n’est plus un échauffement', () => {
+    expect(chauffeTropLourde(pile, '90%×1', 65)).toBe(true)
+    expect(chauffeTropLourde(pile, '85%×2', 65)).toBe(false)
   })
 })

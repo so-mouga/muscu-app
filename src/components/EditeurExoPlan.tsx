@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { aDesInfos, NomInfos } from './InfosExo'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { kg, lireChauffe } from '../lib/calc'
+import { chauffeCalculable, kg, lireChauffe, lirePourcentChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import { reposParDefaut } from '../lib/programme'
@@ -20,19 +20,21 @@ const PALIERS = [
   [0.9, 1],
 ]
 
-/** Chauffe auto : ~50 % × 8, ~70 % × 4, ~85 % × 2, arrondie au pas. */
-export function chauffeAuto(charge: number, pas: number, n = 3): string[] {
-  const arr = (x: number) => Math.round(x / pas) * pas
-  return PALIERS.slice(0, n).map(([pct, reps]) => `${kg(arr(charge * pct))}×${reps}`)
+/** Chauffe calculée à chaque séance : 50 % × 8, 70 % × 4, 85 % × 2 de la charge du jour, arrondie au palier de ce jour-là. */
+export function chauffeAuto(n = 3): string[] {
+  return PALIERS.slice(0, n).map(([pct, reps]) => `${Math.round(pct * 100)}%×${reps}`)
 }
 
-/** Ligne d'échauffement éditable : charge × reps, ou consigne libre (« 1 série facile »). */
-type LigneChauffe = { charge: string; reps: number } | { texte: string }
+/** Ligne d'échauffement éditable : % de la charge du jour × reps, charge fixe × reps, ou consigne libre (« 1 série facile »). */
+type LigneChauffe = { pct: string; reps: number } | { charge: string; reps: number } | { texte: string }
 const versLigne = (c: string): LigneChauffe => {
+  const p = lirePourcentChauffe(c)
+  if (p) return { pct: kg(p.pct), reps: p.reps }
   const l = lireChauffe(c)
   return l ? { charge: kg(l.charge), reps: l.reps } : { texte: c }
 }
-const depuisLigne = (l: LigneChauffe) => ('texte' in l ? l.texte.trim() : l.charge.trim() ? `${l.charge.trim()}×${l.reps}` : '')
+const depuisLigne = (l: LigneChauffe) =>
+  'texte' in l ? l.texte.trim() : 'pct' in l ? (l.pct.trim() ? `${l.pct.trim()}%×${l.reps}` : '') : l.charge.trim() ? `${l.charge.trim()}×${l.reps}` : ''
 
 function MiniStepper({ valeur, min = 0, max = 99, pas = 1, onChange }: { valeur: number; min?: number; max?: number; pas?: number; onChange: (v: number) => void }) {
   return (
@@ -191,7 +193,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
   }, [p, charges, chauffes])
 
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
-  const chargeBase = lireCharge(charges[0] ?? '')
+  const calculable = chauffeCalculable(exo)
   const resumeAvance = [
     `effort ${[...new Set(p.series.map((s) => kg(s.rpe)))].join(', ')}/10`,
     p.series.some((s) => s.repos !== undefined && s.repos !== p.repos) ? 'repos par série' : '',
@@ -275,8 +277,8 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
               onChange={(k) =>
                 setChauffes((c) => {
                   if (k < c.length) return c.slice(0, k)
-                  // Nouvelle ligne : palier suivant de la chauffe auto si la charge est connue.
-                  const auto = chargeBase ? chauffeAuto(chargeBase, exo.pas, k).map(versLigne) : []
+                  // Nouvelle ligne : palier suivant de la chauffe calculée à chaque séance, quand l'exercice s'y prête.
+                  const auto = calculable ? chauffeAuto(k).map(versLigne) : []
                   return [...c, ...Array.from({ length: k - c.length }, (_, j) => auto[c.length + j] ?? { charge: '', reps: 8 })]
                 })
               }
@@ -292,6 +294,18 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
               </span>
               {'texte' in l ? (
                 <input value={l.texte} onChange={(e) => setChauffes((c) => c.map((x, k) => (k === i ? { texte: e.target.value } : x)))} />
+              ) : 'pct' in l ? (
+                <>
+                  <input
+                    inputMode="decimal"
+                    style={{ width: 56, padding: '8px 4px', textAlign: 'center', flex: '0 0 auto' }}
+                    aria-label={`Échauffement ${i + 1}, en % de la charge du jour`}
+                    value={l.pct}
+                    onChange={(e) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, pct: e.target.value } : x)))}
+                  />
+                  <span className="faible">% ×</span>
+                  <MiniStepper valeur={l.reps} min={1} onChange={(v) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, reps: v } : x)))} />
+                </>
               ) : (
                 <>
                   <input
@@ -307,9 +321,10 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
               )}
             </div>
           ))}
-          {chauffes.length > 0 && chargeBase! > 0 && (
-            <button type="button" className="btn discret petit" onClick={() => setChauffes(chauffeAuto(chargeBase!, exo.pas, chauffes.length).map(versLigne))}>
-              Calculer depuis la charge de la 1re série (50 %, 70 %, 85 %)
+          {chauffes.some((l) => 'pct' in l) && <div className="faible">En %, la charge se calcule à chaque séance, d’après celle du jour et le palier de la machine.</div>}
+          {calculable && chauffes.length > 0 && chauffes.some((l) => !('pct' in l)) && (
+            <button type="button" className="btn discret petit" onClick={() => setChauffes(chauffeAuto(chauffes.length).map(versLigne))}>
+              Calculer à chaque séance (50 %, 70 %, 85 % de la charge du jour)
             </button>
           )}
         </div>

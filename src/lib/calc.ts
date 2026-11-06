@@ -336,8 +336,41 @@ export function tempsParExo(seance: Pick<Seance, 'debut' | 'series'>): Record<st
 /** Chauffe « 25×8 » → charge et reps ; texte libre → null. */
 /** Séance allégée : un échauffement à 90 % ou plus de la charge du jour n'échauffe plus, il fait une série de plus. Pas pour un exercice assisté, où moins de kg est plus dur. */
 export function chauffeTropLourde(exo: Exercice, c: string, chargeDuJour: number | null | undefined): boolean {
+  if (exo.assistance) return false
+  const p = lirePourcentChauffe(c)
+  if (p) return p.pct >= 90
   const l = lireChauffe(c)
-  return !!l && !exo.assistance && !!chargeDuJour && chargeDuJour > 0 && l.charge >= chargeDuJour * 0.9
+  return !!l && !!chargeDuJour && chargeDuJour > 0 && l.charge >= chargeDuJour * 0.9
+}
+
+/** Chauffe calculée à chaque séance : « 50%×8 » = 50 % de la charge du jour. */
+export function lirePourcentChauffe(c: string): { pct: number; reps: number } | null {
+  const m = /^\s*([\d.,]+)\s*%\s*[×x*]\s*(\d+)\s*$/i.exec(c)
+  return m ? { pct: parseFloat(m[1].replace(',', '.')), reps: parseInt(m[2]) } : null
+}
+
+/** Exercice dont la chauffe peut se calculer en % de la charge du jour : pas au poids du corps, à l'élastique, assisté ni en temps. */
+export const chauffeCalculable = (exo: Exercice) => (exo.mode === 'machine' || exo.mode === 'par_main') && !exo.assistance && !enTemps(exo)
+
+/**
+ * La chauffe telle qu'on la fait aujourd'hui. En % : la charge du jour, arrondie au palier actuel de la machine (jamais
+ * sous la barre vide ni sous un palier) ; sans charge connue, elle reste en %. En kg : telle qu'elle a été écrite.
+ */
+export function chauffeDuJour(exo: Exercice, c: string, chargeDuJour: number | null | undefined): { charge: number; reps: number } | { pct: number; reps: number } | null {
+  const p = lirePourcentChauffe(c)
+  if (p) {
+    if (!chargeDuJour || chargeDuJour <= 0) return p
+    const arrondie = Math.round(((chargeDuJour * p.pct) / 100) / exo.pas) * exo.pas
+    return { charge: Math.round(Math.max(exo.barre ?? exo.pas, arrondie) * 100) / 100, reps: p.reps }
+  }
+  return lireChauffe(c)
+}
+
+/** La chauffe en clair : « 30 kg × 8 », « 50 % × 8 » tant que la charge n'est pas connue, ou le texte libre. */
+export function texteChauffe(exo: Exercice, c: string, chargeDuJour: number | null | undefined): string {
+  const j = chauffeDuJour(exo, c, chargeDuJour)
+  if (!j) return c
+  return 'pct' in j ? `${kg(j.pct)} % × ${j.reps}` : chargeQte(exo, j.charge, j.reps)
 }
 
 export function lireChauffe(c: string): { charge: number; reps: number } | null {

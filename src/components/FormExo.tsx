@@ -219,6 +219,13 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
         </summary>
         <div className="depliable-corps pile">
           {estMachine && <Interrupteur on={assiste} onChange={setAssiste} label="Machine assistée" aide="Les kg notés t’aident : moins de kg = plus dur (tractions ou dips à la machine). Les conseils et les records vont dans ce sens." />}
+          {/* Le type d'abord : c'est lui qui décide des muscles secondaires proposés. */}
+          <Interrupteur
+            on={compose}
+            onChange={setCompose}
+            label="Plusieurs articulations"
+            aide="Développé, rowing, squat, soulevé de terre : ta force y est suivie par une estimation, et on lui donne plus de repos. Coupé : une seule articulation (curl, élévation latérale), suivie par ta meilleure série."
+          />
           <div className="champ">
             <span>Compte aussi pour (une demi-série dans le volume)</span>
             <div className="chips">
@@ -245,12 +252,6 @@ export default function FormExo({ initial, nomInitial = '', muscleInitial, onEnr
           </div>
           <Interrupteur on={temps} onChange={setTemps} label="Mesuré en secondes" aide="Gainage, tenues : chaque série se note en secondes plutôt qu’en reps." />
           {temps !== (initial?.mesure === 'temps') && initial && <span className="faible">Pense à régler la durée visée de cet exercice dans tes séances.</span>}
-          <Interrupteur
-            on={compose}
-            onChange={setCompose}
-            label="Plusieurs articulations"
-            aide="Développé, rowing, squat, soulevé de terre : ta force y est suivie par une estimation, et on lui donne plus de repos. Coupé : une seule articulation (curl, élévation latérale), suivie par ta meilleure série."
-          />
           {avecMax && (
             <label className="champ">
               <span>Charge maximale du matériel ({mode === 'elastique' ? 'niveau' : mode === 'par_main' ? 'kg par main' : 'kg'})</span>

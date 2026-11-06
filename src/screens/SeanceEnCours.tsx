@@ -16,7 +16,7 @@ import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { chargeQte, chauffeTropLourde, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, e1rm, ecartSerie, enTemps, kg, lireChauffe, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chauffeTropLourde, texteChauffe, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, e1rm, ecartSerie, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -1827,7 +1827,7 @@ function ChauffesCochables({ seance, plan, exo, chargeDuJour, enRangee = false }
       {chauffes.map(({ c, i }) => {
         const cle = `${exo.id}:${i}`
         const fait = !!seance.chauffes[cle]
-        const l = lireChauffe(c)
+        const texte = texteChauffe(exo, c, chargeDuJour)
         return (
           <button
             key={cle}
@@ -1839,7 +1839,7 @@ function ChauffesCochables({ seance, plan, exo, chargeDuJour, enRangee = false }
               })
             }
           >
-            {fait ? <Check size={16} /> : <Square size={16} />} {l ? (enRangee && chauffes.length > 2 ? chargeQte(exo, l.charge, l.reps).replace(' kg', '') : chargeQte(exo, l.charge, l.reps)) : c}
+            {fait ? <Check size={16} /> : <Square size={16} />} {enRangee && chauffes.length > 2 ? texte.replace(' kg', '') : texte}
           </button>
         )
       })}

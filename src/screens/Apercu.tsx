@@ -7,7 +7,7 @@ import { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { aDesInfos, NomInfos } from '../components/InfosExo'
 import Vignette from '../components/Vignette'
 import { db, exoAvecReglages, historiqueDe } from '../db'
-import { cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles } from '../lib/calc'
+import { cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposTexte, schemaPlan, seancesHabituelles, texteChauffe } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
 import { hausse, suggestionPour } from '../lib/progression'
@@ -180,7 +180,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
                     /* « Comme la dernière fois » n'apprend rien : la cible suffit. */
                     sugg.decision !== 'pareil' && sugg.decision !== 'calibrer' && sugg.decision !== 'depart' && <div className="faible apercu-plan">{sugg.message}</div>
                   ))}
-                {p.chauffes.length > 0 && <div className="faible apercu-plan">Chauffe : {p.chauffes.join(' · ')}</div>}
+                {p.chauffes.length > 0 && <div className="faible apercu-plan">Chauffe : {p.chauffes.map((c) => texteChauffe(exo, c, sugg ? sugg.charges[0] : null)).join(' · ')}</div>}
                 {(p.note || exo.notes) && <div className="faible apercu-plan">{p.note ?? exo.notes}</div>}
               </div>
               {sugg && derniere && !deload && (
