@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { aDesInfos, NomInfos } from './InfosExo'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { chauffeCalculable, kg, lireChauffe, lirePourcentChauffe } from '../lib/calc'
+import { chauffeCalculable, chauffeDuJour, kg, lireChauffe, lirePourcentChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import { reposParDefaut } from '../lib/programme'
@@ -194,6 +194,11 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
 
   const unite = exo.mode === 'poids_corps' ? 'lest kg' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
   const calculable = chauffeCalculable(exo)
+  // En %, les kg que ça donne avec la charge du programme : « 50 » seul se lisait comme 50 kg.
+  const kgChauffe = (pct: string, reps: number) => {
+    const j = chauffeDuJour(exo, `${pct.trim()}%×${reps}`, lireCharge(charges[0] ?? ''))
+    return j && 'charge' in j ? `${kg(j.charge)} kg` : ''
+  }
   const resumeAvance = [
     `effort ${[...new Set(p.series.map((s) => kg(s.rpe)))].join(', ')}/10`,
     p.series.some((s) => s.repos !== undefined && s.repos !== p.repos) ? 'repos par série' : '',
@@ -305,6 +310,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
                   />
                   <span className="faible">% ×</span>
                   <MiniStepper valeur={l.reps} min={1} onChange={(v) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, reps: v } : x)))} />
+                  {kgChauffe(l.pct, l.reps) && <span className="chauffe-kg">{kgChauffe(l.pct, l.reps)}</span>}
                 </>
               ) : (
                 <>

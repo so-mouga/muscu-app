@@ -6393,3 +6393,6 @@ button.semaine-cycle.courante {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Kg que donne un échauffement en % (réglage d'un exercice) : le chiffre de la case est un %, pas des kg. */
+.chauffe-kg { margin-left: auto; white-space: nowrap; font-size: var(--t-petit); font-weight: 600; font-variant-numeric: tabular-nums; }
