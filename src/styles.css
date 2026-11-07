@@ -6395,4 +6395,7 @@ button.semaine-cycle.courante {
 }
 
 /* Kg que donne un échauffement en % (réglage d'un exercice) : le chiffre de la case est un %, pas des kg. */
-.chauffe-kg { margin-left: auto; white-space: nowrap; font-size: var(--t-petit); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chauffe-kg { margin-left: var(--e2); white-space: nowrap; font-size: var(--t-petit); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* % d'un échauffement : tapable au clavier, souligné en pointillé, sans case (une case lui donnait le poids des reps). */
+.chauffe-pct { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: var(--cible); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.chauffe-pct input { width: 1.9em; height: auto; padding: 2px 2px 1px 0; margin-right: 2px; border: 0; border-bottom: 2px dotted var(--texte-3); border-radius: 0; background: none; color: var(--texte); text-align: right; font-variant-numeric: tabular-nums; }

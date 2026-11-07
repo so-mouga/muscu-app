@@ -301,14 +301,16 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
                 <input value={l.texte} onChange={(e) => setChauffes((c) => c.map((x, k) => (k === i ? { texte: e.target.value } : x)))} />
               ) : 'pct' in l ? (
                 <>
-                  <input
-                    inputMode="decimal"
-                    style={{ width: 56, padding: '8px 4px', textAlign: 'center', flex: '0 0 auto' }}
-                    aria-label={`Échauffement ${i + 1}, en % de la charge du jour`}
-                    value={l.pct}
-                    onChange={(e) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, pct: e.target.value } : x)))}
-                  />
-                  <span className="faible">% ×</span>
+                  <label className="chauffe-pct">
+                    <input
+                      inputMode="decimal"
+                      aria-label={`Échauffement ${i + 1}, en % de la charge du jour`}
+                      value={l.pct}
+                      onChange={(e) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, pct: e.target.value } : x)))}
+                    />
+                    %
+                  </label>
+                  <span className="faible">×</span>
                   <MiniStepper valeur={l.reps} min={1} onChange={(v) => setChauffes((c) => c.map((x, k) => (k === i ? { ...l, reps: v } : x)))} />
                   {kgChauffe(l.pct, l.reps) && <span className="chauffe-kg">{kgChauffe(l.pct, l.reps)}</span>}
                 </>
