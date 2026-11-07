@@ -4632,10 +4632,6 @@ html[data-sens='fondu']::view-transition-new(root) {
   width: var(--cible);
   padding: 0;
 }
-.prog-version-gardee {
-  margin-bottom: var(--e3);
-  font-size: var(--t-petit);
-}
 .seance-jour-titre {
   display: flex;
   flex-wrap: wrap;
@@ -5393,7 +5389,7 @@ html[data-sens='fondu']::view-transition-new(root) {
   text-align: right;
 }
 
-/* Programme modifié pendant le cycle : à répondre, sans fenêtre qui coupe la modification. */
+/* Message de la page Programme ; `.fixe` : en bas de l'écran d'une séance du cycle, ses changements valent aussi pour le cycle. */
 .avis-cycle {
   display: flex;
   flex-direction: column;
@@ -5419,18 +5415,6 @@ html[data-sens='fondu']::view-transition-new(root) {
 }
 #root:has(.avis-cycle.fixe) {
   padding-bottom: calc(var(--barre-onglets) + 60px + env(safe-area-inset-bottom));
-}
-.avis-cycle-choix {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--e2);
-  margin-top: var(--e1);
-}
-.avis-cycle-choix .btn {
-  min-height: var(--cible);
-  padding: var(--e2);
-  font-size: var(--t-petit);
-  line-height: 1.25;
 }
 
 /* Page Programme : le jour et la séance sur une ligne, deux appuis distincts. */

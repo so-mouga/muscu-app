@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle } from '../types'
-import { appliquerEcart, arretCycle, avantSonCycle, contexteCycle, finArret, lundiArret, avecPriorites, changerSemaine, cycleDuBilan, debutCycle, finReelle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, garderEcart, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, reprendreSemaine, suggestionDeload } from './cycle'
+import { arretCycle, avantSonCycle, contexteCycle, finArret, lundiArret, avecPriorites, changerSemaine, cycleDuBilan, debutCycle, finReelle, regimeSemaine, cibles, deloadMaintenant, ecartCycle, prevuLe, etatCycle, lundiDe, mettreEnPause, nomCycle, nouveauCycle, planDeload, suivreProgramme, reprendreSemaine, suggestionDeload } from './cycle'
 
 const cycle = (x: Partial<Cycle> = {}): Cycle => ({
   id: 'c',
@@ -135,39 +135,22 @@ describe('programme modifié pendant le cycle', () => {
     expect(ecartCycle(cycle(), base, lire({ a: seance('a') }))).toBeUndefined()
   })
 
-  it('un changement refusé n’est plus proposé et n’entre pas quand on en accepte un autre', () => {
+  it('le cycle suit le programme d’un coup : jours, séances modifiées, ajoutées ou retirées', () => {
     let c = cycle()
-    const modifiee = { ...biblio, a: seance('a', 'Haut') }
-    c = { ...c, ...garderEcart(c, ecartCycle(c, base, lire(modifiee))!, base) }
-    expect(ecartCycle(c, base, lire(modifiee))).toBeUndefined()
-
-    const jeudi = { ...base, seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'b', jour: 4 }] }
-    const e = ecartCycle(c, jeudi, lire(modifiee))!
-    expect(e).toEqual({ planning: true, seances: [] })
-    c = { ...c, ...appliquerEcart(c, e, jeudi, lire(modifiee)) }
-    expect(c.programme.seances[1].jour).toBe(4)
-    expect(c.modeles.find((m) => m.id === 'a')!.nom).toBe('a')
-    expect(ecartCycle(c, jeudi, lire(modifiee))).toBeUndefined()
+    const l = { ...biblio, a: seance('a', 'Haut'), n: seance('n') }
+    const autre = { ...base, seances: [{ modeleId: 'a', jour: 4 }, { modeleId: 'n', jour: 3 }] }
+    c = { ...c, ...suivreProgramme(c, autre, lire(l)) }
+    expect(c.programme.seances.map((e) => e.jour)).toEqual([4, 3])
+    expect(c.modeles.map((m) => m.nom)).toEqual(['Haut', 'n'])
+    expect(ecartCycle(c, autre, lire(l))).toBeUndefined()
   })
 
-  it('une séance refusée puis modifiée encore est proposée de nouveau, et le refus s’efface une fois appliquée', () => {
-    let c = cycle()
-    const v1 = { ...biblio, a: seance('a', 'Haut') }
-    c = { ...c, ...garderEcart(c, ecartCycle(c, base, lire(v1))!, base) }
-    const v2 = { ...biblio, a: seance('a', 'Haut 2') }
-    const e = ecartCycle(c, base, lire(v2))!
-    expect(e.seances[0].nom).toBe('Haut 2')
-    c = { ...c, ...appliquerEcart(c, e, base, lire(v2)) }
-    expect(c.modeles.find((m) => m.id === 'a')!.nom).toBe('Haut 2')
+  it('une version gardée « pour le prochain cycle » avant le changement de règle n’est plus ignorée, et l’oubli s’efface', () => {
+    let c: Cycle = { ...cycle(), refus: { a: 'ancienne' } }
+    const l = { ...biblio, a: seance('a', 'Haut') }
+    expect(ecartCycle(c, base, lire(l))?.seances.map((s) => s.nom)).toEqual(['Haut'])
+    c = { ...c, ...suivreProgramme(c, base, lire(l)) }
     expect(c.refus).toBeUndefined()
-  })
-
-  it('appliquer ajoute la copie d’une nouvelle séance et retire celle qui n’y est plus', () => {
-    const c = cycle()
-    const l = { ...biblio, n: seance('n') }
-    const autre = { ...base, seances: [{ modeleId: 'a', jour: 1 }, { modeleId: 'n', jour: 3 }] }
-    const r = appliquerEcart(c, ecartCycle(c, autre, lire(l))!, autre, lire(l))
-    expect(r.modeles.map((m) => m.id)).toEqual(['a', 'n'])
   })
 })
 

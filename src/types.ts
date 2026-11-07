@@ -219,7 +219,7 @@ export interface Cycle {
   priorites?: Muscle[]
   /** Date de fin si le cycle a été terminé. */
   fin?: string
-  /** Versions gardées « pour le prochain cycle » (`planning` ou id de séance) : on ne les repropose pas. */
+  /** Ancien : versions gardées « pour le prochain cycle ». Ignoré depuis le 7 nov. 2026 (le cycle suit le programme), effacé à la prochaine mise à jour du cycle. */
   refus?: Record<string, string>
 }
 

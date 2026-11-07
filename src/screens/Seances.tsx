@@ -12,7 +12,7 @@ import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '
 import { suiviCycle } from '../lib/motivation'
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
-import { arretCycle, debutCycle, ecartCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
+import { arretCycle, debutCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { etatVolume } from '../lib/volume'
 import { MODELES } from '../data/programme'
@@ -140,7 +140,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
   if (vue?.type === 'seance')
     return (
       <>
-        <AvisCycle catalogue={catalogue} fixe />
+        <AvisCycle catalogue={catalogue} seanceId={vue.m.id} />
         <Editeur key={vue.m.id} catalogue={catalogue} terminees={terminees} initial={vue.m} nouvelle={vue.nouvelle} entree={vue.entree} choisirExos={!!vue.choisirExos} onFermer={() => fermer()} />
       </>
     )
@@ -316,8 +316,6 @@ function PageProgramme({
     return true
   }
   const aujourdhui = jourSemaine()
-  // « Garder pour le prochain cycle » : plus de question, mais l'écart avec l'Accueil doit rester expliqué.
-  const versionGardee = !!cycle && !!etat && !etat.fini && !catalogue.ecart && !!ecartCycle({ ...cycle, refus: undefined }, p, catalogue.modele)
 
   return (
     <div>
@@ -339,7 +337,6 @@ function PageProgramme({
           ✓ {annonce}
         </div>
       )}
-      <AvisCycle catalogue={catalogue} />
 
       {entrees.length > 0 && cycle && etat?.pause && !etat.fini ? (
         <div className="carte pile">
@@ -402,7 +399,6 @@ function PageProgramme({
           </div>
         ))}
 
-      {versionGardee && <div className="faible prog-version-gardee">Ton cycle suit encore l’ancienne version de ce programme. Tes changements serviront au prochain cycle.</div>}
 
       {entrees.map(({ e, i, m }) => {
         const faite = !!e.jour && faiteCetteSemaine(e.modeleId)
@@ -834,7 +830,7 @@ function Editeur({
   }
   useEffect(() => () => enAttente.current(), [])
 
-  // En quittant : dernier enregistrement. La question du cycle est posée par AvisCycle, dès l'enregistrement.
+  // En quittant : dernier enregistrement. Le cycle suit le programme de lui-même (App).
   const quitter = async () => {
     if (modifie) await ecrire()
     onFermer()

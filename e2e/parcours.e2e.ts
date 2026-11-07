@@ -205,28 +205,21 @@ test('base d’une ancienne version (avant le journal) : l’appli la met à jou
   expect(erreurs).toEqual([])
 })
 
-test('programme modifié pendant un cycle : la question ne se perd pas, et le cycle ne change que si on accepte', async ({ page: p }) => {
+test('programme modifié pendant un cycle : le cycle suit tout de suite, sans question, même en fermant l’appli', async ({ page: p }) => {
   const erreurs = suivreErreurs(p)
   await p.goto('/')
   await premierProgramme(p)
   await onglet(p, 'Programme')
   const joursDuCycle = async () => ((await lireTable(p, 'cycles')) as { programme: { seances: { jour?: number }[] } }[])[0].programme.seances.map((e) => e.jour)
-  const avant = await joursDuCycle()
+  expect(await joursDuCycle()).not.toContain(7)
 
-  // Un jour change, puis on sort par la barre du bas et on ferme l'appli, sans passer par ←.
+  // Un jour change, puis on ferme l'appli aussitôt, sans passer par ← : le cycle l'a déjà pris.
   await p.locator('.prog-jour').first().click()
   await p.getByRole('button', { name: 'dimanche' }).click()
-  await expect(p.getByText('Ton cycle garde l’ancienne version')).toBeVisible()
-  await onglet(p, 'Accueil')
-  await expect(p.getByText('Programme modifié : appliquer au cycle ?')).toBeVisible()
-  await p.waitForFunction(() => !history.state?.piege)
-  await p.reload()
-  expect(await joursDuCycle()).toEqual(avant)
-
-  // La question est toujours là ; le rappel y mène ; répondre applique.
-  await p.getByText('Programme modifié : appliquer au cycle ?').click()
-  await p.getByRole('button', { name: 'Appliquer aux semaines qui restent' }).click()
-  await expect(p.getByText('Appliqué aux semaines qui restent')).toBeVisible()
   await expect.poll(joursDuCycle).toContain(7)
+  await p.reload()
+  expect(await joursDuCycle()).toContain(7)
+  await onglet(p, 'Accueil')
+  await expect(p.getByText('appliquer au cycle')).toHaveCount(0)
   expect(erreurs).toEqual([])
 })

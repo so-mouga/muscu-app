@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react'
 import { lancerCycle, type Catalogue } from '../catalogue'
 import { db } from '../db'
 import { dateCourte, dateISO, kg, lundi, semaineType, volumePrevu } from '../lib/calc'
-import { appliquerEcart, arretCycle, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, finArret, finReelle, lundiArret, garderEcart, lignesCycle, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
+import { arretCycle, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, etatCycle, finArret, finReelle, lundiArret, lignesCycle, MAX_PRIORITES, nomCycle, regimeSemaine, type RegimeSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
 import { useRetour } from '../lib/nav'
 import { suiviCycle } from '../lib/motivation'
@@ -15,7 +15,7 @@ import Aide, { LigneAide } from './Aide'
 import Deplie from './Deplie'
 
 export const AIDE_CYCLE =
-  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine allégée à la fin : 5 de travail + 1 allégée). Le cycle garde sa propre copie du programme : si tu modifies le programme pendant le cycle, tu choisis s’il s’applique aux semaines qui restent ou seulement au prochain cycle.'
+  'Un cycle, c’est ton programme lancé pour quelques semaines (6 par défaut, dont la semaine allégée à la fin : 5 de travail + 1 allégée). Si tu modifies le programme pendant le cycle, les semaines qui restent suivent tout de suite ; les séances déjà faites ne changent pas. Pour préparer le prochain cycle sans toucher à celui-ci, duplique le programme.'
 export const AIDE_DELOAD =
   'Une semaine allégée (on dit aussi « déload ») pour récupérer et repartir plus fort. L’appli divise les séries par deux, baisse les charges d’environ 10 %, vise un effort de 6-7/10 et retire les finisseurs. Garde tes repas et tes pas comme d’habitude : une semaine allégée ne fait pas perdre de muscle. Ces séances ne comptent pas pour ta progression : ensuite, tu reprends là où tu en étais.'
 
@@ -23,35 +23,13 @@ const debutSemaine = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
 export { Aide, LigneAide } from './Aide'
 
-/**
- * Programme modifié pendant le cycle : le dit tant qu'on n'a pas répondu, quel que soit le chemin pris
- * (barre du bas, appli fermée, séance retirée ailleurs). `fixe` : une ligne en bas de l'éditeur, sans question : on répond une fois les changements finis, sur la page Programme.
- */
-export function AvisCycle({ catalogue, fixe = false }: { catalogue: Catalogue; fixe?: boolean }) {
-  const [fait, setFait] = useState('')
-  const { cycle, ecart } = catalogue
-  const repondre = async (changement: Partial<Cycle>, message: string) => {
-    await db.cycles.update(cycle!.id, changement)
-    setFait(message)
-    setTimeout(() => setFait(''), 2500)
-  }
-  if (fixe) return cycle && ecart ? <div className="avis-cycle fixe" role="status">Ton cycle garde l’ancienne version</div> : null
-  const classe = 'avis-cycle'
-  if (!cycle || !ecart) return fait ? <div className={classe} role="status">✓ {fait}</div> : null
-  const programme = catalogue.programmes.find((p) => p.id === cycle.programmeId)
-  const quoi = [...(ecart.planning ? ['les jours et les séances du programme'] : []), ...ecart.seances.map((s) => s.nom)].join(', ')
+/** Dans l'écran d'une séance du cycle en cours : ce qu'on y change vaut aussi pour les semaines qui restent (`suivreProgramme`). */
+export function AvisCycle({ catalogue, seanceId }: { catalogue: Catalogue; seanceId: string }) {
+  const { cycle } = catalogue
+  if (!cycle || etatCycle(cycle).fini || !cycle.programme.seances.some((e) => e.modeleId === seanceId)) return null
   return (
-    <div className={classe} role="status">
-      <strong>Ton cycle garde l’ancienne version</strong>
-      <div className="faible">Modifié : {quoi}.</div>
-      <div className="avis-cycle-choix">
-        <button type="button" className="btn" onClick={() => void repondre(appliquerEcart(cycle, ecart, programme, catalogue.modele), 'Appliqué aux semaines qui restent')}>
-          Appliquer aux semaines qui restent
-        </button>
-        <button type="button" className="btn" onClick={() => void repondre(garderEcart(cycle, ecart, programme), 'Gardé pour le prochain cycle')}>
-          Garder pour le prochain cycle
-        </button>
-      </div>
+    <div className="avis-cycle fixe" role="status">
+      Tes changements s’appliquent aussi à ton cycle
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { CLE_PREVUS, noterPrevu, type EtapePrevu } from './lib/prevu'
 import { db, setReglage } from './db'
 import { transition, useRetour } from './lib/nav'
 import { dateISO } from './lib/calc'
+import { suivreProgramme } from './lib/cycle'
 import { CLE_DEMARRAGE, type EtatDemarrage } from './lib/demarrage'
 import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJourNatif, type Rappel } from './lib/natif'
 import Accueil from './screens/Accueil'
@@ -80,6 +81,16 @@ export default function App() {
     const suite = noterPrevu(liste, dateISO(), nbPrevues)
     if (suite !== liste) void setReglage(CLE_PREVUS, suite)
   }, [prevusNotes, nbPrevues])
+  // Programme modifié pendant un cycle : le cycle le suit aussitôt pour les semaines qui restent, quel que soit l'écran.
+  const ecartCycle = catalogue?.ecart && catalogue.cycle ? JSON.stringify([catalogue.cycle.id, catalogue.ecart]) : null
+  const cycleSuivi = useRef<string | null>(null)
+  useEffect(() => {
+    if (!ecartCycle || !catalogue?.cycle || cycleSuivi.current === ecartCycle) return
+    cycleSuivi.current = ecartCycle
+    const c = catalogue.cycle
+    void db.cycles.update(c.id, suivreProgramme(c, catalogue.programmes.find((p) => p.id === c.programmeId), catalogue.modele))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ecartCycle])
   // Une séance déjà faite (ou commencée) aujourd'hui : pas de rappel ce soir.
   const faiteAujourdhui = useLiveQuery(() => db.seances.where('date').equals(dateISO()).count(), [], 0)
   useEffect(() => void (natif && faiteAujourdhui > 0 && seanceDuJourNatif(dateISO())), [faiteAujourdhui])

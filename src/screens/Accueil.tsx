@@ -401,14 +401,6 @@ export default function Accueil({
         </button>
       </div>
     ),
-    catalogue.ecart && (
-      <div key="ecart" className="rappel-ligne">
-        <button type="button" className="texte" onClick={onProgrammes}>
-          <RefreshCw size={16} strokeWidth={2} className="rappel-ico info" />
-          <span className="rappel-texte">Programme modifié : appliquer au cycle ?</span>
-        </button>
-      </div>
-    ),
     finReperes && (
       <div key="fin-reperes" className="rappel-ligne">
         <button type="button" className="texte" onClick={() => prendre(finReperes.manque)}>
