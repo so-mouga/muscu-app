@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { aDesInfos, NomInfos } from './InfosExo'
+import { NomInfos } from './InfosExo'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { chauffeCalculable, chauffeDuJour, kg, lireChauffe, lirePourcentChauffe } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
@@ -214,7 +214,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
       <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
         <div className="modal-tete">
           <h2>
-            <NomInfos nom={exo.nom} onClick={aDesInfos(exo) ? onInfos : undefined} />
+            <NomInfos nom={exo.nom} onClick={onInfos} />
           </h2>
         </div>
         <div className="modal-defile pile">
