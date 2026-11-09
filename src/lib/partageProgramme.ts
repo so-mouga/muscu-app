@@ -28,7 +28,7 @@ export interface DonneesProgramme {
 const effort = (p: ExoPlan) => `effort ${[...new Set(p.series.map((s) => kg(Math.round(s.rpe))))].join(', ')}/10`
 
 /** Ligne d'un exercice : séries, effort, repos ou superset, et ce qui le distingue. */
-function ligneExo(exo: Exercice, p: ExoPlan, i: number): string {
+export function ligneExo(exo: Exercice, p: ExoPlan, i: number): string {
   const repos = p.enchaine ? `superset avec le ${i + 2}, ${p.repos > 0 ? `${chrono(p.repos)} pour changer de poste` : 'sans repos entre les deux'}` : `repos ${reposTexte(p)}`
   return [`${i + 1}. ${exo.nom}`, schemaPlan(exo, p), effort(p), repos, p.finisseur ? 'finisseur' : '', p.optionnel ? 'optionnel' : ''].filter(Boolean).join(' · ')
 }

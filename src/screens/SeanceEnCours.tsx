@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, Share2, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -10,6 +10,7 @@ import ChoixExo from '../components/ChoixExo'
 import EditeurObjectif, { ObjectifApres } from '../components/EditeurObjectif'
 import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
+import PartageSeance from '../components/PartageSeance'
 import Vignette from '../components/Vignette'
 import Minuteur, { BIPS_DEFAUT, reposOublie, resteRepos, type EtatMinuteur } from '../components/Minuteur'
 import { ResumeSeance } from '../components/RecapSeance'
@@ -1290,6 +1291,7 @@ function FinSeance({
   const [nomModele, setNomModele] = useState('')
   const [objectifs, setObjectifs] = useState<Record<string, Objectif>>(seance.objectifs ?? {})
   const [ajuste, setAjuste] = useState<string | null>(null)
+  const [partager, setPartager] = useState(false)
   /** Série en cours de correction : même fenêtre que pendant la séance. */
   const [corrige, setCorrige] = useState<string | null>(null)
   /** Exercices dont on a déplié les séries. */
@@ -1428,6 +1430,12 @@ function FinSeance({
         <div style={{ flex: 1 }}>
           <h1>Fin de séance</h1>
         </div>
+        {seance.series.length > 0 && (
+          <button type="button" className="btn petit" onClick={() => setPartager(true)}>
+            <Share2 size={18} />
+            Partager
+          </button>
+        )}
       </div>
       <div className="carte fin-resume">
         <h2>{seance.nom}</h2>
@@ -1626,6 +1634,8 @@ function FinSeance({
           )
         })()}
 
+      {/* Les choix et sensations du moment, même s'ils ne sont pas encore relus de la base. */}
+      {partager && <PartageSeance seance={{ ...seance, objectifs, ressenti, energie }} avant={terminees} reglages={reglages} catalogue={catalogue} onFermer={() => setPartager(false)} />}
       {seance.series.length > 0 ? (
         <>
           <div className="barre-enregistrer">

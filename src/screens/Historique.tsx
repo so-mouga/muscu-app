@@ -1,11 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import Exercices from './Exercices'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Pencil, Ruler, Smile, Trophy, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Pencil, Ruler, Share2, Smile, Trophy, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
+import PartageSeance from '../components/PartageSeance'
 import { db, exoAvecReglages } from '../db'
 import { dateISO, duree, estDure, kg, sensationSeance } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
@@ -648,6 +649,7 @@ function DetailSeance({
   const [edition, setEdition] = useState<Serie | null>(null)
   /** Exercice auquel on ajoute une série oubliée. */
   const [ajout, setAjout] = useState<string | null>(null)
+  const [partager, setPartager] = useState(false)
   useRetour(true, onRetour)
   const passes = (seance.passes ?? []).map((id) => catalogue.exo(id).nom)
 
@@ -668,6 +670,10 @@ function DetailSeance({
             {dateLongue(seance)}
           </div>
         </div>
+        <button type="button" className="btn petit" onClick={() => setPartager(true)}>
+          <Share2 size={18} />
+          Partager
+        </button>
       </div>
 
       <div className="carte">
@@ -732,6 +738,7 @@ function DetailSeance({
       {edition && (
         <CorrectionSerie seance={seance} serie={edition} avant={avant} reglages={reglages} catalogue={catalogue} onFermer={() => setEdition(null)} />
       )}
+      {partager && <PartageSeance seance={seance} avant={avant} reglages={reglages} catalogue={catalogue} onFermer={() => setPartager(false)} />}
       {ajout && <CorrectionSerie seance={seance} exoId={ajout} avant={avant} reglages={reglages} catalogue={catalogue} onFermer={() => setAjout(null)} />}
     </div>
   )
