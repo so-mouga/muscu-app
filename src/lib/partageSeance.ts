@@ -1,6 +1,6 @@
 import { mouvement, MOUVEMENTS, type MouvementEchauffement } from '../data/echauffements'
-import type { Cycle, Exercice, ExoPlan, Seance, Serie } from '../types'
-import { cibleTexte, dateCourte, duree, dureeSeanceEffective, kg, sensationSeance, seriesEnClair } from './calc'
+import type { Cycle, Exercice, ExoPlan, Seance, Serie, TypeSerie } from '../types'
+import { chargeQte, cibleTexte, dateCourte, duree, dureeSeanceEffective, kg, sensationSeance } from './calc'
 import { etatCycle } from './cycle'
 import { historiqueDe } from './historique'
 import { nomPhase, phaseA, type EtapeObjectifs } from './objectifs'
@@ -33,11 +33,50 @@ function conseilUtile(exo: Exercice, p: ExoPlan, histo: Serie[][]): Suggestion |
   return rienDePlus ? null : c
 }
 
+/** Le type d'une série, en mots : rien pour une série normale. */
+const TYPE_TEXTE: Record<TypeSerie, string> = { normale: '', echec: 'à l’échec', serie_longue: 'série longue', drop: 'dégressive', rest_pause: 'rest-pause' }
+
+/** Une série qui n'est pas normale, écrite à part : « dégressive : 36 kg × 10, puis 28 kg × 6 », « 40 kg × 12 à l’échec ». Null pour une série normale. */
+function serieSpeciale(exo: Exercice, s: Serie): string | null {
+  if (s.type === 'normale' && !s.demiReps && !s.suite?.length) return null
+  let t = chargeQte(exo, s.charge, s.reps, true)
+  if (s.suite?.length) t += s.type === 'drop' ? `, puis ${s.suite.map((x) => chargeQte(exo, x.charge, x.reps, true)).join(', puis ')}` : `, puis ${s.suite.map((x) => x.reps).join(' + ')} après une courte pause`
+  if (s.demiReps) t += ` + ${s.demiReps} demi-reps`
+  const type = TYPE_TEXTE[s.type]
+  if (!type) return t
+  return s.suite?.length ? `${type} : ${t}` : `${t} ${type}`
+}
+
+/**
+ * Les séries en clair pour une IA : « 65 kg × 10, 9, 8 », la charge regroupée tant qu'elle ne change pas, et
+ * chaque série qui n'est pas normale écrite à part, son type en mots (pas de flèche ni de signe à deviner).
+ */
+function seriesPartage(exo: Exercice, series: Serie[]): string {
+  const parties: string[] = []
+  let groupe: Serie[] = []
+  const vider = () => {
+    if (groupe.length) parties.push(chargeQte(exo, groupe[0].charge, groupe.map((x) => x.reps).join(', '), true))
+    groupe = []
+  }
+  for (const x of series) {
+    const speciale = serieSpeciale(exo, x)
+    if (speciale) {
+      vider()
+      parties.push(speciale)
+    } else {
+      if (groupe.length && groupe[0].charge !== x.charge) vider()
+      groupe.push(x)
+    }
+  }
+  vider()
+  return parties.join(' · ')
+}
+
 /** « 70 kg × 12, 12, 11 · effort 8, 8, 9/10 », et la douleur si elle a été notée. */
 function faitTexte(exo: Exercice, series: Serie[]): string {
   const douleurs = series.flatMap((x, k) => (x.douleur ? [k + 1] : []))
   return [
-    seriesEnClair(exo, series),
+    seriesPartage(exo, series),
     `effort ${series.map((x) => kg(x.rpe)).join(', ')}/10`,
     douleurs.length ? `douleur notée sur la série ${douleurs.join(' et ')}` : '',
   ]
@@ -85,7 +124,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
     l.push(`   aujourd’hui : ${faitTexte(exo, series)}`)
     if (avecAvant) {
       const precedente = avant.find((s) => !s.deload && s.series.some((x) => x.exoId === p.exoId))
-      l.push(precedente ? `   la fois d’avant (${dateCourte(precedente.date)}) : ${seriesEnClair(exo, precedente.series.filter((x) => x.exoId === p.exoId))}` : '   la fois d’avant : première fois')
+      l.push(precedente ? `   la fois d’avant (${dateCourte(precedente.date)}) : ${faitTexte(exo, precedente.series.filter((x) => x.exoId === p.exoId))}` : '   la fois d’avant : première fois')
     }
     // Une séance allégée ne juge rien et ne décide rien pour la prochaine fois.
     if (!seance.deload && p.series.length) {

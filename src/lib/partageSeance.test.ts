@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EXERCICES } from '../data/exercices'
-import type { ExoPlan, Seance } from '../types'
+import type { ExoPlan, Seance, Serie } from '../types'
 import { texteSeance, type DonneesSeance } from './partageSeance'
 
 const plan = (exoId: string, charge: number): ExoPlan => ({ exoId, repos: 120, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })), charge, chauffes: [], finisseur: false })
@@ -38,7 +38,7 @@ describe('texte d’une séance à partager', () => {
   it('chaque exercice : prévu, fait avec l’effort, la fois d’avant, la note', () => {
     expect(t).toContain('1. Rowing haltère · 3 × 8–12 · effort 8/10 · repos 2:00')
     expect(t).toContain('   aujourd’hui : 30 kg/main × 12, 12, 12 · effort 8, 8, 8/10')
-    expect(t).toContain('   la fois d’avant (lun. 2 nov.) : 30 kg/main × 11, 11, 10')
+    expect(t).toContain('   la fois d’avant (lun. 2 nov.) : 30 kg/main × 11, 11, 10 · effort 8, 8, 8/10')
     expect(t).toContain('   note : Coude serré')
     expect(t).toContain('   la fois d’avant : première fois')
   })
@@ -48,6 +48,14 @@ describe('texte d’une séance à partager', () => {
     expect(t).toContain('   prochaine fois : comme aujourd’hui (conseil pas suivi)')
     const suivi = texteSeance({ ...jour, objectifs: { rowing_haltere: { charges: [20, 20, 20], reps: [12, 12, 12] } } }, donnees, true)
     expect(suivi).toContain('prochaine fois : 20 kg/main × 12/12/12 (choisi à la main)')
+  })
+
+  it('une série qui n’est pas normale est écrite à part, son type en mots, sans signe à deviner', () => {
+    const base = jour.series.filter((x) => x.exoId !== 'dev_militaire')
+    const serie = (i: number, extra: Partial<Serie>): Serie => ({ id: `s${i}`, exoId: 'dev_militaire', type: 'normale', charge: 36, reps: 10, rpe: 9, heure: jour.debut + 3600000 + i * 600000, ...extra })
+    const s = texteSeance({ ...jour, series: [...base, serie(0, {}), serie(1, { type: 'drop', suite: [{ charge: 28, reps: 6 }] }), serie(2, { type: 'echec', reps: 7, rpe: 10 }), serie(3, { type: 'rest_pause', suite: [{ charge: 36, reps: 4 }, { charge: 36, reps: 3 }] }), serie(4, { demiReps: 3 })] }, donnees, true)
+    expect(s).toContain('aujourd’hui : 36 kg × 10 · dégressive : 36 kg × 10, puis 28 kg × 6 · 36 kg × 7 à l’échec · rest-pause : 36 kg × 10, puis 4 + 3 après une courte pause · 36 kg × 10 + 3 demi-reps · effort 9, 9, 10, 9, 9/10')
+    expect(s).not.toContain('↘')
   })
 
   it('exercices sautés à la fin, et rien sur la fois d’avant si on ne la veut pas', () => {
