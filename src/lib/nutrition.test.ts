@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { moyenneRepas, objectifDuJour, texteRepas } from './nutrition'
+import { moyenneRepas, moyenneSemaine, objectifDuJour, texteRepas } from './nutrition'
 
 describe('objectif calories du jour', () => {
   const frise = [{ depuis: '2026-11-02', phase: 'prise' as const, volume: {}, calories: 2500 }]
@@ -33,5 +33,16 @@ describe('repas dans les textes partagés', () => {
   it('rien sans jour lu, et pas d’objectif inventé', () => {
     expect(moyenneRepas([{ date: '2026-11-09', calories: 'ok' }], frise)).toBeNull()
     expect(texteRepas({ kcal: 2100 })).toBe('2 100 kcal')
+  })
+})
+
+describe('ligne « Moyenne » de l’accueil', () => {
+  it('pas par jour et jours tenus sur les jours finis', () => {
+    expect(moyenneSemaine([{ date: 'l', pas: 10000, calories: 'ok' }, { date: 'm', pas: 10600, calories: 'trop' }, { date: 'x', sommeil: 7 }])).toEqual({ pas: 10300, tenus: 1, notes: 2 })
+  })
+
+  it('rien le lundi, ni sans pas ni calories', () => {
+    expect(moyenneSemaine([])).toBeNull()
+    expect(moyenneSemaine([{ date: 'l', sommeil: 6 }])).toBeNull()
   })
 })

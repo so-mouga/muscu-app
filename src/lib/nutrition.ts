@@ -49,3 +49,18 @@ export function texteRepas(r: { kcal: number; objectif?: number; proteines?: num
     .filter(Boolean)
     .join(' · ')
 }
+
+/**
+ * Ligne « Moyenne » de l'accueil, sur les jours finis de la semaine (`jours` déjà filtrés) : pas par jour, et jours
+ * tenus face à l'objectif calories parmi ceux qui ont un verdict. Null sans rien à dire (le lundi, par exemple).
+ */
+export function moyenneSemaine(jours: JourJournal[]): { pas?: number; tenus?: number; notes?: number } | null {
+  const pas = jours.filter((j) => j.pas !== undefined).map((j) => j.pas!)
+  const notes = jours.filter((j) => j.calories)
+  if (!pas.length && !notes.length) return null
+  return {
+    pas: pas.length ? Math.round(pas.reduce((a, b) => a + b, 0) / pas.length) : undefined,
+    tenus: notes.length ? notes.filter((j) => j.calories === 'ok').length : undefined,
+    notes: notes.length || undefined,
+  }
+}

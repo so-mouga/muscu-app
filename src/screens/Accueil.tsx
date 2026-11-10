@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { Check, ChevronRight, Clock, CloudUpload, Download, Flame, Info, Moon, RefreshCw, Ruler, Scale, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
-import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
+import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, milliers, minutes } from '../lib/calc'
+import { moyenneSemaine } from '../lib/nutrition'
 import { sousTitrePerso, sousTitreSeance } from '../lib/programme'
 import { creneauxFaits, creneauxRates } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
@@ -162,6 +163,9 @@ export default function Accueil({
     [debutSemaine],
     []
   )
+  // Jours finis de la semaine (lundi à hier) : la ligne « Moyenne » sous « Cette semaine ».
+  const joursFinis = useLiveQuery(() => db.journal.where('date').between(debutSemaine, dateISO()).toArray(), [debutSemaine], [])
+  const moyenne = moyenneSemaine(joursFinis)
   const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
@@ -558,6 +562,12 @@ export default function Accueil({
               {tenues >= 2 ? `${tenues}e semaine tenue` : prevusSemaine.length ? `${nbFaites} sur ${prevusSemaine.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`} ›
             </span>
           </button>
+          {/* Pas et calories des jours finis : le sommeil n'y est pas, la case du haut le donne (choix de l'utilisateur). */}
+          {moyenne && (
+            <div className="accueil-moyenne">
+              Moyenne : {[moyenne.pas !== undefined && `${milliers(moyenne.pas)} pas`, moyenne.notes && `${moyenne.tenus} jour${moyenne.tenus! > 1 ? 's' : ''} tenu${moyenne.tenus! > 1 ? 's' : ''} sur ${moyenne.notes}`].filter(Boolean).join(' · ')}
+            </div>
+          )}
           {progres && gainBloc && (
             <div className="accueil-progres">
               <span className="accueil-progres-nom">{progres.exo.nom}</span>

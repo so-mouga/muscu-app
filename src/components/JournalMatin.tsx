@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
@@ -41,7 +41,7 @@ export const macros = (j: JourJournal) =>
  * au même endroit, la valeur en grand ou « Noter ». Un appui ouvre la saisie dans une fenêtre, rien ne
  * bouge dans l'écran et rien n'est jamais pré-rempli pour le sommeil ou les calories.
  */
-export function CaseJour({ valeur, nom, onClick }: { valeur?: string; nom: string; onClick: () => void }) {
+export function CaseJour({ valeur, nom, onClick }: { valeur?: ReactNode; nom: string; onClick: () => void }) {
   return (
     <button type="button" className="case-jour" onClick={onClick}>
       <span className={valeur ? 'case-jour-valeur' : 'case-jour-valeur a-noter'}>{valeur ?? 'Noter ›'}</span>
@@ -59,6 +59,7 @@ export function FenetreJour({
   date,
   catalogue,
   journal,
+  veille,
   poidsDuJour,
   poidsRepere,
   onFermer,
@@ -67,6 +68,8 @@ export function FenetreJour({
   date: string
   catalogue: Catalogue
   journal?: JourJournal
+  /** Calories du jour lues dans l'appli de repas : le jour d'avant, pour son verdict. */
+  veille?: JourJournal
   poidsDuJour?: number
   /** Dernier poids connu : point de départ quand ce jour n'a pas de pesée. */
   poidsRepere?: number
@@ -165,14 +168,19 @@ export function FenetreJour({
               <h2>{titreCalories}</h2>
               {objectif && <div className="faible">Objectif : {milliers(objectif.kcal)} kcal</div>}
             </div>
-            {journal?.kcalAppli && journal.kcal !== undefined ? (
+            {(journal?.kcalAppli && journal.kcal !== undefined) || veille?.kcalAppli ? (
               // L'appli de repas fait foi : le verdict se déduit de son total (choix de l'utilisateur, 10 nov. 2026).
               <>
                 <div>
-                  {date === aujourdhui ? 'Jusqu’ici' : 'Lu dans ton appli de repas'} : <strong>{milliers(journal.kcal)} kcal</strong>
-                  {date !== aujourdhui && journal.calories && <> · {TEXTE_CALORIES[journal.calories]}</>}
+                  {date === aujourdhui ? 'Jusqu’ici' : 'Lu dans ton appli de repas'} : <strong>{milliers(journal?.kcal ?? 0)} kcal</strong>
+                  {date !== aujourdhui && journal?.calories && <> · {TEXTE_CALORIES[journal.calories]}</>}
                 </div>
-                {macros(journal) && <div className="faible">{macros(journal)}</div>}
+                {journal && macros(journal) && <div className="faible">{macros(journal)}</div>}
+                {veille?.kcalAppli && veille.kcal !== undefined && (
+                  <div>
+                    Hier : {milliers(veille.kcal)} kcal{veille.calories && <> · {TEXTE_CALORIES[veille.calories]}</>}
+                  </div>
+                )}
                 <div className="faible">{date === aujourdhui ? 'Le verdict se donne demain, une fois la journée finie.' : 'Un repas oublié se corrige dans ton appli de repas : Cran relit le total.'}</div>
                 <button type="button" className="btn plein" onClick={onFermer}>
                   Fermer
@@ -204,13 +212,29 @@ export default function JournalMatin({ catalogue }: { catalogue: Catalogue }) {
   const dHier = useLiveQuery(() => db.journal.get(hier), [hier])
   const [saisie, setSaisie] = useState<SaisieJour | null>(null)
   const objectif = objectifDuJour(catalogue.objectifs, aujourdhui)
+  // L'appli de repas écrit dans Health Connect : aujourd'hui ou hier ont été lus.
+  const repasLus = !!duJour?.kcalAppli || !!dHier?.kcalAppli
 
   return (
     <div className="journal-matin">
       <CaseJour nom="Poids" valeur={peseeDuJour && `${kg(peseeDuJour.poids)} kg`} onClick={() => setSaisie('poids')} />
       <CaseJour nom="Sommeil" valeur={duJour?.sommeil !== undefined ? heures(duJour.sommeil) : undefined} onClick={() => setSaisie('sommeil')} />
-      {objectif && <CaseJour nom="Calories d’hier" valeur={dHier?.calories && TEXTE_CALORIES[dHier.calories]} onClick={() => setSaisie('calories')} />}
-      {saisie && <FenetreJour saisie={saisie} date={saisie === 'calories' ? hier : aujourdhui} catalogue={catalogue} journal={saisie === 'calories' ? dHier : duJour} poidsDuJour={peseeDuJour?.poids} poidsRepere={dernierePesee?.poids} onFermer={() => setSaisie(null)} />}
+      {repasLus ? (
+        // Appli de repas branchée : le total du jour face à l'objectif, sans verdict tant que la journée n'est pas finie (choix de l'utilisateur, 10 nov. 2026).
+        <CaseJour
+          nom="Calories"
+          valeur={
+            <>
+              {milliers(duJour?.kcal ?? 0)}
+              {objectif && <small> / {milliers(objectif.kcal)}</small>}
+            </>
+          }
+          onClick={() => setSaisie('calories')}
+        />
+      ) : (
+        objectif && <CaseJour nom="Calories d’hier" valeur={dHier?.calories && TEXTE_CALORIES[dHier.calories]} onClick={() => setSaisie('calories')} />
+      )}
+      {saisie && <FenetreJour saisie={saisie} date={saisie === 'calories' && !repasLus ? hier : aujourdhui} catalogue={catalogue} journal={saisie === 'calories' && !repasLus ? dHier : duJour} veille={repasLus ? dHier : undefined} poidsDuJour={peseeDuJour?.poids} poidsRepere={dernierePesee?.poids} onFermer={() => setSaisie(null)} />}
     </div>
   )
 }

@@ -6397,3 +6397,19 @@ button.jour-pas {
   font-family: inherit;
   text-align: left;
 }
+/* « 1 330 / 2 300 » : l'objectif plus discret que le total du jour. */
+.case-jour-valeur small {
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  font-weight: 500;
+}
+/* Sous « Cette semaine » : pas par jour et jours tenus, sur les jours finis. */
+.accueil-moyenne {
+  margin-top: calc(-1 * var(--e2));
+  padding-bottom: var(--e1);
+  color: var(--texte-2);
+  font-size: var(--t-legende);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
