@@ -16,7 +16,7 @@ import { MUSCLES } from '../data/exercices'
 import { analyser, analyserDates, aRetenir, erreurDates, essentiel, semaineOuverte, semainesFinies, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import type { ContenuImage } from '../lib/imageBilan'
-import { chargeQte, dateCourte, dateISO, kg } from '../lib/calc'
+import { chargeQte, dateCourte, dateISO, kg, milliers } from '../lib/calc'
 import { depuisDebut, exercicesDuBloc, semainesTenues, suiviCycle, tenuesSurPeriode, type LigneBloc } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { etatVolume, LIBELLE_VOLUME, zone } from '../lib/volume'
@@ -540,7 +540,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
           {a.pas && (
             <div className="ligne entre bilan-forme">
               <span>Pas par jour</span>
-              <strong>{a.pas.moyenne.toLocaleString('fr-FR')}</strong>
+              <strong>{milliers(a.pas.moyenne)}</strong>
             </div>
           )}
           {notesCalories > 0 && (

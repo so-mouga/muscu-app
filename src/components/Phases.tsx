@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, ChevronRight, Pencil } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
-import { dateCourte, dateISO, kg } from '../lib/calc'
+import { dateCourte, dateISO, kg, milliers } from '../lib/calc'
 import {
   ajouterApres,
   avisRythme,
@@ -435,7 +435,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
                           </div>
                           <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 2 }}>
                             Du {jour(p.debut)} {p.finPrevue ? `au ${jour(plusJours(p.finPrevue, -1))}` : ''}
-                            {p.calories ? <div>{p.calories.toLocaleString('fr-FR')} kcal par jour</div> : null}
+                            {p.calories ? <div>{milliers(p.calories)} kcal par jour</div> : null}
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

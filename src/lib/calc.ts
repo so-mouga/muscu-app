@@ -200,6 +200,12 @@ export function semaineType(p: Programme): Programme['seances'] {
 }
 
 /** Heures de sommeil (moyenne) → « 6 h 05 » ; arrondi à la minute avant de couper, jamais « 5 h 60 ». */
+/**
+ * « 10 491 » : milliers séparés par une espace insécable ordinaire. `toLocaleString('fr-FR')` met une espace fine
+ * que la police Barlow n'a pas : sur le S25, « 10491 » s'affichait collé (10 nov. 2026).
+ */
+export const milliers = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')
+
 export function heuresMinutes(h: number): string {
   const min = Math.round(h * 60)
   return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`

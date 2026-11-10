@@ -8,7 +8,7 @@ import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import PartageSeance from '../components/PartageSeance'
 import { db, exoAvecReglages } from '../db'
-import { dateISO, duree, estDure, kg, sensationSeance } from '../lib/calc'
+import { dateISO, duree, estDure, kg, sensationSeance, milliers } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
 import { suggestionPour } from '../lib/progression'
@@ -545,7 +545,7 @@ function JourChoisi({
       {!aVenir && journal?.pas !== undefined && (
         <div className="ligne entre jour-pas">
           <span className="faible">{date === dateISO() ? 'Pas jusqu’ici' : 'Pas'}</span>
-          <strong>{journal.pas.toLocaleString('fr-FR')}</strong>
+          <strong>{milliers(journal.pas)}</strong>
         </div>
       )}
 

@@ -8,7 +8,7 @@ import { FenetreJour } from '../components/JournalMatin'
 import SilhouetteMesures from '../components/SilhouetteMesures'
 import { clesDe, CONSEILS_MESURE, MESURES, nomCle, PRINCIPALES, type DefMesure } from '../data/mesures'
 import { db } from '../db'
-import { dateCourte, dateISO, kg } from '../lib/calc'
+import { dateCourte, dateISO, kg, milliers } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { paireDepart, poseCommune } from '../lib/photos'
 import { ecartPesees, nomPhase, phaseA, phaseAffichee, phasesPassees, poidsDepart, poidsSemaine } from '../lib/objectifs'
@@ -167,7 +167,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
             </span>
           </span>
           {(phase.finPrevue || kcal) && !phase.aVenir && (
-            <span className="faible petit-texte">{[phase.finPrevue && `${phase.depassee ? 'Prévue jusqu’au' : 'Jusqu’au'} ${fin(phase.finPrevue)}`, kcal && `${kcal.toLocaleString('fr-FR')} kcal par jour`].filter(Boolean).join(' · ')}</span>
+            <span className="faible petit-texte">{[phase.finPrevue && `${phase.depassee ? 'Prévue jusqu’au' : 'Jusqu’au'} ${fin(phase.finPrevue)}`, kcal && `${milliers(kcal)} kcal par jour`].filter(Boolean).join(' · ')}</span>
           )}
           {vise !== null && depart !== null && (
             <span className="petit-texte">

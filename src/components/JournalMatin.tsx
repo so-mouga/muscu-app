@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import type { Catalogue } from '../catalogue'
 import { db } from '../db'
 import { informer } from './Dialogues'
-import { dateISO, kg, lirePoids, poidsDecale } from '../lib/calc'
+import { dateISO, kg, lirePoids, poidsDecale, milliers } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { objectifDuJour } from '../lib/nutrition'
 import type { JourJournal } from '../types'
@@ -159,7 +159,7 @@ export function FenetreJour({
           <div className="pile">
             <div>
               <h2>{titreCalories}</h2>
-              {objectif && <div className="faible">Objectif : {objectif.kcal.toLocaleString('fr-FR')} kcal</div>}
+              {objectif && <div className="faible">Objectif : {milliers(objectif.kcal)} kcal</div>}
             </div>
             <div className="rpe" style={{ gridTemplateColumns: `repeat(${CALORIES.length}, 1fr)` }}>
               {CALORIES.map(([id, nom]) => (
