@@ -164,6 +164,7 @@ export function FenetreJour({
         )}
         {saisie === 'calories' && (
           <div className="pile">
+            {/* Note du jour : resto, alcool… écrite le jour même, elle part dans le tableau du bilan partagé. */}
             <div>
               <h2>{titreCalories}</h2>
               {objectif && <div className="faible">Objectif : {milliers(objectif.kcal)} kcal</div>}
@@ -182,9 +183,6 @@ export function FenetreJour({
                   </div>
                 )}
                 <div className="faible">{date === aujourdhui ? 'Le verdict se donne demain, une fois la journée finie.' : 'Un repas oublié se corrige dans ton appli de repas : Cran relit le total.'}</div>
-                <button type="button" className="btn plein" onClick={onFermer}>
-                  Fermer
-                </button>
               </>
             ) : (
               <div className="rpe" style={{ gridTemplateColumns: `repeat(${CALORIES.length}, 1fr)` }}>
@@ -195,6 +193,13 @@ export function FenetreJour({
                 ))}
               </div>
             )}
+            <label className="note-jour">
+              <span className="faible petit-texte">Note du jour (resto, alcool…)</span>
+              <input type="text" defaultValue={journal?.note ?? ''} placeholder="Par exemple : resto, 4 bières" onChange={(e) => void noterJournal(date, { note: e.target.value.trim() || undefined })} />
+            </label>
+            <button type="button" className="btn plein" onClick={onFermer}>
+              Fermer
+            </button>
           </div>
         )}
       </div>

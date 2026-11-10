@@ -28,6 +28,8 @@ export interface RepasJour {
   proteines?: number
   glucides?: number
   lipides?: number
+  /** mg (APK 2.7). */
+  sodium?: number
 }
 
 /** Une période de sommeil telle que Health Connect la donne : début, fin (horodatages) et minutes dormies. */
@@ -105,7 +107,7 @@ export function majJour(j: JourJournal | undefined, pas: number | undefined, som
   if (sommeil !== undefined && (sommeil !== j?.sommeil || !j?.sommeilMontre)) Object.assign(c, { sommeil, sommeilMontre: true })
   if (repas) {
     const g = (x: number | undefined) => (x === undefined ? undefined : Math.round(x))
-    const lu: Partial<JourJournal> = { kcal: Math.round(repas.kcal), proteines: g(repas.proteines), glucides: g(repas.glucides), lipides: g(repas.lipides), kcalAppli: true, calories: fini && objectif ? jugerCalories(repas.kcal, objectif) : undefined }
+    const lu: Partial<JourJournal> = { kcal: Math.round(repas.kcal), proteines: g(repas.proteines), glucides: g(repas.glucides), lipides: g(repas.lipides), sodium: g(repas.sodium), kcalAppli: true, calories: fini && objectif ? jugerCalories(repas.kcal, objectif) : undefined }
     for (const [k, v] of Object.entries(lu) as [keyof JourJournal, unknown][]) if (j?.[k] !== v) Object.assign(c, { [k]: v })
   }
   return Object.keys(c).length ? c : null

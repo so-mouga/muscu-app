@@ -131,7 +131,7 @@ class SantePlugin : Plugin() {
                 if (accordees.contains(lireNutrition)) {
                     val debut = LocalDate.now().minusDays(jours - 1).atStartOfDay()
                     val fin = LocalDate.now().plusDays(1).atStartOfDay()
-                    val mesures = setOf(NutritionRecord.ENERGY_TOTAL, NutritionRecord.PROTEIN_TOTAL, NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL, NutritionRecord.TOTAL_FAT_TOTAL)
+                    val mesures = setOf(NutritionRecord.ENERGY_TOTAL, NutritionRecord.PROTEIN_TOTAL, NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL, NutritionRecord.TOTAL_FAT_TOTAL, NutritionRecord.SODIUM_TOTAL)
                     val groupes = c.aggregateGroupByPeriod(AggregateGroupByPeriodRequest(mesures, TimeRangeFilter.between(debut, fin), Period.ofDays(1)))
                     for (g in groupes) {
                         val kcal = g.result[NutritionRecord.ENERGY_TOTAL]?.inKilocalories ?: continue
@@ -139,6 +139,8 @@ class SantePlugin : Plugin() {
                         g.result[NutritionRecord.PROTEIN_TOTAL]?.let { o.put("proteines", it.inGrams) }
                         g.result[NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL]?.let { o.put("glucides", it.inGrams) }
                         g.result[NutritionRecord.TOTAL_FAT_TOTAL]?.let { o.put("lipides", it.inGrams) }
+                        // Sodium (APK 2.7) : un jour salé explique un poids qui saute le lendemain.
+                        g.result[NutritionRecord.SODIUM_TOTAL]?.let { o.put("sodium", it.inMilligrams) }
                         repas.put(o)
                     }
                 }

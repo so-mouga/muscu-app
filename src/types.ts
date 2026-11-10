@@ -185,6 +185,10 @@ export interface JourJournal {
   proteines?: number
   glucides?: number
   lipides?: number
+  /** Sodium du jour (mg), lu avec les calories (APK 2.7). */
+  sodium?: number
+  /** Note du jour, écrite à la main : « resto », « 4 bières »… Pour le texte partagé (colonne « notes »). */
+  note?: string
   /** Calories lues dans l'appli de repas : elles font foi, et le verdict (`calories`) en est déduit. */
   kcalAppli?: boolean
   /** Pas du jour, lus dans Health Connect (montre ou téléphone). Jamais saisis à la main. */

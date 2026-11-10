@@ -35,16 +35,18 @@ export function moyenneRepas(jours: JourJournal[], frise: EtapeObjectifs[] = [])
     proteines: moy(lus.map((j) => j.proteines)),
     glucides: moy(lus.map((j) => j.glucides)),
     lipides: moy(lus.map((j) => j.lipides)),
+    sodium: moy(lus.map((j) => j.sodium)),
   }
 }
 
 /** « 2 950 kcal pour 3 000 visées · protéines 150 g · glucides 360 g · lipides 85 g ». */
-export function texteRepas(r: { kcal: number; objectif?: number; proteines?: number; glucides?: number; lipides?: number }): string {
+export function texteRepas(r: { kcal: number; objectif?: number; proteines?: number; glucides?: number; lipides?: number; sodium?: number }): string {
   return [
     `${nombre(r.kcal)} kcal${r.objectif ? ` pour ${nombre(r.objectif)} visées` : ''}`,
     r.proteines !== undefined && `protéines ${r.proteines} g`,
     r.glucides !== undefined && `glucides ${r.glucides} g`,
     r.lipides !== undefined && `lipides ${r.lipides} g`,
+    r.sodium !== undefined && `sodium ${nombre(r.sodium)} mg`,
   ]
     .filter(Boolean)
     .join(' · ')

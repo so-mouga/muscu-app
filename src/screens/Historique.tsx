@@ -551,6 +551,12 @@ function JourChoisi({
           <strong>{milliers(journal.kcal)} kcal</strong>
         </button>
       )}
+      {!aVenir && journal?.note && (
+        <button type="button" className="ligne entre jour-pas" onClick={() => setSaisie('calories')}>
+          <span className="faible">Note</span>
+          <span>{journal.note}</span>
+        </button>
+      )}
       {!aVenir && journal?.pas !== undefined && (
         <div className="ligne entre jour-pas">
           <span className="faible">{date === dateISO() ? 'Pas jusqu’ici' : 'Pas'}</span>

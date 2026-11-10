@@ -36,7 +36,7 @@ export interface DonneesBilan {
 const SEMAINE = 7 * 86400000
 const arrondi = (x: number, d = 1) => Math.round(x * 10 ** d) / 10 ** d
 const moyenne = (l: number[]) => (l.length ? l.reduce((a, b) => a + b, 0) / l.length : null)
-const ecart = (d: number, u: string) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(arrondi(d)))} ${u}`
+const ecart = (d: number, u: string, decimales = 1) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${kg(Math.abs(arrondi(d, decimales)))} ${u}`
 const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
 
 /** Lundi de début pour « les N dernières semaines » (semaine en cours comprise). */
@@ -202,9 +202,17 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
         const b = parSemaine[parSemaine.length - 1]
         const ecartSem = Math.round((Date.parse(b.l) - Date.parse(a.l)) / SEMAINE)
         const rythme = (b.moy - a.moy) / ecartSem
-        const phase = d.objectifs && phaseA(d.objectifs, fin)?.phase
-        const zone = phase === 'prise' ? ', zone visée en prise : +0,15 à +0,4 kg/semaine' : phase === 'seche' ? ', zone visée en sèche : −0,2 à −1 kg/semaine' : ''
-        lignes.push(`Rythme : ${ecart(rythme, 'kg')}/semaine (${ecart(b.moy - a.moy, 'kg')} en ${ecartSem} semaine${ecartSem > 1 ? 's' : ''}${zone})`)
+        // Rythme visé : celui de la phase réglée (poids visé sur sa durée), sinon la zone générale de l'appli, la même qu'à l'écran.
+        const ph = d.objectifs ? phaseA(d.objectifs, fin) : null
+        const zone =
+          ph?.ecartVise && ph.total
+            ? `, visé par ta phase : ${ecart(ph.ecartVise, 'kg')} en ${ph.total} semaines, soit ${ecart(ph.ecartVise / ph.total, 'kg', 2)}/semaine`
+            : ph?.phase === 'prise'
+              ? ', zone conseillée en prise : +0,15 à +0,4 kg/semaine'
+              : ph?.phase === 'seche'
+                ? ', zone conseillée en sèche : −0,2 à −1 kg/semaine'
+                : ''
+        lignes.push(`Rythme : ${ecart(rythme, 'kg', 2)}/semaine (${ecart(b.moy - a.moy, 'kg')} en ${ecartSem} semaine${ecartSem > 1 ? 's' : ''}${zone})`)
       }
     }
     if (taille) lignes.push(`Dernier tour de taille : ${kg(taille.valeurs.taille)} cm (${jour(taille.date)})`)
@@ -240,28 +248,45 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     }
   }
 
-  // Jour par jour, 7 derniers jours : tenir sa cible chaque jour, relier une mauvaise nuit à une mauvaise séance.
-  // Pas pour relier le poids d'un matin aux calories de la veille : l'eau et le sel masquent tout.
+  // Jour par jour, 7 derniers jours, toujours les 7 lignes (« — » pour ce qui manque), en colonnes : tenir sa cible
+  // chaque jour, relier une mauvaise nuit à une mauvaise séance (même nom que dans le partage d'une séance). Pas pour
+  // relier le poids d'un matin aux calories de la veille : l'eau et le sel masquent tout. La nuit est celle d'avant.
   const septJours = Array.from({ length: 7 }, (_, k) => dateISO(new Date(Date.parse(fin + 'T12:00:00') - (6 - k) * 86400000))).filter((x) => x >= debut)
-  const lignesJours = septJours
-    .map((date) => {
-      const j = d.journal?.find((x) => x.date === date)
-      const poids = d.pesees.find((p) => p.date === date)?.poids
-      const ss = periode.filter((s) => s.date === date)
-      const parts = [
-        poids !== undefined && `${kg(poids)} kg`,
-        j?.kcal !== undefined && j.kcalAppli ? `${nombre(j.kcal)} kcal${j.proteines !== undefined ? ` (protéines ${j.proteines} g)` : ''}` : j?.calories && `calories ${j.calories === 'ok' ? 'tenues' : j.calories === 'trop' ? 'trop' : 'pas assez'}`,
-        j?.pas !== undefined && `${nombre(j.pas)} pas`,
-        j?.sommeil !== undefined && `nuit ${heuresMinutes(j.sommeil)}`,
-        ss.length && `séance ${ss.map((s) => s.nom).join(', ')}`,
-      ].filter(Boolean)
-      return parts.length ? `${dateCourte(date)}${date === dateISO() ? ' (en cours)' : ''} : ${parts.join(' · ')}` : null
-    })
-    .filter((x): x is string => !!x)
-  if (lignesJours.length) {
+  const aujourdhui = dateISO()
+  const duJournal = (date: string) => d.journal?.find((x) => x.date === date)
+  const poidsLe = (date: string) => d.pesees.find((p) => p.date === date)?.poids
+  const auMoinsUnChiffre = septJours.some((date) => poidsLe(date) !== undefined || duJournal(date) || periode.some((s) => s.date === date))
+  if (auMoinsUnChiffre) {
     const obj = d.objectifs && objectifDuJour(d.objectifs, fin)
     titre(`Jour par jour, 7 derniers jours${obj ? ` (objectif ${nombre(obj.kcal)} kcal)` : ''}`)
-    lignes.push(...lignesJours)
+    lignes.push('jour | poids | kcal | protéines | sodium | pas | nuit d’avant | séance | notes')
+    const tiret = '—'
+    for (const date of septJours) {
+      const j = duJournal(date)
+      const poids = poidsLe(date)
+      const ss = periode.filter((s) => s.date === date)
+      // Sans appli de repas, le verdict noté à la main tient lieu de kcal.
+      const kcal = j?.kcalAppli && j.kcal !== undefined ? nombre(j.kcal) : j?.calories ? (j.calories === 'ok' ? 'tenu' : j.calories === 'trop' ? 'trop' : 'pas assez') : tiret
+      lignes.push(
+        [
+          `${dateCourte(date)}${date === aujourdhui ? ' (en cours)' : ''}`,
+          poids !== undefined ? `${kg(poids)} kg` : tiret,
+          kcal,
+          j?.kcalAppli && j.proteines !== undefined ? `${j.proteines} g` : tiret,
+          j?.kcalAppli && j.sodium !== undefined ? `${nombre(j.sodium)} mg` : tiret,
+          j?.pas !== undefined ? nombre(j.pas) : tiret,
+          j?.sommeil !== undefined ? heuresMinutes(j.sommeil) : tiret,
+          ss.length ? ss.map((s) => s.nom).join(', ') : tiret,
+          j?.note ?? '',
+        ].join(' | ')
+      )
+    }
+    // Moyenne : repas sur les jours finis, poids sur les 7 jours avec le nombre de pesées (une moyenne sur peu de pesées peut tromper).
+    const finis7 = septJours.filter((x) => x < aujourdhui).map(duJournal).filter((x): x is JourJournal => !!x)
+    const r = moyenneRepas(finis7, d.objectifs)
+    const poids7 = septJours.map(poidsLe).filter((x): x is number => x !== undefined)
+    const morceaux = [r && texteRepas(r), poids7.length && `poids moyen ${kg(arrondi(moyenne(poids7)!, 2))} kg (${poids7.length}/${septJours.length} pesée${poids7.length > 1 ? 's' : ''})`].filter(Boolean)
+    if (morceaux.length) lignes.push(`Moyenne (repas sur les jours finis) : ${morceaux.join(' · ')}`)
   }
 
   // Notes
