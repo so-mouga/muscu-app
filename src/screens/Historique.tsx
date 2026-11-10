@@ -537,14 +537,17 @@ function JourChoisi({
         <div className="journal-matin">
           <CaseJour nom="Poids" valeur={pesee !== undefined ? `${kg(pesee)} kg` : undefined} onClick={() => setSaisie('poids')} />
           <CaseJour nom="Sommeil" valeur={journal?.sommeil !== undefined ? heures(journal.sommeil) : undefined} onClick={() => setSaisie('sommeil')} />
-          {(objectif || journal?.calories) && <CaseJour nom="Calories" valeur={journal?.calories && TEXTE_CALORIES[journal.calories]} onClick={() => setSaisie('calories')} />}
+          {(objectif || journal?.calories || journal?.kcalAppli) && (
+            // Lu dans l'appli de repas sans verdict (journée en cours) : le total jusqu'ici, jamais « Noter ».
+            <CaseJour nom="Calories" valeur={journal?.calories ? TEXTE_CALORIES[journal.calories] : journal?.kcalAppli && journal.kcal !== undefined ? `${milliers(journal.kcal)} kcal` : undefined} onClick={() => setSaisie('calories')} />
+          )}
         </div>
       )}
 
       {/* Lus dans Health Connect : rien à toucher, d'où une simple ligne. */}
-      {!aVenir && journal?.kcalAppli && journal.kcal !== undefined && (
+      {!aVenir && journal?.kcalAppli && journal.kcal !== undefined && journal.calories && (
         <button type="button" className="ligne entre jour-pas" onClick={() => setSaisie('calories')}>
-          <span className="faible">{date === dateISO() ? 'Repas jusqu’ici' : 'Repas'}</span>
+          <span className="faible">Repas</span>
           <strong>{milliers(journal.kcal)} kcal</strong>
         </button>
       )}
