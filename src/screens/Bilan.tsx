@@ -13,10 +13,10 @@ import BoutonRetour from '../components/BoutonRetour'
 import { VueCycle } from '../components/Cycle'
 import { transition, useRetour } from '../lib/nav'
 import { MUSCLES } from '../data/exercices'
-import { analyser, analyserDates, aRetenir, erreurDates, essentiel, semainesFinies, type Analyse } from '../lib/analyse'
+import { analyser, analyserDates, aRetenir, erreurDates, essentiel, semaineOuverte, semainesFinies, type Analyse } from '../lib/analyse'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import type { ContenuImage } from '../lib/imageBilan'
-import { chargeQte, dateCourte, dateISO, kg, lundi } from '../lib/calc'
+import { chargeQte, dateCourte, dateISO, kg } from '../lib/calc'
 import { depuisDebut, exercicesDuBloc, semainesTenues, suiviCycle, tenuesSurPeriode, type LigneBloc } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { etatVolume, LIBELLE_VOLUME, zone } from '../lib/volume'
@@ -58,7 +58,7 @@ export const voirPeriodeCycle = () => {
 
 /**
  * Bilan des semaines finies : la réponse d'abord (À retenir), puis les exercices, la régularité, les
- * muscles et la forme. La semaine en cours n'y entre pas : l'accueil s'en occupe, et un lundi ne juge rien.
+ * muscles et la forme. La semaine en cours n'y entre pas (l'accueil s'en occupe, et un lundi ne juge rien), sauf le dimanche : on fait son point avant la nouvelle.
  */
 export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onProgramme, onSeance }: { catalogue: Catalogue; haut: ReactNode; onExo?: (id: string) => void; onTousExos?: () => void; onCorps?: () => void; onProgramme?: () => void; /** Ouvre le détail d'une séance : le retour revient ici. */ onSeance: (id: string) => void }) {
   const [periodeChoisie, setPeriodeChoisie] = useState(memoire.periode)
@@ -114,7 +114,8 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
       }
     : undefined
 
-  const cetteSemaine = lundi()
+  // Le dimanche, la semaine qui s'achève compte déjà : on fait son point avant la nouvelle.
+  const cetteSemaine = semaineOuverte()
   // Le cycle en cours, sinon le dernier terminé, y compris quand un nouveau vient d'être lancé : son bilan reste consultable.
   const cycleParDefaut = cycleDuBilan(cycles, cetteSemaine)
   const cycle = cycles.find((c) => c.id === cycleChoisi && c.debut < cetteSemaine) ?? cycleParDefaut
@@ -231,7 +232,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
     titre: surCycle ? nomCycle(cycle) : undefined,
     seances: a.seances,
     // Sur un cycle, le même compte que « Régularité » et que sa page ; un cycle arrêté ne compte que ce qu'il a duré.
-    tenues: surCycle ? tenuesDuCycle(cycle, seances, fin) : tenuesSurPeriode(seances, prevues, cycles, debut, fin),
+    tenues: surCycle ? tenuesDuCycle(cycle, seances, fin, cetteSemaine) : tenuesSurPeriode(seances, prevues, cycles, debut, fin),
     montent: exercices.montent.length,
     lignes: exercices.montent.slice(0, 3),
   }
@@ -367,7 +368,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
             {!prochain
               ? 'Lance un cycle depuis la page Programme : son bilan s’affichera ici.'
               : prochain.debut === cetteSemaine
-                ? `Ton cycle a commencé lundi ${jour(prochain.debut).replace(/\.$/, '')}. Son bilan s’affiche ici dès lundi prochain, à la fin de sa première semaine.`
+                ? `Ton cycle a commencé lundi ${jour(prochain.debut).replace(/\.$/, '')}. Son bilan s’affiche ici dès dimanche, à la fin de sa première semaine.`
                 : `Ton cycle commence lundi ${jour(prochain.debut).replace(/\.$/, '')}. Son bilan s’affichera ici à la fin de sa première semaine.`}
           </p>
           {onProgramme && (
@@ -571,8 +572,9 @@ interface LigneExercice {
   valeur?: string
 }
 
-function tenuesDuCycle(c: Cycle, seances: Seance[], fin: string) {
-  const lignes = suiviCycle(c, seances, dateISO()).semaines.filter((x) => x.lundi <= fin && (x.etat === 'tenue' || x.etat === 'manquee'))
+/** Semaines tenues du cycle jusqu'à `fin`. Lues depuis le lundi de la semaine ouverte : le dimanche, celle qui s'achève compte. */
+function tenuesDuCycle(c: Cycle, seances: Seance[], fin: string, ouverte: string) {
+  const lignes = suiviCycle(c, seances, ouverte).semaines.filter((x) => x.lundi <= fin && (x.etat === 'tenue' || x.etat === 'manquee'))
   return { n: lignes.filter((x) => x.etat === 'tenue').length, sur: lignes.length }
 }
 

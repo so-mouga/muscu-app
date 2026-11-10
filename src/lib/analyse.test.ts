@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, analyserDates, aRetenir, erreurDates, essentiel, lecturePhase, libelleMesure, semainesEntieres, semainesFinies, type Analyse } from './analyse'
+import { analyser, analyserDates, aRetenir, erreurDates, essentiel, lecturePhase, libelleMesure, semaineOuverte, semainesEntieres, semainesFinies, type Analyse } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -361,5 +361,19 @@ describe('séance allégée pour un seul jour', () => {
     const forte = seance('f', '2026-10-14', [90, 90], { deload: true, allegeeSeule: true })
     const r = analyser(donnees([...normales, forte]), '2026-10-05', '2026-11-01', 1)
     expect(r.records.filter((x) => x.date === '2026-10-14')).toEqual([])
+  })
+})
+
+describe('semaine que le Bilan ne lit pas encore', () => {
+  it('en semaine, la semaine en cours ; le dimanche, la suivante', () => {
+    expect(semaineOuverte(new Date('2026-11-09T09:00:00'))).toBe('2026-11-09')
+    expect(semaineOuverte(new Date('2026-11-14T22:00:00'))).toBe('2026-11-09')
+    expect(semaineOuverte(new Date('2026-11-15T08:00:00'))).toBe('2026-11-16')
+    expect(semaineOuverte(new Date('2026-11-16T07:00:00'))).toBe('2026-11-16')
+  })
+
+  it('le dimanche, une première semaine compte déjà', () => {
+    expect(semainesFinies(['2026-11-09', '2026-11-11'], semaineOuverte(new Date('2026-11-15T10:00:00')))).toBe(1)
+    expect(semainesFinies(['2026-11-09', '2026-11-11'], semaineOuverte(new Date('2026-11-14T10:00:00')))).toBe(0)
   })
 })

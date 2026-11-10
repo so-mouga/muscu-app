@@ -1,7 +1,7 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
 import type { Exercice, Muscle, Serie } from '../types'
-import { chargeQte, dateISO, estDure, heuresMinutes, kg, kgSouleves, volumeParMuscle } from './calc'
+import { chargeQte, dateISO, estDure, heuresMinutes, jourSemaine, kg, kgSouleves, lundi, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
 import { dureeReelle, evolutionForce, evolutionPct, scoreSerie, seanceSemaineAllegee, semaineDe } from './historique'
 import { nomPhase, phaseA, type Phase } from './objectifs'
@@ -197,6 +197,19 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
 }
 
 /** Semaines finies depuis la semaine de la première séance : les jauges de muscles attendent d'en avoir 2, une seule semaine ne juge rien. */
+/**
+ * Lundi de la première semaine que le Bilan ne lit pas encore. D'habitude, la semaine en cours ; le dimanche, la
+ * suivante : la semaine qui s'achève compte déjà, pour faire son point avant d'attaquer la nouvelle (choix de
+ * l'utilisateur, 10 nov. 2026). Le lundi ne juge toujours rien.
+ */
+export function semaineOuverte(d = new Date()): string {
+  const l = lundi(d)
+  if (jourSemaine(d) !== 7) return l
+  const x = new Date(l + 'T12:00:00')
+  x.setDate(x.getDate() + 7)
+  return dateISO(x)
+}
+
 export function semainesFinies(dates: string[], lundiCetteSemaine: string): number {
   if (!dates.length) return 0
   const premiere = semaineDe(dates.reduce((x, d) => (d < x ? d : x)))
