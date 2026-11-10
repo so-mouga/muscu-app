@@ -6424,3 +6424,15 @@ button.jour-pas {
   width: 100%;
   resize: none;
 }
+/* Image du bilan : un lien discret sous le texte, qui reste l'action principale. */
+.partage-image {
+  min-height: var(--cible);
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-family: inherit;
+  font-size: var(--t-petit);
+}
+.partage-image:disabled {
+  opacity: 0.6;
+}
