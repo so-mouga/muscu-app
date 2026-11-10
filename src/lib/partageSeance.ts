@@ -1,6 +1,6 @@
 import { mouvement, MOUVEMENTS, type MouvementEchauffement } from '../data/echauffements'
-import type { Cycle, Exercice, ExoPlan, Seance, Serie, TypeSerie } from '../types'
-import { chargeQte, cibleTexte, dateCourte, duree, dureeSeanceEffective, kg, sensationSeance } from './calc'
+import type { Cycle, Exercice, ExoPlan, JourJournal, Seance, Serie, TypeSerie } from '../types'
+import { chargeQte, cibleTexte, dateCourte, dateISO, duree, dureeSeanceEffective, heuresMinutes, kg, sensationSeance } from './calc'
 import { etatCycle } from './cycle'
 import { historiqueDe } from './historique'
 import { nomPhase, phaseA, type EtapeObjectifs } from './objectifs'
@@ -16,6 +16,8 @@ export interface DonneesSeance {
   /** Cycle de la séance, s'il est connu. */
   cycle?: Cycle
   mouvements?: MouvementEchauffement[]
+  /** Journal de la veille et du jour : pas de la veille, nuit d'avant la séance. */
+  journal?: JourJournal[]
 }
 
 /** La question posée en tête du texte, selon qu'il y a un conseil à juger ou non. */
@@ -103,6 +105,13 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
   if (phase) l.push(`Phase : ${nomPhase(phase.phase)}`)
   const sens = sensationSeance(seance)
   if (sens) l.push(`Sensation : ${sens.label}`)
+  // Les pas de la veille (ceux du jour ne sont pas finis au moment de la séance) et la nuit d'avant.
+  const veille = new Date(seance.date + 'T12:00:00')
+  veille.setDate(veille.getDate() - 1)
+  const pas = d.journal?.find((j) => j.date === dateISO(veille))?.pas
+  const nuit = d.journal?.find((j) => j.date === seance.date)?.sommeil
+  const forme = [pas !== undefined && `${pas.toLocaleString('fr-FR').replace(/\s/g, ' ')} pas la veille`, nuit !== undefined && `nuit d’avant : ${heuresMinutes(nuit)}`].filter(Boolean)
+  if (forme.length) l.push(`Forme : ${forme.join(' · ')}`)
   l.push('Effort sur 10 : 8/10 = il reste environ 2 reps avant l’échec. Fourchette 8–12 : la charge monte quand toutes les séries atteignent le haut.')
 
   const faits = (seance.echauffement?.faits ?? []).map((id) => mouvement(id, d.mouvements ?? MOUVEMENTS)).filter((x) => !!x)

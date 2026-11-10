@@ -526,7 +526,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
         </section>
       )}
 
-      {(a.sommeil || notesCalories > 0 || a.poids) && (
+      {(a.sommeil || a.pas || notesCalories > 0 || a.poids) && (
         <section className="carte bilan-carte">
           <h3>Forme</h3>
           {a.sommeil && (
@@ -535,6 +535,12 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
               <strong>
                 {Math.floor(a.sommeil.moyenne)} h {String(Math.round((a.sommeil.moyenne % 1) * 60)).padStart(2, '0')}
               </strong>
+            </div>
+          )}
+          {a.pas && (
+            <div className="ligne entre bilan-forme">
+              <span>Pas par jour</span>
+              <strong>{a.pas.moyenne.toLocaleString('fr-FR')}</strong>
             </div>
           )}
           {notesCalories > 0 && (

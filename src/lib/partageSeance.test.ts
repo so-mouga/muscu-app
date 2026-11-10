@@ -33,6 +33,13 @@ describe('texte d’une séance à partager', () => {
     expect(t).toContain('Sensation : Bien')
     expect(t).toContain('8/10 = il reste environ 2 reps')
     expect(t).toContain('Échauffement : moulinets de bras 10 par sens')
+    expect(t).not.toContain('Forme :')
+  })
+
+  it('les pas de la veille et la nuit d’avant, s’ils sont connus', () => {
+    const avecJournal = texteSeance(jour, { ...donnees, journal: [{ date: '2026-11-08', pas: 13240 }, { date: '2026-11-09', sommeil: 7.17, sommeilMontre: true }] }, true)
+    expect(avecJournal).toContain('Sensation : Bien\nForme : 13 240 pas la veille · nuit d’avant : 7 h 10')
+    expect(texteSeance(jour, { ...donnees, journal: [{ date: '2026-11-09', pas: 4000 }] }, true)).not.toContain('Forme :')
   })
 
   it('chaque exercice : prévu, fait avec l’effort, la fois d’avant, la note', () => {

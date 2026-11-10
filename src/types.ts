@@ -181,6 +181,10 @@ export interface JourJournal {
   calories?: 'ok' | 'trop' | 'pasAssez'
   /** Calories réelles si connues (plus tard : Health Connect). */
   kcal?: number
+  /** Pas du jour, lus dans Health Connect (montre ou téléphone). Jamais saisis à la main. */
+  pas?: number
+  /** Le sommeil vient de la montre : relu à chaque lecture, sauf une fois corrigé à la main. */
+  sommeilMontre?: boolean
 }
 
 export interface Pesee {

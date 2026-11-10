@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Health Connect demande Android 8 ; en dessous, SantePlugin ne l'appelle jamais. -->
+    <uses-sdk tools:overrideLibrary="androidx.health.connect.client" />
 
     <application
         android:allowBackup="true"
@@ -25,6 +29,23 @@
         </activity>
 
         <receiver android:name=".ReposReceiver" android:exported="false" />
+
+        <!-- Health Connect : page « ce que Cran fait de tes données », exigée pour demander les autorisations. -->
+        <activity android:name=".ConfidentialiteSante" android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+        <activity-alias
+            android:name="VoirUsageSante"
+            android:exported="true"
+            android:targetActivity=".ConfidentialiteSante"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Rappel de séance : son heure, et le replanifier après un redémarrage ou une mise à jour. -->
         <receiver android:name=".RappelReceiver" android:exported="true">
@@ -60,4 +81,10 @@
     <!-- Photos du corps : viseur de l'appli (repère de la photo précédente, retardateur). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Pas et sommeil de la montre ou du téléphone, lus dans Health Connect (APK 2.5). -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
 </manifest>

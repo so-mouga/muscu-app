@@ -25,6 +25,7 @@ public class MainActivity extends BridgeActivity {
         long limite = SystemClock.uptimeMillis() + ATTENTE_MAX_LOGO;
         SplashScreen.installSplashScreen(this).setKeepOnScreenCondition(() -> !appliPrete && SystemClock.uptimeMillis() < limite);
         registerPlugin(MinuteurReposPlugin.class);
+        registerPlugin(SantePlugin.class);
         super.onCreate(savedInstanceState);
         bridge.getWebView().setBackgroundColor(Color.parseColor("#0C0B0A"));
         // Toute première ouverture sans réseau : le site n'est pas encore en cache, on le dit clairement.

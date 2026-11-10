@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { db, exoAvecReglages } from '../db'
+import { dateISO } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { partagerTexte } from '../lib/partage'
 import { texteSeance } from '../lib/partageSeance'
@@ -17,8 +18,11 @@ export default function PartageSeance({ seance, avant, reglages, catalogue, onFe
   const [avecAvant, setAvecAvant] = useState(true)
   const mouvements = useMouvements()
   const cycle = useLiveQuery(async () => (seance.cycleId ? await db.cycles.get(seance.cycleId) : undefined), [seance.cycleId])
+  const veille = new Date(seance.date + 'T12:00:00')
+  veille.setDate(veille.getDate() - 1)
+  const journal = useLiveQuery(() => db.journal.where('date').anyOf([dateISO(veille), seance.date]).toArray(), [seance.date])
   useRetour(true, onFermer)
-  const texte = texteSeance(seance, { exo: (id) => exoAvecReglages(catalogue.exo(id), reglages), avant, objectifs: catalogue.objectifs, cycle, mouvements }, avecAvant)
+  const texte = texteSeance(seance, { exo: (id) => exoAvecReglages(catalogue.exo(id), reglages), avant, objectifs: catalogue.objectifs, cycle, mouvements, journal }, avecAvant)
 
   const envoyer = async () => {
     try {

@@ -541,6 +541,14 @@ function JourChoisi({
         </div>
       )}
 
+      {/* Lus dans Health Connect : rien à toucher, d'où une simple ligne. */}
+      {!aVenir && journal?.pas !== undefined && (
+        <div className="ligne entre jour-pas">
+          <span className="faible">{date === dateISO() ? 'Pas jusqu’ici' : 'Pas'}</span>
+          <strong>{journal.pas.toLocaleString('fr-FR')}</strong>
+        </div>
+      )}
+
       {!aVenir && cleUne && mesure && (
         <button type="button" className="ligne-jour-detail" onClick={() => setVoirMesures(true)}>
           <span>

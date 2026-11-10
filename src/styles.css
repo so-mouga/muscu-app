@@ -6383,3 +6383,9 @@ button.semaine-cycle.courante {
 /* % d'un échauffement : tapable au clavier, souligné en pointillé, sans case (une case lui donnait le poids des reps). */
 .chauffe-pct { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: var(--cible); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .chauffe-pct input { width: 1.9em; height: auto; padding: 2px 2px 1px 0; margin-right: 2px; border: 0; border-bottom: 2px dotted var(--texte-3); border-radius: 0; background: none; color: var(--texte); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Pas du jour (Health Connect) sous les cases du Journal : une ligne, rien à toucher. */
+.jour-pas {
+  padding: var(--e2) var(--e1);
+  font-size: var(--t-petit);
+}

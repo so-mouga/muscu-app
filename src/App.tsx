@@ -8,6 +8,7 @@ import { dateISO } from './lib/calc'
 import { suivreProgramme } from './lib/cycle'
 import { CLE_DEMARRAGE, type EtatDemarrage } from './lib/demarrage'
 import { CLE_RAPPEL, joursRappel, natif, RAPPEL_DEFAUT, reglerRappel, seanceDuJourNatif, type Rappel } from './lib/natif'
+import { synchroniserSante } from './lib/sante'
 import Accueil from './screens/Accueil'
 import Corps, { type PageCorps } from './screens/Corps'
 import Demarrage, { type ModeDemarrage } from './components/Demarrage'
@@ -91,6 +92,14 @@ export default function App() {
     void db.cycles.update(c.id, suivreProgramme(c, catalogue.programmes.find((p) => p.id === c.programmeId), catalogue.modele))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ecartCycle])
+  // Pas et sommeil de la montre (Health Connect), relus à l'ouverture et à chaque retour dans l'appli.
+  useEffect(() => {
+    if (!natif) return
+    const lire = () => document.visibilityState === 'visible' && void synchroniserSante().catch(() => undefined)
+    lire()
+    document.addEventListener('visibilitychange', lire)
+    return () => document.removeEventListener('visibilitychange', lire)
+  }, [])
   // Une séance déjà faite (ou commencée) aujourd'hui : pas de rappel ce soir.
   const faiteAujourdhui = useLiveQuery(() => db.seances.where('date').equals(dateISO()).count(), [], 0)
   useEffect(() => void (natif && faiteAujourdhui > 0 && seanceDuJourNatif(dateISO())), [faiteAujourdhui])

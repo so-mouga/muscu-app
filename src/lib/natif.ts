@@ -104,7 +104,7 @@ export const appliPrete = () => {
 }
 
 /** Version de l'appli Android installée ; la 1.1 ne savait pas encore la donner. */
-async function versionInstallee(): Promise<string | null> {
+export async function versionInstallee(): Promise<string | null> {
   if (!natif) return null
   try {
     return (await MinuteurRepos.version()).versionName

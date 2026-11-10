@@ -49,6 +49,8 @@ export interface Analyse {
   poids: { debut: number; fin: number; semaines: number } | null
   /** Sommeil moyen (heures) sur les nuits notées. */
   sommeil: { moyenne: number; nuits: number } | null
+  /** Pas par jour lus dans Health Connect (jours finis seulement : celui d'aujourd'hui n'est pas complet). */
+  pas: { moyenne: number; min: number; max: number; jours: number } | null
   /** Jours notés face à l'objectif calories. */
   calories: { ok: number; trop: number; pasAssez: number }
   mesures: { cle: string; debut: number; fin: number }[]
@@ -182,7 +184,12 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
       const jours = (d.journal ?? []).filter((j) => j.date >= debutEffectif && j.date <= fin)
       const nuits = jours.filter((j) => j.sommeil !== undefined).map((j) => j.sommeil!)
       const n = (c: string) => jours.filter((j) => j.calories === c).length
-      return { sommeil: nuits.length ? { moyenne: moyenne(nuits)!, nuits: nuits.length } : null, calories: { ok: n('ok'), trop: n('trop'), pasAssez: n('pasAssez') } }
+      const pas = jours.filter((j) => j.pas !== undefined && j.date < dateISO()).map((j) => j.pas!)
+      return {
+        sommeil: nuits.length ? { moyenne: moyenne(nuits)!, nuits: nuits.length } : null,
+        pas: pas.length ? { moyenne: Math.round(moyenne(pas)!), min: Math.min(...pas), max: Math.max(...pas), jours: pas.length } : null,
+        calories: { ok: n('ok'), trop: n('trop'), pasAssez: n('pasAssez') },
+      }
     })(),
     ressenti: notes((s) => s.ressenti),
     energie: notes((s) => s.energie),

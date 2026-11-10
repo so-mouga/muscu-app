@@ -135,7 +135,7 @@ export function FenetreJour({
             <h2>{titreSommeil}</h2>
             <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
               {HEURES.map(([h, txt]) => (
-                <button key={h} type="button" className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noterJournal(date, { sommeil: h }).then(onFermer)}>
+                <button key={h} type="button" className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noterJournal(date, { sommeil: h, sommeilMontre: false }).then(onFermer)}>
                   {txt}
                 </button>
               ))}

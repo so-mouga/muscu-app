@@ -23,7 +23,7 @@ Cran est un carnet d'entraînement pensé pour la salle : tu suis ton programme,
 • Poids avec moyenne sur 7 jours, mensurations avec l'écart depuis la dernière fois.
 • Photos de progression guidées (face, profil, dos), avec la photo précédente en transparence pour te placer pareil et un retardateur.
 • Compare deux dates côte à côte ou superposées, et zoome sur chaque photo.
-• Sommeil et calories notés en un appui : « dans l'objectif », « trop » ou « pas assez », sans rien compter.
+• Sommeil et calories notés en un appui : « dans l'objectif », « trop » ou « pas assez », sans rien compter. Avec une montre, tes pas et ton sommeil arrivent seuls depuis Health Connect.
 
 <b>Tes objectifs</b>
 • Sèche, maintien ou prise de masse, sur une période et avec un objectif de poids.

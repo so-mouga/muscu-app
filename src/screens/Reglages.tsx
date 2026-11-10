@@ -13,6 +13,8 @@ import { confirmer, informer } from '../components/Dialogues'
 import { ListeLexique } from '../components/Lexique'
 import ReglesConseils from '../components/ReglesConseils'
 import Interrupteur from '../components/Interrupteur'
+import { dateISO } from '../lib/calc'
+import { autoriserSante, CLE_SANTE, etatSante, santeDisponible, synchroniserSante, type EtatSante } from '../lib/sante'
 
 type PageReglages = 'sauvegarde' | 'conseils' | 'lexique'
 
@@ -140,6 +142,8 @@ function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglag
         />
         <RappelSeance />
       </div>
+
+      <MontreSante />
 
       <div className="carte">
         <h3>Aide</h3>
@@ -385,6 +389,64 @@ function RappelSeance() {
         <div className="faible">Pour le rappel de séance, il faut la dernière version de l’appli : installe-la depuis le bandeau de l’accueil, tes données sont gardées.</div>
       )}
     </>
+  )
+}
+
+/**
+ * Pas et sommeil de la montre ou du téléphone, lus dans Health Connect (APK 2.5) : un appui pour autoriser, puis
+ * Cran les relit seul. Rien dans le navigateur ; un APK plus ancien est invité à se mettre à jour.
+ */
+function MontreSante() {
+  const [dispo, setDispo] = useState<boolean | null>(null)
+  const [etat, setEtat] = useState<EtatSante | null>(null)
+  const actif = useLiveQuery(() => db.reglages.get(CLE_SANTE), [], null)
+  const hier = useLiveQuery(() => db.journal.get(dateISO(new Date(Date.now() - 86400000))), [])
+  useEffect(() => {
+    void santeDisponible().then((d) => {
+      setDispo(d)
+      if (d) void etatSante().then(setEtat).catch(() => setEtat({ disponible: false, pas: false, sommeil: false }))
+    })
+  }, [])
+  if (!natif || dispo === null || actif === null) return null
+  const branche = actif?.valeur === true && !!etat && (etat.pas || etat.sommeil)
+  const autoriser = async () => {
+    try {
+      const e = await autoriserSante()
+      setEtat(e)
+      if (e.pas || e.sommeil) await synchroniserSante(true)
+      else if (e.disponible) informer('Sans autorisation, Cran ne lit rien. Tu peux réessayer quand tu veux.', 'Rien d’autorisé')
+    } catch {
+      informer('Health Connect n’a pas répondu. Réessaie dans un instant.', 'Pas de réponse')
+    }
+  }
+  return (
+    <div className="carte pile">
+      <h3>Montre et pas</h3>
+      {!dispo ? (
+        <div className="faible">Pour lire tes pas et ton sommeil, il faut la dernière version de l’appli : installe-la depuis le bandeau de l’accueil, tes données sont gardées.</div>
+      ) : etat && !etat.disponible ? (
+        <div className="faible">Health Connect n’est pas sur ce téléphone : Cran ne peut pas lire tes pas.</div>
+      ) : branche ? (
+        <>
+          <div>
+            {[etat!.pas && 'Pas', etat!.sommeil && 'sommeil'].filter(Boolean).join(' et ')} lus dans Health Connect
+            <div className="faible">{hier?.pas !== undefined ? `Hier : ${hier.pas.toLocaleString('fr-FR')} pas` : 'Rien de lu pour hier pour l’instant.'} Le sommeil noté à la main n’est jamais remplacé.</div>
+          </div>
+          {!(etat!.pas && etat!.sommeil) && (
+            <button className="btn plein" onClick={() => void autoriser()}>
+              Autoriser aussi {etat!.pas ? 'le sommeil' : 'les pas'}
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="faible">Tes pas et ton sommeil, tels que ta montre ou ton téléphone les écrivent dans Health Connect. Ils remplissent la case Sommeil, ton Journal, ton Bilan et ce que tu partages. Rien ne quitte ton téléphone.</div>
+          <button className="btn plein" onClick={() => void autoriser()}>
+            Lire mes pas et mon sommeil
+          </button>
+        </>
+      )}
+    </div>
   )
 }
 
