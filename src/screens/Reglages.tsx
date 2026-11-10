@@ -430,7 +430,7 @@ function MontreSante() {
         <>
           <div>
             {[etat!.pas && 'Pas', etat!.sommeil && 'sommeil'].filter(Boolean).join(' et ')} lus dans Health Connect
-            <div className="faible">{hier?.pas !== undefined ? `Hier : ${hier.pas.toLocaleString('fr-FR')} pas` : 'Rien de lu pour hier pour l’instant.'} Le sommeil noté à la main n’est jamais remplacé.</div>
+            <div className="faible">{hier?.pas !== undefined ? `Hier : ${hier.pas.toLocaleString('fr-FR')} pas` : 'Rien de lu pour hier pour l’instant.'} Le sommeil de ta montre remplace celui noté à la main ; une nuit sans montre se note toujours.</div>
           </div>
           {!(etat!.pas && etat!.sommeil) && (
             <button className="btn plein" onClick={() => void autoriser()}>

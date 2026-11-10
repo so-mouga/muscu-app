@@ -29,8 +29,13 @@ describe('ce que la montre change dans le journal', () => {
     expect(majJour({ date: 'x', sommeil: 6.5, sommeilMontre: true }, undefined, 7.2)).toEqual({ sommeil: 7.2, sommeilMontre: true })
   })
 
-  it('le sommeil noté ou corrigé à la main n’est jamais remplacé', () => {
-    expect(majJour({ date: 'x', sommeil: 6 }, undefined, 7.2)).toBeNull()
-    expect(majJour({ date: 'x', sommeil: 6, sommeilMontre: false }, 12000, 7.2)).toEqual({ pas: 12000 })
+  it('la montre fait foi : sa nuit remplace celle notée à la main', () => {
+    expect(majJour({ date: 'x', sommeil: 6 }, undefined, 7.2)).toEqual({ sommeil: 7.2, sommeilMontre: true })
+    expect(majJour({ date: 'x', sommeil: 6, sommeilMontre: false }, 12000, 7.2)).toEqual({ pas: 12000, sommeil: 7.2, sommeilMontre: true })
+    expect(majJour({ date: 'x', sommeil: 7.2, sommeilMontre: true }, undefined, 7.2)).toBeNull()
+  })
+
+  it('sans nuit de la montre, la note à la main reste', () => {
+    expect(majJour({ date: 'x', sommeil: 6 }, 9000, undefined)).toEqual({ pas: 9000 })
   })
 })

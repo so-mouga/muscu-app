@@ -133,13 +133,26 @@ export function FenetreJour({
         {saisie === 'sommeil' && (
           <div className="pile">
             <h2>{titreSommeil}</h2>
-            <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
-              {HEURES.map(([h, txt]) => (
-                <button key={h} type="button" className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noterJournal(date, { sommeil: h, sommeilMontre: false }).then(onFermer)}>
-                  {txt}
+            {journal?.sommeilMontre && journal.sommeil !== undefined ? (
+              // La montre fait foi : sa nuit ne se modifie pas (choix de l'utilisateur, 10 nov. 2026).
+              <>
+                <div>
+                  Mesuré par ta montre : <strong>{heures(journal.sommeil)}</strong>
+                </div>
+                <div className="faible">Éveils retirés, lu dans Health Connect. C’est ce chiffre qui compte dans ton Bilan et ce que tu partages.</div>
+                <button type="button" className="btn plein" onClick={onFermer}>
+                  Fermer
                 </button>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="rpe" style={{ gridTemplateColumns: `repeat(${HEURES.length}, 1fr)` }}>
+                {HEURES.map(([h, txt]) => (
+                  <button key={h} type="button" className={journal?.sommeil === h ? 'actif' : ''} onClick={() => void noterJournal(date, { sommeil: h, sommeilMontre: false }).then(onFermer)}>
+                    {txt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {saisie === 'calories' && (

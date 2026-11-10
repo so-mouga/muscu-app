@@ -8,7 +8,8 @@ import { plusRecente } from './versions'
 /**
  * Pas et sommeil lus dans Health Connect (APK 2.5, `SantePlugin.kt`) : ce que la montre ou le téléphone y
  * écrivent. Rangés par jour dans le journal (`pas`, `sommeil`), ils remplissent la case Sommeil, le Journal, le
- * Bilan et les textes partagés. Le sommeil noté à la main n'est jamais écrasé. Rien dans le navigateur.
+ * Bilan et les textes partagés. La montre fait foi : sa nuit remplace ce qui a été noté à la main, et ne se modifie
+ * pas (choix de l'utilisateur, 10 nov. 2026). Une nuit sans données se note toujours à la main. Rien dans le navigateur.
  */
 export interface EtatSante {
   disponible: boolean
@@ -65,14 +66,13 @@ export function nuitsParJour(nuits: NuitBrute[]): Record<string, number> {
 }
 
 /**
- * Ce qui change dans le journal d'un jour avec ce que dit la montre : les pas toujours (le chiffre du jour grossit
- * jusqu'au soir), le sommeil seulement s'il n'a pas été noté à la main. Null si rien ne change.
+ * Ce qui change dans le journal d'un jour avec ce que dit la montre : les pas (le chiffre du jour grossit jusqu'au
+ * soir) et le sommeil, qui remplace une nuit notée à la main. Null si rien ne change.
  */
 export function majJour(j: JourJournal | undefined, pas: number | undefined, sommeil: number | undefined): Partial<JourJournal> | null {
   const c: Partial<JourJournal> = {}
   if (pas !== undefined && pas !== j?.pas) c.pas = pas
-  const sommeilALaMain = j?.sommeil !== undefined && !j.sommeilMontre
-  if (sommeil !== undefined && !sommeilALaMain && (sommeil !== j?.sommeil || !j?.sommeilMontre)) Object.assign(c, { sommeil, sommeilMontre: true })
+  if (sommeil !== undefined && (sommeil !== j?.sommeil || !j?.sommeilMontre)) Object.assign(c, { sommeil, sommeilMontre: true })
   return Object.keys(c).length ? c : null
 }
 
