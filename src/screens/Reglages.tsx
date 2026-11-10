@@ -434,7 +434,7 @@ function MontreSante() {
       ) : branche ? (
         <>
           <div>
-            {lus.join(', ').replace(/^./, (c) => c.toUpperCase())} lus dans Health Connect
+            {(lus.length > 1 ? `${lus.slice(0, -1).join(', ')} et ${lus[lus.length - 1]}` : lus[0]).replace(/^./, (c) => c.toUpperCase())} lus dans Health Connect
             <div className="faible">{resume ? `Hier : ${resume}.` : 'Rien de lu pour hier pour l’instant.'} Ce que disent ta montre et ton appli de repas remplace ce qui est noté à la main ; un jour sans données se note toujours.</div>
           </div>
           {manquent.length > 0 && (
