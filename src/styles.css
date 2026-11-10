@@ -6413,3 +6413,14 @@ button.jour-pas {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Question libre du bilan partagé, au-dessus de « Partager le texte complet ». */
+.partage-question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  width: 100%;
+}
+.partage-question textarea {
+  width: 100%;
+  resize: none;
+}

@@ -1,10 +1,12 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
 import type { Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
-import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, sensationSeance, serieTexte, volumeParMuscle } from './calc'
+import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, schemaPlan, sensationSeance, volumeParMuscle } from './calc'
+import { effort } from './partageProgramme'
+import { faitTexte } from './partageSeance'
 import { dureeReelle, evolutionForce, recordsParSeance, seanceSemaineAllegee, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
-import { moyenneRepas, texteRepas } from './nutrition'
+import { moyenneRepas, objectifDuJour, texteRepas } from './nutrition'
 import { diagnostic, texteBlocage } from './blocages'
 
 
@@ -45,7 +47,7 @@ export const debutPeriode = (semaines: number, aujourdhui = dateISO()) =>
  * Bilan d'entraînement en texte, à partager (coach, outil d'analyse) : vue d'ensemble, semaine par
  * semaine, volume et RPE par muscle, exercice par exercice, corps, autres sports, douleurs et notes.
  */
-export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), retenir: string[] = [], semainesCoupees = false): string {
+export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), retenir: string[] = [], semainesCoupees = false, question = ''): string {
   const periode = d.seances.filter((s) => s.date >= debut && s.date <= fin).sort((a, b) => a.debut - b.debut)
   const travail = periode.filter((s) => !s.deload)
   const records = recordsParSeance(d.seances, d.exo)
@@ -62,6 +64,8 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   const nbSemaines = semaines.length
   // Dates au choix : la vraie date de début, pas le lundi de sa semaine.
   const departEcrit = semaineDe(debut) === debut || depart > debut ? depart : debut
+  // La question de la semaine, si la personne en a écrit une : en tête, pour qu'une IA y réponde.
+  if (question.trim()) lignes.push(`Ma question cette semaine : ${question.trim()}`, '')
   lignes.push(`BILAN D'ENTRAÎNEMENT · du ${jour(departEcrit)} au ${jour(fin)} (${nbSemaines} semaine${nbSemaines > 1 ? 's' : ''})`)
   if (d.programme) lignes.push(`Programme : ${d.programme}`)
   if (d.cycle) lignes.push(d.cycle)
@@ -75,7 +79,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   }
   const dernierPoids = [...d.pesees].filter((p) => p.date <= fin).sort((a, b) => b.date.localeCompare(a.date))[0]
   if (dernierPoids) lignes.push(`Poids actuel : ${kg(dernierPoids.poids)} kg`)
-  lignes.push('Séries dures = RPE ≥ 7 (ou échec). RPE 10 = échec, 8 = 2 reps en réserve. PDC = poids du corps (+ lest).')
+  lignes.push('Effort sur 10 : 10 = échec, 8/10 = il reste environ 2 reps. Séries dures = effort 7/10 ou plus (ou échec). Fourchette 8–12 : la charge monte quand toutes les séries atteignent le haut.')
 
   if (retenir.length) {
     titre('À retenir')
@@ -142,18 +146,25 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     )
   }
 
-  // Exercice par exercice
-  titre('Exercices')
+  // Exercice par exercice : une ligne (ce qui est visé, la 1re et la dernière séance de la période), puis la force et
+  // les blocages. Pas toutes les séries : chaque séance se partage à part, et le texte doublerait (avis de l'IA de
+  // l'utilisateur, 10 nov. 2026). Les séances allégées ne servent ni de 1re ni de dernière.
+  titre('Exercices (ce qui est visé · 1re et dernière séance de la période)')
   const ids = [...new Set(periode.flatMap((s) => s.series.map((x) => x.exoId)))]
   for (const id of ids) {
     const exo = d.exo(id)
     const muscle = MUSCLES.find((m) => m.id === exo.muscle)?.nom ?? exo.muscle
-    lignes.push(`${exo.nom} (${muscle.toLowerCase()})`)
     const avec = periode.filter((s) => s.series.some((x) => x.exoId === id))
-    for (const s of avec) {
-      const series = s.series.filter((x) => x.exoId === id)
-      lignes.push(`  ${jour(s.date)}${s.allegeeSeule ? ' (séance allégée)' : s.deload ? ' (déload)' : ''} : ${series.map((x) => serieTexte(exo, x)).join(', ')}${series.some((x) => x.douleur) ? ' ⚠ douleur' : ''}`)
-    }
+    const normales = avec.filter((s) => !s.deload)
+    const plan = [...avec].reverse().map((s) => s.exercices.find((p) => p.exoId === id)).find((p) => p && p.series.length)
+    const fait = (s: Seance) => `${jour(s.date)} : ${faitTexte(exo, s.series.filter((x) => x.exoId === id))}`
+    const bornes = normales.length >= 2 ? [`1re (${fait(normales[0])})`, `dernière (${fait(normales[normales.length - 1])})`] : normales.length ? [`une séance (${fait(normales[0])})`] : []
+    const allegees = avec.length - normales.length
+    lignes.push(
+      [`${exo.nom} (${muscle.toLowerCase()})`, plan && `${schemaPlan(exo, plan)}, ${effort(plan)}`, ...bornes, allegees && `${allegees} séance${allegees > 1 ? 's' : ''} allégée${allegees > 1 ? 's' : ''} en plus`]
+        .filter(Boolean)
+        .join(' · ')
+    )
     // Tendance : meilleur 1RM estimé des séries de travail, des 2 premières aux 2 dernières séances (voir `evolutionForce`).
     const ev = evolutionForce(exo, avec.filter((s) => !s.deload))
     if (ev?.avant.e1rm && ev.apres.e1rm) {
@@ -168,15 +179,35 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   // Corps
   const pesees = d.pesees.filter((p) => p.date >= debut && p.date <= fin)
   const mesures = d.mesures.filter((m) => m.date >= debut && m.date <= fin).sort((a, b) => a.date.localeCompare(b.date))
-  if (pesees.length || mesures.length >= 2) {
+  const taille = [...d.mesures].filter((m) => m.date <= fin && m.valeurs.taille !== undefined).sort((a, b) => b.date.localeCompare(a.date))[0]
+  if (pesees.length || mesures.length >= 2 || taille) {
     titre('Corps')
     if (pesees.length) {
-      const moyennes = semaines
-        .map((l) => moyenne(pesees.filter((p) => semaineDe(p.date) === l).map((p) => p.poids)))
-        .filter((x): x is number => x !== null)
-      if (moyennes.length >= 2) lignes.push(`Poids moyen par semaine : ${moyennes.map((x) => kg(arrondi(x))).join(' / ')} kg (${ecart(moyennes[moyennes.length - 1] - moyennes[0], 'kg')})`)
-      else lignes.push(`Poids : ${pesees.map((p) => kg(p.poids)).join(', ')} kg`)
+      // Moyenne de chaque semaine pesée, avec le nombre de pesées sur les jours écoulés : une semaine à 3 pesées sur 7
+      // peut tromper (remarque de l'IA de l'utilisateur, 10 nov. 2026).
+      const aujourdhui = dateISO()
+      const parSemaine = semaines
+        .map((l) => {
+          const du = l < debut ? debut : l
+          const dim = dateISO(new Date(Date.parse(l + 'T12:00:00') + 6 * 86400000))
+          const au = [dim, fin, aujourdhui].sort()[0]
+          const jours = Math.round((Date.parse(au) - Date.parse(du)) / 86400000) + 1
+          const ps = pesees.filter((p) => semaineDe(p.date) === l)
+          return { l, moy: moyenne(ps.map((p) => p.poids)), n: ps.length, jours }
+        })
+        .filter((x): x is { l: string; moy: number; n: number; jours: number } => x.moy !== null)
+      lignes.push(`Poids moyen par semaine : ${parSemaine.map((x) => `sem. du ${jour(x.l)} ${kg(arrondi(x.moy, 2))} kg (${x.n}/${x.jours} pesée${x.n > 1 ? 's' : ''})`).join(' · ')}`)
+      if (parSemaine.length >= 2) {
+        const a = parSemaine[0]
+        const b = parSemaine[parSemaine.length - 1]
+        const ecartSem = Math.round((Date.parse(b.l) - Date.parse(a.l)) / SEMAINE)
+        const rythme = (b.moy - a.moy) / ecartSem
+        const phase = d.objectifs && phaseA(d.objectifs, fin)?.phase
+        const zone = phase === 'prise' ? ', zone visée en prise : +0,15 à +0,4 kg/semaine' : phase === 'seche' ? ', zone visée en sèche : −0,2 à −1 kg/semaine' : ''
+        lignes.push(`Rythme : ${ecart(rythme, 'kg')}/semaine (${ecart(b.moy - a.moy, 'kg')} en ${ecartSem} semaine${ecartSem > 1 ? 's' : ''}${zone})`)
+      }
     }
+    if (taille) lignes.push(`Dernier tour de taille : ${kg(taille.valeurs.taille)} cm (${jour(taille.date)})`)
     if (mesures.length >= 2) {
       const a = mesures[0]
       const b = mesures[mesures.length - 1]
@@ -207,6 +238,30 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
       const n = (c: string) => cal.filter((j) => j.calories === c).length
       lignes.push(`Calories face à l’objectif (${cal.length} jours notés${repas ? ' à la main' : ''}) : ${n('ok')} dans l’objectif, ${n('trop')} trop, ${n('pasAssez')} pas assez`)
     }
+  }
+
+  // Jour par jour, 7 derniers jours : tenir sa cible chaque jour, relier une mauvaise nuit à une mauvaise séance.
+  // Pas pour relier le poids d'un matin aux calories de la veille : l'eau et le sel masquent tout.
+  const septJours = Array.from({ length: 7 }, (_, k) => dateISO(new Date(Date.parse(fin + 'T12:00:00') - (6 - k) * 86400000))).filter((x) => x >= debut)
+  const lignesJours = septJours
+    .map((date) => {
+      const j = d.journal?.find((x) => x.date === date)
+      const poids = d.pesees.find((p) => p.date === date)?.poids
+      const ss = periode.filter((s) => s.date === date)
+      const parts = [
+        poids !== undefined && `${kg(poids)} kg`,
+        j?.kcal !== undefined && j.kcalAppli ? `${nombre(j.kcal)} kcal${j.proteines !== undefined ? ` (protéines ${j.proteines} g)` : ''}` : j?.calories && `calories ${j.calories === 'ok' ? 'tenues' : j.calories === 'trop' ? 'trop' : 'pas assez'}`,
+        j?.pas !== undefined && `${nombre(j.pas)} pas`,
+        j?.sommeil !== undefined && `nuit ${heuresMinutes(j.sommeil)}`,
+        ss.length && `séance ${ss.map((s) => s.nom).join(', ')}`,
+      ].filter(Boolean)
+      return parts.length ? `${dateCourte(date)}${date === dateISO() ? ' (en cours)' : ''} : ${parts.join(' · ')}` : null
+    })
+    .filter((x): x is string => !!x)
+  if (lignesJours.length) {
+    const obj = d.objectifs && objectifDuJour(d.objectifs, fin)
+    titre(`Jour par jour, 7 derniers jours${obj ? ` (objectif ${nombre(obj.kcal)} kcal)` : ''}`)
+    lignes.push(...lignesJours)
   }
 
   // Notes

@@ -225,7 +225,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
     )
   const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}`, valeur: p.pct !== undefined ? `+${kg(arrondi(p.pct))} %` : undefined })))
 
-  const texteComplet = () => genererBilan(donnees, a.debut, fin, aRetenir(a, avant.seances > 0 ? avant : null, cibles, false, phaseFin, depuisPhase), !!surChoix?.coupees)
+  const texteComplet = (question = '') => genererBilan(donnees, a.debut, fin, aRetenir(a, avant.seances > 0 ? avant : null, cibles, false, phaseFin, depuisPhase), !!surChoix?.coupees, question)
   const debutEcrit = surDates ? debut : a.debut
   const contenuImage: ContenuImage = {
     periode: `${jour(debutEcrit)} → ${jour(fin)}`,

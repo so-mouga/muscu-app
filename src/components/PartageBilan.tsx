@@ -8,7 +8,9 @@ import { informer } from './Dialogues'
 const annule = (e: unknown) => (e as Error).name === 'AbortError'
 
 /** Partager le bilan : une image à montrer (sans poids ni corps), ou le texte complet pour un coach ou une IA. */
-export default function PartageBilan({ contenu, texte, onFermer }: { contenu: ContenuImage; texte: () => string; onFermer: () => void }) {
+export default function PartageBilan({ contenu, texte, onFermer }: { contenu: ContenuImage; texte: (question: string) => string; onFermer: () => void }) {
+  // Question libre, facultative, en tête du texte : « j'ai mal au coude », « je pars ce week-end » (idée de l'IA de l'utilisateur).
+  const [question, setQuestion] = useState('')
   const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null)
   const [imageRatee, setImageRatee] = useState(false)
   useRetour(true, onFermer)
@@ -42,7 +44,7 @@ export default function PartageBilan({ contenu, texte, onFermer }: { contenu: Co
   }
   const envoyerTexte = async () => {
     try {
-      const fait = await partagerTexte('Bilan d’entraînement', texte())
+      const fait = await partagerTexte('Bilan d’entraînement', texte(question))
       onFermer()
       if (fait === 'copie') void informer('Le bilan complet est copié : colle-le où tu veux.', 'Copié')
     } catch (e) {
@@ -62,6 +64,10 @@ export default function PartageBilan({ contenu, texte, onFermer }: { contenu: Co
           <button type="button" className="btn primaire" disabled={!image} onClick={() => void envoyerImage()}>
             Partager l’image
           </button>
+          <label className="partage-question">
+            <span className="faible petit-texte">Ma question cette semaine (facultatif)</span>
+            <textarea rows={2} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Par exemple : j’ai mal au coude, je pars ce week-end" />
+          </label>
           <button type="button" className="btn" onClick={() => void envoyerTexte()}>
             Partager le texte complet
           </button>

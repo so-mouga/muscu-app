@@ -75,8 +75,8 @@ function seriesPartage(exo: Exercice, series: Serie[]): string {
   return parties.join(' · ')
 }
 
-/** « 70 kg × 12, 12, 11 · effort 8, 8, 9/10 », et la douleur si elle a été notée. */
-function faitTexte(exo: Exercice, series: Serie[]): string {
+/** « 70 kg × 12, 12, 11 · effort 8, 8, 9/10 », et la douleur si elle a été notée. Aussi pour le texte du Bilan. */
+export function faitTexte(exo: Exercice, series: Serie[]): string {
   const douleurs = series.flatMap((x, k) => (x.douleur ? [k + 1] : []))
   return [
     seriesPartage(exo, series),

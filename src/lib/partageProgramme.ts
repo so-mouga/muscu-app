@@ -25,7 +25,7 @@ export interface DonneesProgramme {
 }
 
 /** « effort 8/10 », « effort 7, 8/10 » si l'effort change d'une série à l'autre. */
-const effort = (p: ExoPlan) => `effort ${[...new Set(p.series.map((s) => kg(Math.round(s.rpe))))].join(', ')}/10`
+export const effort = (p: ExoPlan) => `effort ${[...new Set(p.series.map((s) => kg(Math.round(s.rpe))))].join(', ')}/10`
 
 /** Ligne d'un exercice : séries, effort, repos ou superset, et ce qui le distingue. */
 export function ligneExo(exo: Exercice, p: ExoPlan, i: number): string {

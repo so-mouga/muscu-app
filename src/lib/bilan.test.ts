@@ -41,10 +41,12 @@ describe('bilan à partager', () => {
     expect(t).toContain('2 séances')
     expect(t).toContain('Pecs : 3/sem. (objectif 10) · RPE moyen 8 · par semaine : 3 / 3')
     expect(t).toContain('Développé incliné Smith (pecs)')
-    expect(t).toContain('50 kg × 10 @8')
+    expect(t).toContain('Développé incliné Smith (pecs) · 1re (20 oct. : 50 kg × 10, 10, 10 · effort 8, 8, 8/10) · dernière (27 oct. : 52,5 kg × 10, 10, 10 · effort 8, 8, 8/10)')
+    expect(t).not.toContain('@8')
     expect(t).toContain('Force estimée : 70 → 73,5 kg (+5 %)')
     expect(t).toContain('(2 semaines)')
-    expect(t).toContain('Poids moyen par semaine : 74 / 73,4 kg (−0,6 kg)')
+    expect(t).toContain('Poids moyen par semaine : sem. du 19 oct. 74 kg (1/7 pesée) · sem. du 26 oct. 73,4 kg (1/4 pesée)')
+    expect(t).toContain('Rythme : −0,6 kg/semaine (−0,6 kg en 1 semaine)')
     expect(t).toContain('Siège cran 4')
   })
   it('sans séance : le dit simplement', () => {
@@ -99,5 +101,31 @@ describe('texte du bilan et séance allégée pour un seul jour', () => {
     expect(t).toMatch(/séance allégée/)
     expect(t).not.toMatch(/· déload/)
     expect(t).not.toMatch(/\(déload\)/)
+  })
+
+  it('ce qui est visé à côté de l’exercice, et les types de série en mots', () => {
+    const plan = { exoId: 'smith_incline', repos: 120, charge: 50, chauffes: [], finisseur: false, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })) }
+    const s2 = seance('s2', '2026-10-27', [52.5, 52.5], { exercices: [plan] })
+    s2.series.push({ id: 'd', exoId: 'smith_incline', type: 'drop', charge: 52.5, reps: 8, rpe: 10, heure: 0, suite: [{ charge: 40, reps: 6 }] })
+    const t = genererBilan(donnees([seance('s1', '2026-10-20', [50, 50, 50]), s2]), '2026-10-19', '2026-10-29')
+    expect(t).toContain('Développé incliné Smith (pecs) · 3 × 8–12, effort 8/10 · 1re')
+    expect(t).toContain('dégressive : 52,5 kg × 8, puis 40 kg × 6')
+    expect(t).toContain('Effort sur 10 : 10 = échec')
+  })
+
+  it('question de la semaine en tête, tour de taille, et jour par jour sur 7 jours', () => {
+    const d = {
+      ...donnees([seance('s0', '2026-10-20', [50, 50, 50]), seance('s1', '2026-10-27', [50, 50, 50])]),
+      mesures: [{ date: '2026-10-26', valeurs: { taille: 83 } }],
+      journal: [{ date: '2026-10-27', kcal: 2232, proteines: 141, kcalAppli: true, pas: 10778, sommeil: 6.75 }],
+      objectifs: [{ depuis: '2026-10-01', phase: 'prise' as const, volume: {}, calories: 2300 }],
+    }
+    const t = genererBilan(d, '2026-10-19', '2026-10-29', [], false, ' j’ai mal au coude ')
+    expect(t.startsWith('Ma question cette semaine : j’ai mal au coude\n\nBILAN')).toBe(true)
+    expect(t).toContain('Dernier tour de taille : 83 cm (26 oct.)')
+    expect(t).toContain('== Jour par jour, 7 derniers jours (objectif 2 300 kcal) ==')
+    expect(t).toContain('mar. 27 oct. : 73,4 kg · 2 232 kcal (protéines 141 g) · 10 778 pas · nuit 6 h 45 · séance Haut A')
+    expect(t).toContain('zone visée en prise : +0,15 à +0,4 kg/semaine')
+    expect(genererBilan(d, '2026-10-19', '2026-10-29')).not.toContain('Ma question')
   })
 })
