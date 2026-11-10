@@ -5,6 +5,7 @@ import androidx.activity.result.ActivityResult
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
@@ -28,8 +29,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * Pas et sommeil lus dans Health Connect (src/lib/sante.ts) : ce que la montre (Mi Fitness, Samsung Health…) ou
- * le téléphone y écrivent. Lecture seulement, appli au premier plan, rien n'est envoyé ailleurs.
+ * Pas, sommeil et nutrition lus dans Health Connect (src/lib/sante.ts) : ce que la montre (Mi Fitness, Samsung
+ * Health…), le téléphone ou l'appli de repas (MyFitnessPal…) y écrivent. Lecture seulement, appli au premier plan, rien n'est envoyé ailleurs.
  */
 @CapacitorPlugin(name = "Sante")
 class SantePlugin : Plugin() {
@@ -38,7 +39,8 @@ class SantePlugin : Plugin() {
 
     private val lirePas = HealthPermission.getReadPermission(StepsRecord::class)
     private val lireSommeil = HealthPermission.getReadPermission(SleepSessionRecord::class)
-    private val demandees = setOf(lirePas, lireSommeil)
+    private val lireNutrition = HealthPermission.getReadPermission(NutritionRecord::class)
+    private val demandees = setOf(lirePas, lireSommeil, lireNutrition)
 
     /** Health Connect existe sur ce téléphone (intégré depuis Android 14). */
     private fun disponible(): Boolean =
@@ -51,13 +53,14 @@ class SantePlugin : Plugin() {
         r.put("disponible", true)
         r.put("pas", accordees.contains(lirePas))
         r.put("sommeil", accordees.contains(lireSommeil))
+        r.put("nutrition", accordees.contains(lireNutrition))
         return r
     }
 
     @PluginMethod
     fun etat(call: PluginCall) {
         if (!disponible()) {
-            call.resolve(JSObject().put("disponible", false).put("pas", false).put("sommeil", false))
+            call.resolve(JSObject().put("disponible", false).put("pas", false).put("sommeil", false).put("nutrition", false))
             return
         }
         portee.launch {
@@ -73,7 +76,7 @@ class SantePlugin : Plugin() {
     @PluginMethod
     fun autoriser(call: PluginCall) {
         if (!disponible()) {
-            call.resolve(JSObject().put("disponible", false).put("pas", false).put("sommeil", false))
+            call.resolve(JSObject().put("disponible", false).put("pas", false).put("sommeil", false).put("nutrition", false))
             return
         }
         val intent = PermissionController.createRequestPermissionResultContract().createIntent(context, demandees)
@@ -123,8 +126,25 @@ class SantePlugin : Plugin() {
                         nuits.put(JSObject().put("debut", s.startTime.toEpochMilli()).put("fin", s.endTime.toEpochMilli()).put("minutes", (total - eveille).coerceAtLeast(0)))
                     }
                 }
+                // Repas : total du jour (calories et macros), dédoublonné par Health Connect.
+                val repas = JSArray()
+                if (accordees.contains(lireNutrition)) {
+                    val debut = LocalDate.now().minusDays(jours - 1).atStartOfDay()
+                    val fin = LocalDate.now().plusDays(1).atStartOfDay()
+                    val mesures = setOf(NutritionRecord.ENERGY_TOTAL, NutritionRecord.PROTEIN_TOTAL, NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL, NutritionRecord.TOTAL_FAT_TOTAL)
+                    val groupes = c.aggregateGroupByPeriod(AggregateGroupByPeriodRequest(mesures, TimeRangeFilter.between(debut, fin), Period.ofDays(1)))
+                    for (g in groupes) {
+                        val kcal = g.result[NutritionRecord.ENERGY_TOTAL]?.inKilocalories ?: continue
+                        val o = JSObject().put("date", g.startTime.toLocalDate().toString()).put("kcal", kcal)
+                        g.result[NutritionRecord.PROTEIN_TOTAL]?.let { o.put("proteines", it.inGrams) }
+                        g.result[NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL]?.let { o.put("glucides", it.inGrams) }
+                        g.result[NutritionRecord.TOTAL_FAT_TOTAL]?.let { o.put("lipides", it.inGrams) }
+                        repas.put(o)
+                    }
+                }
                 r.put("pas", pas)
                 r.put("nuits", nuits)
+                r.put("repas", repas)
                 call.resolve(r)
             } catch (e: Exception) {
                 call.reject(e.message ?: "Lecture impossible")

@@ -4,6 +4,7 @@ import type { Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from
 import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, sensationSeance, serieTexte, volumeParMuscle } from './calc'
 import { dureeReelle, evolutionForce, recordsParSeance, seanceSemaineAllegee, semaineDe } from './historique'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
+import { moyenneRepas, texteRepas } from './nutrition'
 import { diagnostic, texteBlocage } from './blocages'
 
 
@@ -188,19 +189,23 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   // Sommeil, pas et calories (notés le matin, ou lus dans Health Connect)
   const jours = (d.journal ?? []).filter((j) => j.date >= debut && j.date <= fin)
   const nuits = jours.filter((j) => j.sommeil !== undefined).map((j) => j.sommeil!)
-  const cal = jours.filter((j) => j.calories)
-  // Le jour même n'est pas fini : ses pas ne comptent pas encore.
-  const pas = jours.filter((j) => j.pas !== undefined && j.date < dateISO()).map((j) => j.pas!)
-  if (nuits.length || cal.length || pas.length) {
+  // Le jour même n'est pas fini : ses pas et ses repas ne comptent pas encore.
+  const finis = jours.filter((j) => j.date < dateISO())
+  const repas = moyenneRepas(finis, d.objectifs)
+  // Avec le vrai total, le verdict n'apprend rien de plus : seuls les jours notés à la main le gardent.
+  const cal = jours.filter((j) => j.calories && !j.kcalAppli)
+  const pas = finis.filter((j) => j.pas !== undefined).map((j) => j.pas!)
+  if (nuits.length || cal.length || pas.length || repas) {
     titre(pas.length ? 'Sommeil, pas et calories' : 'Sommeil et calories')
     if (nuits.length) {
       const m = moyenne(nuits)!
       lignes.push(`Sommeil moyen : ${heuresMinutes(m)} (${nuits.length} nuit${nuits.length > 1 ? 's' : ''} notée${nuits.length > 1 ? 's' : ''}, min ${kg(Math.min(...nuits))} h)`)
     }
     if (pas.length) lignes.push(`Pas : ${nombre(Math.round(moyenne(pas)!))} par jour en moyenne (de ${nombre(Math.min(...pas))} à ${nombre(Math.max(...pas))}, ${pas.length} jour${pas.length > 1 ? 's' : ''}, lus sur la montre ou le téléphone)`)
+    if (repas) lignes.push(`Repas (${repas.jours} jour${repas.jours > 1 ? 's' : ''}, lus dans l’appli de repas), en moyenne par jour : ${texteRepas(repas)}`)
     if (cal.length) {
       const n = (c: string) => cal.filter((j) => j.calories === c).length
-      lignes.push(`Calories face à l’objectif (${cal.length} jours notés) : ${n('ok')} dans l’objectif, ${n('trop')} trop, ${n('pasAssez')} pas assez`)
+      lignes.push(`Calories face à l’objectif (${cal.length} jours notés${repas ? ' à la main' : ''}) : ${n('ok')} dans l’objectif, ${n('trop')} trop, ${n('pasAssez')} pas assez`)
     }
   }
 

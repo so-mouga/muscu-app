@@ -542,6 +542,12 @@ function JourChoisi({
       )}
 
       {/* Lus dans Health Connect : rien à toucher, d'où une simple ligne. */}
+      {!aVenir && journal?.kcalAppli && journal.kcal !== undefined && (
+        <button type="button" className="ligne entre jour-pas" onClick={() => setSaisie('calories')}>
+          <span className="faible">{date === dateISO() ? 'Repas jusqu’ici' : 'Repas'}</span>
+          <strong>{milliers(journal.kcal)} kcal</strong>
+        </button>
+      )}
       {!aVenir && journal?.pas !== undefined && (
         <div className="ligne entre jour-pas">
           <span className="faible">{date === dateISO() ? 'Pas jusqu’ici' : 'Pas'}</span>

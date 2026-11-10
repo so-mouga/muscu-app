@@ -5,6 +5,7 @@ import { etatCycle } from './cycle'
 import { historiqueDe } from './historique'
 import { nomPhase, phaseA, type EtapeObjectifs } from './objectifs'
 import { ligneExo } from './partageProgramme'
+import { moyenneRepas, texteRepas } from './nutrition'
 import { conseil, pareil, type Suggestion } from './progression'
 
 export interface DonneesSeance {
@@ -108,10 +109,13 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
   // Les pas de la veille (ceux du jour ne sont pas finis au moment de la séance) et la nuit d'avant.
   const veille = new Date(seance.date + 'T12:00:00')
   veille.setDate(veille.getDate() - 1)
-  const pas = d.journal?.find((j) => j.date === dateISO(veille))?.pas
+  const laVeille = d.journal?.find((j) => j.date === dateISO(veille))
+  const pas = laVeille?.pas
   const nuit = d.journal?.find((j) => j.date === seance.date)?.sommeil
-  const forme = [pas !== undefined && `${pas.toLocaleString('fr-FR').replace(/\s/g, ' ')} pas la veille`, nuit !== undefined && `nuit d’avant : ${heuresMinutes(nuit)}`].filter(Boolean)
+  const forme = [pas !== undefined && `${String(pas).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} pas la veille`, nuit !== undefined && `nuit d’avant : ${heuresMinutes(nuit)}`].filter(Boolean)
   if (forme.length) l.push(`Forme : ${forme.join(' · ')}`)
+  const repas = laVeille ? moyenneRepas([laVeille], d.objectifs) : null
+  if (repas) l.push(`Repas de la veille : ${texteRepas(repas)}`)
   l.push('Effort sur 10 : 8/10 = il reste environ 2 reps avant l’échec. Fourchette 8–12 : la charge monte quand toutes les séries atteignent le haut.')
 
   const faits = (seance.echauffement?.faits ?? []).map((id) => mouvement(id, d.mouvements ?? MOUVEMENTS)).filter((x) => !!x)

@@ -40,6 +40,8 @@ describe('texte d’une séance à partager', () => {
     const avecJournal = texteSeance(jour, { ...donnees, journal: [{ date: '2026-11-08', pas: 13240 }, { date: '2026-11-09', sommeil: 7.17, sommeilMontre: true }] }, true)
     expect(avecJournal).toContain('Sensation : Bien\nForme : 13 240 pas la veille · nuit d’avant : 7 h 10')
     expect(texteSeance(jour, { ...donnees, journal: [{ date: '2026-11-09', pas: 4000 }] }, true)).not.toContain('Forme :')
+    const repas = texteSeance(jour, { ...donnees, objectifs: [{ depuis: '2026-11-01', phase: 'prise', volume: {}, calories: 3000 }], journal: [{ date: '2026-11-08', kcal: 2870, proteines: 148, kcalAppli: true }] }, true)
+    expect(repas).toContain('Repas de la veille : 2 870 kcal pour 3 000 visées · protéines 148 g')
   })
 
   it('chaque exercice : prévu, fait avec l’effort, la fois d’avant, la note', () => {

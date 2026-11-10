@@ -179,8 +179,14 @@ export interface JourJournal {
   sommeil?: number
   /** Ce jour-là, par rapport à l'objectif calories. */
   calories?: 'ok' | 'trop' | 'pasAssez'
-  /** Calories réelles si connues (plus tard : Health Connect). */
+  /** Calories réelles du jour, lues dans l'appli de repas (MyFitnessPal…) via Health Connect. */
   kcal?: number
+  /** Macros du jour (g), lues avec les calories. */
+  proteines?: number
+  glucides?: number
+  lipides?: number
+  /** Calories lues dans l'appli de repas : elles font foi, et le verdict (`calories`) en est déduit. */
+  kcalAppli?: boolean
   /** Pas du jour, lus dans Health Connect (montre ou téléphone). Jamais saisis à la main. */
   pas?: number
   /** Le sommeil vient de la montre : relu à chaque lecture, sauf une fois corrigé à la main. */

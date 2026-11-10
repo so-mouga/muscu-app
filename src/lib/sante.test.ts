@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { majJour, nuitsParJour } from './sante'
+import { jugerCalories, majJour, nuitsParJour } from './sante'
 
 const h = (iso: string) => new Date(iso).getTime()
 
@@ -37,5 +37,33 @@ describe('ce que la montre change dans le journal', () => {
 
   it('sans nuit de la montre, la note à la main reste', () => {
     expect(majJour({ date: 'x', sommeil: 6 }, 9000, undefined)).toEqual({ pas: 9000 })
+  })
+})
+
+describe('repas lus dans l’appli de repas', () => {
+  it('tenu à 150 kcal près de l’objectif, sinon trop ou pas assez', () => {
+    expect(jugerCalories(2870, 3000)).toBe('ok')
+    expect(jugerCalories(3150, 3000)).toBe('ok')
+    expect(jugerCalories(3151, 3000)).toBe('trop')
+    expect(jugerCalories(2849, 3000)).toBe('pasAssez')
+  })
+
+  it('le total fait foi : il remplace le verdict noté à la main et donne le sien', () => {
+    const c = majJour({ date: '2026-11-09', calories: 'ok' }, undefined, undefined, { date: '2026-11-09', kcal: 2412.6, proteines: 151.2, glucides: 280.4, lipides: 70.9 }, 3000, true)
+    expect(c).toEqual({ kcal: 2413, proteines: 151, glucides: 280, lipides: 71, kcalAppli: true, calories: 'pasAssez' })
+  })
+
+  it('pas de verdict sur la journée en cours ni sans objectif', () => {
+    expect(majJour(undefined, undefined, undefined, { date: 'x', kcal: 1200 }, 3000, false)?.calories).toBeUndefined()
+    expect(majJour(undefined, undefined, undefined, { date: 'x', kcal: 2900 }, null, true)?.calories).toBeUndefined()
+  })
+
+  it('rien ne change si le total est le même', () => {
+    const j = { date: 'x', kcal: 2900, kcalAppli: true, calories: 'ok' as const }
+    expect(majJour(j, undefined, undefined, { date: 'x', kcal: 2900 }, 3000, true)).toBeNull()
+  })
+
+  it('un jour sans repas lus garde ce qui est noté à la main', () => {
+    expect(majJour({ date: 'x', calories: 'trop' }, 8000, undefined, undefined, 3000, true)).toEqual({ pas: 8000 })
   })
 })

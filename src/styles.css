@@ -6389,3 +6389,11 @@ button.semaine-cycle.courante {
   padding: var(--e2) var(--e1);
   font-size: var(--t-petit);
 }
+button.jour-pas {
+  width: 100%;
+  background: none;
+  border: 0;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}

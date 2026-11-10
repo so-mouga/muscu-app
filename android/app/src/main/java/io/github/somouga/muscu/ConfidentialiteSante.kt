@@ -20,7 +20,7 @@ class ConfidentialiteSante : Activity() {
             text = """
                 Cran et Health Connect
 
-                Cran lit seulement deux choses : tes pas par jour et tes nuits de sommeil, tels que ta montre ou ton téléphone les écrivent dans Health Connect.
+                Cran lit seulement trois choses : tes pas par jour, tes nuits de sommeil, et le total de tes repas (calories, protéines, glucides, lipides), tels que ta montre, ton téléphone ou ton appli de repas les écrivent dans Health Connect.
 
                 Elles restent sur ton téléphone, dans Cran. Elles servent à remplir la case Sommeil de l'accueil, ton Journal, ton Bilan, et les textes que tu choisis toi-même de partager.
 

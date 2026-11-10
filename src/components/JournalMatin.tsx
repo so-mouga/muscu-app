@@ -32,6 +32,10 @@ export const TEXTE_CALORIES: Record<NonNullable<JourJournal['calories']>, string
 
 export type SaisieJour = 'poids' | 'sommeil' | 'calories'
 
+/** « Protéines 150 g · glucides 360 g · lipides 85 g », d'après l'appli de repas ; vide sans macros. */
+export const macros = (j: JourJournal) =>
+  [j.proteines !== undefined && `Protéines ${j.proteines} g`, j.glucides !== undefined && `glucides ${j.glucides} g`, j.lipides !== undefined && `lipides ${j.lipides} g`].filter(Boolean).join(' · ')
+
 /**
  * Journal du matin sur l'accueil : poids, sommeil et calories d'hier (si un objectif est fixé), toujours
  * au même endroit, la valeur en grand ou « Noter ». Un appui ouvre la saisie dans une fenêtre, rien ne
@@ -161,13 +165,28 @@ export function FenetreJour({
               <h2>{titreCalories}</h2>
               {objectif && <div className="faible">Objectif : {milliers(objectif.kcal)} kcal</div>}
             </div>
-            <div className="rpe" style={{ gridTemplateColumns: `repeat(${CALORIES.length}, 1fr)` }}>
-              {CALORIES.map(([id, nom]) => (
-                <button key={id} type="button" className={journal?.calories === id ? 'actif' : ''} onClick={() => void noterJournal(date, { calories: journal?.calories === id ? undefined : id }).then(onFermer)}>
-                  {nom}
+            {journal?.kcalAppli && journal.kcal !== undefined ? (
+              // L'appli de repas fait foi : le verdict se déduit de son total (choix de l'utilisateur, 10 nov. 2026).
+              <>
+                <div>
+                  {date === aujourdhui ? 'Jusqu’ici' : 'Lu dans ton appli de repas'} : <strong>{milliers(journal.kcal)} kcal</strong>
+                  {date !== aujourdhui && journal.calories && <> · {TEXTE_CALORIES[journal.calories]}</>}
+                </div>
+                {macros(journal) && <div className="faible">{macros(journal)}</div>}
+                <div className="faible">{date === aujourdhui ? 'Le verdict se donne demain, une fois la journée finie.' : 'Un repas oublié se corrige dans ton appli de repas : Cran relit le total.'}</div>
+                <button type="button" className="btn plein" onClick={onFermer}>
+                  Fermer
                 </button>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="rpe" style={{ gridTemplateColumns: `repeat(${CALORIES.length}, 1fr)` }}>
+                {CALORIES.map(([id, nom]) => (
+                  <button key={id} type="button" className={journal?.calories === id ? 'actif' : ''} onClick={() => void noterJournal(date, { calories: journal?.calories === id ? undefined : id }).then(onFermer)}>
+                    {nom}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

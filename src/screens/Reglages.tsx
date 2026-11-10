@@ -14,7 +14,7 @@ import { ListeLexique } from '../components/Lexique'
 import ReglesConseils from '../components/ReglesConseils'
 import Interrupteur from '../components/Interrupteur'
 import { dateISO, milliers } from '../lib/calc'
-import { autoriserSante, CLE_SANTE, etatSante, santeDisponible, synchroniserSante, type EtatSante } from '../lib/sante'
+import { autoriserSante, CLE_SANTE, etatSante, repasDisponible, santeDisponible, synchroniserSante, type EtatSante } from '../lib/sante'
 
 type PageReglages = 'sauvegarde' | 'conseils' | 'lexique'
 
@@ -393,11 +393,12 @@ function RappelSeance() {
 }
 
 /**
- * Pas et sommeil de la montre ou du téléphone, lus dans Health Connect (APK 2.5) : un appui pour autoriser, puis
- * Cran les relit seul. Rien dans le navigateur ; un APK plus ancien est invité à se mettre à jour.
+ * Pas et sommeil de la montre (APK 2.5) et repas de l'appli de repas (APK 2.6), lus dans Health Connect : un appui
+ * pour autoriser, puis Cran les relit seul. Rien dans le navigateur ; un APK plus ancien est invité à se mettre à jour.
  */
 function MontreSante() {
   const [dispo, setDispo] = useState<boolean | null>(null)
+  const [avecRepas, setAvecRepas] = useState(false)
   const [etat, setEtat] = useState<EtatSante | null>(null)
   const actif = useLiveQuery(() => db.reglages.get(CLE_SANTE), [], null)
   const hier = useLiveQuery(() => db.journal.get(dateISO(new Date(Date.now() - 86400000))), [])
@@ -406,43 +407,47 @@ function MontreSante() {
       setDispo(d)
       if (d) void etatSante().then(setEtat).catch(() => setEtat({ disponible: false, pas: false, sommeil: false }))
     })
+    void repasDisponible().then(setAvecRepas)
   }, [])
   if (!natif || dispo === null || actif === null) return null
-  const branche = actif?.valeur === true && !!etat && (etat.pas || etat.sommeil)
+  const lus = etat ? ([etat.pas && 'pas', etat.sommeil && 'sommeil', etat.nutrition && 'repas'].filter(Boolean) as string[]) : []
+  const manquent = etat ? ([!etat.pas && 'les pas', !etat.sommeil && 'le sommeil', avecRepas && !etat.nutrition && 'les repas'].filter(Boolean) as string[]) : []
+  const branche = actif?.valeur === true && lus.length > 0
   const autoriser = async () => {
     try {
       const e = await autoriserSante()
       setEtat(e)
-      if (e.pas || e.sommeil) await synchroniserSante(true)
+      if (e.pas || e.sommeil || e.nutrition) await synchroniserSante(true)
       else if (e.disponible) informer('Sans autorisation, Cran ne lit rien. Tu peux réessayer quand tu veux.', 'Rien d’autorisé')
     } catch {
       informer('Health Connect n’a pas répondu. Réessaie dans un instant.', 'Pas de réponse')
     }
   }
+  const resume = [hier?.pas !== undefined && `${milliers(hier.pas)} pas`, hier?.kcalAppli && hier.kcal !== undefined && `${milliers(hier.kcal)} kcal`].filter(Boolean).join(', ')
   return (
     <div className="carte pile">
-      <h3>Montre et pas</h3>
+      <h3>Montre et repas</h3>
       {!dispo ? (
-        <div className="faible">Pour lire tes pas et ton sommeil, il faut la dernière version de l’appli : installe-la depuis le bandeau de l’accueil, tes données sont gardées.</div>
+        <div className="faible">Pour lire tes pas, ton sommeil et tes repas, il faut la dernière version de l’appli : installe-la depuis le bandeau de l’accueil, tes données sont gardées.</div>
       ) : etat && !etat.disponible ? (
-        <div className="faible">Health Connect n’est pas sur ce téléphone : Cran ne peut pas lire tes pas.</div>
+        <div className="faible">Health Connect n’est pas sur ce téléphone : Cran ne peut rien lire.</div>
       ) : branche ? (
         <>
           <div>
-            {[etat!.pas && 'Pas', etat!.sommeil && 'sommeil'].filter(Boolean).join(' et ')} lus dans Health Connect
-            <div className="faible">{hier?.pas !== undefined ? `Hier : ${milliers(hier.pas)} pas.` : 'Rien de lu pour hier pour l’instant.'} Le sommeil de ta montre remplace celui noté à la main ; une nuit sans montre se note toujours.</div>
+            {lus.join(', ').replace(/^./, (c) => c.toUpperCase())} lus dans Health Connect
+            <div className="faible">{resume ? `Hier : ${resume}.` : 'Rien de lu pour hier pour l’instant.'} Ce que disent ta montre et ton appli de repas remplace ce qui est noté à la main ; un jour sans données se note toujours.</div>
           </div>
-          {!(etat!.pas && etat!.sommeil) && (
+          {manquent.length > 0 && (
             <button className="btn plein" onClick={() => void autoriser()}>
-              Autoriser aussi {etat!.pas ? 'le sommeil' : 'les pas'}
+              Autoriser aussi {manquent.join(' et ')}
             </button>
           )}
         </>
       ) : (
         <>
-          <div className="faible">Tes pas et ton sommeil, tels que ta montre ou ton téléphone les écrivent dans Health Connect. Ils remplissent la case Sommeil, ton Journal, ton Bilan et ce que tu partages. Rien ne quitte ton téléphone.</div>
+          <div className="faible">Tes pas et ton sommeil (montre, téléphone){avecRepas ? ', et le total de tes repas (MyFitnessPal ou autre)' : ''}, tels qu’ils sont écrits dans Health Connect. Ils remplissent le tableau du matin, ton Journal, ton Bilan et ce que tu partages. Rien ne quitte ton téléphone.</div>
           <button className="btn plein" onClick={() => void autoriser()}>
-            Lire mes pas et mon sommeil
+            {avecRepas ? 'Lire ma montre et mes repas' : 'Lire mes pas et mon sommeil'}
           </button>
         </>
       )}
