@@ -27,8 +27,8 @@ const donnees: DonneesSeance = { exo: (id) => EXERCICES[id], avant: [avant], obj
 describe('texte d’une séance à partager', () => {
   const t = texteSeance(jour, donnees, true)
 
-  it('en tête : séance, date, durée, phase, sensation et légende de l’effort', () => {
-    expect(t).toMatch(/^Séance Haut A · lun\. 9 nov\. · \d+ min\n/)
+  it('en tête : la question, puis séance, date, durée, phase, sensation et légende de l’effort', () => {
+    expect(t).toMatch(/^Ma question : le conseil de l’appli pour la prochaine fois te paraît-il juste \? Réponds avec mes chiffres, en quelques lignes\.\n\nSéance Haut A · lun\. 9 nov\. · \d+ min\n/)
     expect(t).toContain('Phase : Prise de muscle')
     expect(t).toContain('Sensation : Bien')
     expect(t).toContain('8/10 = il reste environ 2 reps')
@@ -59,8 +59,10 @@ describe('texte d’une séance à partager', () => {
   it('séance allégée : ni conseil ni prochaine fois, et jamais le poids', () => {
     const allegee = texteSeance({ ...jour, deload: true, allegeeSeule: true, poidsCorps: 82 }, donnees, true)
     expect(allegee).toContain('Séance allégée ce jour-là')
+    // Sans conseil à juger, la question change.
+    expect(allegee).toMatch(/^Ma question : est-ce que je change quelque chose la prochaine fois \?/)
     expect(allegee).not.toContain('conseil de l’appli')
-    expect(allegee).not.toContain('prochaine fois')
+    expect(allegee).not.toContain('   prochaine fois :')
     expect(allegee).not.toContain('82')
   })
 })

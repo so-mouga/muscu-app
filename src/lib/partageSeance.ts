@@ -18,6 +18,10 @@ export interface DonneesSeance {
   mouvements?: MouvementEchauffement[]
 }
 
+/** La question posée en tête du texte, selon qu'il y a un conseil à juger ou non. */
+export const QUESTION_CONSEIL = 'Ma question : le conseil de l’appli pour la prochaine fois te paraît-il juste ? Réponds avec mes chiffres, en quelques lignes.'
+export const QUESTION_SANS_CONSEIL = 'Ma question : est-ce que je change quelque chose la prochaine fois ? Réponds avec mes chiffres, en quelques lignes.'
+
 const memeCible = (a: { charges: (number | null)[]; reps: number[] }, b: { charges: (number | null)[]; reps: number[] }) => JSON.stringify([a.charges, a.reps]) === JSON.stringify([b.charges, b.reps])
 
 /** Ce que l'appli proposait de plus qu'aujourd'hui (comme en fin de séance) : rien si elle disait de refaire pareil. */
@@ -42,11 +46,12 @@ function faitTexte(exo: Exercice, series: Serie[]): string {
 }
 
 /**
- * Une séance faite, en texte, pour un coach ou une IA : ce qui était prévu, ce qui a été fait, la fois d'avant,
- * le conseil de l'appli et ce qui a été choisi pour la prochaine fois. Jamais le poids ni le corps.
+ * Une séance faite, en texte, pour un coach ou une IA : la question qu'on lui pose, puis ce qui était prévu, ce qui a
+ * été fait, la fois d'avant, le conseil de l'appli et ce qui a été choisi pour la prochaine fois. Jamais le poids ni le corps.
  */
 export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean): string {
   const l: string[] = []
+  let conseils = 0
   const avant = d.avant.filter((s) => !s.enCours && s.id !== seance.id && s.debut < seance.debut).sort((a, b) => b.debut - a.debut)
   const ms = dureeSeanceEffective(seance)
   l.push(`Séance ${seance.nom} · ${dateCourte(seance.date)}${ms > 0 ? ` · ${duree(ms)}` : ''}`)
@@ -86,6 +91,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
     if (!seance.deload && p.series.length) {
       const c = conseilUtile(exo, p, historiqueDe(avecCelleCi, p.exoId))
       if (c) {
+        conseils++
         l.push(`   conseil de l’appli : ${(c.titre ?? '').replace(/^💡\s*/, '')}, ${cibleTexte(exo, c.charges, c.reps, true)}`)
         l.push(`   pourquoi : ${c.message.replace(/^Pourquoi : /, '').replace(/\n/g, ' ')}`)
       }
@@ -98,5 +104,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
   })
   if (pasFaits.length) l.push('', `Pas fait aujourd’hui : ${pasFaits.join(', ')}`)
   l.push('', 'Fait avec Cran')
+  // En tête, la question : sans elle, l'IA décrit la séance au lieu de répondre.
+  l.unshift(conseils ? QUESTION_CONSEIL : QUESTION_SANS_CONSEIL, '')
   return l.join('\n')
 }
