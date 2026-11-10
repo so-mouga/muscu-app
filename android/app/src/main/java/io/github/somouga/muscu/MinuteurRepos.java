@@ -142,6 +142,8 @@ public final class MinuteurRepos {
         if ("repos".equals(mode)) {
             b.setContentTitle("Repos")
                 .setContentText(texte)
+                // Texte de la pastille du suivi en direct (barre d'état, Now Bar) quand le système l'affiche.
+                .setShortCriticalText("Repos")
                 .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
                 .setWhen(p.getLong("fin", 0))
                 .setShowWhen(true)
@@ -153,12 +155,14 @@ public final class MinuteurRepos {
         } else if ("pause".equals(mode)) {
             b.setContentTitle("Pause · " + chrono(p.getLong("reste", 0)))
                 .setContentText(texte)
+                .setShortCriticalText("Pause")
                 .setShowWhen(false)
                 .addAction(0, "Reprendre", diffusion(c, REPRENDRE, 5))
                 .addAction(0, "Passer", diffusion(c, PASSER, 2));
         } else if ("seance".equals(mode)) {
             b.setContentTitle(nom)
                 .setContentText(aFaire(texte))
+                .setShortCriticalText("Séance")
                 .setCategory(NotificationCompat.CATEGORY_WORKOUT)
                 .setWhen(p.getLong("debut", System.currentTimeMillis()))
                 .setShowWhen(true)
