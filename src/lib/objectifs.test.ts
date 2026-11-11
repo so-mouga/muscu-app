@@ -1,4 +1,4 @@
-import { phasesPassees, derniereSemainePhase, phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs } from './objectifs'
+import { finAffichee, phasesPassees, derniereSemainePhase, phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs } from './objectifs'
 
 describe('dernière semaine d’une phase', () => {
   it('les 7 derniers jours, pas avant, pas après', () => {
@@ -258,5 +258,21 @@ describe('phases passées', () => {
   it('aucune tant que la première phase est en cours', () => {
     expect(phasesPassees(frise, '2026-02-01')).toEqual([])
     expect(phasesPassees([], '2026-02-01')).toEqual([])
+  })
+})
+
+describe('calendrier : le dernier jour d’une phase est la veille de sa fin prévue', () => {
+  it('fin prévue le 26 janv. (1er jour de la suite) : le 25 est le dernier jour colorié, pas le 26', () => {
+    const [p] = periodes([{ depuis: '2026-11-03', phase: 'prise', finPrevue: '2027-01-26', volume: {} }] as never)
+    expect(finAffichee(p, '2026-11-11')).toBe('2027-01-25')
+  })
+  it('une phase qui finit le 31 janv. n’étiquette pas février', () => {
+    const f = [{ depuis: '2026-11-03', phase: 'prise', finPrevue: '2027-02-01', volume: {} }] as never
+    expect(phaseDuMois(f, '2027-01-01', '2027-01-31', '2026-11-11')).toBe('prise')
+    expect(phaseDuMois(f, '2027-02-01', '2027-02-28', '2026-11-11')).toBeUndefined()
+  })
+  it('fin dépassée : la phase court jusqu’à aujourd’hui', () => {
+    const [p] = periodes([{ depuis: '2026-09-01', phase: 'seche', finPrevue: '2026-10-01', volume: {} }] as never)
+    expect(finAffichee(p, '2026-11-11')).toBe('2026-11-11')
   })
 })

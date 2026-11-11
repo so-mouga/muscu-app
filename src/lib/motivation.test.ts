@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle, Seance } from '../types'
-import { depuisDebut, exercicesDuBloc, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle, tenuesSurPeriode } from './motivation'
+import { depuisDebut, exercicesDuBloc, faitesSurPrevues, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle, tenuesSurPeriode } from './motivation'
 import { nouveauCycle } from './cycle'
 
 type S = [exoId: string, charge: number, reps: number, rpe?: number]
@@ -116,6 +116,38 @@ describe('suivi du cycle', () => {
     const r = suiviCycle(c, seances as never, '2026-11-04')
     expect(r.semaines.map((x) => x.etat)).toEqual(['tenue', 'tenue', 'manquee', 'pause', 'courante', 'avenir', 'allegee'])
     expect(r).toMatchObject({ prevues: 4, faites: 6, tenues: 2, cetteSemaine: 1 })
+  })
+
+  it('ajouter une séance au programme en cours de cycle ne rend pas « manquées » les semaines passées', () => {
+    const c = nouveauCycle('c', prog, m, '2026-10-05', 6, [])
+    const seances = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-12', '2026-10-13', '2026-10-14'].map((d, i) => faite(String(i), d))
+    // Le cycle suit le programme aussitôt : sa copie a maintenant 5 séances par semaine, depuis le 20 oct.
+    const a5 = { ...c, programme: { ...c.programme, seances: [...c.programme.seances, { modeleId: 'e', jour: 5 }] } }
+    const prevus = [{ depuis: '2026-10-05', n: 4 }, { depuis: '2026-10-20', n: 5 }]
+    const r = suiviCycle(a5, seances as never, '2026-11-04', prevus)
+    expect(r.semaines.slice(0, 3).map((x) => [x.etat, x.prevues])).toEqual([['tenue', 4], ['tenue', 4], ['manquee', 5]])
+    expect(r.prevues).toBe(5)
+    // Même réponse que l'Accueil.
+    expect(semainesTenues(seances as never, (l) => (l >= '2026-10-19' ? 5 : 4), [a5], '2026-10-18')).toBe(2)
+  })
+
+  it('une semaine allégée est jugée pareil partout : tenue avec une séance, ni tenue ni manquée sans', () => {
+    const c = nouveauCycle('c', prog, m, '2026-10-05', 3, [3])
+    const deux = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-12', '2026-10-13', '2026-10-14'].map((d, i) => faite(String(i), d))
+    const sans = suiviCycle(c, deux as never, '2026-10-27')
+    expect(sans.semaines.map((x) => x.etat)).toEqual(['tenue', 'tenue', 'allegee'])
+    expect(semainesTenues(deux as never, 4, [c], '2026-10-27')).toBe(sans.tenues)
+    expect(tenuesSurPeriode(deux as never, 4, [c], '2026-10-05', '2026-10-25')).toEqual({ n: 2, sur: 2 })
+    const avec = [...deux, faite('d', '2026-10-20')]
+    const r = suiviCycle(c, avec as never, '2026-10-27')
+    expect(r.semaines.map((x) => x.etat)).toEqual(['tenue', 'tenue', 'tenue'])
+    expect(semainesTenues(avec as never, 4, [c], '2026-10-27')).toBe(r.tenues)
+    expect(tenuesSurPeriode(avec as never, 4, [c], '2026-10-05', '2026-10-25')).toEqual({ n: 3, sur: 3 })
+  })
+
+  it('« 3 sur 4 » : les séances libres comptent, sans dépasser le prévu', () => {
+    expect(faitesSurPrevues(3, 4)).toBe(3)
+    expect(faitesSurPrevues(6, 4)).toBe(4)
   })
 })
 

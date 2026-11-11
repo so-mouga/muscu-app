@@ -47,7 +47,7 @@ const REGLES: [string, string[]][] = [
     [
       'Gain en orange à côté d’un exercice (à battre) : seulement quand tu as fixé un objectif plus haut que la dernière fois.',
       'Après 10 jours ou plus sans séance : « mêmes charges que la dernière fois, baisse un peu si c’est trop dur ».',
-      'Semaines tenues de suite (à partir de 2) : une semaine est tenue avec les trois quarts des séances prévues (3 → 2, 4 → 3). Le déload et une semaine en pause ne cassent pas la série.',
+      'Semaines tenues de suite (à partir de 2) : une semaine est tenue avec les trois quarts des séances prévues (3 → 2, 4 → 3), séances libres comprises. Une semaine allégée est tenue dès une séance ; sans séance, comme une semaine en pause, elle ne casse pas la série. L’Accueil, la frise et les lignes du cycle, et le Bilan disent la même chose.',
       'Sur ce bloc (cycle en cours, sinon phase, sinon 4 semaines) : ton exercice principal le plus pratiqué qui a progressé.',
       'Déload à avancer (pendant un cycle) : ta force baisse sur 2 exercices et tu as répondu « Difficile » à 2 des 3 dernières séances, ou ta force baisse sur 3 exercices (ces 10 derniers jours). Monter la charge, ou faire autant de reps à la même charge, n’est pas une baisse. Jamais dans les 3 semaines après un déload ou 2 semaines sans séance.',
       'En haut, deux rappels au plus : nouvelle version de l’appli, cycle terminé, phase finie, déload conseillé, repères de fin de phase, sauvegarde (après 7 jours sans export), repères de début de phase ou mensurations (après 3 semaines sans en prendre). Une fin de cycle ou de phase, une fois vue ou masquée, ne revient plus.',

@@ -8,6 +8,16 @@ describe('nuits de la montre rangées par jour', () => {
     expect(nuitsParJour([{ debut: h('2026-11-08T23:40:00'), fin: h('2026-11-09T07:10:00'), minutes: 430 }])).toEqual({ '2026-11-09': 7.17 })
   })
 
+  it('une sieste qui commence à 10 h ou plus ne s’ajoute pas à la nuit, même finie avant 15 h', () => {
+    const nuits = [
+      { debut: h('2026-11-08T23:00:00'), fin: h('2026-11-09T07:00:00'), minutes: 480 },
+      { debut: h('2026-11-09T13:30:00'), fin: h('2026-11-09T14:30:00'), minutes: 60 },
+    ]
+    expect(nuitsParJour(nuits)).toEqual({ '2026-11-09': 8 })
+    // Un rendormissement du matin reste dans la nuit.
+    expect(nuitsParJour([{ debut: h('2026-11-09T00:10:00'), fin: h('2026-11-09T05:00:00'), minutes: 290 }, { debut: h('2026-11-09T05:30:00'), fin: h('2026-11-09T08:00:00'), minutes: 150 }])).toEqual({ '2026-11-09': 7.33 })
+  })
+
   it('une nuit coupée en deux s’additionne, une sieste l’après-midi ne compte pas', () => {
     const nuits = [
       { debut: h('2026-11-09T23:00:00'), fin: h('2026-11-10T03:00:00'), minutes: 240 },

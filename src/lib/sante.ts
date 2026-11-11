@@ -73,6 +73,8 @@ export async function autoriserSante(): Promise<EtatSante> {
 
 /** Une nuit compte pour le jour où l'on se réveille, si on se lève avant 15 h : une sieste l'après-midi n'est pas une nuit. */
 const HEURE_LIMITE_NUIT = 15
+/** Une période qui commence le jour même à 10 h ou plus est une sieste, même finie avant 15 h. */
+const HEURE_DEBUT_SIESTE = 10
 
 /**
  * Heures dormies par jour de réveil, au centième d'heure. Mi Fitness écrit la nuit plusieurs fois pendant qu'elle se
@@ -93,7 +95,9 @@ export function nuitsParJour(nuits: NuitBrute[]): Record<string, number> {
   }
   for (const { garde: n } of groupes) {
     const fin = new Date(n.fin)
+    const debut = new Date(n.debut)
     if (fin.getHours() >= HEURE_LIMITE_NUIT) continue
+    if (dateISO(debut) === dateISO(fin) && debut.getHours() >= HEURE_DEBUT_SIESTE) continue
     const jour = dateISO(fin)
     minutes[jour] = (minutes[jour] ?? 0) + n.minutes
   }

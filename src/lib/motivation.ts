@@ -1,5 +1,6 @@
 import type { Cycle, Exercice, Seance, Serie } from '../types'
-import { dateISO, semaineType } from './calc'
+import { dateISO } from './calc'
+import { prevuDuCycle, type EtapePrevu } from './prevu'
 import { couvre, etatCycle, lignesCycle } from './cycle'
 import { meilleureDeTravail, mieuxParSeance, recordsParSeance, semaineDe, sensPerf } from './historique'
 
@@ -15,18 +16,25 @@ const plusJours = (iso: string, n: number) => dateISO(new Date(Date.parse(iso + 
 /** Séances qui suffisent pour qu'une semaine soit « tenue » : les trois quarts, arrondis (3 → 2, 4 → 3, 5 → 4). */
 export const seuilSemaine = (prevues: number) => Math.max(1, Math.round(prevues * 0.75))
 
-/** Semaine allégée ou en pause : elle ne compte pas comme une semaine tenue, et ne casse rien. */
-const semaineSansEffort = (cycles: Cycle[], lundi: string) =>
-  cycles.some((c) => {
-    if (!couvre(c, lundi)) return false
+/** Ce que vaut une semaine, partout pareil (Accueil, frise et lignes du cycle, Bilan) : `seuilSemaine` séances, une seule en semaine allégée. */
+export const semaineTenue = (faites: number, prevues: number, allegee = false) => faites >= (allegee ? 1 : seuilSemaine(prevues))
+
+/** Semaine en pause, ou semaine allégée d'un cycle, à cette date. */
+const semaineDuCycle = (cycles: Cycle[], lundi: string): 'pause' | 'allegee' | null => {
+  for (const c of cycles) {
+    if (!couvre(c, lundi)) continue
     const e = etatCycle(c, lundi)
-    return e.pause || e.deload
-  })
+    if (e.pause) return 'pause'
+    if (e.deload) return 'allegee'
+  }
+  return null
+}
 
 /**
- * Semaines « tenues » d'affilée : au moins les trois quarts des séances prévues (`seuilSemaine`). Une semaine
- * de déload ou mise en pause ne compte pas et ne casse pas la série ; la semaine en cours compte dès
- * qu'elle est tenue, sinon elle ne casse rien (elle n'est pas finie).
+ * Semaines « tenues » d'affilée : au moins les trois quarts des séances prévues (`seuilSemaine`). Une semaine en pause
+ * ne compte pas et ne casse rien ; une semaine allégée est tenue dès une séance, comme dans la frise du cycle, et sans
+ * séance elle ne casse rien non plus. La semaine en cours compte dès qu'elle est tenue, sinon elle ne casse rien (elle
+ * n'est pas finie).
  */
 export function semainesTenues(seances: Seance[], prevuesParSemaine: number | ((lundi: string) => number), cycles: Cycle[], aujourdhui: string): number {
   const prevuDe = typeof prevuesParSemaine === 'function' ? prevuesParSemaine : () => prevuesParSemaine
@@ -35,14 +43,14 @@ export function semainesTenues(seances: Seance[], prevuesParSemaine: number | ((
   const premiere = semaineDe(faites.reduce((a, s) => (s.date < a ? s.date : a), faites[0].date))
   const parSemaine = new Map<string, number>()
   for (const s of faites) parSemaine.set(semaineDe(s.date), (parSemaine.get(semaineDe(s.date)) ?? 0) + 1)
-  const sansEffort = (lundi: string) => semaineSansEffort(cycles, lundi)
   let n = 0
   const enCours = semaineDe(aujourdhui)
   for (let l = enCours; l >= premiere; l = plusJours(l, -7)) {
-    // Rien de prévu cette semaine-là : elle ne compte pas et ne casse rien.
-    if (sansEffort(l) || prevuDe(l) <= 0) continue
-    const tenue = (parSemaine.get(l) ?? 0) >= seuilSemaine(prevuDe(l))
-    if (tenue) n++
+    const special = semaineDuCycle(cycles, l)
+    const nb = parSemaine.get(l) ?? 0
+    // Rien de prévu cette semaine-là, pause, ou semaine allégée sans séance : elle ne compte pas et ne casse rien.
+    if (special === 'pause' || prevuDe(l) <= 0 || (special === 'allegee' && !nb)) continue
+    if (semaineTenue(nb, prevuDe(l), special === 'allegee')) n++
     else if (l !== enCours) break
   }
   return n
@@ -50,7 +58,7 @@ export function semainesTenues(seances: Seance[], prevuesParSemaine: number | ((
 
 /**
  * Semaines tenues sur une période, pour l'image du bilan : semaines entières seulement, depuis la toute
- * première séance, sans celles où rien n'était prévu ni les semaines allégées ou en pause.
+ * première séance, sans celles où rien n'était prévu, les semaines en pause ni les semaines allégées sans séance.
  */
 export function tenuesSurPeriode(seances: Seance[], prevuesParSemaine: number | ((lundi: string) => number), cycles: Cycle[], debut: string, fin: string): { n: number; sur: number } {
   const prevuDe = typeof prevuesParSemaine === 'function' ? prevuesParSemaine : () => prevuesParSemaine
@@ -59,12 +67,17 @@ export function tenuesSurPeriode(seances: Seance[], prevuesParSemaine: number | 
   if (!faites.length) return r
   const premiere = semaineDe(faites.reduce((a, s) => (s.date < a ? s.date : a), faites[0].date))
   for (let l = semaineDe(debut); plusJours(l, 6) <= fin; l = plusJours(l, 7)) {
-    if (l < debut || l < premiere || semaineSansEffort(cycles, l) || prevuDe(l) <= 0) continue
+    const special = semaineDuCycle(cycles, l)
+    const nb = faites.filter((s) => semaineDe(s.date) === l).length
+    if (l < debut || l < premiere || special === 'pause' || prevuDe(l) <= 0 || (special === 'allegee' && !nb)) continue
     r.sur++
-    if (faites.filter((s) => semaineDe(s.date) === l).length >= seuilSemaine(prevuDe(l))) r.n++
+    if (semaineTenue(nb, prevuDe(l), special === 'allegee')) r.n++
   }
   return r
 }
+
+/** « 3 sur 4 » de la semaine : toutes les séances faites comptent, séances libres comprises, sans dépasser le prévu. */
+export const faitesSurPrevues = (faites: number, prevues: number) => Math.min(faites, prevues)
 
 /** Meilleure série de travail d'un exercice dans une séance : la plus lourde, puis le plus de reps (`meilleureDeTravail`). */
 const meilleure = (exo: Exercice, s: Seance) => meilleureDeTravail(exo, [s])
@@ -132,21 +145,27 @@ export function joursSansSeance(seances: Seance[], aujourdhui: string): number |
 
 export type EtatSemaine = 'tenue' | 'manquee' | 'courante' | 'allegee' | 'pause' | 'avenir'
 
-/** Chaque semaine du cycle et ce qu'il s'en est passé : la frise et le résumé du cycle. */
-export function suiviCycle(c: Cycle, seances: Seance[], aujourdhui: string) {
-  const prevues = semaineType(c.programme).length
-  const seuil = seuilSemaine(prevues)
+/**
+ * Chaque semaine du cycle et ce qu'il s'en est passé : la frise, les lignes et le résumé du cycle. `prevus` : les
+ * nombres de séances prévues notés au fil du temps (réglage `prevusParSemaine`) ; chaque semaine est jugée sur ce qui
+ * était prévu à son époque (`prevuDuCycle`), pas sur le programme d'aujourd'hui. Une semaine allégée passée sans
+ * séance reste « allégée » : ni tenue, ni manquée, comme sur l'Accueil.
+ */
+export function suiviCycle(c: Cycle, seances: Seance[], aujourdhui: string, prevus: EtapePrevu[] = []) {
+  const prevuDe = prevuDuCycle(prevus, c)
   const ceLundi = semaineDe(aujourdhui)
   const duCycle = seances.filter((s) => s.cycleId === c.id && !s.enCours)
   const semaines = lignesCycle(c).map((x) => {
     const lundi = 'pause' in x ? x.pause : x.lundi
     const faites = duCycle.filter((s) => semaineDe(s.date) === lundi).length
+    const prevues = prevuDe(lundi)
+    const allegee = !('pause' in x) && c.deloads.includes(x.n)
     let etat: EtatSemaine
     if ('pause' in x) etat = 'pause'
     else if (lundi === ceLundi && !etatCycle(c, aujourdhui).fini) etat = 'courante'
-    else if (lundi < ceLundi) etat = faites >= (c.deloads.includes(x.n) ? 1 : seuil) ? 'tenue' : 'manquee'
-    else etat = c.deloads.includes(x.n) ? 'allegee' : 'avenir'
-    return { lundi, etat, faites }
+    else if (lundi < ceLundi) etat = semaineTenue(faites, prevues, allegee) ? 'tenue' : allegee ? 'allegee' : 'manquee'
+    else etat = allegee ? 'allegee' : 'avenir'
+    return { lundi, etat, faites, prevues }
   })
-  return { semaines, prevues, faites: duCycle.length, tenues: semaines.filter((x) => x.etat === 'tenue').length, cetteSemaine: duCycle.filter((s) => semaineDe(s.date) === ceLundi).length }
+  return { semaines, prevues: prevuDe(ceLundi), faites: duCycle.length, tenues: semaines.filter((x) => x.etat === 'tenue').length, cetteSemaine: duCycle.filter((s) => semaineDe(s.date) === ceLundi).length }
 }

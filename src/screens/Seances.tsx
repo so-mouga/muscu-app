@@ -10,6 +10,7 @@ import Vignette from '../components/Vignette'
 import VolumeMuscles, { MasquerConseilsVolume } from '../components/VolumeMuscles'
 import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '../components/Cycle'
 import { suiviCycle } from '../lib/motivation'
+import { usePrevus } from '../lib/usePrevus'
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
 import { arretCycle, debutCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
@@ -251,6 +252,7 @@ function PageProgramme({
   /** Position, dans le programme, de la séance dont on choisit le jour. */
   const [choixJour, setChoixJour] = useState<number | null>(null)
   const [ajout, setAjout] = useState<{ nom: string; jour?: number; existantes?: boolean } | null>(null)
+  const prevusNotes = usePrevus()
   useRetour(menu, () => setMenu(false))
   useRetour(renommer, () => setRenommer(false))
   useRetour(choixJour !== null, () => setChoixJour(null))
@@ -304,7 +306,7 @@ function PageProgramme({
   const legers = etats.filter((e) => e === 'leger').length
   const beaucoup = etats.filter((e) => e === 'beaucoup').length
   const prochainDeload = cycle && etat ? cycle.deloads.find((d) => d >= etat.n) : undefined
-  const suivi = cycle ? suiviCycle(cycle, terminees ?? [], dateISO()) : undefined
+  const suivi = cycle ? suiviCycle(cycle, terminees ?? [], dateISO(), prevusNotes) : undefined
   // Les repères de la semaine : ce qui est fait, et ce qui tombe aujourd'hui.
   const enPause = !!etat?.pause && !etat.fini
   const ceLundi = lundi()

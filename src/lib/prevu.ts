@@ -39,3 +39,16 @@ export function prevuDeSemaine(liste: EtapePrevu[], cycles: Cycle[], seances: Se
     return cycle ? semaineType(cycle.programme).length : estimation
   }
 }
+
+/**
+ * Séances prévues chaque semaine d'un cycle : le nombre noté en vigueur le dimanche de cette semaine, sinon (rien de
+ * noté à l'époque, ou un programme sans jours fixés) le programme du cycle. Ajouter une séance au programme en cours de
+ * cycle ne rend donc pas « manquées » les semaines déjà faites.
+ */
+export function prevuDuCycle(liste: EtapePrevu[], c: Cycle): (lundi: string) => number {
+  return (lundi) => {
+    const dimanche = dateISO(new Date(Date.parse(lundi + 'T12:00:00') + 6 * 86400000))
+    const etape = [...liste].reverse().find((e) => e.depuis <= dimanche)
+    return etape && etape.n > 0 ? etape.n : semaineType(c.programme).length
+  }
+}

@@ -20,7 +20,7 @@ import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, Seance, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
-import { depuisDebut, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
+import { depuisDebut, faitesSurPrevues, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { CLE_DEMARRAGE, type EtatDemarrage } from '../lib/demarrage'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
@@ -458,11 +458,12 @@ export default function Accueil({
     .filter(Boolean)
     .slice(0, window.innerHeight < 720 ? 1 : 2)
 
-  const nbFaites = planning.filter(faite).length
   // 1re semaine : seuls les jours restants après avoir pris le programme comptent.
   const installeLe = (reglages.find((r) => r.cle === CLE_DEMARRAGE)?.valeur as EtatDemarrage | undefined)?.installeLe
   const enPause = !!etat?.pause && !etat.fini
   const prevusSemaine = enPause ? [] : installeLe && installeLe >= debutSemaine ? planning.filter((e) => e.jour >= jourSemaine(new Date(installeLe + 'T12:00:00'))) : planning
+  // Toutes les séances de la semaine comptent, séances libres comprises : comme la page Programme et les semaines tenues.
+  const nbFaites = faitesSurPrevues(semaine.length, prevusSemaine.length)
   // Semaines tenues (les trois quarts des séances prévues) : affichées à partir de 2, déloads et pauses ne cassent rien.
   const tenues = terminees ? semainesTenues(terminees, prevuDeSemaine((reglages.find((r) => r.cle === CLE_PREVUS)?.valeur as EtapePrevu[] | undefined) ?? [], cycles, terminees, planning.length), cycles, dateISO()) : 0
   // Un seul vrai progrès, depuis le début du cycle en cours, sinon de la phase, sinon en 4 semaines.

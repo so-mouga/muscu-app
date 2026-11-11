@@ -9,6 +9,7 @@ import { arretCycle, BONUS_PRIORITE, debutCycle, DUREE_DEFAUT, changerSemaine, e
 import { MUSCLES } from '../data/exercices'
 import { useRetour } from '../lib/nav'
 import { suiviCycle } from '../lib/motivation'
+import { usePrevus } from '../lib/usePrevus'
 import type { Cycle, Muscle, Programme, Seance } from '../types'
 import { confirmer } from './Dialogues'
 import Aide, { LigneAide } from './Aide'
@@ -236,7 +237,8 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan, onSeance }: { ca
   const dernierLundi = lundiArret(cycle, seances)
   const lignes = lignesCycle(cycle).filter((x) => !dernierLundi || ('pause' in x ? x.pause : x.lundi) <= dernierLundi)
   const [ouverte, setOuverte] = useState<string | null>(null)
-  const suivi = suiviCycle(cycle, seances, dateISO())
+  const suivi = suiviCycle(cycle, seances, dateISO(), usePrevus())
+  const suiviDe = (l: string) => suivi.semaines.find((x) => x.lundi === l)
   /** Semaine ouverte : son lundi et son numéro, s'il n'est pas en pause. */
   const [semaine, setSemaine] = useState<string | null>(null)
   useRetour(semaine !== null, () => setSemaine(null))
@@ -351,9 +353,10 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan, onSeance }: { ca
                 <div className="ligne entre">
                   {titre}
                   {passee || faites.length ? (
-                    <span className={faites.length >= prevues.length ? 'tenue' : 'faible'}>
-                      {faites.length >= prevues.length ? '✓ ' : ''}
-                      {faites.length} sur {prevues.length}
+                    // Même jugement que la frise et l'Accueil : tenue aux trois quarts du prévu de l'époque, une séance en semaine allégée.
+                    <span className={suiviDe(x.lundi)?.etat === 'tenue' ? 'tenue' : 'faible'}>
+                      {suiviDe(x.lundi)?.etat === 'tenue' ? '✓ ' : ''}
+                      {faites.length} sur {suiviDe(x.lundi)?.prevues ?? prevues.length}
                     </span>
                   ) : (
                     <span className="faible">{debutSemaine(x.lundi)}</span>
@@ -424,7 +427,7 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan, onSeance }: { ca
 
 /** Le cycle d'un coup d'œil : vert = tenue, orange = en cours, violet = allégée, bleu = pause. */
 export function FriseCycle({ cycle, seances }: { cycle: Cycle; seances: Seance[] }) {
-  const { semaines } = suiviCycle(cycle, seances, dateISO())
+  const { semaines } = suiviCycle(cycle, seances, dateISO(), usePrevus())
   return (
     <span className="frise-cycle" aria-hidden="true">
       {semaines.map((x) => (

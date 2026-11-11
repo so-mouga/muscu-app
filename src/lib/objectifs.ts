@@ -130,8 +130,8 @@ export function derniereSemainePhase(p: { fin?: string; finPrevue?: string }, da
   return !!dernier && date <= dernier && plusJours(date, 6) >= dernier
 }
 
-/** Dernier jour d'une phase pour l'affichage : sa vraie fin, sinon sa fin prévue (ou aujourd'hui si elle est dépassée), sinon sans fin. */
-export const finAffichee = (p: PeriodePhase, aujourdhui: string) => p.fin ?? (p.finPrevue ? (p.finPrevue > aujourdhui ? p.finPrevue : aujourdhui) : '9999-12-31')
+/** Dernier jour d'une phase pour l'affichage : sa vraie fin, sinon la veille de sa fin prévue (`finPrevue` est le 1er jour de la phase suivante ; aujourd'hui si elle est dépassée), sinon sans fin. */
+export const finAffichee = (p: PeriodePhase, aujourdhui: string) => p.fin ?? (p.finPrevue ? (p.finPrevue > aujourdhui ? veille(p.finPrevue) : aujourdhui) : '9999-12-31')
 
 /** Phase à écrire sur un mois du calendrier : celle d'aujourd'hui dans le mois en cours, sinon la dernière qui touche ce mois, sinon aucune. */
 export function phaseDuMois(frise: EtapeObjectifs[], debut: string, fin: string, aujourdhui: string): Phase | undefined {
