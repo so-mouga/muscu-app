@@ -142,7 +142,7 @@ function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglag
           label="Son quand je valide une série"
           aide="La vibration reste dans tous les cas."
         />
-        <Interrupteur on={annonceFinisseur?.valeur !== false} onChange={(v) => void setReglage('annonceFinisseur', v)} label="Annonce avant un finisseur" aide="Deux secondes pour te dire quoi faire, avant la dernière série." />
+        <Interrupteur on={annonceFinisseur?.valeur !== false} onChange={(v) => void setReglage('annonceFinisseur', v)} label="Annonce avant un finisseur" aide="Le repos d’avant passe en plein écran violet, avec ce qu’il faudra faire." />
         <RappelSeance />
       </div>
 

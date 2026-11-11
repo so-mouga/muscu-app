@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Check, Maximize2, Pause, Play } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { db } from '../db'
 import { alarme, tic } from '../lib/appareil'
 import { chrono } from '../lib/calc'
@@ -31,8 +31,10 @@ export const BIPS_DEFAUT = 5
 interface Props {
   etat: EtatMinuteur
   onChange: (e: EtatMinuteur | null) => void
-  /** `barre` : en bas de l'écran ; `grand` : cercle du mode plein écran ; `bandeau` : en haut du mode plein écran. */
-  variante?: 'barre' | 'grand' | 'bandeau'
+  /** `barre` : en bas de l'écran ; `grand` : cercle du mode plein écran ; `bandeau` : en haut du mode plein écran ; `finisseur` : le repos avant un finisseur, en violet, avec un cercle qui bat. */
+  variante?: 'barre' | 'grand' | 'bandeau' | 'finisseur'
+  /** `finisseur` : ce qui s'affiche entre le cercle et les boutons (l'annonce, la consigne, les séries). */
+  children?: ReactNode
   /** Barre : appui sur le temps → mode plein écran. */
   onAgrandir?: () => void
   /** Cercle du plein écran : mot sous le temps (« exercice fini »). */
@@ -43,7 +45,7 @@ interface Props {
   cranVient?: boolean
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient, children }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -122,6 +124,46 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
   const total = etat.debut ? (etat.pause !== undefined ? maintenant - etat.debut + etat.pause : etat.fin - etat.debut) / 1000 : etat.duree
   const part = fini ? 0 : reste / Math.max(1, total)
   const decompteActif = !fini && !enPause && seconde > 0 && seconde <= (bips > 0 ? bips : 5)
+
+  // Le repos avant un finisseur : le cercle bat lentement, plus vite les dix dernières secondes, puis se fige sur « Prêt ».
+  // Fini, il attend un appui (« J'y vais ») : l'annonce ne se rate plus, même si on ne regardait pas à la fin du repos.
+  if (variante === 'finisseur') {
+    return (
+      <div className={'moment' + (fini ? ' fige' : enPause ? ' en-pause' : seconde <= 10 ? ' vite' : ' lent')}>
+        <button type="button" className="moment-anneau" onClick={() => !fini && basculerPause()} aria-label={fini ? 'Repos terminé' : enPause ? 'Reprendre le repos' : `Repos, ${temps}. Mettre en pause`}>
+          <i />
+          <i />
+          {cran && !fini && !enPause && (
+            <span className={'cran-signal' + (anime ? ' vient' : '')}>
+              <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+            </span>
+          )}
+          <span className="moment-temps">{fini ? 'Prêt' : temps}</span>
+          {enPause && <span className="moment-sous">en pause</span>}
+        </button>
+        {children}
+        <div className={'moment-bas' + (fini ? ' un' : '')}>
+          {fini ? (
+            <button type="button" className="btn finisseur grand" onClick={() => onChange(null)}>
+              J’y vais
+            </button>
+          ) : (
+            <>
+              <button type="button" className="btn" onClick={() => decaler(-15000)}>
+                −15
+              </button>
+              <button type="button" className="btn" onClick={() => onChange(null)}>
+                Passer
+              </button>
+              <button type="button" className="btn" onClick={() => decaler(15000)}>
+                +15
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   if (variante === 'grand') {
     return (

@@ -17,7 +17,7 @@ import Minuteur, { BIPS_DEFAUT, reposOublie, resteRepos, type EtatMinuteur } fro
 import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
-import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
+import { battement, debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
 import { recordDuJour } from '../lib/historique'
 import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
 import Disque, { IconeCran } from '../components/Disque'
@@ -34,7 +34,6 @@ import { alterneEncore, delier, echangerExos, estDansSuperset, groupeSuperset, p
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { chargeBaisse, consigne, FINISSEURS, typeFinisseur } from '../lib/finisseur'
-import AvantFinisseur from '../components/AvantFinisseur'
 import { remplacesDe, textePlace } from '../lib/partageSeance'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
@@ -50,6 +49,9 @@ function stocke<T>(cle: string, defaut: T): T {
     return defaut
   }
 }
+/** Pas de repos en cours avant un finisseur : le minuteur s'affiche fini depuis longtemps, sans sonner. */
+const REPOS_FINI: EtatMinuteur = { fin: 0, duree: 0 }
+
 /** Annonces de finisseur déjà montrées (`séance:exercice`) : ni revenir de la liste, ni rouvrir l'appli en pleine séance ne les rejoue. */
 const annoncesVues = new Set<string>(
   (() => {
@@ -347,6 +349,15 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   // Plein écran : tant que tout tient, pas de geste vertical, sinon Android étire la page sous le doigt.
   const ecranFocus = useRef<HTMLDivElement>(null)
+  // Deux battements quand le moment d'avant un finisseur commence (calculé plus bas, après les retours anticipés).
+  const momentRef = useRef('')
+  const [momentVibre, setMomentVibre] = useState('')
+  useEffect(() => {
+    if (momentRef.current && momentRef.current !== momentVibre) {
+      setMomentVibre(momentRef.current)
+      battement()
+    }
+  })
   useEffect(() => {
     const el = ecranFocus.current
     if (el) el.classList.toggle('tient', el.scrollHeight <= el.clientHeight)
@@ -724,6 +735,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     )
   })()
 
+  // Le moment d'avant un finisseur (plein écran) : tout le repos qui précède la dernière série, en violet, puis « Prêt »
+  // jusqu'à l'appui. Une fois par exercice et par séance ; coupé dans Réglages, le repos garde son allure habituelle.
+  const cleMoment = enCours >= 0 ? `${seance.id}:${plans[enCours].exoId}` : ''
+  const momentFin =
+    focus && !fin && enCours >= 0 && !surEchauffement && restantes > 0 && !saisie && !!plans[enCours].finisseur && nbFaites(plans[enCours].exoId) === totalDe(enCours) - 1 && reglageAnnonce?.valeur !== false && !annoncesVues.has(cleMoment)
+  momentRef.current = momentFin ? cleMoment : ''
+
   /** La consigne du finisseur de cet exercice, avec la charge de la baisse quand elle est connue. */
   const consigneDe = (i: number) => {
     const tf = typeFinisseur(plans[i])
@@ -888,6 +906,38 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         </button>
       </div>
     )
+    if (momentFin) {
+      const p = plans[enCours]
+      const exo = exos[enCours]
+      const faitesExo = seance.series.filter((x) => x.exoId === p.exoId)
+      const commencer = () => (annonceVue(cleMoment), setAnnonceVue((x) => x + 1))
+      return (
+        <div ref={ecranFocus} className="focus fixe moment-fin">
+          <div className="moment-haut">
+            <span>
+              {exo.nom} · {FINISSEURS[typeFinisseur(p)].nom.toLowerCase()}
+            </span>
+            <button type="button" onClick={() => naviguer(() => (setIdx(enCours), setFocus(false)))}>
+              Voir la séance <ChevronRight size={16} />
+            </button>
+          </div>
+          {/* Sans repos en cours : le même écran, figé sur « Prêt ». « Passer » comme « J'y vais » mènent à la saisie. */}
+          <Minuteur etat={minuteur ?? REPOS_FINI} variante="finisseur" onChange={(e) => (setMinuteur(e), !e && commencer())} cran={cranRepos ? pourquoiCran(cranRepos) : undefined} cranVient={vient && !!cranRepos}>
+            <div className="moment-texte">
+              <div className="moment-grand">Dernière série.</div>
+              <div className="moment-fort">À fond.</div>
+              <div className="moment-consigne">{consigneDe(enCours)}</div>
+            </div>
+            {/* Les séries déjà faites restent à un appui : c'est pendant ce repos qu'on corrige. */}
+            {faitesExo.length > 0 && <LigneSeries court exo={exo} faites={faitesExo} total={totalDe(enCours)} cible={() => ''} onCorriger={(x) => setCorrige(x.id)} cranId={cranDe(p.exoId)?.serie.id} />}
+          </Minuteur>
+          {correction}
+          {fenetres}
+          {toast && <div className="toast">{toast}</div>}
+        </div>
+      )
+    }
+
     return (
       <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
@@ -908,13 +958,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             const plus = hausse(exo, suggestions[enCours], derniereFois, n)
             const finisseurIci = !!p.finisseur && n === t - 1
             const objectifSaisie = finisseurIci ? undefined : objectifSerie(enCours, n)
-            const cleAnnonce = `${seance.id}:${p.exoId}`
             const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
             return (
               <div className="focus-bloc pile saisie-focus">
-                {finisseurIci && reglageAnnonce?.valeur !== false && !annoncesVues.has(cleAnnonce) && !corrige && (
-                  <AvantFinisseur exo={exo.nom} technique={FINISSEURS[typeFinisseur(p)].nom} consigne={consigneDe(enCours)} onFin={() => (annonceVue(cleAnnonce), setAnnonceVue((x) => x + 1))} />
-                )}
                 {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>

@@ -6878,78 +6878,168 @@ button.jour-pas {
 .cran-des > svg.lucide {
   color: var(--texte-2);
 }
-/* L'instant d'avant un finisseur : plein écran, deux secondes, un appui le passe. */
-.avant-fin {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: var(--e5);
-  border: none;
-  border-radius: 0;
+/* Le moment d'avant un finisseur (maquette repos-finisseur.html, partie B, 11 nov. 2026) : tout le repos en plein écran violet,
+   le chrono dans un cercle qui bat (lent, puis vite les dix dernières secondes), puis « Prêt » jusqu'à l'appui. */
+.focus.moment-fin {
   background: var(--finisseur-fond);
-  color: var(--texte);
-  text-align: center;
-  animation: fondu var(--duree-courte) var(--sortie);
+  gap: 0;
 }
-.avant-fin-petit {
+.moment-haut {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e3);
+  min-height: var(--cible);
   color: var(--finisseur);
   font-size: var(--t-petit);
   font-weight: 600;
 }
-.avant-fin-grand {
-  margin-top: var(--e3);
+.moment-haut > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.moment-haut > button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: var(--cible);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  font-weight: 400;
+}
+.moment {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+}
+.moment-anneau {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(210px, 30vh);
+  height: min(210px, 30vh);
+  margin: auto 0 var(--e5);
+  padding: 0;
+  border: 3px solid var(--finisseur-voile);
+  border-radius: 50%;
+  background: none;
+  color: var(--texte);
+}
+.moment-anneau > i {
+  position: absolute;
+  inset: -3px;
+  border: 2px solid var(--finisseur);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.moment.lent .moment-anneau > i {
+  animation: moment-bat 1.6s ease-out infinite;
+}
+.moment.lent .moment-anneau > i + i {
+  animation-delay: 0.28s;
+}
+.moment.vite .moment-anneau {
+  border-color: var(--finisseur);
+}
+.moment.vite .moment-anneau > i {
+  animation: moment-bat 0.7s ease-out infinite;
+}
+.moment.vite .moment-anneau > i + i {
+  animation-delay: 0.14s;
+}
+.moment.fige .moment-anneau {
+  border-color: var(--finisseur);
+  background: var(--finisseur-voile);
+}
+.moment-temps {
+  font-size: var(--t-chrono);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.moment.fige .moment-temps {
+  color: var(--finisseur);
+  font-size: var(--t-chiffre);
+}
+.moment-sous {
+  margin-top: var(--e1);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+}
+.moment-texte {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.moment-grand {
   font-size: var(--t-chiffre);
   font-weight: 800;
   line-height: 1.1;
 }
-.avant-fin-fort {
+.moment-fort {
   color: var(--finisseur);
   font-size: var(--t-chrono);
   font-weight: 800;
   line-height: 1;
 }
-.avant-fin-consigne {
-  max-width: 280px;
-  margin-top: var(--e5);
+.moment-consigne {
+  max-width: 300px;
+  margin-top: var(--e4);
   font-size: var(--t-texte);
   line-height: 1.4;
 }
-.avant-fin-passe {
-  position: absolute;
-  bottom: calc(var(--e5) + env(safe-area-inset-bottom));
-  color: var(--texte-3);
-  font-size: var(--t-legende);
+.moment > .ligne-series {
+  justify-content: center;
+  margin-top: var(--e4);
+  max-width: 100%;
 }
-.avant-fin-pouls {
-  position: absolute;
-  width: 220px;
-  height: 220px;
-  border: 2px solid var(--finisseur);
-  border-radius: 50%;
-  opacity: 0;
-  animation: avant-pouls 1.1s ease-out 2;
+.moment > .ligne-series > .courante {
+  background: var(--finisseur-voile);
+  color: var(--finisseur);
 }
-@keyframes avant-pouls {
-  0% {
-    transform: scale(0.6);
-    opacity: 0;
+.moment-bas {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: var(--e2);
+  width: 100%;
+  margin-top: auto;
+  padding-top: var(--e4);
+}
+.moment-bas.un {
+  grid-template-columns: 1fr;
+}
+.moment-bas .btn {
+  min-height: 52px;
+  background: var(--finisseur-voile);
+}
+.moment-bas .btn.finisseur {
+  background: var(--finisseur);
+}
+@keyframes moment-bat {
+  from {
+    transform: scale(1);
+    opacity: 0.75;
   }
-  15% {
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1.25);
+  to {
+    transform: scale(1.28);
     opacity: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .avant-fin,
-  .avant-fin-pouls {
-    animation: none;
+  .moment-anneau > i {
+    animation: none !important;
   }
 }
