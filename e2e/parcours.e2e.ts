@@ -141,6 +141,41 @@ test('récupérer une sauvegarde : « Compléter » ne change rien de ce qui exi
   expect(erreurs).toEqual([])
 })
 
+test('« Compléter » sur un téléphone qui n’a que le programme du démarrage : les phases du fichier reviennent, le jour du journal est complété, un seul cycle reste ouvert', async ({ page: p }) => {
+  const erreurs = suivreErreurs(p)
+  await p.goto('/')
+  await premierProgramme(p)
+  const jour = await aujourdhui(p)
+  // Ce que la montre a déjà écrit pour aujourd'hui.
+  await ecrire(p, 'journal', [{ date: jour, pas: 9000 }])
+  const duDemarrage = (await lireTable(p, 'cycles')) as { id: string; fin?: string }[]
+  expect(duDemarrage.filter((c) => !c.fin)).toHaveLength(1)
+
+  const fichier = {
+    app: 'muscu',
+    seances: [seance('s1', '2026-10-06', [{ charge: 50, reps: 10, rpe: 8 }])],
+    journal: [{ date: jour, pas: 4000, note: 'resto', sommeil: 6.5 }],
+    reglages: [{ cle: 'objectifs', valeur: [{ depuis: '2026-09-01', phase: 'prise', calories: 3000, volume: {} }] }],
+    cycles: [{ id: 'c_ancien', programmeId: 'p_ancien', programme: { id: 'p_ancien', nom: 'Ancien', seances: [] }, modeles: [], debut: '2026-10-05', semaines: 12, deloads: [], pauses: [], volume: {} }],
+  }
+  await ouvrirSauvegarde(p)
+  await p.locator('input[type=file]').setInputFiles({ name: 'cran.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(fichier)) })
+  // Un programme et un cycle : le téléphone n'est pas « vide », on choisit.
+  await expect(p.getByText('et tes phases')).toBeVisible()
+  await p.getByRole('button', { name: 'Compléter', exact: true }).last().click()
+  await expect(p.getByText('Ajouté ✓')).toBeVisible()
+
+  const reglages = (await lireTable(p, 'reglages')) as { cle: string; valeur: { phase?: string; calories?: number }[] }[]
+  expect(reglages.find((r) => r.cle === 'objectifs')?.valeur[0]).toMatchObject({ phase: 'prise', calories: 3000 })
+  expect(await lireTable(p, 'journal')).toEqual([{ date: jour, pas: 9000, note: 'resto', sommeil: 6.5 }])
+  const cycles = (await lireTable(p, 'cycles')) as { id: string; fin?: string }[]
+  expect(cycles).toHaveLength(2)
+  expect(cycles.filter((c) => !c.fin).map((c) => c.id)).toEqual(['c_ancien'])
+  await p.reload()
+  await expect(p.getByRole('button', { name: 'Réglages' })).toBeVisible()
+  expect(erreurs).toEqual([])
+})
+
 test('base d’une ancienne version (avant le journal) : l’appli la met à jour sans rien perdre', async ({ page: p }) => {
   const erreurs = suivreErreurs(p)
   // Une page du site qui ne lance pas l'appli, pour créer la base comme une ancienne version (Dexie 6 = IndexedDB 60).

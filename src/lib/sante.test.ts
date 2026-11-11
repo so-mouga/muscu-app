@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jugerCalories, majJour, nuitsParJour } from './sante'
+import { jugerCalories, majJour, nuitsParJour, repasDisparus } from './sante'
 
 const h = (iso: string) => new Date(iso).getTime()
 
@@ -86,5 +86,25 @@ describe('repas lus dans l’appli de repas', () => {
 
   it('un jour sans repas lus garde ce qui est noté à la main', () => {
     expect(majJour({ date: 'x', calories: 'trop' }, 8000, undefined, undefined, 3000, true)).toEqual({ pas: 8000 })
+  })
+})
+
+describe('un repas supprimé dans l’appli de repas', () => {
+  const journal = [
+    { date: '2026-11-08', kcal: 400, proteines: 20, glucides: 50, lipides: 10, sodium: 900, kcalAppli: true, calories: 'pasAssez' as const, note: 'resto', pas: 9000, sommeil: 7 },
+    { date: '2026-11-09', kcal: 2900, kcalAppli: true, calories: 'ok' as const },
+    { date: '2026-11-10', calories: 'trop' as const },
+    { date: '2026-10-01', kcal: 2500, kcalAppli: true, calories: 'ok' as const },
+  ]
+  const lus = { '2026-11-09': {} }
+  it('le jour disparu de Health Connect perd son total et son verdict, et garde le reste', () => {
+    expect(repasDisparus(journal, lus, '2026-10-29', '2026-11-11', true)).toEqual([{ date: '2026-11-08', note: 'resto', pas: 9000, sommeil: 7 }])
+  })
+  it('un verdict noté à la main et un jour hors de la fenêtre relue ne bougent pas', () => {
+    const r = repasDisparus(journal, {}, '2026-10-29', '2026-11-11', true).map((j) => j.date)
+    expect(r).toEqual(['2026-11-08', '2026-11-09'])
+  })
+  it('autorisation retirée ou lecture ratée : rien ne s’efface, même si tout semble avoir disparu', () => {
+    expect(repasDisparus(journal, {}, '2026-10-29', '2026-11-11', false)).toEqual([])
   })
 })

@@ -2,6 +2,7 @@ import { ChevronRight, Mail } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
 import type { Catalogue } from '../catalogue'
+import type { JourJournal } from '../types'
 import { db, setReglage } from '../db'
 import { CLE_RAPPEL, natif, RAPPEL_DEFAUT, rappelDisponible, type Rappel } from '../lib/natif'
 import { transition, useRetour } from '../lib/nav'
@@ -277,11 +278,13 @@ function PageSauvegarde({ catalogue, message, onMessage }: { catalogue: Catalogu
 function ChoixImport({ fichier, onFini }: { fichier: Fichier; onFini: (message?: string) => void }) {
   useRetour(true, () => onFini())
   const [cles, setCles] = useState<ClesTelephone | null>(null)
+  const [journal, setJournal] = useState<JourJournal[] | null>(null)
   const [mode, setMode] = useState<'completer' | 'remplacer'>('completer')
   const [copie, setCopie] = useState(false)
   useEffect(() => void clesTelephone().then(setCles), [])
-  if (!cles) return null
-  const a = apercu(fichier, cles)
+  useEffect(() => void db.journal.toArray().then(setJournal), [])
+  if (!cles || !journal) return null
+  const a = apercu(fichier, cles, journal)
   const remplacer = a.telephoneVide || mode === 'remplacer'
 
   const lancer = async () => {

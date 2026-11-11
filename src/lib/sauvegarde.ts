@@ -1,9 +1,12 @@
 import type { Table } from 'dexie'
 import { MODELES } from '../data/programme'
 import { db, setReglage } from '../db'
-import { avantSonCycle } from './cycle'
+import { avantSonCycle, finReelle } from './cycle'
+import { dateISO } from './calc'
+import { CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME } from './objectifs'
+import { CLE_PREVUS } from './prevu'
 import { natif, partageFichierDisponible, partagerFichierNatif } from './natif'
-import type { Cycle, Seance } from '../types'
+import type { Cycle, JourJournal, Seance } from '../types'
 
 export type Categorie = 'programmes' | 'historique' | 'exercices' | 'corps' | 'photos' | 'reglages'
 
@@ -161,16 +164,60 @@ const enClair = (l: { n: number; un: string; plusieurs: string }[]) => {
   return t.length > 1 ? `${t.slice(0, -1).join(', ')} et ${t[t.length - 1]}` : (t[0] ?? '')
 }
 
-/** Compare le fichier au téléphone. Une catégorie sans rien dans le fichier ne change jamais. */
-export function apercu({ data, presentes }: Fichier, cles: ClesTelephone): ApercuImport {
+/** Les phases (frise, ou ses anciens réglages) et le prévu par semaine qui va avec : ils tiennent chacun dans une seule ligne de réglages. */
+const REGLAGES_PHASES = [CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME]
+
+/**
+ * « Compléter » : le fichier apporte-t-il ses phases ? Oui tant que le téléphone n'a aucune séance : celles qu'il a
+ * viennent des questions du démarrage, alors que le fichier porte l'histoire (calories et poids visés, volume). Dès
+ * qu'il y a une séance, les phases du téléphone sont les vraies et ne changent pas.
+ */
+export const phasesDuFichier = (data: Record<string, unknown>, nbSeancesTelephone: number) =>
+  nbSeancesTelephone === 0 && ((data.reglages ?? []) as { cle: string }[]).some((r) => REGLAGES_PHASES.includes(r.cle))
+
+/**
+ * « Compléter » un jour du journal déjà présent : les champs qui manquent sont ajoutés (note du jour, nuit ou
+ * calories notées à la main), ceux qui existent ne changent jamais. Null s'il n'y a rien à ajouter.
+ */
+export function completerJour(telephone: JourJournal, fichier: JourJournal): JourJournal | null {
+  const manque = (Object.keys(fichier) as (keyof JourJournal)[]).filter((k) => fichier[k] !== undefined && fichier[k] !== '' && (telephone[k] === undefined || telephone[k] === ''))
+  if (!manque.length) return null
+  return { ...telephone, ...Object.fromEntries(manque.map((k) => [k, fichier[k]])) }
+}
+
+/**
+ * Jamais deux cycles ouverts : un seul reste en cours, les autres sont terminés (à leur vrai dernier jour). On garde
+ * de préférence un cycle `prioritaires` (ceux du fichier si le téléphone n'avait aucune séance, sinon ceux du
+ * téléphone), et parmi eux le plus récent. Renvoie les cycles à réécrire.
+ */
+export function fermerCyclesEnTrop(cycles: Cycle[], prioritaires: Set<string>, date = dateISO()): Cycle[] {
+  const ouverts = cycles.filter((c) => !c.fin)
+  if (ouverts.length < 2) return []
+  const candidats = ouverts.some((c) => prioritaires.has(c.id)) ? ouverts.filter((c) => prioritaires.has(c.id)) : ouverts
+  const garde = candidats.reduce((a, c) => (c.debut > a.debut ? c : a))
+  return ouverts.filter((c) => c !== garde).map((c) => ({ ...c, fin: finReelle(c, date) }))
+}
+
+/**
+ * Compare le fichier au téléphone. Une catégorie sans rien dans le fichier ne change jamais. `journal` : les jours
+ * déjà notés sur le téléphone, pour dire combien « Compléter » en complétera.
+ */
+export function apercu({ data, presentes }: Fichier, cles: ClesTelephone, journal: JourJournal[] = []): ApercuImport {
   const touchees = new Set(presentes.flatMap((c) => TABLES[c.id]))
   const dansFichier = (t: NomTable) => ((data[t] ?? []) as Record<string, unknown>[]).map((l) => l[CLES[t]])
   const ajoutes = (t: NomTable) => dansFichier(t).filter((k) => !cles[t].includes(k)).length
   const perdus = (t: NomTable) => (touchees.has(t) ? cles[t].filter((k) => !dansFichier(t).includes(k)).length : 0)
+  const duFichier = new Map(((data.journal ?? []) as unknown as JourJournal[]).map((j) => [j.date, j]))
+  const joursCompletes = journal.filter((j) => duFichier.has(j.date) && completerJour(j, duFichier.get(j.date)!)).length
+  const ajoutsBase = RUBRIQUES.some((r) => ajoutes(r.table) > 0)
   return {
     lignes: RUBRIQUES.map((r) => ({ nom: r.nom, fichier: dansFichier(r.table).length, telephone: cles[r.table].length })).filter((l) => l.fichier || l.telephone),
-    telephoneVide: (['seances', 'pesees', 'mesures', 'journal', 'photos', 'exercices'] as NomTable[]).every((t) => !cles[t].length),
-    ajouts: enClair(RUBRIQUES.map((r) => ({ ...r, n: ajoutes(r.table) }))),
+    // Un programme pris ou un cycle lancé, c'est déjà quelque chose à perdre : on demande avant de remplacer.
+    telephoneVide: (['seances', 'pesees', 'mesures', 'journal', 'photos', 'exercices', 'programmes', 'cycles'] as NomTable[]).every((t) => !cles[t].length),
+    ajouts: enClair([
+      ...RUBRIQUES.map((r) => ({ ...r, n: ajoutes(r.table) })),
+      { n: joursCompletes, un: 'jour complété', plusieurs: 'jours complétés' },
+    ]) + (phasesDuFichier(data, cles.seances.length) ? (ajoutsBase || joursCompletes ? ', et tes phases' : 'tes phases') : ''),
     pertes: enClair(RUBRIQUES.map((r) => ({ ...r, n: perdus(r.table) }))),
     avecPhotos: touchees.has('photos'),
   }
@@ -178,11 +225,18 @@ export function apercu({ data, presentes }: Fichier, cles: ClesTelephone): Aperc
 
 /**
  * Récupère une sauvegarde, tout ou rien (si ça échoue, le téléphone ne change pas).
- * `completer` : ajoute ce qui manque, ne touche à rien de ce qui existe.
+ * `completer` : ajoute ce qui manque, ne touche à rien de ce qui existe. Deux précisions : un jour du journal déjà
+ * présent reçoit les champs qui lui manquent (`completerJour`), et les phases du fichier sont reprises tant que le
+ * téléphone n'a aucune séance (`phasesDuFichier`).
  * `remplacer` : efface les catégories présentes dans le fichier et remet les siennes.
+ * Dans les deux cas, il ne reste jamais deux cycles ouverts (`fermerCyclesEnTrop`).
  */
 export async function importer({ data, presentes }: Fichier, mode: 'completer' | 'remplacer') {
   const tables = presentes.flatMap((c) => TABLES[c.id])
+  const sansSeance = (await db.seances.count()) === 0
+  const cyclesDuTelephone = new Set((await db.cycles.toCollection().primaryKeys()) as string[])
+  const cyclesDuFichier = new Set(((data.cycles ?? []) as unknown as Cycle[]).map((c) => c.id))
+  const phases = mode === 'completer' && phasesDuFichier(data, sansSeance ? 0 : 1)
   await db.transaction('rw', tables.map(table), async () => {
     for (const t of tables) {
       const cle = CLES[t]
@@ -204,10 +258,25 @@ export async function importer({ data, presentes }: Fichier, mode: 'completer' |
         await table(t).clear()
         if (demarrage) await table(t).put(demarrage)
       } else {
+        // Phases du fichier : ses lignes remplacent celles du démarrage (les anciennes clés aussi, sinon elles reprendraient la main).
+        if (t === 'reglages' && phases) await table(t).bulkDelete([...REGLAGES_PHASES, CLE_PREVUS])
         const existe = new Set(await table(t).toCollection().primaryKeys())
+        if (t === 'journal') {
+          const complets: JourJournal[] = []
+          for (const l of lignes as unknown as JourJournal[]) {
+            if (!existe.has(l.date)) continue
+            const c = completerJour((await db.journal.get(l.date))!, l)
+            if (c) complets.push(c)
+          }
+          await db.journal.bulkPut(complets)
+        }
         lignes = lignes.filter((l) => !existe.has(l[cle] as string))
       }
       await table(t).bulkPut(lignes)
+    }
+    if (tables.includes('cycles')) {
+      const prioritaires = mode === 'completer' && !sansSeance ? cyclesDuTelephone : cyclesDuFichier
+      await db.cycles.bulkPut(fermerCyclesEnTrop(await db.cycles.toArray(), prioritaires))
     }
   })
 }

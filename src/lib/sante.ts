@@ -131,7 +131,30 @@ export function majJour(j: JourJournal | undefined, pas: number | undefined, som
   return Object.keys(c).length ? c : null
 }
 
+/** Ce que l'appli de repas a écrit dans un jour : le total, les macros, la marque et le verdict qui en est déduit. */
+const CHAMPS_REPAS = ['kcal', 'proteines', 'glucides', 'lipides', 'sodium', 'kcalAppli', 'calories'] as const
+
+/**
+ * Jours dont le total des repas a disparu de Health Connect (repas supprimé dans l'appli de repas) : ils perdent leur
+ * total dans Cran, et se notent de nouveau à la main. Seulement dans la fenêtre relue (`debut` à `fin`), seulement
+ * pour un total venu de l'appli de repas, et seulement si `autorise` : la lecture a réussi et l'autorisation des repas
+ * est toujours accordée. Un échec de lecture ou une autorisation retirée n'efface jamais rien. Renvoie les jours à réécrire.
+ */
+export function repasDisparus(journal: JourJournal[], lus: Record<string, unknown>, debut: string, fin: string, autorise: boolean): JourJournal[] {
+  if (!autorise) return []
+  return journal
+    .filter((j) => j.kcalAppli && j.date >= debut && j.date <= fin && !(j.date in lus))
+    .map((j) => {
+      const c = { ...j }
+      for (const k of CHAMPS_REPAS) delete c[k]
+      return c
+    })
+}
+
 let derniereLecture = 0
+
+/** Jours relus à chaque lecture, aujourd'hui compris. */
+const JOURS_LUS = 14
 
 /** Lit les 14 derniers jours et les range dans le journal. Au plus une fois toutes les 10 min, sauf `forcer`. */
 export async function synchroniserSante(forcer = false): Promise<void> {
@@ -139,7 +162,7 @@ export async function synchroniserSante(forcer = false): Promise<void> {
   const r = await db.reglages.get(CLE_SANTE)
   if (r?.valeur !== true || !(await santeDisponible())) return
   derniereLecture = Date.now()
-  const lu = await Sante.lire({ jours: 14 })
+  const lu = await Sante.lire({ jours: JOURS_LUS })
   const pas = Object.fromEntries(lu.pas.map((x) => [x.date, x.pas]))
   const sommeil = nuitsParJour(lu.nuits)
   const repas = Object.fromEntries((lu.repas ?? []).map((x) => [x.date, x]))
@@ -147,7 +170,12 @@ export async function synchroniserSante(forcer = false): Promise<void> {
   const frise = lireFrise(...((await db.reglages.bulkGet([CLE_OBJECTIFS, CLE_PHASES, CLE_VOLUME])).map((r) => r?.valeur) as [unknown, unknown, unknown]))
   const aujourdhui = dateISO()
   const jours = [...new Set([...Object.keys(pas), ...Object.keys(sommeil), ...Object.keys(repas)])]
+  // Repas disparus : on n'efface que si l'autorisation est toujours là. Sans elle, la lecture réussit aussi, mais vide.
+  const autorise = await Sante.etat().then((e) => e.nutrition === true, () => false)
+  const debut = dateISO(new Date(Date.now() - (JOURS_LUS - 1) * 86400000))
   await db.transaction('rw', db.journal, async () => {
+    const disparus = repasDisparus(await db.journal.where('date').between(debut, aujourdhui, true, true).toArray(), repas, debut, aujourdhui, autorise)
+    if (disparus.length) await db.journal.bulkPut(disparus)
     for (const date of jours) {
       const j = await db.journal.get(date)
       const c = majJour(j, pas[date], sommeil[date], repas[date], objectifDuJour(frise, date)?.kcal, date < aujourdhui)
