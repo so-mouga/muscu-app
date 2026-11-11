@@ -7285,3 +7285,76 @@ button.jour-pas {
     animation: none;
   }
 }
+
+/* --- « Échauffement d'abord » (maquette echauffement-dabord.html, jugée sur le téléphone, 11 nov. 2026) :
+   les séries de chauffe d'un exercice passent avant sa première série, en grandes lignes à cocher. --- */
+.etape-titre {
+  font-size: var(--t-page);
+  font-weight: 800;
+  line-height: 1.1;
+}
+.rang-chauffe {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+  width: 100%;
+  min-height: 60px;
+  padding: 0 var(--e4);
+  border: none;
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+  color: var(--texte);
+  text-align: left;
+}
+.rang-chauffe b {
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+.rang-rond {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--texte-3);
+  border-radius: 50%;
+}
+.rang-chauffe.fait {
+  background: var(--ok-voile);
+}
+.rang-chauffe.fait .rang-rond {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--bg);
+}
+.rang-chauffe.fait b {
+  color: var(--texte-2);
+  text-decoration: line-through;
+  text-decoration-color: var(--texte-3);
+}
+.chauffe-ensuite {
+  padding: var(--e2) var(--e3);
+  border-radius: var(--rayon-2);
+  background: var(--surface-2);
+  font-size: var(--t-petit);
+}
+.etape-chauffe .etape-passer {
+  min-height: 52px;
+  margin-top: auto;
+}
+.pastille-echauffe {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+  min-height: 36px;
+  padding: 0 var(--e3);
+  border: none;
+  border-radius: 999px;
+  background: var(--ok-voile);
+  color: var(--ok);
+  font-size: var(--t-petit);
+  font-weight: 600;
+  white-space: nowrap;
+}

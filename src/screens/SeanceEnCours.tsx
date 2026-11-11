@@ -50,6 +50,26 @@ function stocke<T>(cle: string, defaut: T): T {
     return defaut
   }
 }
+/** Échauffements d'exercice passés sans tout cocher (`séance:exercice`) : l'étape ne revient pas, même en rouvrant l'appli. */
+const chauffesPassees = new Set<string>(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem('chauffesPassees') ?? '[]') as string[]
+    } catch {
+      return []
+    }
+  })()
+)
+function passerChauffes(cle: string) {
+  chauffesPassees.add(cle)
+  const seance = cle.split(':')[0]
+  try {
+    localStorage.setItem('chauffesPassees', JSON.stringify([...chauffesPassees].filter((c) => c.startsWith(seance + ':'))))
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
 /** Pas de repos en cours avant un finisseur : le minuteur s'affiche fini depuis longtemps, sans sonner. */
 const REPOS_FINI: EtatMinuteur = { fin: 0, duree: 0 }
 
@@ -988,6 +1008,44 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             const revSaisie = finisseurIci || seance.deload ? null : revanche(exo, p, historiqueDe(terminees, p.exoId), n, suggestions[enCours].charges[n])
             const objectifSaisie = finisseurIci ? undefined : revSaisie?.genre === 'reps' ? { charge: suggestions[enCours].charges[n] as number, reps: revSaisie.vise, avant: revSaisie.avant } : objectifSerie(enCours, n)
             const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
+            // « Échauffement d'abord » (retour de l'utilisateur : il lançait la séance et ne voyait pas les séries de chauffe, en petit
+            // au-dessus de la saisie) : tant qu'il en reste à cocher, elles passent avant la première série, en grandes lignes.
+            const chauffes = n === 0 ? chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]) : []
+            const restantesChauffe = chauffes.filter(({ i }) => !seance.chauffes[`${exo.id}:${i}`]).length
+            const cleChauffe = `${seance.id}:${p.exoId}`
+            if (restantesChauffe > 0 && !chauffesPassees.has(cleChauffe))
+              return (
+                <div className="focus-bloc pile saisie-focus etape-chauffe">
+                  <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
+                    <h2>{exo.nom}</h2>
+                    <BoutonInfos onClick={() => setInfos(exo.id)} />
+                  </div>
+                  <div className="etape-titre">Échauffement d’abord.</div>
+                  <div className="faible">
+                    {restantesChauffe === chauffes.length
+                      ? `${chauffes.length} série${chauffes.length > 1 ? 's' : ''} légère${chauffes.length > 1 ? 's' : ''}. Coche-${chauffes.length > 1 ? 'les une par une' : 'la'}.`
+                      : restantesChauffe === 1
+                        ? 'Plus qu’une.'
+                        : `Plus que ${restantesChauffe}.`}
+                  </div>
+                  {chauffes.map(({ c, i }) => {
+                    const cle = `${exo.id}:${i}`
+                    const fait = !!seance.chauffes[cle]
+                    return (
+                      <button key={cle} type="button" className={'rang-chauffe' + (fait ? ' fait' : '')} aria-pressed={fait} onClick={() => void majSeance(seance.id, (x) => void (x.chauffes[cle] = !fait))}>
+                        <span className="rang-rond">{fait && <Check size={16} />}</span>
+                        <b>{texteChauffe(exo, c, suggestions[enCours].charges[0])}</b>
+                      </button>
+                    )
+                  })}
+                  <div className="chauffe-ensuite">
+                    <span className="faible">Ensuite :</span> {t} série{t > 1 ? 's' : ''} à <strong>{cibleSerie(exo, p, suggestions[enCours], 0, [], t).split(' · ')[0]}</strong>
+                  </div>
+                  <button type="button" className="btn plein etape-passer" onClick={() => (passerChauffes(cleChauffe), setAnnonceVue((x) => x + 1))}>
+                    {restantesChauffe === chauffes.length ? 'Passer l’échauffement' : 'Passer le reste'}
+                  </button>
+                </div>
+              )
             return (
               <div className="focus-bloc pile saisie-focus">
                 {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
@@ -998,7 +1056,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
-                <LigneSeries avant={n === 0 && chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]).length ? <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} />
+                <LigneSeries
+                  avant={
+                    !chauffes.length ? undefined : restantesChauffe === 0 ? (
+                      // Tout est coché : une seule pastille verte ; un appui rouvre l'étape (la dernière case se décoche).
+                      <button type="button" className="pastille-echauffe" onClick={() => void majSeance(seance.id, (x) => void (x.chauffes[`${exo.id}:${chauffes[chauffes.length - 1].i}`] = false))}>
+                        <Check size={14} /> Échauffé
+                      </button>
+                    ) : (
+                      <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee />
+                    )
+                  } exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} />
                 {/* Avec un objectif à battre, l'éditeur l'écrit en une ligne (« Vise 9 · à battre : 8 ») : pas de doublon ici. */}
                 {!objectifSaisie && (derniereFois?.[n] || plus) && (
                   <div className="faible">
