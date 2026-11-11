@@ -261,7 +261,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   if (auMoinsUnChiffre) {
     const obj = d.objectifs && objectifDuJour(d.objectifs, fin)
     titre(`Jour par jour, 7 derniers jours${obj ? ` (objectif ${nombre(obj.kcal)} kcal)` : ''}`)
-    lignes.push('jour | poids | kcal | protéines | sodium | pas | nuit d’avant | séance | notes')
+    lignes.push('jour | poids | kcal | protéines | pas | nuit d’avant | séance | notes')
     const tiret = '—'
     for (const date of septJours) {
       const j = duJournal(date)
@@ -275,7 +275,6 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
           poids !== undefined ? `${kg(poids)} kg` : tiret,
           kcal,
           j?.kcalAppli && j.proteines !== undefined ? `${j.proteines} g` : tiret,
-          j?.kcalAppli && j.sodium !== undefined ? `${nombre(j.sodium)} mg` : tiret,
           j?.pas !== undefined ? nombre(j.pas) : tiret,
           j?.sommeil !== undefined ? heuresMinutes(j.sommeil) : tiret,
           ss.length ? ss.map((s) => s.nom).join(', ') : tiret,

@@ -125,12 +125,14 @@ describe('texte du bilan et séance allégée pour un seul jour', () => {
     expect(t.startsWith('Ma question cette semaine : j’ai mal au coude\n\nBILAN')).toBe(true)
     expect(t).toContain('Dernier tour de taille : 83 cm (26 oct.)')
     expect(t).toContain('== Jour par jour, 7 derniers jours (objectif 2 300 kcal) ==')
-    expect(t).toContain('jour | poids | kcal | protéines | sodium | pas | nuit d’avant | séance | notes')
-    expect(t).toContain('mar. 27 oct. | 73,4 kg | 2 232 | 141 g | 2 900 mg | 10 778 | 6 h 45 | Haut A | resto, 4 bières')
+    expect(t).toContain('jour | poids | kcal | protéines | pas | nuit d’avant | séance | notes')
+    expect(t).toContain('mar. 27 oct. | 73,4 kg | 2 232 | 141 g | 10 778 | 6 h 45 | Haut A | resto, 4 bières')
     // Les 7 lignes, même un jour vide.
-    expect(t).toContain('ven. 23 oct. | — | — | — | — | — | — | — | ')
+    expect(t).toContain('ven. 23 oct. | — | — | — | — | — | — | ')
     expect(t.split('\n').filter((l) => / \| /.test(l))).toHaveLength(8)
-    expect(t).toContain('Moyenne (repas sur les jours finis) : 2 232 kcal pour 2 300 visées · protéines 141 g · sodium 2 900 mg · poids moyen 73,4 kg (1/7 pesée)')
+    // Sodium : MyFitnessPal l'envoie incomplet, il n'est plus écrit nulle part (11 nov. 2026).
+    expect(t).not.toContain('sodium')
+    expect(t).toContain('Moyenne (repas sur les jours finis) : 2 232 kcal pour 2 300 visées · protéines 141 g · poids moyen 73,4 kg (1/7 pesée)')
     expect(t).toContain('zone conseillée en prise : +0,15 à +0,4 kg/semaine')
     expect(genererBilan(d, '2026-10-19', '2026-10-29')).not.toContain('Ma question')
   })

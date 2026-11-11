@@ -46,7 +46,6 @@ export function texteRepas(r: { kcal: number; objectif?: number; proteines?: num
     r.proteines !== undefined && `protéines ${r.proteines} g`,
     r.glucides !== undefined && `glucides ${r.glucides} g`,
     r.lipides !== undefined && `lipides ${r.lipides} g`,
-    r.sodium !== undefined && `sodium ${nombre(r.sodium)} mg`,
   ]
     .filter(Boolean)
     .join(' · ')

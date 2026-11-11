@@ -34,9 +34,14 @@ export const effort = (p: ExoPlan) => `effort ${p.series.map((s) => kg(Math.roun
  * Repos d'un exercice, sans ambiguïté sur les séries concernées : « repos 3:00 après chaque série », « repos 3:00,
  * 2:00 entre les séries » (un repos de moins que de séries), puis « 1:30 avant l'exercice suivant » s'il diffère.
  */
-export function reposPartage(p: ExoPlan): string {
+export function reposPartage(p: ExoPlan, dernierExo = false): string {
   const n = p.series.length
   const entre = p.series.slice(0, Math.max(0, n - 1)).map((s) => s.repos ?? p.repos)
+  // Dernier exercice de la séance : rien après sa dernière série.
+  if (dernierExo) {
+    if (!entre.length) return ''
+    return `repos ${entre.every((r) => r === entre[0]) ? chrono(entre[0]) : entre.map(chrono).join(', ')} entre les séries`
+  }
   const dernier = p.reposApres ?? p.series[n - 1]?.repos ?? p.repos
   if (entre.every((r) => r === dernier)) return `repos ${chrono(dernier)} après chaque série`
   const t = entre.every((r) => r === entre[0]) ? `${chrono(entre[0])} entre les séries` : `${entre.map(chrono).join(', ')} entre les séries`
@@ -44,8 +49,8 @@ export function reposPartage(p: ExoPlan): string {
 }
 
 /** Ligne d'un exercice : séries, effort, repos ou superset, et ce qui le distingue. */
-export function ligneExo(exo: Exercice, p: ExoPlan, i: number): string {
-  const repos = p.enchaine ? `superset avec le ${i + 2}, ${p.repos > 0 ? `${chrono(p.repos)} pour changer de poste` : 'sans repos entre les deux'}` : reposPartage(p)
+export function ligneExo(exo: Exercice, p: ExoPlan, i: number, dernierExo = false): string {
+  const repos = p.enchaine ? `superset avec le ${i + 2}, ${p.repos > 0 ? `${chrono(p.repos)} pour changer de poste` : 'sans repos entre les deux'}` : reposPartage(p, dernierExo)
   return [`${i + 1}. ${exo.nom}`, schemaPlan(exo, p), effort(p), repos, p.finisseur ? 'finisseur' : '', p.optionnel ? 'optionnel' : ''].filter(Boolean).join(' · ')
 }
 
@@ -96,7 +101,7 @@ export function texteProgramme(p: Programme, d: DonneesProgramme, avecCharges: b
     if (!m!.exercices.length) l.push('Pas encore d’exercices')
     m!.exercices.forEach((x, i) => {
       const exo = d.exo(x.exoId)
-      l.push(ligneExo(exo, x, i))
+      l.push(ligneExo(exo, x, i, i === m!.exercices.length - 1))
       if (x.chauffes.length) l.push(`   échauffement ${x.chauffes.map((c) => texteChauffe(exo, c, null)).join(', ')}`)
       if (x.note) l.push(`   note : ${x.note}`)
       if (avecCharges) l.push(`   ${derniere(x.exoId)}`)

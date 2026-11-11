@@ -53,7 +53,7 @@ describe('texte d’un programme à partager', () => {
     expect(t).toContain('1. Développé incliné Smith · 3 × 8–10 · effort 7, 8, 8/10 · repos 3:00 après chaque série')
     expect(t).toContain('   échauffement 50 % × 8, 25 kg × 4')
     expect(t).toContain('2. Butterfly · 2 × 12–15 · effort 8, 8/10 · superset avec le 3, 0:30 pour changer de poste')
-    expect(t).toContain('3. Élévation latérale poulie · 2 × 12–15 · effort 9, 9/10 · repos 1:30 après chaque série · finisseur')
+    expect(t).toContain('3. Élévation latérale poulie · 2 × 12–15 · effort 9, 9/10 · repos 1:30 entre les séries · finisseur')
     expect(t).toContain('   note : Coude haut')
   })
 
@@ -92,6 +92,11 @@ describe('effort et repos visés, série par série', () => {
     expect(reposPartage(p([8, 8, 8], []))).toBe('repos 3:00 après chaque série')
     expect(reposPartage(p([8, 8, 8], [], 120))).toBe('repos 3:00 entre les séries, puis 2:00 avant l’exercice suivant')
     expect(reposPartage(p([8, 8, 8], [180, 120, 90]))).toBe('repos 3:00, 2:00 entre les séries, puis 1:30 avant l’exercice suivant')
+  })
+  it('dernier exercice de la séance : rien après sa dernière série', () => {
+    expect(reposPartage(p([8, 8, 8], [], 120), true)).toBe('repos 3:00 entre les séries')
+    expect(reposPartage(p([8, 8, 8], [180, 120, 90]), true)).toBe('repos 3:00, 2:00 entre les séries')
+    expect(reposPartage(p([8], [], 120), true)).toBe('')
   })
 })
 

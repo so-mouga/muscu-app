@@ -164,7 +164,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
     const exo = d.exo(p.exoId)
     const series = seance.series.filter((x) => x.exoId === p.exoId)
     const enPlus = !p.series.length
-    const titre = enPlus ? `${i + 1}. ${exo.nom} · ajouté pendant la séance` : ligneExo(exo, p, i)
+    const titre = enPlus ? `${i + 1}. ${exo.nom} · ajouté pendant la séance` : ligneExo(exo, p, i, i === ordre.length - 1)
     const k = prevuEn.get(p.exoId)
     l.push('', k ? titre.replace(`${i + 1}. ${exo.nom}`, `${i + 1}. ${exo.nom} (prévu en ${k})`) : titre)
     const ancien = remplace.get(p.exoId)
