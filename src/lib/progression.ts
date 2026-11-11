@@ -1,5 +1,5 @@
 import type { Exercice, ExoPlan, Seance, Serie } from '../types'
-import { enTemps } from './calc'
+import { chargeQte, enTemps, kg } from './calc'
 
 export type Decision = 'augmenter' | 'plus_une_rep' | 'consolider' | 'baisser' | 'calibrer' | 'depart' | 'manuel' | 'pareil'
 
@@ -52,18 +52,22 @@ function bilan(series: Serie[], plan: ExoPlan): Bilan | null {
   const ref = series.filter((s) => s.type === 'normale')
   const fin = series.filter(estFinisseur)
   if (ref.length === 0) return null
+  // Une série à l'échec, dégressive ou en rest-pause est une série de travail faite. Seul le finisseur prévu au plan
+  // (sa dernière série) est à part : il n'a jamais compté dans les séries de travail.
+  const finisseurPrevu = plan.finisseur && plan.series.length > 1 ? fin[fin.length - 1] : undefined
+  const travail = series.filter((s) => s !== finisseurPrevu)
   const i = (s: Serie) => series.indexOf(s)
   const cible = (s: Serie) => s.rpeCible ?? plan.series[i(s)]?.rpe ?? plan.series[0].rpe
   const ecarts = ref.map((s) => s.rpe - cible(s))
   const ecartMoyen = ecarts.reduce((a, b) => a + b, 0) / ecarts.length
   return {
     // Toutes les séries prévues, pas seulement celles faites : une séance écourtée n'est pas « au sommet ».
-    top: ref.length >= normalesPrevues(plan) && ref.every((s) => s.reps >= haut(plan, i(s))),
+    top: travail.length >= normalesPrevues(plan) && travail.every((s) => s.reps >= haut(plan, i(s))),
     rpeOk: ecartMoyen <= 0.5 + EPS && Math.max(...ecarts) <= 1 + EPS,
     garde: fin.every((f) => f.reps >= bas(plan, i(f)) - 3),
-    sous: ref.some((s) => s.reps < bas(plan, i(s)) && s.rpe >= cible(s)),
+    sous: travail.some((s) => s.reps < bas(plan, i(s)) && (s.type !== 'normale' || s.rpe >= cible(s))),
     ecartMoyen,
-    faites: ref.length,
+    faites: travail.length,
     prevues: normalesPrevues(plan),
   }
 }
@@ -298,8 +302,9 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
   if (b?.sous && (s.decision !== 'baisser' || !aFourchette(plan))) {
     const p = pareil(exo, plan, historique)
     const reps = p.reps.map((r, i) => Math.max(r, plage(plan, i).repsMin))
-    const k = derniere.findIndex((x, i) => x.type === 'normale' && x.reps < plage(plan, i).repsMin)
-    if (reps.some((r, i) => r !== p.reps[i]))
+    // La série citée est celle qui est vraiment ratée : sous le bas à l'effort visé (une série arrêtée tôt, facile, n'en est pas une).
+    const k = derniere.findIndex((x, i) => x.reps < plage(plan, i).repsMin && (x.type !== 'normale' || x.rpe >= (x.rpeCible ?? plan.series[i]?.rpe ?? plan.series[0].rpe)))
+    if (k >= 0 && reps.some((r, i) => r !== p.reps[i]))
       return {
         decision: 'consolider',
         charges: p.charges,
@@ -401,5 +406,22 @@ export function chargeProposee(exo: Exercice, sugg: Suggestion, faites: Serie[],
   const s = sugg.charges[i]
   if (s === null) return prec?.charge ?? (exo.mode === 'elastique' ? 1 : 0)
   const sPrec = sugg.charges[Math.min(k, sugg.charges.length - 1)]
-  return prec && sPrec !== null && sPrec !== undefined ? Math.max(0, s + (prec.charge - sPrec)) : s
+  if (!prec || sPrec === null || sPrec === undefined) return s
+  const c = arrondi(s + (prec.charge - sPrec))
+  // Au poids du corps, une charge négative est une assistance (élastique, machine) : elle ne repasse pas à 0.
+  return exo.mode === 'poids_corps' ? c : Math.max(0, c)
 }
+
+/** Objectif de la série `n` : « 60 kg × 10 · effort 8/10 ». Avec `faites`, la charge suit l'écart pris aux séries d'avant. */
+export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number, faites?: Serie[], /** Séries prévues aujourd'hui (« + série », « − série ») : le finisseur est la dernière de celles-là. */ total = plan.series.length): string {
+  const j = Math.min(n, sugg.charges.length - 1)
+  const p = plan.series[Math.min(n, plan.series.length - 1)]
+  // Charge encore inconnue (machine jamais faite, rien de saisi avant) : « à calibrer », pas « 0 kg ».
+  const charge = faites && !(sugg.charges[j] === null && !faites.length) ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
+  if (plan.finisseur && n === total - 1) {
+    const chargeTxt = charge !== null ? (charge > 0 ? `${kg(charge)} kg` : '') : 'à calibrer'
+    return chargeTxt ? `${chargeTxt} · jusqu’à l’échec` : 'jusqu’à l’échec'
+  }
+  return `${chargeQte(exo, charge, sugg.reps[j] ?? p.repsMin)} · effort ${kg(p.rpe)}/10`
+}
+

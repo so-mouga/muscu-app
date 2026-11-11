@@ -1,7 +1,7 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance, Serie } from '../types'
 import { delies, relies, repere } from './equivalents'
-import { bilan, creneauxFaits, creneauxRates, historiqueDe, meilleureSerie, mieuxParSeance, parSemaine, recordsParSeance, seanceSemaineAllegee } from './historique'
+import { bilan, creneauxFaits, creneauxRates, historiqueDe, meilleureSerie, mieuxParSeance, parSemaine, pctCharges, recordDuJour, recordsParSeance, seanceSemaineAllegee } from './historique'
 
 const exoId = Object.values(EXERCICES).find((e) => e.suivreE1rm && e.mode !== 'poids_corps')!.id
 const serie = (charge: number, reps: number, rpe = 8): Serie => ({ id: `${charge}-${reps}`, exoId, type: 'normale', charge, reps, rpe, heure: 0 })
@@ -13,7 +13,7 @@ describe('historique', () => {
   const b = seance('b', '2026-10-28', [serie(62.5, 8), serie(60, 6, 6)])
   const c = seance('c', '2026-11-02', [serie(60, 8)])
 
-  it('records : le premier passage ne compte pas, un e1RM battu compte une fois', () => {
+  it('records : le premier passage ne compte pas, une charge plus lourde compte une fois', () => {
     expect(recordsParSeance([c, a, b], (id) => EXERCICES[id])).toEqual({ a: 0, b: 1, c: 0 })
   })
 
@@ -128,5 +128,37 @@ describe('semaine allégée ou séance seule', () => {
     expect(seanceSemaineAllegee({ deload: true })).toBe(true)
     expect(seanceSemaineAllegee({ deload: true, allegeeSeule: true })).toBe(false)
     expect(seanceSemaineAllegee({})).toBe(false)
+  })
+})
+
+describe('une seule mesure du progrès : la charge et les reps, jamais l’effort noté', () => {
+  const ex = (id: string) => EXERCICES[id]
+  it('mêmes charge et reps avec un effort plus facile : ni mieux, ni record', () => {
+    const l = [seance('a', '2026-11-02', [serie(60, 10, 8), serie(60, 10, 8)]), seance('b', '2026-11-09', [serie(60, 10, 7), serie(60, 10, 7)])]
+    expect(mieuxParSeance(l, ex).b).toBe(0)
+    expect(recordsParSeance(l, ex).b).toBe(0)
+  })
+  it('charge montée, reps reparties au bas, effort plus dur : mieux et record', () => {
+    const l = [seance('a', '2026-11-02', [serie(60, 10, 8)]), seance('b', '2026-11-09', [serie(62.5, 8, 9)])]
+    expect(mieuxParSeance(l, ex).b).toBe(1)
+    expect(recordsParSeance(l, ex).b).toBe(1)
+  })
+  it('plus de reps que jamais à une charge déjà faite, même plus légère que la plus lourde : record, comme le message en séance', () => {
+    const l = [seance('a', '2026-10-26', [serie(60, 10)]), seance('b', '2026-11-02', [serie(65, 8)]), seance('c', '2026-11-09', [serie(60, 11)])]
+    expect(recordsParSeance(l, ex).c).toBe(1)
+    expect(recordDuJour(ex(exoId), [[serie(65, 8)], [serie(60, 10)]], [serie(60, 11)])).toBe('reps')
+  })
+  it('message de record en séance : charge, reps, rien sans historique, et pas deux fois pour la même série', () => {
+    const avant = [[serie(60, 10), serie(60, 9)]]
+    expect(recordDuJour(ex(exoId), avant, [serie(62.5, 8)])).toBe('charge')
+    expect(recordDuJour(ex(exoId), avant, [serie(60, 10, 6)])).toBeNull()
+    expect(recordDuJour(ex(exoId), [], [serie(100, 10)])).toBeNull()
+    expect(recordDuJour(ex(exoId), avant, [serie(60, 11)], [serie(60, 11)])).toBeNull()
+    expect(recordDuJour(ex(exoId), avant, [{ ...serie(60, 14), type: 'echec' }])).toBeNull()
+  })
+  it('pourcentage : la charge quand elle change, sinon les reps, 0 quand rien ne change', () => {
+    expect(pctCharges(ex(exoId), serie(60, 12, 8), serie(62.5, 8, 9))).toBeCloseTo(4.17, 1)
+    expect(pctCharges(ex(exoId), serie(60, 10, 8), serie(60, 10, 6))).toBe(0)
+    expect(pctCharges(ex(exoId), serie(60, 10), serie(60, 9))).toBeLessThan(0)
   })
 })

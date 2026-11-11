@@ -1,7 +1,7 @@
 import type { Exercice, Seance, Serie } from '../types'
 import { blocage, JOURS_ARRET, suiviProgres } from './blocages'
 import { dateCourte, dateISO, enTemps, kg } from './calc'
-import { evolutionForce, meilleureSerie, sensPerf } from './historique'
+import { evolutionForce, meilleureSerie, pctCharges } from './historique'
 import type { EtapeObjectifs } from './objectifs'
 
 const JOUR = 86400000
@@ -116,7 +116,7 @@ export function lectureExo(exo: Exercice, chrono: Seance[], enSeche = false, obj
     return { texte: 'Ça monte', classe: 'tenue', detail: g ? `${g.long} ${enCombien}` : `Dernier progrès le ${dateSeule(dernierProgres.date)}` }
   }
   const ev = evolutionForce(exo, fenetre.length >= 2 ? fenetre : travail)
-  if (ev && sensPerf(exo, ev.avant.serie, ev.apres.serie) < 0 && ev.apres.score < ev.avant.score * 0.98) {
+  if (ev && pctCharges(exo, ev.avant.serie, ev.apres.serie) <= -2) {
     const semaines = Math.max(1, Math.round(jours(premiere.date, derniere.date) / 7))
     return { texte: 'Un peu en dessous', classe: 'faible', detail: `sur ${semaines > 1 ? `les ${semaines} dernières semaines` : 'la dernière semaine'}` }
   }

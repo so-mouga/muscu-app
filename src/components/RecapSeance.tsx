@@ -4,6 +4,7 @@ import type { Catalogue } from '../catalogue'
 import { exoAvecReglages, historiqueDe } from '../db'
 import { duree, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves, serieTexte, tempsParExo } from '../lib/calc'
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
+import { recordDuJour } from '../lib/historique'
 import Deplie from './Deplie'
 
 /** Durée d'une séance : effective (de la 1re à la dernière série), ou jusqu'à maintenant si elle est en cours. */
@@ -77,7 +78,6 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
         const exo = exoAvecReglages(catalogue.exo(plan.exoId), reglages)
         const histo = historiqueDe(avant, plan.exoId)
         const precedente = histo[0] ?? []
-        const record = Math.max(0, ...histo.flat().map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
         const series = seance.series.filter((x) => x.exoId === plan.exoId)
         const ms = temps[plan.exoId] ?? 0
         const volumeExo = series.reduce((a, x) => a + kgSouleves(x, exo), 0)
@@ -117,7 +117,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
                   {meilleur > 0 && (
                     <div>
                       <Trophy size={14} className="ico-texte" /> <strong>Force estimée :</strong> {kg(Math.round(meilleur * 2) / 2)} {exo.mode === 'par_main' ? 'kg/main' : 'kg'}
-                      {record && meilleur > record ? ' · record battu' : ''}
+                      {!seance.deload && recordDuJour(exo, histo, series) ? ' · record battu' : ''}
                     </div>
                   )}
                   {volumeExo > 0 && (

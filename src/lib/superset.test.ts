@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ExoPlan } from '../types'
 import {
+  remplacerEnCours,
   alterneEncore,
   echangerExos,
   delier,
@@ -298,5 +299,23 @@ describe('un superset qui change pendant la séance', () => {
   it('échanger dans le groupe garde les liens et les repos à leur place', () => {
     const r = echangerExos(plans, 0, 1, () => 150)
     expect(r.map((x) => [x.exoId, !!x.enchaine, x.repos])).toEqual([['b', true, 0], ['a', false, 90], ['c', false, 90]])
+  })
+})
+
+describe('« Remplacer » après « Faire maintenant » : l’écran reste sur le remplaçant', () => {
+  it('le remplaçant devient l’exercice en cours, pas le premier exercice pas fini de la liste', () => {
+    const plan = (exoId: string): ExoPlan => ({ exoId, charge: 50, repos: 90, chauffes: [], finisseur: false, series: [1, 2, 3].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })) })
+    const s = { exercices: [plan('a'), plan('b'), plan('c')], ajustSeries: {} as Record<string, number>, courant: 'c' as string | undefined }
+    // « Faire maintenant » sur c, une série faite, puis « Remplacer » par d.
+    remplacerEnCours(s, 2, plan('d'), 1)
+    const faites: Record<string, number> = { c: 1 }
+    const nbFaites = (id: string) => faites[id] ?? 0
+    const totalDe = (i: number) => Math.max(nbFaites(s.exercices[i].exoId), s.exercices[i].series.length + (s.ajustSeries[s.exercices[i].exoId] ?? 0))
+    const i = prochainExoDeSeance({ plans: s.exercices, nbFaites, totalDe, derniereExoId: 'c', courantExoId: s.courant })
+    expect(s.exercices.map((p) => p.exoId)).toEqual(['a', 'b', 'c', 'd'])
+    expect(s.exercices[i].exoId).toBe('d')
+    // L'original est clos à ce qu'il a fait, le remplaçant prend les 2 séries qui restaient.
+    expect(totalDe(2)).toBe(1)
+    expect(s.exercices[3].series).toHaveLength(2)
   })
 })

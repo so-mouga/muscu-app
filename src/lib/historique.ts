@@ -35,51 +35,115 @@ export function historiqueDe(seances: Seance[], exoId: string): Serie[][] {
   return seances.filter((s) => !s.deload).map((s) => s.series.filter((x) => x.exoId === exoId)).filter((h) => h.length > 0)
 }
 
+/** Séries qui mesurent le progrès : les séries normales. Un échec, une dégressive ou un rest-pause ne se comparent pas d'une fois à l'autre. */
+export const serieComptee = (x: Serie) => x.type === 'normale' && x.reps > 0
+
 /**
- * Nombre d'exercices qui battent leur record par séance (voir `scoreSerie`). Le premier passage sur
- * un exercice ne compte pas : il n'y a encore rien à battre. Les déloads ne comptent jamais.
+ * LA mesure du progrès, la seule : la charge et les reps, jamais l'effort noté ni la force estimée.
+ * Progrès = charge plus dure, ou rep de plus à une charge déjà faite, rang par rang (la 2e série à 60 kg face à la
+ * meilleure 2e série à 60 kg). Record = charge jamais faite aussi dure, ou plus de reps que jamais à une charge déjà faite.
+ * Sert aux blocages, au constat de la fiche, aux records, à « mieux que la dernière fois » et au Bilan.
+ * `repartir` oublie la référence (après un arrêt ou une sèche).
+ */
+export function suiviProgres(exo: Exercice) {
+  const durete = (c: number) => (exo.assistance ? -c : c)
+  let plusDur = -Infinity
+  let meilleures = new Map<number, number[]>()
+  const juger = (series: Serie[]): { progres: boolean; record: 'charge' | 'reps' | null } => {
+    const parCharge = new Map<number, number[]>()
+    for (const x of series) parCharge.set(x.charge, [...(parCharge.get(x.charge) ?? []), x.reps])
+    let progres = false
+    let record: 'charge' | 'reps' | null = null
+    for (const [charge, reps] of parCharge) {
+      reps.sort((a, b) => b - a)
+      const avant = meilleures.get(charge) ?? []
+      if (plusDur !== -Infinity && durete(charge) > plusDur) {
+        progres = true
+        record = 'charge'
+      }
+      if (avant.length && reps.some((r, i) => r > (avant[i] ?? 0))) progres = true
+      if (avant.length && reps[0] > avant[0]) record ??= 'reps'
+      meilleures.set(charge, Array.from({ length: Math.max(reps.length, avant.length) }, (_, i) => Math.max(reps[i] ?? 0, avant[i] ?? 0)))
+    }
+    plusDur = Math.max(plusDur, ...[...parCharge.keys()].map(durete))
+    return { progres, record }
+  }
+  return {
+    plusDur: () => plusDur,
+    repartir: () => {
+      plusDur = -Infinity
+      meilleures = new Map()
+    },
+    juger,
+    progres: (series: Serie[]) => juger(series).progres,
+  }
+}
+
+/** Séries comptées de chaque exercice d'une séance. */
+function parExo(s: Seance): Map<string, Serie[]> {
+  const m = new Map<string, Serie[]>()
+  for (const x of s.series) if (serieComptee(x)) m.set(x.exoId, [...(m.get(x.exoId) ?? []), x])
+  return m
+}
+
+/**
+ * Nombre d'exercices qui battent leur record par séance (`suiviProgres`) : une charge jamais faite aussi dure, ou plus
+ * de reps que jamais à une charge déjà faite. Le premier passage sur un exercice ne compte pas : il n'y a encore rien
+ * à battre. Les déloads ne comptent jamais.
  */
 export function recordsParSeance(seances: Seance[], exo: (id: string) => Exercice): Record<string, number> {
-  const meilleur: Record<string, number> = {}
+  const suivis = new Map<string, ReturnType<typeof suiviProgres>>()
   const res: Record<string, number> = {}
   for (const s of [...seances].sort((a, b) => a.debut - b.debut)) {
-    const duJour: Record<string, number> = {}
     res[s.id] = 0
     if (s.deload) continue
-    for (const x of s.series) {
-      if (x.reps <= 0) continue
-      // Un exercice assisté sans poids noté a un score négatif : on part de −∞, pas de 0.
-      duJour[x.exoId] = Math.max(duJour[x.exoId] ?? -Infinity, scoreSerie(exo(x.exoId), x, s.poidsCorps))
-    }
-    for (const [id, e] of Object.entries(duJour)) {
-      if (meilleur[id] !== undefined && e > meilleur[id]) res[s.id]++
-      meilleur[id] = Math.max(meilleur[id] ?? -Infinity, e)
+    for (const [id, series] of parExo(s)) {
+      if (!suivis.has(id)) suivis.set(id, suiviProgres(exo(id)))
+      if (suivis.get(id)!.juger(series).record) res[s.id]++
     }
   }
   return res
 }
 
 /**
- * Nombre d'exercices en progrès par séance : meilleure série au-dessus de celle de la fois d'avant
- * sur le même exercice (voir `scoreSerie`). Les déloads ne comptent pas et ne servent pas de référence.
+ * Nombre d'exercices en progrès par séance, face à la fois d'avant sur le même exercice : charge plus dure, ou rep de
+ * plus à une charge de la dernière fois (`suiviProgres`). Les déloads ne comptent pas et ne servent pas de référence.
  */
 export function mieuxParSeance(seances: Seance[], exo: (id: string) => Exercice): Record<string, number> {
-  const derniere: Record<string, number> = {}
+  const derniere = new Map<string, Serie[]>()
   const res: Record<string, number> = {}
   for (const s of [...seances].sort((a, b) => a.debut - b.debut)) {
     res[s.id] = 0
     if (s.deload) continue
-    const duJour: Record<string, number> = {}
-    for (const x of s.series) {
-      if (x.reps <= 0) continue
-      duJour[x.exoId] = Math.max(duJour[x.exoId] ?? -Infinity, scoreSerie(exo(x.exoId), x, s.poidsCorps))
-    }
-    for (const [id, e] of Object.entries(duJour)) {
-      if (derniere[id] !== undefined && e > derniere[id]) res[s.id]++
-      derniere[id] = e
+    for (const [id, series] of parExo(s)) {
+      const avant = derniere.get(id)
+      if (avant) {
+        // Plus de reps sur une série plus légère que la meilleure de la dernière fois : ce n'est pas mieux.
+        const e = exo(id)
+        const suivi = suiviProgres(e)
+        suivi.juger(avant)
+        if (suivi.progres(series) && sensPerf(e, meilleureSerie(avant, e.assistance)!, meilleureSerie(series, e.assistance)!) >= 0) res[s.id]++
+      }
+      derniere.set(id, series)
     }
   }
   return res
+}
+
+/**
+ * Record battu par ces séries du jour, face à l'historique de l'exercice (`avant` : ses séries par séance, hors
+ * déload) : « charge » ou « reps », sinon null. Rien sans historique. `dejaFaites` : les séries d'avant dans la même
+ * séance, pour ne pas annoncer deux fois le même record.
+ */
+export function recordDuJour(exo: Exercice, avant: Serie[][], series: Serie[], dejaFaites: Serie[] = []): 'charge' | 'reps' | null {
+  const histo = avant.map((h) => h.filter(serieComptee)).filter((h) => h.length)
+  const duJour = series.filter(serieComptee)
+  if (!histo.length || !duJour.length) return null
+  const suivi = suiviProgres(exo)
+  for (const h of histo) suivi.juger(h)
+  const deja = dejaFaites.filter(serieComptee)
+  if (deja.length) suivi.juger(deja)
+  return suivi.juger(duJour).record
 }
 
 export function bilan(seances: Seance[], records: Record<string, number>, exo?: (id: string) => Exercice): Bilan {
@@ -103,18 +167,12 @@ export function parSemaine(seances: Seance[]): { lundi: string; seances: Seance[
 }
 
 /**
- * Meilleure série de travail d'un exercice sur un groupe de séances, mesurée comme les blocages :
- * séries normales seulement (ni échec, ni drop, ni rest-pause), comparées par `scoreSerie`.
+ * Meilleure série de travail d'un exercice sur un groupe de séances : la plus lourde (la moins assistée), puis le plus
+ * de reps. Séries normales seulement, comme les blocages ; ni l'effort noté ni la force estimée n'y entrent.
  */
-export function meilleureDeTravail(exo: Exercice, seances: Seance[]): { serie: Serie; score: number; e1rm: number | null } | undefined {
-  let res: { serie: Serie; score: number; e1rm: number | null } | undefined
-  for (const s of seances)
-    for (const x of s.series) {
-      if (x.exoId !== exo.id || x.type !== 'normale' || x.reps <= 0) continue
-      const score = scoreSerie(exo, x, s.poidsCorps)
-      if (!res || score > res.score) res = { serie: x, score, e1rm: e1rm(exo, x, s.poidsCorps) }
-    }
-  return res
+export function meilleureDeTravail(exo: Exercice, seances: Seance[]): { serie: Serie } | undefined {
+  const serie = meilleureSerie(seances.flatMap((s) => s.series.filter((x) => x.exoId === exo.id && serieComptee(x))), exo.assistance)
+  return serie && { serie }
 }
 
 /**
@@ -141,15 +199,16 @@ export function sensPerf(exo: Exercice, avant: Serie, apres: Serie): -1 | 0 | 1 
 }
 
 /**
- * Évolution en % d'après la force estimée, corrigée par ce qui a vraiment été soulevé : une charge plus dure ou
- * des reps en plus ne font jamais un chiffre négatif. Mêmes charge et reps : un point d'effort (2 à 3 %) n'est que du bruit de
- * notation et fait 0 ; à partir de deux points, l'écart est réel (mêmes séries bien plus dures : la force baisse vraiment).
+ * Évolution en % entre deux séries, d'après la charge et les reps seulement : l'écart de charge quand elle change, sinon
+ * les reps en plus ou en moins (une rep sur dix vaut environ 2,5 %, comme une petite montée de charge). 0 si rien n'a
+ * changé, quel que soit l'effort noté ; toujours du signe de `sensPerf`. Depuis une charge de 0 (poids du corps sans
+ * lest), pas de pourcentage : 0.
  */
-export function evolutionPct(exo: Exercice, avant: Serie, apres: Serie, pct: number): number {
+export function pctCharges(exo: Exercice, avant: Serie, apres: Serie): number {
   const sens = sensPerf(exo, avant, apres)
-  if (sens === 0) return Math.abs(pct) < 4 ? 0 : pct
-  if (sens < 0 || pct > 0) return pct
-  return avant.charge !== apres.charge && avant.charge ? (Math.abs(apres.charge - avant.charge) / Math.abs(avant.charge)) * 100 : avant.reps ? ((apres.reps - avant.reps) / avant.reps) * 100 : 0
+  if (!sens) return 0
+  if (apres.charge !== avant.charge) return avant.charge ? (((exo.assistance ? -1 : 1) * (apres.charge - avant.charge)) / Math.abs(avant.charge)) * 100 : 0
+  return ((apres.reps - avant.reps) / (enTemps(exo) ? Math.max(1, avant.reps) : 30 + avant.reps)) * 100
 }
 
 /** Meilleure série d'un exercice dans une séance : la plus lourde (la moins assistée), puis le plus de reps. */

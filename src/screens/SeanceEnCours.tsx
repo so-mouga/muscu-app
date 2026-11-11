@@ -17,7 +17,9 @@ import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
-import { chargeQte, chauffeTropLourde, texteChauffe, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, e1rm, ecartSerie, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { recordDuJour } from '../lib/historique'
+import { verrou } from '../lib/verrou'
+import { chargeQte, chauffeTropLourde, texteChauffe, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -25,7 +27,7 @@ import { arreterSeanceNatif, natif, pauseNatif, reposNatif, seanceNatif, suivreN
 import { conseil, hausse, pareil, raisonPareil, suggestionPour, type Suggestion } from '../lib/progression'
 import { blocage } from '../lib/blocages'
 import { reposParDefaut } from '../lib/programme'
-import { alterneEncore, delier, echangerExos, estDansSuperset, groupeSuperset, prochainExoDeSeance, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
+import { alterneEncore, delier, echangerExos, estDansSuperset, groupeSuperset, prochainExoDeSeance, remplacerEnCours, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
@@ -383,19 +385,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     // Records (seulement s'il existe un historique pour comparer ; jamais en déload)
     if (seance.deload) return
     const exo = exoAvecReglages(catalogue.exo(s.exoId), reglages)
-    const avant = historiqueDe(terminees, s.exoId).flat()
-    if (avant.length === 0) return
-    const memeCharge = avant.filter((x) => x.charge === s.charge)
-    const e = e1rm(exo, s, seance.poidsCorps)
-    const meilleur = Math.max(0, ...avant.map((x) => e1rm(exo, x, seance.poidsCorps) ?? 0))
-    if (e && meilleur && e > meilleur) setToast(`Nouveau record : ${chargeQte(exo, s.charge, s.reps)}`)
-    // Sans 1RM (pas de poids noté, isolation…) : une charge jamais soulevée est aussi un record.
-    else if (exo.assistance && s.reps > 0 && s.charge < Math.min(...avant.map((x) => x.charge)))
-      setToast(`Nouveau record : ${chargeTexte(exo, s.charge, true)} × ${s.reps}`)
-    else if (!exo.assistance && !enTemps(exo) && s.reps > 0 && s.charge > Math.max(...avant.map((x) => x.charge)))
-      setToast(`Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
-    else if (memeCharge.length && s.reps > Math.max(...memeCharge.map((x) => x.reps)))
-      setToast(enTemps(exo) ? `Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
+    // Même mesure que la fin de séance, le Journal et le Bilan (`suiviProgres`) : la charge et les reps, jamais l'effort noté.
+    const record = recordDuJour(exo, historiqueDe(terminees, s.exoId), [s], seance.series.filter((x) => x.exoId === s.exoId))
+    if (record === 'charge') setToast(exo.assistance ? `Nouveau record : ${chargeTexte(exo, s.charge, true)} × ${s.reps}` : `Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
+    else if (record === 'reps') setToast(enTemps(exo) ? `Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
   }
 
   const choisir = async (exoId: string, cree?: Parameters<typeof planParDefaut>[0]) => {
@@ -418,14 +411,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         })
       } else {
         // En cours de route : les séries faites restent sur l'original, les restantes passent au substitut.
-        const total = ancien.series.length + (seance.ajustSeries[ancien.exoId] ?? 0)
-        const restantes = Math.max(1, total - faites)
-        await majSeance(seance.id, (s) => {
-          s.ajustSeries[ancien.exoId] = faites - ancien.series.length
-          const series = ancien.series.slice(Math.min(faites, ancien.series.length - 1))
-          while (series.length < restantes) series.push({ ...series[series.length - 1] })
-          s.exercices.splice(c.i + 1, 0, { ...substitut, series: series.slice(0, restantes) })
-        })
+        await majSeance(seance.id, (s) => remplacerEnCours(s, c.i, substitut, faites))
         transition(() => setIdxEtat(c.i + 1), 'carte-avant')
         range(`idx:${seance.id}`, c.i + 1)
       }
@@ -651,7 +637,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           plan={plans[seriesDe]}
           exo={exos[seriesDe]}
           total={totalDe(seriesDe)}
-          cible={(k) => cibleSerie(exos[seriesDe], plans[seriesDe], suggestions[seriesDe], k, seance.series.filter((x) => x.exoId === plans[seriesDe].exoId))}
+          cible={(k) => cibleSerie(exos[seriesDe], plans[seriesDe], suggestions[seriesDe], k, seance.series.filter((x) => x.exoId === plans[seriesDe].exoId), totalDe(seriesDe))}
           repos={reposTexte()}
           noteAvant={noteAvant(plans[seriesDe].exoId)}
           onAjuster={(d) => void ajusterSeries(seriesDe, d)}
@@ -791,8 +777,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {p.finisseur && n === t - 1 && <span className="pastille fin"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</span>}
           {enSuperset && ensuiteSuperset(enCours)}
           {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
-          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} vient={vient && derniere?.i === enCours ? (derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
-          <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId))}</div>
+          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} vient={vient && derniere?.i === enCours ? (derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
+          <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId), t)}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
           {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} />}
@@ -842,7 +828,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
-                <LigneSeries avant={n === 0 && chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]).length ? <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId))} onCorriger={(f) => setCorrige(f.id)} />
+                <LigneSeries avant={n === 0 && chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]).length ? <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} />
                 {(derniereFois?.[n] || plus) && (
                   <div className="faible">
                     {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n], false, false)} · effort {kg(derniereFois[n].rpe)}/10</>}
@@ -1105,7 +1091,7 @@ function LigneExoSeance({
                 return (
                   <div key={n} className="ligne-serie a-venir">
                     <span>
-                      <span className="faible">S{n + 1}</span> {cibleSerie(exo, plan, sugg, n, faites).replace(/ · effort .*/, '')}
+                      <span className="faible">S{n + 1}</span> {cibleSerie(exo, plan, sugg, n, faites, total).replace(/ · effort .*/, '')}
                     </span>
                   </div>
                 )
@@ -1392,7 +1378,9 @@ function FinSeance({
     )
   }
 
-  const enregistrer = async () => {
+  // Double appui : le second arrivait avant que l'écran ne change, et créait une 2e séance réutilisable.
+  const unSeulAppui = useRef(verrou()).current
+  const enregistrer = () => unSeulAppui(async () => {
     let modeleId = seance.modeleId
     if (garder && libre) {
       modeleId = 'm_' + uid()
@@ -1402,7 +1390,7 @@ function FinSeance({
     const fin = Date.now() - seance.debut > 4 * 3600000 && heures.length ? Math.max(...heures) : Date.now()
     await db.seances.update(seance.id, { enCours: false, fin, ressenti, energie, modeleId, objectifs })
     oublierEtatLocal(seance.id)
-  }
+  })
 
   const abandonner = async () => {
     const ok = seance.series.length
@@ -1617,8 +1605,6 @@ function FinSeance({
           const p = suggestionDe(ajuste)
           const histo = historiqueDe(terminees, ajuste)
           const faitesExo = seance.series.filter((x) => x.exoId === ajuste)
-          const record = Math.max(0, ...histo.flat().map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
-          const meilleur = Math.max(0, ...faitesExo.map((x) => e1rm(p.exo, x, seance.poidsCorps) ?? 0))
           return (
             <EditeurObjectif
               exo={p.exo}
@@ -1626,7 +1612,7 @@ function FinSeance({
               actuel={objectifs[ajuste]}
               faites={faitesExo}
               precedente={histo[0] ?? []}
-              record={record > 0 && meilleur > record}
+              record={!!recordDuJour(p.exo, histo, faitesExo)}
               onFermer={() => setAjuste(null)}
               onValider={(o) => (setObjectifs((x) => ({ ...x, [ajuste]: o })), setAjuste(null))}
               onDefaut={() => (retirerObjectif(ajuste), setAjuste(null))}

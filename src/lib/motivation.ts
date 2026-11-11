@@ -1,7 +1,7 @@
 import type { Cycle, Exercice, Seance, Serie } from '../types'
-import { dateISO, e1rm, semaineType } from './calc'
+import { dateISO, semaineType } from './calc'
 import { couvre, etatCycle, lignesCycle } from './cycle'
-import { mieuxParSeance, recordsParSeance, scoreSerie, semaineDe, sensPerf } from './historique'
+import { meilleureDeTravail, mieuxParSeance, recordsParSeance, semaineDe, sensPerf } from './historique'
 
 /**
  * Ce qui aide à continuer, sans pression : des faits tirés des séances (semaines tenues, progrès du
@@ -66,23 +66,16 @@ export function tenuesSurPeriode(seances: Seance[], prevuesParSemaine: number | 
   return r
 }
 
-/** Meilleure série de travail d'un exercice dans une séance (comme les records : `scoreSerie`). */
-function meilleure(exo: Exercice, s: Seance): { serie: Serie; score: number } | undefined {
-  let res: { serie: Serie; score: number } | undefined
-  for (const x of s.series) {
-    if (x.exoId !== exo.id || x.type !== 'normale' || x.reps <= 0) continue
-    const score = scoreSerie(exo, x, s.poidsCorps)
-    if (!res || score > res.score) res = { serie: x, score }
-  }
-  return res
-}
+/** Meilleure série de travail d'un exercice dans une séance : la plus lourde, puis le plus de reps (`meilleureDeTravail`). */
+const meilleure = (exo: Exercice, s: Seance) => meilleureDeTravail(exo, [s])
 
 /**
  * Depuis le début du bloc (cycle, sinon phase) : pour les exercices principaux (composés, les plus
  * pratiqués, `max` au plus), la meilleure série de la 1re séance du bloc face à celle de la dernière, en
- * charge × reps. Seulement ceux qui ont progressé ; déloads exclus ; il faut deux séances dans le bloc.
+ * charge × reps. Seulement ceux qui ont progressé (charge plus dure, ou reps en plus à la même charge : `sensPerf`,
+ * jamais l'effort noté) ; déloads exclus ; il faut deux séances dans le bloc.
  */
-export function depuisDebut(seances: Seance[], exo: (id: string) => Exercice, depuis: string, max = 3): { exo: Exercice; avant: Serie; apres: Serie; pct?: number }[] {
+export function depuisDebut(seances: Seance[], exo: (id: string) => Exercice, depuis: string, max = 3): { exo: Exercice; avant: Serie; apres: Serie }[] {
   const bloc = seances.filter((s) => !s.enCours && !s.deload && s.date >= depuis).sort((a, b) => a.debut - b.debut)
   const nb = new Map<string, number>()
   for (const s of bloc) for (const id of new Set(s.series.map((x) => x.exoId))) nb.set(id, (nb.get(id) ?? 0) + 1)
@@ -91,14 +84,10 @@ export function depuisDebut(seances: Seance[], exo: (id: string) => Exercice, de
     .sort((a, b) => b[1] - a[1])
     .flatMap(([id]) => {
       const e = exo(id)
-      const avec = bloc.filter((s) => s.series.some((x) => x.exoId === id))
-      const a = meilleure(e, avec[0])
-      const b = meilleure(e, avec[avec.length - 1])
-      if (!a || !b || b.score <= a.score) return []
-      // Le pourcentage décrit ces deux mêmes séries (force estimée) ; sans force estimée, pas de pourcentage.
-      const fa = e1rm(e, a.serie, avec[0].poidsCorps)
-      const fb = e1rm(e, b.serie, avec[avec.length - 1].poidsCorps)
-      return [{ exo: e, avant: a.serie, apres: b.serie, ...(fa && fb && { pct: ((fb - fa) / fa) * 100 }) }]
+      const avec = bloc.flatMap((s) => meilleure(e, s) ?? [])
+      if (avec.length < 2) return []
+      const [a, b] = [avec[0].serie, avec[avec.length - 1].serie]
+      return sensPerf(e, a, b) > 0 ? [{ exo: e, avant: a, apres: b }] : []
     })
     .slice(0, max)
 }

@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, analyserDates, aRetenir, erreurDates, essentiel, lecturePhase, libelleMesure, semaineOuverte, semainesEntieres, semainesFinies, type Analyse } from './analyse'
+import { analyser, analyserDates, aRetenir, ceQuiMonte, erreurDates, essentiel, lecturePhase, libelleMesure, semaineOuverte, semainesEntieres, semainesFinies, type Analyse } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -51,9 +51,10 @@ describe('force du Bilan : ce qui a vraiment été soulevé', () => {
   it('monter la charge alors que les reps repartent au bas : hausse, jamais une baisse de force', () => {
     expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 12)), avec('b', '2026-10-26', serie('b', 52.5, 8))])).toBeCloseTo(5)
   })
-  it('mêmes charge et reps : un point d’effort ne compte pas, deux points oui', () => {
+  it('mêmes charge et reps : l’effort noté ne compte jamais, ni un point ni deux', () => {
     expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 8)), avec('b', '2026-10-26', serie('b', 50, 10, 9))])).toBe(0)
-    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 7)), avec('b', '2026-10-26', serie('b', 50, 10, 9))])).toBeLessThan(-4)
+    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 7)), avec('b', '2026-10-26', serie('b', 50, 10, 9))])).toBe(0)
+    expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10, 9)), avec('b', '2026-10-26', serie('b', 50, 10, 6))])).toBe(0)
   })
   it('moins de reps à la même charge reste une baisse', () => {
     expect(pctDe([avec('a', '2026-10-05', serie('a', 50, 10)), avec('b', '2026-10-26', serie('b', 50, 8))])).toBeLessThan(0)
@@ -375,5 +376,22 @@ describe('semaine que le Bilan ne lit pas encore', () => {
   it('le dimanche, une première semaine compte déjà', () => {
     expect(semainesFinies(['2026-11-09', '2026-11-11'], semaineOuverte(new Date('2026-11-15T10:00:00')))).toBe(1)
     expect(semainesFinies(['2026-11-09', '2026-11-11'], semaineOuverte(new Date('2026-11-14T10:00:00')))).toBe(0)
+  })
+})
+
+describe('Bilan : « Ce qui monte » et « Ce qui bloque » ne se contredisent pas', () => {
+  const smith = (id: string, date: string, charge: number, reps: number, rpe = 8) => ({ ...seance(id, date, []), series: [{ id, exoId: 'smith_incline', type: 'normale' as const, charge, reps, rpe, heure: 0 }] })
+  it('8 semaines identiques, les deux dernières notées plus faciles : bloqué, et pas dans « ce qui monte »', () => {
+    const l = Array.from({ length: 8 }, (_, k) => smith(`s${k}`, new Date(Date.parse('2026-09-07T12:00:00') + k * 7 * 86400000).toISOString().slice(0, 10), 60, 10, k >= 6 ? 6 : 8))
+    const a = analyser(donnees(l), '2026-10-05', '2026-11-01', 1)
+    const r = ceQuiMonte(a)
+    expect(r.bloques.map((x) => x.id)).toEqual(['smith_incline'])
+    expect(r.montent).toEqual([])
+    expect(a.progressions.find((p) => p.exo.id === 'smith_incline')).toMatchObject({ sens: 0, pct: 0 })
+    expect(a.records).toEqual([])
+  })
+  it('charge montée et reps reparties au bas : dans « ce qui monte », avec le gain en kilos et jamais un pourcentage de force', () => {
+    const a = analyser(donnees([smith('a', '2026-10-05', 60, 12), smith('b', '2026-10-26', 62.5, 8, 9)]), '2026-10-05', '2026-11-01', 1)
+    expect(ceQuiMonte(a).montent).toEqual([{ id: 'smith_incline', nom: EXERCICES.smith_incline.nom, detail: '60 kg × 12 → 62,5 kg × 8 · record', valeur: '+2,5 kg' }])
   })
 })

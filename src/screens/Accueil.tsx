@@ -925,7 +925,7 @@ export default function Accueil({
                               }}
                             >
                               {chargeQte(exo, serie.charge, serie.reps)}
-                              {serie.rpe ? <span style={{ opacity: 0.65, fontSize: 'var(--t-legende)' }}>@{serie.rpe}</span> : null}
+                              {serie.rpe ? <span style={{ opacity: 0.65, fontSize: 'var(--t-legende)' }}>effort {kg(serie.rpe)}/10</span> : null}
                             </span>
                           )
                         })}

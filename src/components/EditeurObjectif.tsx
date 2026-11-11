@@ -15,7 +15,7 @@ interface Props {
   /** Séries faites aujourd'hui, et celles de la dernière fois pour comparer. */
   faites: Serie[]
   precedente: Serie[]
-  /** Nouveau record de 1RM estimé aujourd'hui. */
+  /** Record battu aujourd'hui (charge ou reps, `recordDuJour`). */
   record?: boolean
   /** Séance de référence des séries `faites` (« aujourd'hui » en fin de séance, sinon « la dernière fois »). */
   quand?: string

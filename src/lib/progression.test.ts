@@ -4,7 +4,7 @@ import type { Serie, TypeSerie } from '../types'
 import { chargeDecalee, ecartSerie, kgSouleves } from './calc'
 import { suggestionDeload } from './cycle'
 import { scoreSerie } from './historique'
-import { aBattre, chargeProposee, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
+import { aBattre, chargeProposee, cibleSerie, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
 
 // Exemples du cahier des charges (5.6) : butterfly au palier de 2,5 kg (celui de la base est maintenant 5 kg).
 const BUTTERFLY = { ...EXERCICES.butterfly, pas: 2.5 }
@@ -455,5 +455,65 @@ describe('chargeProposee', () => {
   it('charge à trouver : celle de la dernière série faite', () => {
     const vide = { ...sugg, charges: [null, null, null] }
     expect(chargeProposee(BUTTERFLY, vide, [faite(40)], 2)).toBe(40)
+  })
+})
+
+describe('une série à l’échec, dégressive ou en rest-pause est une série de travail faite', () => {
+  const plan = { exoId: 'x', charge: 50, repos: 90, chauffes: [], finisseur: false, series: [1, 2, 3].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })) }
+  const exo = { ...EXERCICES.butterfly, pas: 2.5 }
+  const serie = (reps: number, rpe: number, type: TypeSerie = 'normale'): Serie => ({ id: `${reps}-${rpe}-${type}`, exoId: 'x', type, charge: 50, reps, rpe, heure: 0 })
+  for (const type of ['echec', 'drop', 'rest_pause'] as TypeSerie[]) {
+    it(`3 séries dont la dernière en « ${type} » : plus de « Tu as fait 2 séries sur 3 »`, () => {
+      const faites = [serie(10, 8), serie(10, 8), serie(10, 10, type)]
+      expect(raisonPareil(exo, plan, [faites]) ?? '').not.toContain('2 séries sur 3')
+      expect(suggere(exo, plan, [faites]).message).not.toContain('en entier')
+    })
+    it(`toutes au haut de la fourchette, la dernière en « ${type} » : « Tu peux monter »`, () => {
+      const c = conseil(exo, plan, [[serie(12, 8), serie(12, 8), serie(12, 10, type)]])
+      expect(c?.decision).toBe('augmenter')
+    })
+  }
+  it('une vraie séance écourtée reste écourtée', () => {
+    expect(raisonPareil(exo, plan, [[serie(10, 8), serie(10, 8)]])).toContain('2 séries sur 3')
+  })
+  it('avec un finisseur au plan, sa série ne compte toujours pas dans les séries de travail', () => {
+    const avecFin = { ...plan, finisseur: true }
+    expect(raisonPareil(exo, avecFin, [[serie(10, 8), serie(10, 8), serie(9, 10, 'echec')]]) ?? '').not.toContain('séries sur')
+    expect(raisonPareil(exo, avecFin, [[serie(10, 8), serie(9, 10, 'echec')]])).toContain('1 série sur 2')
+  })
+  it('« Même charge, vise 8 » cite la série vraiment ratée, pas une série arrêtée tôt', () => {
+    const c = conseil(exo, plan, [[serie(6, 6), serie(7, 9), serie(9, 8)]])
+    expect(c?.message).toContain('7 reps sur la 2e série')
+  })
+})
+
+describe('assistance au poids du corps : la charge négative ne repasse pas à 0', () => {
+  const sugg = { decision: 'manuel' as const, charges: [-10, -10, -10], reps: [8, 8, 8], message: '' }
+  const faite = (charge: number): Serie => ({ id: 's', exoId: 'tractions', type: 'normale', charge, reps: 8, rpe: 8, heure: 0 })
+  const tractions = Object.values(EXERCICES).find((e) => e.mode === 'poids_corps')!
+  it('2e série après une 1re à −10 kg : −10 kg, pas 0', () => {
+    expect(chargeProposee(tractions, sugg, [faite(-10)], 1)).toBe(-10)
+  })
+  it('l’écart pris à la 1re série suit : −15 fait, −15 proposé', () => {
+    expect(chargeProposee(tractions, sugg, [faite(-15)], 1)).toBe(-15)
+  })
+  it('hors poids du corps, jamais de charge négative', () => {
+    expect(chargeProposee(EXERCICES.butterfly, { ...sugg, charges: [5, 5, 5] }, [{ ...faite(0), exoId: 'butterfly' }], 1)).toBe(0)
+  })
+})
+
+describe('finisseur : « jusqu’à l’échec » reste sur la dernière série du jour', () => {
+  const plan = { exoId: 'butterfly', charge: 50, repos: 90, chauffes: [], finisseur: true, series: [1, 2, 3].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })) }
+  const sugg = { decision: 'pareil' as const, charges: [50, 50, 50], reps: [10, 10, 10], message: '' }
+  it('sans ajout : la 3e série', () => {
+    expect(cibleSerie(EXERCICES.butterfly, plan, sugg, 1)).not.toContain('échec')
+    expect(cibleSerie(EXERCICES.butterfly, plan, sugg, 2)).toContain('jusqu’à l’échec')
+  })
+  it('une série ajoutée (4 aujourd’hui) : la 3e redevient normale, la 4e est le finisseur', () => {
+    expect(cibleSerie(EXERCICES.butterfly, plan, sugg, 2, undefined, 4)).not.toContain('échec')
+    expect(cibleSerie(EXERCICES.butterfly, plan, sugg, 3, undefined, 4)).toContain('jusqu’à l’échec')
+  })
+  it('une série retirée (2 aujourd’hui) : la 2e est le finisseur', () => {
+    expect(cibleSerie(EXERCICES.butterfly, plan, sugg, 1, undefined, 2)).toContain('jusqu’à l’échec')
   })
 })

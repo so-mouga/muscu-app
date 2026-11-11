@@ -2,14 +2,14 @@ import { Check, ChevronRight, Info, Lightbulb, Pencil, Sparkles, Timer, Triangle
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { db, uid } from '../db'
-import { chargeDecalee, chargeQte, chargeTexte, enTemps, fourchette, kg, RIR } from '../lib/calc'
+import { chargeDecalee, chargeTexte, enTemps, fourchette, kg, RIR } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import ChronoTenue from './ChronoTenue'
 import { PuceDisques } from './CalculateurDisques'
 import ReglagesMachine from './ReglagesMachine'
 import { vibrer } from '../lib/appareil'
-import { chargeProposee, monterMaintenant, type Suggestion } from '../lib/progression'
+import { chargeProposee, cibleSerie, monterMaintenant, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
 import { confirmer, informer } from './Dialogues'
 
@@ -27,19 +27,7 @@ const RPES = [6, 7, 8, 9, 10]
  * téléphone) : bloque un double appui avant même le rafraîchissement de l'écran. */
 let derniereValidation = -Infinity
 
-/** Objectif de la série `n` : « 60 kg × 10 · effort 8/10 ». Avec `faites`, la charge suit l'écart pris aux séries d'avant. */
-export function cibleSerie(exo: Exercice, plan: ExoPlan, sugg: Suggestion, n: number, faites?: Serie[]): string {
-  const j = Math.min(n, sugg.charges.length - 1)
-  const p = plan.series[Math.min(n, plan.series.length - 1)]
-  // Charge encore inconnue (machine jamais faite, rien de saisi avant) : « à calibrer », pas « 0 kg ».
-  const charge = faites && !(sugg.charges[j] === null && !faites.length) ? chargeProposee(exo, sugg, faites, n) : sugg.charges[j]
-  const total = plan.series.length
-  if (plan.finisseur && n === total - 1) {
-    const chargeTxt = charge !== null ? (charge > 0 ? `${kg(charge)} kg` : '') : 'à calibrer'
-    return chargeTxt ? `${chargeTxt} · jusqu’à l’échec` : 'jusqu’à l’échec'
-  }
-  return `${chargeQte(exo, charge, sugg.reps[j] ?? p.repsMin)} · effort ${kg(p.rpe)}/10`
-}
+export { cibleSerie }
 
 export function majSeance(id: string, fn: (s: Seance) => void) {
   return db.seances.where('id').equals(id).modify(fn)

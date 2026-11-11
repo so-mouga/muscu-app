@@ -3,7 +3,8 @@ import { nomCle } from '../data/mesures'
 import type { Exercice, Muscle, Serie } from '../types'
 import { chargeQte, dateISO, estDure, heuresMinutes, jourSemaine, kg, kgSouleves, lundi, volumeParMuscle } from './calc'
 import type { DonneesBilan } from './bilan'
-import { dureeReelle, evolutionForce, evolutionPct, scoreSerie, seanceSemaineAllegee, semaineDe } from './historique'
+import { dureeReelle, evolutionForce, meilleureSerie, pctCharges, seanceSemaineAllegee, semaineDe, sensPerf, serieComptee, suiviProgres } from './historique'
+import { gain } from './constat'
 import { nomPhase, phaseA, type Phase } from './objectifs'
 import { diagnostic } from './blocages'
 
@@ -37,8 +38,11 @@ export interface Analyse {
   /** Séries dures par semaine, moyenne hors semaines de déload. */
   volume: Record<Muscle, number>
   records: Record_[]
-  /** Évolution du meilleur 1RM estimé (ou de la meilleure série pour l'isolation) sur la période. */
-  progressions: { exo: Exercice; avant: number; apres: number; pct: number; detail?: string }[]
+  /**
+   * Évolution de la meilleure série de travail sur la période, en charge et en reps (jamais l'effort noté ni la force
+   * estimée) : `sens` dit si ça monte, `pct` de combien (`pctCharges`), `detail` « 60 kg × 10 → 62,5 kg × 8 ».
+   */
+  progressions: { exo: Exercice; avant: Serie; apres: Serie; sens: -1 | 0 | 1; pct: number; detail: string }[]
   /** Exercices sans progrès depuis 3 semaines ou plus à la fin de la période, avec les pistes (voir `lib/blocages`). */
   stagnations: { exo: Exercice; semaines: number; seances: number; pistes: string[] }[]
   douleurs: { exo: Exercice; date: string; n: number }[]
@@ -76,21 +80,18 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const total = volumeParMuscle(periode.filter((s) => !seanceSemaineAllegee(s)), d.exercices)
   const volume = Object.fromEntries(MUSCLES.map((m) => [m.id, total[m.id] / nbTravail])) as Record<Muscle, number>
 
-  // Records : on rejoue tout l'historique pour savoir ce qui a été battu pendant la période.
-  const meilleur: Record<string, number> = {}
+  // Records : on rejoue tout l'historique pour savoir ce qui a été battu pendant la période (même mesure que partout : `suiviProgres`).
+  const suivis = new Map<string, ReturnType<typeof suiviProgres>>()
   const records: Record_[] = []
   for (const s of [...d.seances].sort((a, b) => a.debut - b.debut)) {
     if (s.deload) continue
-    const duJour = new Map<string, { score: number; serie: Serie }>()
-    for (const x of s.series) {
-      if (x.reps <= 0) continue
-      const score = scoreSerie(d.exo(x.exoId), x, s.poidsCorps)
-      if (!duJour.has(x.exoId) || score > duJour.get(x.exoId)!.score) duJour.set(x.exoId, { score, serie: x })
-    }
-    for (const [id, { score, serie }] of duJour) {
-      if (meilleur[id] !== undefined && score > meilleur[id] && s.date >= debutEffectif && s.date <= fin)
-        records.push({ date: s.date, exo: d.exo(id), perf: chargeQte(d.exo(id), serie.charge, serie.reps) })
-      meilleur[id] = Math.max(meilleur[id] ?? -Infinity, score)
+    for (const id of new Set(s.series.map((x) => x.exoId))) {
+      const series = s.series.filter((x) => x.exoId === id && serieComptee(x))
+      if (!series.length) continue
+      if (!suivis.has(id)) suivis.set(id, suiviProgres(d.exo(id)))
+      const battu = suivis.get(id)!.juger(series).record
+      const serie = meilleureSerie(series, d.exo(id).assistance)!
+      if (battu && s.date >= debutEffectif && s.date <= fin) records.push({ date: s.date, exo: d.exo(id), perf: chargeQte(d.exo(id), serie.charge, serie.reps) })
     }
   }
 
@@ -101,35 +102,14 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const stagnations: Analyse['stagnations'] = []
   for (const id of ids) {
     const exo = d.exo(id)
-    // Force mesurée comme les blocages (séries de travail seulement), meilleure des 2 premières séances
+    // Mesuré comme les blocages (séries de travail seulement, charge et reps), meilleure des 2 premières séances
     // face à la meilleure des 2 dernières ; une seule séance sur la période : face à la dernière d'avant.
     const avec = travail.filter((s) => s.series.some((x) => x.exoId === id))
     const anterieure = anterieures.find((s) => s.series.some((x) => x.exoId === id))
     const ev = evolutionForce(exo, avec.length >= 2 || !anterieure ? avec : [anterieure, ...avec])
     if (ev) {
-      if (ev.avant.e1rm && ev.apres.e1rm) {
-        const avant = ev.avant.e1rm
-        const apres = ev.apres.e1rm
-        progressions.push({ exo, avant, apres, pct: evolutionPct(exo, ev.avant.serie, ev.apres.serie, ((apres - avant) / avant) * 100) })
-      } else {
-        const mAvant = ev.avant.serie
-        const mApres = ev.apres.serie
-        const pct =
-          mAvant.charge > 0 && mApres.charge !== mAvant.charge
-            ? (((exo.assistance ? -1 : 1) * (mApres.charge - mAvant.charge)) / mAvant.charge) * 100
-            : mAvant.reps > 0
-              ? ((mApres.reps - mAvant.reps) / mAvant.reps) * 100
-              : 0
-        // Les baisses comptent comme les hausses. Sens contraire (lest ajouté mais moins de reps) : pas de chiffre sûr à donner.
-        if (Math.sign(pct) === Math.sign(ev.apres.score - ev.avant.score))
-          progressions.push({
-            exo,
-            avant: mAvant.charge || mAvant.reps,
-            apres: mApres.charge || mApres.reps,
-            pct,
-            detail: `${chargeQte(exo, mAvant.charge, mAvant.reps)} → ${chargeQte(exo, mApres.charge, mApres.reps)}`,
-          })
-      }
+      const [avant, apres] = [ev.avant.serie, ev.apres.serie]
+      progressions.push({ exo, avant, apres, sens: sensPerf(exo, avant, apres), pct: pctCharges(exo, avant, apres), detail: `${chargeQte(exo, avant.charge, avant.reps)} → ${chargeQte(exo, apres.charge, apres.reps)}` })
     }
     const b = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase, debutPhase: d.objectifs && phaseA(d.objectifs, fin)?.debut, objectifs: d.objectifs }, fin)
     if (b) stagnations.push({ exo, semaines: b.semaines, seances: b.seances, pistes: b.pistes })
@@ -323,7 +303,7 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
 
   // Fatigue : RPE en hausse et sensations en baisse par rapport à la période d'avant
   if (avant && a.rpe !== null && avant.rpe !== null && a.energie !== null && avant.energie !== null && a.rpe >= avant.rpe + 0.5 && a.energie <= avant.energie - 0.5)
-    r.push('RPE en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense à une semaine allégée.')
+    r.push('Effort en hausse et sensations en baisse par rapport à la période d’avant : signe de fatigue, pense à une semaine allégée.')
 
   // Records
   if (a.records.length) {
@@ -422,3 +402,39 @@ export function lecturePhase(a: Analyse, phase: Phase): string[] {
 
 /** « Taille », « Bras droit »… */
 export const libelleMesure = (cle: string) => nomCle(cle)
+
+export interface LigneExercice {
+  id: string
+  nom: string
+  detail: string
+  valeur?: string
+}
+
+/**
+ * Ce qui monte et ce qui bloque, pour le Bilan : un exercice monte si sa meilleure série est plus lourde ou a plus de
+ * reps à la même charge (`sens`), ou s'il a battu un record. Un exercice bloqué n'est jamais dans « ce qui monte » :
+ * les deux listes ne se contredisent pas. `parCharges` : sur un cycle, avant → après en tête.
+ */
+export function ceQuiMonte(a: Pick<Analyse, 'progressions' | 'records' | 'stagnations'>, parCharges: LigneExercice[] = []): { montent: LigneExercice[]; bloques: LigneExercice[] } {
+  const bloque = new Set(a.stagnations.map((s) => s.exo.id))
+  const records = new Map(a.records.map((r) => [r.exo.id, r.perf]))
+  const avecRecord = (id: string, texte: string) => (records.has(id) ? `${texte} · record` : texte)
+  const montent: LigneExercice[] = a.progressions
+    .filter((p) => p.sens > 0)
+    .map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: avecRecord(p.exo.id, p.detail), valeur: gain(p.exo, [p.avant], [p.apres])?.court }))
+  const vus = new Set(montent.map((l) => l.id))
+  for (const r of a.records) {
+    if (vus.has(r.exo.id)) continue
+    vus.add(r.exo.id)
+    montent.push({ id: r.exo.id, nom: r.exo.nom, detail: avecRecord(r.exo.id, r.perf) })
+  }
+  for (const l of [...parCharges].reverse()) {
+    const i = montent.findIndex((x) => x.id === l.id)
+    if (i >= 0) montent.splice(i, 1)
+    montent.unshift({ ...l, detail: avecRecord(l.id, l.detail) })
+  }
+  return {
+    montent: montent.filter((l) => !bloque.has(l.id)),
+    bloques: a.stagnations.map((s) => ({ id: s.exo.id, nom: s.exo.nom, detail: `${s.semaines} sem. sans progrès` })),
+  }
+}

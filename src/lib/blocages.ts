@@ -1,6 +1,8 @@
-import type { Exercice, JourJournal, Pesee, Seance, Serie } from '../types'
+import type { Exercice, JourJournal, Pesee, Seance } from '../types'
 import { enTemps, heuresMinutes, kg } from './calc'
-import { scoreSerie, seanceSemaineAllegee, semaineDe } from './historique'
+import { scoreSerie, seanceSemaineAllegee, semaineDe, suiviProgres } from './historique'
+
+export { suiviProgres }
 import { phaseA, type EtapeObjectifs, type Phase } from './objectifs'
 
 const JOUR = 86400000
@@ -38,37 +40,6 @@ export interface Blocage {
 export const SEMAINES_BLOCAGE = 6
 /** 3 semaines sans s'entraîner : on repart de zéro, la référence d'avant l'arrêt ne vaut plus. */
 export const JOURS_ARRET = 21
-
-/**
- * Compare chaque séance aux précédentes : progrès = charge plus dure, ou rep de plus à une charge déjà faite, rang par rang.
- * Une seule mesure pour les blocages et le constat de la fiche ; `repartir` oublie la référence (après un arrêt ou une sèche).
- */
-export function suiviProgres(exo: Exercice) {
-  const durete = (c: number) => (exo.assistance ? -c : c)
-  let plusDur = -Infinity
-  let meilleures = new Map<number, number[]>()
-  return {
-    plusDur: () => plusDur,
-    repartir: () => {
-      plusDur = -Infinity
-      meilleures = new Map()
-    },
-    progres: (series: Serie[]) => {
-      const parCharge = new Map<number, number[]>()
-      for (const x of series) parCharge.set(x.charge, [...(parCharge.get(x.charge) ?? []), x.reps])
-      let progres = false
-      for (const [charge, reps] of parCharge) {
-        reps.sort((a, b) => b - a)
-        const avant = meilleures.get(charge) ?? []
-        if (plusDur !== -Infinity && durete(charge) > plusDur) progres = true
-        if (avant.length && reps.some((r, i) => r > (avant[i] ?? 0))) progres = true
-        meilleures.set(charge, Array.from({ length: Math.max(reps.length, avant.length) }, (_, i) => Math.max(reps[i] ?? 0, avant[i] ?? 0)))
-      }
-      plusDur = Math.max(plusDur, ...[...parCharge.keys()].map(durete))
-      return progres
-    },
-  }
-}
 
 /**
  * Exercice bloqué : ni charge plus dure, ni reps en plus à une charge déjà faite, sur 6 semaines d'entraînement et au

@@ -17,7 +17,8 @@ const REGLES: [string, string[]][] = [
   [
     'Pendant la séance',
     [
-      'Nouveau record, dès la série validée : ta force estimée battue, sinon une charge jamais soulevée, sinon plus de reps (ou de temps) à cette charge. Jamais en déload.',
+      'Nouveau record, dès la série validée : une charge jamais soulevée, sinon plus de reps (ou de temps) que jamais à cette charge. Jamais en déload. La fin de séance, le Journal et le Bilan comptent les mêmes records.',
+      'Progresser, partout dans l’appli, c’est une charge plus lourde ou une rep de plus à une charge déjà faite, sur tes séries normales. L’effort noté et la force estimée n’y entrent jamais : mêmes charge et reps notées plus faciles, ce n’est ni « mieux » ni un record.',
       '« Monte d’un cran » : ta série d’avant dépasse le haut de la fourchette de 3 reps ou plus. Proposé : la charge + un pas de l’exercice (sauf au maximum du matériel).',
       '« Faute de frappe ? » : une charge bien plus lourde que d’habitude (plus de 1,5 fois et au moins 20 kg de plus).',
       'Exercice bloqué : une ligne sur la carte de l’exercice (voir « Exercice bloqué »).',
@@ -27,7 +28,8 @@ const REGLES: [string, string[]][] = [
   [
     'En fin de séance',
     [
-      'En tête : combien d’exercices ont été mieux que la dernière fois, et les records.',
+      'En tête : combien d’exercices ont été mieux que la dernière fois (charge plus lourde, ou rep de plus à une charge de la dernière fois), et les records.',
+      'Une série à l’échec, dégressive ou en rest-pause compte comme une série faite : elle ne fait plus dire « Tu as fait 2 séries sur 3 ».',
       'Chaque exercice a une fourchette de reps, écrite pendant la saisie : 8–12 d’office s’il fait travailler plusieurs articulations, 12–15 sinon. Avec le même nombre des deux côtés, pas de conseil pour monter. Chaque série est jugée sur sa propre fourchette. Tu l’appliques ou non.',
       'Une rep de plus, même charge : sur deux séries si toutes étaient faciles (effort 7/10 ou moins, 3 reps en réserve), sinon sur une seule ; celles qui sont le plus loin du haut de leur fourchette.',
       'Monter la charge quand toutes les séries prévues sont au haut de leur fourchette, à l’effort visé (en moyenne pas plus d’un demi-point au-dessus, aucune série à plus d’un point), et que la série d’échec n’est pas trop courte. Les reps repartent au bas de la fourchette.',

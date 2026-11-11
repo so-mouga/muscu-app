@@ -1,10 +1,11 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
 import type { Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
-import { dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, schemaPlan, sensationSeance, volumeParMuscle } from './calc'
+import { chargeQte, dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, schemaPlan, sensationSeance, volumeParMuscle } from './calc'
 import { effort } from './partageProgramme'
 import { faitTexte } from './partageSeance'
-import { dureeReelle, evolutionForce, recordsParSeance, seanceSemaineAllegee, semaineDe } from './historique'
+import { dureeReelle, evolutionForce, recordsParSeance, seanceSemaineAllegee, semaineDe, sensPerf } from './historique'
+import { gain } from './constat'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
 import { moyenneRepas, objectifDuJour, texteRepas } from './nutrition'
 import { diagnostic, texteBlocage } from './blocages'
@@ -141,7 +142,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     lignes.push(
       `${m.nom} : ${kg(arrondi(moy))}/sem.` +
         (d.cibles[m.id] ? ` (objectif ${kg(d.cibles[m.id])})` : '') +
-        (rpe !== null ? ` · RPE moyen ${kg(arrondi(rpe))}` : '') +
+        (rpe !== null ? ` · effort moyen ${kg(arrondi(rpe))}/10` : '') +
         ` · par semaine : ${valeurs.map((v) => kg(arrondi(v))).join(' / ')}`
     )
   }
@@ -165,12 +166,13 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
         .filter(Boolean)
         .join(' · ')
     )
-    // Tendance : meilleur 1RM estimé des séries de travail, des 2 premières aux 2 dernières séances (voir `evolutionForce`).
+    // Tendance : meilleure série de travail des 2 premières séances face aux 2 dernières (`evolutionForce`), en charge
+    // et en reps, comme l'écran : jamais la force estimée, qui baisse quand on monte la charge et que les reps repartent au bas.
     const ev = evolutionForce(exo, avec.filter((s) => !s.deload))
-    if (ev?.avant.e1rm && ev.apres.e1rm) {
-      const a = ev.avant.e1rm
-      const b = ev.apres.e1rm
-      lignes.push(`  Force estimée : ${kg(arrondi(a))} → ${kg(arrondi(b))} kg (${b >= a ? '+' : '−'}${kg(Math.abs(arrondi(((b - a) / a) * 100)))} %)`)
+    if (ev) {
+      const [a, b] = [ev.avant.serie, ev.apres.serie]
+      const sens = sensPerf(exo, a, b)
+      lignes.push(`  Évolution : ${chargeQte(exo, a.charge, a.reps)} → ${chargeQte(exo, b.charge, b.reps)} (${sens > 0 ? `ça monte${gain(exo, [a], [b]) ? `, ${gain(exo, [a], [b])!.long}` : ''}` : sens < 0 ? 'en dessous' : 'pareil'})`)
     }
     const bloque = diagnostic(exo, { seances: d.seances, journal: d.journal, pesees: d.pesees, phase: d.objectifs && phaseA(d.objectifs, fin)?.phase, debutPhase: d.objectifs && phaseA(d.objectifs, fin)?.debut, objectifs: d.objectifs }, fin)
     if (bloque) lignes.push(`  ${texteBlocage(bloque)}`)

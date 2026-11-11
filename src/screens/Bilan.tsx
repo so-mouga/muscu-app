@@ -13,7 +13,8 @@ import BoutonRetour from '../components/BoutonRetour'
 import { VueCycle } from '../components/Cycle'
 import { transition, useRetour } from '../lib/nav'
 import { MUSCLES } from '../data/exercices'
-import { analyser, analyserDates, aRetenir, erreurDates, essentiel, semaineOuverte, semainesFinies, type Analyse } from '../lib/analyse'
+import { analyser, analyserDates, aRetenir, ceQuiMonte, erreurDates, essentiel, semaineOuverte, semainesFinies, type LigneExercice } from '../lib/analyse'
+import { gain } from '../lib/constat'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import type { ContenuImage } from '../lib/imageBilan'
 import { chargeQte, dateCourte, dateISO, kg, milliers } from '../lib/calc'
@@ -223,7 +224,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
         </section>
       </div>
     )
-  const exercices = lectureExercices(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}`, valeur: p.pct !== undefined ? `+${kg(arrondi(p.pct))} %` : undefined })))
+  const exercices = ceQuiMonte(a, parCharges.map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: `${chargeQte(p.exo, p.avant.charge, p.avant.reps)} → ${chargeQte(p.exo, p.apres.charge, p.apres.reps)}`, valeur: gain(p.exo, [p.avant], [p.apres])?.court })))
 
   const texteComplet = (question = '') => genererBilan(donnees, a.debut, fin, aRetenir(a, avant.seances > 0 ? avant : null, cibles, false, phaseFin, depuisPhase), !!surChoix?.coupees, question)
   const debutEcrit = surDates ? debut : a.debut
@@ -571,44 +572,11 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   )
 }
 
-interface LigneExercice {
-  id: string
-  nom: string
-  detail: string
-  valeur?: string
-}
 
 /** Semaines tenues du cycle jusqu'à `fin`. Lues depuis le lundi de la semaine ouverte : le dimanche, celle qui s'achève compte. */
 function tenuesDuCycle(c: Cycle, seances: Seance[], fin: string, ouverte: string) {
   const lignes = suiviCycle(c, seances, ouverte).semaines.filter((x) => x.lundi <= fin && (x.etat === 'tenue' || x.etat === 'manquee'))
   return { n: lignes.filter((x) => x.etat === 'tenue').length, sur: lignes.length }
-}
-
-/** Records, progressions et blocages réunis : ce qui monte (les plus forts d'abord) et ce qui bloque ; les pistes sont sur la fiche de l'exercice. */
-function lectureExercices(a: Analyse, parCharges: LigneExercice[] = []) {
-  const records = new Map(a.records.map((r) => [r.exo.id, r.perf]))
-  const avecRecord = (id: string, texte: string) => (records.has(id) ? `${texte} · record` : texte)
-  const montent: LigneExercice[] = a.progressions
-    .filter((p) => p.pct > 0)
-    .map((p) => ({ id: p.exo.id, nom: p.exo.nom, detail: avecRecord(p.exo.id, p.detail ?? `force estimée : ${kg(arrondi(p.avant))} → ${kg(arrondi(p.apres))} kg`), valeur: `+${kg(arrondi(p.pct))} %` }))
-  const vus = new Set(montent.map((l) => l.id))
-  for (const r of a.records) {
-    if (vus.has(r.exo.id)) continue
-    vus.add(r.exo.id)
-    montent.push({ id: r.exo.id, nom: r.exo.nom, detail: avecRecord(r.exo.id, records.get(r.exo.id)!) })
-  }
-  // Sur un cycle : avant → après en tête, et à la place de la force estimée.
-  for (const l of [...parCharges].reverse()) {
-    const i = montent.findIndex((x) => x.id === l.id)
-    if (i >= 0) montent.splice(i, 1)
-    montent.unshift({ ...l, detail: records.has(l.id) ? `${l.detail} · record` : l.detail })
-  }
-  const bloques: LigneExercice[] = a.stagnations.map((s) => ({
-    id: s.exo.id,
-    nom: s.exo.nom,
-    detail: `${s.semaines} sem. sans progrès`,
-  }))
-  return { montent, bloques }
 }
 
 function LigneExo({ nom, detail, valeur, onClick }: LigneExercice & { onClick?: () => void }) {

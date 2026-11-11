@@ -1,4 +1,4 @@
-import type { ExoPlan } from '../types'
+import type { ExoPlan, Seance } from '../types'
 import { reposApres } from './calc'
 
 /** L'exercice est-il explicitement enchaîné avec le suivant ? */
@@ -192,4 +192,20 @@ export function echangerExos(plans: ExoPlan[], i: number, j: number, reposDefaut
   r[i] = r[j]
   r[j] = a
   return r
+}
+
+/**
+ * « Remplacer » en cours d'exercice : les séries faites restent sur l'original (clos à ce qu'il a fait), celles qui
+ * restent passent au remplaçant, inséré juste après, et il devient l'exercice en cours. Sans ça, après « Faire
+ * maintenant », l'écran repartait sur le premier exercice pas fini de la liste. Modifie `s`.
+ */
+export function remplacerEnCours(s: Pick<Seance, 'exercices' | 'ajustSeries' | 'courant'>, i: number, substitut: ExoPlan, faites: number) {
+  const ancien = s.exercices[i]
+  const total = ancien.series.length + (s.ajustSeries[ancien.exoId] ?? 0)
+  const restantes = Math.max(1, total - faites)
+  s.ajustSeries[ancien.exoId] = faites - ancien.series.length
+  const series = ancien.series.slice(Math.min(faites, ancien.series.length - 1))
+  while (series.length < restantes) series.push({ ...series[series.length - 1] })
+  s.exercices.splice(i + 1, 0, { ...substitut, series: series.slice(0, restantes) })
+  s.courant = substitut.exoId
 }
