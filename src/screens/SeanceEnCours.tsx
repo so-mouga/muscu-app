@@ -17,7 +17,8 @@ import Minuteur, { BIPS_DEFAUT, reposOublie, resteRepos, type EtatMinuteur } fro
 import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
-import { battement, debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
+import { battement, debloquerSon, ecranAllume, signalSerie, sonFinSeance } from '../lib/appareil'
+import { revanche, revanchePrise, type Revanche } from '../lib/revanche'
 import { recordDuJour } from '../lib/historique'
 import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
 import Disque, { IconeCran } from '../components/Disque'
@@ -179,6 +180,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return m?.seanceId === seance.id && !reposOublie(m, Date.now()) ? m : null
   })
   const [toast, setToast] = useState<string | null>(null)
+  /** La revanche vient d'être prise : plein écran, deux secondes et demie ou un appui. */
+  const [revancheFaite, setRevancheFaite] = useState<{ genre: Revanche['genre']; avant: number; fait: number; exo: string } | null>(null)
+  useEffect(() => {
+    if (!revancheFaite) return
+    const t = setTimeout(() => setRevancheFaite(null), 2600)
+    return () => clearTimeout(t)
+  }, [revancheFaite])
   // Mode plein écran : il le reste d'un repos à l'autre tant qu'on ne le réduit pas.
   // Plein écran par défaut : un nouveau découvre le grand chrono dès sa 1re série ; son choix est ensuite gardé.
   // Chaque séance démarre en plein écran (on y saisit tout sans défiler) ; la vue liste sert à regarder, à un appui.
@@ -415,7 +423,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const i = plans.findIndex((p) => p.exoId === s.exoId)
       const avantSerie = seance.deload ? undefined : historiqueDe(terminees, s.exoId)[0]?.[k]
       const fini = i >= 0 && k + 1 >= totalDe(i)
-      signalSerie(fini ? 'finExercice' : gagneCran(s) ? 'cran' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation)
+      signalSerie(fini ? 'finExercice' : gagneCran(s) ? 'cran' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation, k)
+      // La revanche de cette série, si elle en avait une et qu'elle est prise.
+      const rv = i >= 0 && !seance.deload ? revanche(exos[i], plans[i], historiqueDe(terminees, s.exoId), k, suggestions[i].charges[k]) : null
+      if (rv && revanchePrise(rv, plans[i], k, s)) setRevancheFaite({ genre: rv.genre, avant: rv.avant, fait: rv.genre === 'reps' ? s.reps : s.charge, exo: exos[i].nom })
     }
     // Verrou levé quand la série est écrite (voir plus haut), au pire après 8 s.
     setVerrou(true)
@@ -737,9 +748,12 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   // Le moment d'avant un finisseur (plein écran) : tout le repos qui précède la dernière série, en violet, puis « Prêt »
   // jusqu'à l'appui. Une fois par exercice et par séance ; coupé dans Réglages, le repos garde son allure habituelle.
-  const cleMoment = enCours >= 0 ? `${seance.id}:${plans[enCours].exoId}` : ''
-  const momentFin =
-    focus && !fin && enCours >= 0 && !surEchauffement && restantes > 0 && !saisie && !!plans[enCours].finisseur && nbFaites(plans[enCours].exoId) === totalDe(enCours) - 1 && reglageAnnonce?.valeur !== false && !annoncesVues.has(cleMoment)
+  const serieSuivante = enCours >= 0 ? nbFaites(plans[enCours].exoId) : 0
+  const finisseurSuivant = enCours >= 0 && !!plans[enCours].finisseur && serieSuivante === totalDe(enCours) - 1
+  // La revanche de la série à venir (jamais sur un finisseur ni en séance allégée) : le finisseur passe devant.
+  const revancheSuivante = enCours >= 0 && !finisseurSuivant && !seance.deload ? revanche(exos[enCours], plans[enCours], historiqueDe(terminees, plans[enCours].exoId), serieSuivante, suggestions[enCours].charges[serieSuivante]) : null
+  const cleMoment = enCours >= 0 ? `${seance.id}:${plans[enCours].exoId}${revancheSuivante ? `:r${serieSuivante}` : ''}` : ''
+  const momentFin = focus && !fin && enCours >= 0 && !surEchauffement && restantes > 0 && !saisie && (finisseurSuivant || !!revancheSuivante) && reglageAnnonce?.valeur !== false && !annoncesVues.has(cleMoment)
   momentRef.current = momentFin ? cleMoment : ''
 
   /** La consigne du finisseur de cet exercice, avec la charge de la baisse quand elle est connue. */
@@ -912,25 +926,41 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const faitesExo = seance.series.filter((x) => x.exoId === p.exoId)
       const commencer = () => (annonceVue(cleMoment), setAnnonceVue((x) => x + 1))
       return (
-        <div ref={ecranFocus} className="focus fixe moment-fin">
-          <div className="moment-haut">
-            <span>
-              {exo.nom} · {FINISSEURS[typeFinisseur(p)].nom.toLowerCase()}
-            </span>
-            <button type="button" onClick={() => naviguer(() => (setIdx(enCours), setFocus(false)))}>
-              Voir la séance <ChevronRight size={16} />
+        <div ref={ecranFocus} className={'focus fixe moment-fin' + (revancheSuivante ? ' noir' : '')}>
+          <div className="moment-haut">{revancheSuivante ? `${exo.nom} · ${chargeTexte(exo, suggestions[enCours].charges[serieSuivante])}` : `${exo.nom} · ${FINISSEURS[typeFinisseur(p)].nom.toLowerCase()}`}</div>
+          {/* Les mêmes boutons que sur l'écran habituel : une revanche peut tomber en arrivant sur une machine prise. */}
+          <div className="moment-boutons">
+            <button type="button" className="btn petit" onClick={() => naviguer(() => (setIdx(enCours), setFocus(false)))}>
+              Voir la séance
+            </button>
+            <button type="button" className="btn petit" onClick={() => setMachineDe(enCours)}>
+              Machine prise
+            </button>
+            <button type="button" className="btn petit" onClick={() => ouvrirFin(true)}>
+              Fin de séance
             </button>
           </div>
           {/* Sans repos en cours : le même écran, figé sur « Prêt ». « Passer » comme « J'y vais » mènent à la saisie. */}
-          <Minuteur etat={minuteur ?? REPOS_FINI} variante="finisseur" onChange={(e) => (setMinuteur(e), !e && commencer())} cran={cranRepos ? pourquoiCran(cranRepos) : undefined} cranVient={vient && !!cranRepos}>
-            <div className="moment-texte">
-              <div className="moment-grand">Dernière série.</div>
-              <div className="moment-fort">À fond.</div>
-              <div className="moment-consigne">{consigneDe(enCours)}</div>
-            </div>
+          <Minuteur etat={minuteur ?? REPOS_FINI} variante="finisseur" ton={revancheSuivante ? 'noir' : undefined} onChange={(e) => (setMinuteur(e), !e && commencer())} cran={cranRepos ? pourquoiCran(cranRepos) : undefined} cranVient={vient && !!cranRepos}>
+            {revancheSuivante ? (
+              <div className="moment-texte">
+                <div className="moment-avant">{revancheSuivante.genre === 'reps' ? `Tu t’étais arrêté à ${revancheSuivante.avant}.` : `Tu avais dû redescendre à ${kg(revancheSuivante.avant)} kg.`}</div>
+                <div className="moment-grand">
+                  Aujourd’hui, <span className="vise-chiffre">{kg(revancheSuivante.vise)}</span>.
+                </div>
+                <FaceAFace avant={kg(revancheSuivante.avant)} apres={kg(revancheSuivante.vise)} unite={revancheSuivante.genre === 'charge' ? 'kg' : 'reps'} />
+              </div>
+            ) : (
+              <div className="moment-texte">
+                <div className="moment-grand">Dernière série.</div>
+                <div className="moment-fort">À fond.</div>
+                <div className="moment-consigne">{consigneDe(enCours)}</div>
+              </div>
+            )}
             {/* Les séries déjà faites restent à un appui : c'est pendant ce repos qu'on corrige. */}
             {faitesExo.length > 0 && <LigneSeries court exo={exo} faites={faitesExo} total={totalDe(enCours)} cible={() => ''} onCorriger={(x) => setCorrige(x.id)} cranId={cranDe(p.exoId)?.serie.id} />}
           </Minuteur>
+          {revancheFaite && <RevanchePrise r={revancheFaite} onFin={() => setRevancheFaite(null)} />}
           {correction}
           {fenetres}
           {toast && <div className="toast">{toast}</div>}
@@ -942,6 +972,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
         {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} legende={vueRepos && exoFini ? 'exercice fini' : undefined} cran={vueRepos && cranRepos ? pourquoiCran(cranRepos) : undefined} cranVient={vient && !!cranRepos} />}
+        {revancheFaite && <RevanchePrise r={revancheFaite} onFin={() => setRevancheFaite(null)} />}
         {correction}
         {vueRepos ? (
           prochaine ?? blocTerminer
@@ -1478,6 +1509,7 @@ function FinSeance({
   // Double appui : le second arrivait avant que l'écran ne change, et créait une 2e séance réutilisable.
   const unSeulAppui = useRef(verrou()).current
   const enregistrer = () => unSeulAppui(async () => {
+    sonFinSeance(reglages.find((r) => r.cle === 'sonValidation')?.valeur !== false)
     let modeleId = seance.modeleId
     if (garder && libre) {
       modeleId = 'm_' + uid()
@@ -1781,6 +1813,36 @@ function FenetreSeries({ seance, plan, exo, total, cible, repos, noteAvant, onAj
         {noteAvant && !texte && <div className="faible">La dernière fois : {noteAvant}</div>}
       </div>
     </div>,
+    document.body
+  )
+}
+
+/** Les deux chiffres face à face : ce qu'on avait fait, barré, et ce qu'il faut faire. */
+function FaceAFace({ avant, apres, unite, pris }: { avant: string; apres: string; unite: string; pris?: boolean }) {
+  return (
+    <div className={'face' + (pris ? ' pris' : '')}>
+      <div className="face-avant">
+        <b>{avant}</b>
+        <span>{unite}, la dernière fois</span>
+      </div>
+      <ChevronRight size={28} className="face-fleche" />
+      <div className="face-apres">
+        <b>{apres}</b>
+        <span>{pris ? 'fait' : 'aujourd’hui'}</span>
+      </div>
+    </div>
+  )
+}
+
+/** La revanche est prise : plein écran juste après « Valider » (on a le téléphone en main), un appui le passe. */
+function RevanchePrise({ r, onFin }: { r: { genre: Revanche['genre']; avant: number; fait: number; exo: string }; onFin: () => void }) {
+  return createPortal(
+    <button type="button" className="revanche-prise" onClick={onFin} aria-label={`Revanche prise sur ${r.exo}. Toucher pour continuer.`}>
+      <span className="revanche-exo">{r.exo}</span>
+      <FaceAFace avant={kg(r.avant)} apres={kg(r.fait)} unite={r.genre === 'charge' ? 'kg' : 'reps'} pris />
+      <span className="revanche-titre">Revanche prise.</span>
+      <span className="revanche-passe">Touche l’écran pour continuer</span>
+    </button>,
     document.body
   )
 }

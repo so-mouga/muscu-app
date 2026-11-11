@@ -34,6 +34,7 @@ const REGLES: [string, string[]][] = [
       'Avant la série, « Cran dès 11 reps » dit ce qu’il faut faire à la charge réglée. Rien si l’exercice n’a jamais été fait, si la charge est plus légère que tout ce que tu as fait, ou si le cran du jour est déjà gagné.',
       'Sur l’accueil, « record à ta portée » : le conseil de la dernière fois était « Tu peux viser plus », et ta meilleure série était déjà à ton record. Une rep de plus le bat.',
       'Les crans se comptent depuis le 9 novembre 2026. Les séances d’avant servent de référence.',
+      'La revanche : une série finie sous le bas de sa fourchette la dernière fois, à la même charge, ou une charge ratée à laquelle tu remontes après une séance plus légère. Elle est annoncée avant la série ; rien n’est dit si tu ne la prends pas.',
     ],
   ],
   [

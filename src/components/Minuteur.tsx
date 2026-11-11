@@ -35,6 +35,8 @@ interface Props {
   variante?: 'barre' | 'grand' | 'bandeau' | 'finisseur'
   /** `finisseur` : ce qui s'affiche entre le cercle et les boutons (l'annonce, la consigne, les séries). */
   children?: ReactNode
+  /** `finisseur` : `noir` pour la revanche (noir et orange), sinon le violet du finisseur. */
+  ton?: 'noir'
   /** Barre : appui sur le temps → mode plein écran. */
   onAgrandir?: () => void
   /** Cercle du plein écran : mot sous le temps (« exercice fini »). */
@@ -45,7 +47,7 @@ interface Props {
   cranVient?: boolean
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient, children }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient, children, ton }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -129,7 +131,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
   // Fini, il attend un appui (« J'y vais ») : l'annonce ne se rate plus, même si on ne regardait pas à la fin du repos.
   if (variante === 'finisseur') {
     return (
-      <div className={'moment' + (fini ? ' fige' : enPause ? ' en-pause' : seconde <= 10 ? ' vite' : ' lent')}>
+      <div className={'moment' + (ton ? ' ' + ton : '') + (fini ? ' fige' : enPause ? ' en-pause' : seconde <= 10 ? ' vite' : ' lent')}>
         <button type="button" className="moment-anneau" onClick={() => !fini && basculerPause()} aria-label={fini ? 'Repos terminé' : enPause ? 'Reprendre le repos' : `Repos, ${temps}. Mettre en pause`}>
           <i />
           <i />
@@ -144,7 +146,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
         {children}
         <div className={'moment-bas' + (fini ? ' un' : '')}>
           {fini ? (
-            <button type="button" className="btn finisseur grand" onClick={() => onChange(null)}>
+            <button type="button" className={'btn grand ' + (ton === 'noir' ? 'primaire' : 'finisseur')} onClick={() => onChange(null)}>
               J’y vais
             </button>
           ) : (

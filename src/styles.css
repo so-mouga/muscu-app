@@ -7043,3 +7043,148 @@ button.jour-pas {
     animation: none !important;
   }
 }
+
+/* --- La revanche (maquette revanche.html, version forte, 11 nov. 2026) et les boutons du haut des pleins écrans. --- */
+.moment-haut {
+  justify-content: center;
+  min-height: 0;
+  padding: var(--e1) 0;
+}
+.moment-boutons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.moment-boutons .btn {
+  min-height: var(--cible);
+  padding: 0 var(--e1);
+  background: var(--finisseur-voile);
+  font-size: var(--t-petit);
+}
+.focus.moment-fin.noir {
+  background: var(--bg);
+}
+.focus.moment-fin.noir .moment-haut {
+  color: var(--texte-2);
+}
+.focus.moment-fin.noir .moment-boutons .btn,
+.moment.noir .moment-bas .btn:not(.primaire) {
+  background: var(--controle);
+}
+.moment.noir .moment-anneau {
+  width: min(150px, 22vh);
+  height: min(150px, 22vh);
+  margin-bottom: var(--e4);
+  border-color: var(--voile-bord);
+}
+.moment.noir .moment-anneau > i {
+  border-color: var(--texte-salle);
+}
+.moment.noir .moment-temps {
+  font-size: var(--t-chiffre);
+}
+.moment.noir.fige .moment-anneau {
+  border-color: var(--accent);
+  background: var(--controle);
+}
+.moment.noir.fige .moment-temps,
+.moment.noir .moment-bas .btn.primaire {
+  color: var(--accent);
+}
+.moment.noir .moment-bas .btn.primaire {
+  color: var(--accent-texte);
+  background: var(--accent);
+}
+.moment.noir > .ligne-series > .courante {
+  background: var(--controle);
+  color: var(--texte);
+}
+.moment-avant {
+  color: var(--texte-2);
+  font-size: var(--t-titre);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.moment.noir .moment-grand {
+  margin-top: var(--e1);
+}
+.face {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--e3);
+  width: 100%;
+  max-width: 300px;
+  margin-top: var(--e4);
+  text-align: center;
+}
+.face b {
+  display: block;
+  font-size: var(--t-chrono);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.face span {
+  color: var(--texte-2);
+  font-size: var(--t-legende);
+}
+.face-avant b {
+  color: var(--texte-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 4px;
+}
+.face-apres b {
+  color: var(--accent);
+}
+.face-fleche {
+  color: var(--texte-3);
+}
+.face.pris .face-apres b {
+  color: var(--ok);
+  animation: cran-arrive var(--duree-longue) var(--sortie) var(--duree-courte) both;
+}
+.face.pris .face-avant {
+  opacity: 0.4;
+}
+.revanche-prise {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--e3);
+  padding: var(--e5);
+  border: none;
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--texte);
+  text-align: center;
+  animation: fondu var(--duree-courte) var(--sortie);
+}
+.revanche-exo {
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.revanche-titre {
+  margin-top: var(--e5);
+  font-size: var(--t-chiffre);
+  font-weight: 800;
+  line-height: 1.1;
+  animation: vient-monter var(--duree-longue) var(--sortie) calc(var(--duree-courte) + var(--duree-longue)) both;
+}
+.revanche-passe {
+  position: absolute;
+  bottom: calc(var(--e5) + env(safe-area-inset-bottom));
+  color: var(--texte-3);
+  font-size: var(--t-legende);
+}
+@media (prefers-reduced-motion: reduce) {
+  .revanche-prise,
+  .revanche-prise * {
+    animation: none !important;
+  }
+}
