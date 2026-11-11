@@ -80,11 +80,19 @@ export function recommande(nbJours: number, niveau?: Niveau): string {
   return 'haut_bas_4'
 }
 
+/** Ce que la réponse à « Qu'est-ce que tu vises ? » change : dit sur la proposition, sinon la question ressemble à un sondage. Rien sans objectif. */
+export function pourObjectif(objectif?: Objectif): string | null {
+  if (objectif === 'seche') return 'Tu veux perdre du gras : la muscu garde ton muscle, l’assiette fait la perte. Note ton poids le matin, Cran te dira si le rythme est bon.'
+  if (objectif === 'prise') return 'Tu veux prendre du muscle : chaque muscle y travaille assez souvent pour ça. Note ton poids le matin, Cran te dira si le rythme est bon.'
+  if (objectif === 'maintien') return 'Tu veux progresser à poids stable : tes charges et tes reps diront si ça avance.'
+  return null
+}
+
 /** Pourquoi ce programme, avec le nombre de jours donné. */
 export function pourquoi(id: string, nbJours: number): string {
   if (id === 'full_body_2') return 'Avec 2 jours, le mieux est de travailler tout le corps à chaque séance. Tu progresseras, un peu moins vite qu’avec 3.'
   if (id === 'full_body_3' && nbJours === 3) return '3 jours, c’est le bon rythme pour travailler tout le corps à chaque séance.'
-  if (id === 'full_body_3') return `Tu as ${nbJours} jours, mais pour bien démarrer 3 suffisent : ton corps récupère et tu apprends les mouvements. Tu passeras à 4 quand tu voudras.`
+  if (id === 'full_body_3') return `Tu as ${nbJours} jours, mais pour débuter 3 suffisent : ton corps récupère et tu apprends les mouvements. Tu passeras à 4 quand tu voudras.`
   if (nbJours > 4) return `Tu as ${nbJours} jours, mais 4 séances suffisent pour progresser. Les autres jours : repos, ou une séance en plus si tu en as envie.`
   return 'Tu t’entraînes déjà et tu as 4 jours : on alterne haut et bas du corps pour travailler chaque muscle deux fois par semaine.'
 }

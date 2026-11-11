@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estSansProgramme, joursRepartis, ordreDesJours, quand, recommande, seSuivent } from './demarrage'
+import { estSansProgramme, joursRepartis, ordreDesJours, pourObjectif, quand, recommande, seSuivent } from './demarrage'
 
 describe('sans programme', () => {
   it('appli vide : sans programme', () => expect(estSansProgramme(0, 0, 0, false, false)).toBe(true))
@@ -48,5 +48,15 @@ describe('jours du programme', () => {
     expect(seSuivent([1, 3, 5])).toBe(false)
     expect(seSuivent([1, 2, 5])).toBe(true)
     expect(seSuivent([1, 4, 7])).toBe(true)
+  })
+})
+
+describe('la proposition répond à l’objectif', () => {
+  it('une phrase par objectif, rien sans objectif', () => {
+    expect(pourObjectif('seche')).toMatch(/^Tu veux perdre du gras/)
+    expect(pourObjectif('prise')).toMatch(/^Tu veux prendre du muscle/)
+    expect(pourObjectif('maintien')).toMatch(/poids stable/)
+    expect(pourObjectif('aucun')).toBeNull()
+    expect(pourObjectif(undefined)).toBeNull()
   })
 })

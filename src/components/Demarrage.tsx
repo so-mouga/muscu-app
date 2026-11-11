@@ -4,23 +4,26 @@ import { changerObjectifs, installerProgramme, lancerCycle, type Catalogue } fro
 import { PROGRAMMES_TYPES, type ProgrammeType } from '../data/programmesTypes'
 import { dateISO, dureeEstimee, jourSemaine, minutes } from '../lib/calc'
 import { debutCycle } from '../lib/cycle'
-import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, pourquoi, quand, recommande, seSuivent, type EtatDemarrage, type Etape, type Niveau, type Objectif } from '../lib/demarrage'
+import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, pourObjectif, pourquoi, quand, recommande, seSuivent, type EtatDemarrage, type Etape, type Niveau, type Objectif } from '../lib/demarrage'
 import { transition, useRetour } from '../lib/nav'
 import { CLE_SANS_OBJECTIF, objectifsA } from '../lib/objectifs'
 import { setReglage } from '../db'
+import { IconeCran } from './Disque'
 
 /** parcours : 1re ouverture ; programme : rouvert depuis l'accueil ; objectif : la question de l'objectif, seule. */
 export type ModeDemarrage = 'parcours' | 'programme' | 'objectif'
 
+// « Prendre du muscle » d'abord : c'est le cas le plus courant, et la sèche est le mode où l'appli commente le moins.
 const OBJECTIFS: { id: Objectif; nom: string; aide?: string }[] = [
-  { id: 'seche', nom: 'Perdre du gras' },
   { id: 'prise', nom: 'Prendre du muscle' },
+  { id: 'seche', nom: 'Perdre du gras', aide: 'En gardant ton muscle' },
   { id: 'maintien', nom: 'Progresser, poids stable', aide: 'Gagner en force sans viser le poids' },
   { id: 'aucun', nom: 'Pas d’objectif pour l’instant', aide: 'Tu t’entraînes, c’est tout. Tu pourras en choisir un plus tard' },
 ]
 const NIVEAUX: { id: Niveau; nom: string; aide?: string }[] = [
-  { id: 'debut', nom: 'Je débute ou je reprends' },
-  { id: 'regulier', nom: 'Je m’entraîne déjà, propose-moi un programme' },
+  // Qui reprend après des années de salle n'est pas un débutant : il va avec « Je m'entraîne déjà ».
+  { id: 'debut', nom: 'Je débute', aide: 'On te propose un programme simple' },
+  { id: 'regulier', nom: 'Je m’entraîne déjà, ou je reprends', aide: 'On te propose un programme selon tes jours' },
   { id: 'mien', nom: 'J’ai déjà mon programme', aide: 'Tu le crées ou tu en choisis un' },
 ]
 const INITIALES = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
@@ -122,6 +125,17 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
 
       {etat.etape === 'objectif' && (
         <div className="demarrage-corps">
+          {/* Première ouverture : ce qu'est l'appli et d'où vient son nom, sans écran en plus. */}
+          {mode === 'parcours' && (
+            <div className="demarrage-cran">
+              <IconeCran taille={40} />
+              <div>
+                <strong>Cran</strong>
+                <span>Note tes séries, bats tes records.</span>
+                <span>Un cran à la fois.</span>
+              </div>
+            </div>
+          )}
           <h1>Qu’est-ce que tu vises ?</h1>
           <div className="demarrage-choix">
             {OBJECTIFS.map((o) => (
@@ -171,7 +185,7 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
       )}
 
       {etat.etape === 'proposition' && (
-        <Proposition etat={etat} idPropose={idPropose} onPrendre={prendre} onAutres={() => aller('autres')} />
+        <Proposition etat={etat} idPropose={idPropose} nomExo={(id) => catalogue.exo(id).nom} onPrendre={prendre} onAutres={() => aller('autres')} />
       )}
 
       {(etat.etape === 'autres' || etat.etape === 'mien') && (
@@ -194,13 +208,15 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
 }
 
 /** Le programme proposé, ou choisi dans la liste : une proposition que la personne peut refuser. */
-function Proposition({ etat, idPropose, onPrendre, onAutres }: { etat: EtatDemarrage; idPropose: string; onPrendre: (t: ProgrammeType, jours: number[]) => Promise<void>; onAutres: () => void }) {
+function Proposition({ etat, idPropose, nomExo, onPrendre, onAutres }: { etat: EtatDemarrage; idPropose: string; nomExo: (id: string) => string; onPrendre: (t: ProgrammeType, jours: number[]) => Promise<void>; onAutres: () => void }) {
   const [occupe, setOccupe] = useState(false)
   const t = PROGRAMMES_TYPES.find((x) => x.id === (etat.choisi ?? idPropose))!
   const aJour = t.seances.filter((m) => m.jour).sort((a, b) => a.jour! - b.jour!)
   const ordre = ordreDesJours(joursRepartis(etat.jours, aJour.length, aJour.map((m) => m.jour!)), jourSemaine())
   const ajoutes = etat.jours.length ? ordre.filter((x) => !etat.jours.includes(x.jour)).map((x) => NOMS_JOURS[x.jour]) : []
   const moyenne = Math.round(aJour.reduce((a, m) => a + dureeEstimee(m), 0) / aJour.length / 5) * 5
+  // Le matériel, dit avant de dire oui : quelqu'un qui s'entraîne chez lui ne doit pas le découvrir à sa première séance.
+  const barres = aJour.some((m) => m.exercices.some((p) => /\bbarre\b/i.test(nomExo(p.exoId))))
   return (
     <>
       <div className="demarrage-corps">
@@ -209,6 +225,7 @@ function Proposition({ etat, idPropose, onPrendre, onAutres }: { etat: EtatDemar
           <h1>{t.nom}</h1>
         </div>
         <p>{etat.choisi ? t.description : pourquoi(t.id, etat.jours.length)}</p>
+        {pourObjectif(etat.objectif) && <p className="faible">{pourObjectif(etat.objectif)}</p>}
         {ajoutes.length > 0 && (
           <p className="faible">
             Ce programme demande {aJour.length} jours : on a ajouté {ajoutes.join(' et ')}.
@@ -218,17 +235,26 @@ function Proposition({ etat, idPropose, onPrendre, onAutres }: { etat: EtatDemar
           {ordre.map((x, i) => (
             <div key={x.jour} className="demarrage-seance">
               <span className="demarrage-jour">{NOMS_JOURS[x.jour].slice(0, 3)}</span>
-              <strong>{aJour[i].nom}</strong>
-              {i === 0 && <span className="demarrage-premiere">1re séance, {quand(x.dans, x.jour)}</span>}
+              <div className="demarrage-seance-texte">
+                <div>
+                  <strong>{aJour[i].nom}</strong>
+                  {i === 0 && <span className="demarrage-premiere">1re séance, {quand(x.dans, x.jour)}</span>}
+                </div>
+                {/* Les exercices avant de dire oui : les deux premiers, et combien d'autres. */}
+                <span className="demarrage-exos">
+                  <span>{aJour[i].exercices.slice(0, 2).map((p) => nomExo(p.exoId)).join(', ')}</span>
+                  {aJour[i].exercices.length > 2 && <i>+{aJour[i].exercices.length - 2}</i>}
+                </span>
+              </div>
             </div>
           ))}
         </div>
         {t.id.startsWith('full_body') && etat.jours.length === aJour.length && seSuivent(etat.jours) && <p className="faible">Ces jours se suivent : un jour de repos entre deux séances aide à récupérer.</p>}
         <p className="faible">
-          Environ {minutes(moyenne)} par séance. Le premier jour, commence léger : tu notes la charge qui te convient.
+          Pour une salle : {barres ? 'barres, ' : ''}machines, poulies et haltères. Environ {minutes(moyenne)} par séance. Le premier jour, commence léger : tu notes la charge qui te convient.
         </p>
         <p>
-          <strong>Sur 6 semaines</strong>, la dernière allégée pour récupérer. Tout se modifie ensuite{etat.jours.length ? '' : ', jours compris'}.
+          <strong>Par blocs de 6 semaines</strong> : la dernière est plus légère, pour récupérer. Tout se modifie ensuite{etat.jours.length ? '' : ', jours compris'}.
         </p>
       </div>
       <div className="demarrage-bas">

@@ -68,7 +68,7 @@ export function seance(id: string, date: string, series: { charge: number; reps:
 /** Première ouverture : répond aux questions et prend le programme proposé (Full body 3 jours). */
 export async function premierProgramme(p: Page) {
   await p.getByRole('button', { name: 'Perdre du gras' }).click()
-  await p.getByRole('button', { name: 'Je débute ou je reprends' }).click()
+  await p.getByRole('button', { name: 'Je débute' }).click()
   for (const jour of ['lundi', 'mercredi', 'vendredi']) await p.getByRole('button', { name: jour, exact: true }).click()
   await p.getByRole('button', { name: 'Continuer' }).click()
   await p.getByRole('button', { name: 'Prendre ce programme' }).click()

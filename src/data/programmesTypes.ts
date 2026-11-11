@@ -1,8 +1,8 @@
 import type { ExoPlan, SeanceModele, SeriePlan } from '../types'
-import { PROGRAMME } from './programme'
 
 /**
- * Programmes tout prêts, proposés à un nouvel utilisateur (Accueil) et dans l'onglet Programmes.
+ * Programmes tout prêts, proposés à un nouvel utilisateur (Accueil) et dans l'onglet Programmes. Recompo n'en est plus
+ * (11 nov. 2026) : c'était le programme d'essai de l'auteur, avec ses charges ; il reste dans `programme.ts` pour qui l'a déjà.
  * Charges à calibrer (null) : la 1re séance sert à trouver la bonne charge. Volume de chaque muscle
  * dans la zone utile (vérifié par un test). Choisir un programme copie ses séances chez l'utilisateur.
  */
@@ -13,8 +13,6 @@ export interface ProgrammeType {
   pour: string
   description: string
   seances: SeanceModele[]
-  /** Séances déjà dans la bibliothèque de base : pas de copie, le programme pointe vers elles. */
-  deBase?: boolean
 }
 
 const s = (n: number, repsMin: number, repsMax: number, rpe = 8): SeriePlan[] => Array.from({ length: n }, () => ({ repsMin, repsMax, rpe }))
@@ -110,13 +108,5 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
         exo('releve_genoux', 90, s(3, 10, 15)),
       ]),
     ],
-  },
-  {
-    id: 'recompo_4',
-    nom: 'Recompo 4 jours',
-    pour: 'Avancé · 4 séances par semaine',
-    description: 'Priorité au haut du corps, jambes en entretien. Pour qui connaît déjà ses charges.',
-    seances: PROGRAMME,
-    deBase: true,
   },
 ]

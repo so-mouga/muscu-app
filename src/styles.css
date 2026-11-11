@@ -6579,3 +6579,55 @@ button.jour-pas {
 .seance-jour-records + .exos-jour {
   margin-top: var(--e1);
 }
+
+/* Démarrage : ce qu'est l'appli, au-dessus de la première question ; les exercices sous chaque séance proposée. */
+.demarrage-cran {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  color: var(--accent);
+}
+.demarrage-cran > div {
+  display: flex;
+  flex-direction: column;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  line-height: 1.35;
+}
+.demarrage-cran strong {
+  color: var(--texte);
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+.demarrage-seance {
+  padding: var(--e2) 0;
+}
+.demarrage-seance-texte {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.demarrage-seance-texte > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e3);
+}
+.demarrage-exos {
+  display: flex;
+  gap: var(--e1);
+  min-width: 0;
+  color: var(--texte-2);
+  font-size: var(--t-legende);
+  white-space: nowrap;
+}
+.demarrage-exos > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.demarrage-exos > i {
+  flex: none;
+  font-style: normal;
+}
