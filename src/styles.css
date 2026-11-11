@@ -1267,6 +1267,24 @@ html[data-sens^='carte']::view-transition-new(root) {
   overscroll-behavior: none;
   z-index: 20;
 }
+/* Si l'écran de séance défile quand même, rien ne passe sous la barre d'état : elle est transparente sur Android. */
+.focus::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: var(--bg);
+  z-index: 30;
+  pointer-events: none;
+}
+.focus.sans-voix .saisie-focus > .voix {
+  display: none;
+}
+.focus.serre .saisie-focus {
+  --salle-ecart: 4px;
+}
 body:has(.focus) {
   overflow: hidden;
 }
@@ -3843,10 +3861,25 @@ button.phase-accueil {
 .editeur-compact.pile > .zone-effort {
   margin-top: auto;
 }
+/* Note à la saisie : deux lignes au plus, un appui l'ouvre en entier (FenetreNote). */
 .note-saisie {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  line-height: 1.35;
+  text-align: left;
+  width: 100%;
+  flex: none;
+}
+.note-entiere p {
+  margin: 0;
+  white-space: pre-wrap;
 }
 .reglage-machine {
   display: flex;

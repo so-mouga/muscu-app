@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, Share2, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
 import Anneau from '../components/Anneau'
@@ -213,6 +213,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   /** Plein écran : série en cours de correction. */
   const [corrige, setCorrige] = useState<string | null>(null)
   const [seriesDe, setSeriesDe] = useState<number | null>(null)
+  /** Exercice dont la note est ouverte en entier (un appui sur la note, à la saisie). */
+  const [noteDe, setNoteDe] = useState<number | null>(null)
   const reglageSon = useLiveQuery(() => db.reglages.get('sonValidation'), [])
   const sonValidation = reglageSon?.valeur !== false
   // L'annonce d'un finisseur (deux secondes avant la dernière série) : une fois par exercice et par séance, coupable dans Réglages.
@@ -381,9 +383,31 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       battement()
     }
   })
-  useEffect(() => {
+  // Saisie qui ne tient pas sans défiler (une note sur deux lignes et la phrase du début : la page défilait sous la barre
+  // d'état, S25, 11 nov. 2026) : d'abord les lignes se resserrent (`serre`), puis la phrase du début s'efface
+  // (`sans-voix`). Chaque étape retient la place qu'elle a gagnée, pour revenir en arrière dès qu'il y a de nouveau la place.
+  const gains = useRef({ voix: 0, serre: 0 })
+  useLayoutEffect(() => {
     const el = ecranFocus.current
-    if (el) el.classList.toggle('tient', el.scrollHeight <= el.clientHeight)
+    if (!el) return
+    // Hauteur réelle du contenu (scrollHeight ne descend jamais sous la hauteur de l'écran) : négative = place libre.
+    const deborde = () => {
+      const enfants = [...el.children] as HTMLElement[]
+      return Math.max(0, ...enfants.map((c) => c.offsetTop + c.offsetHeight)) + parseFloat(getComputedStyle(el).paddingBottom) - el.clientHeight
+    }
+    for (const etape of ['voix', 'serre'] as const) {
+      const cls = etape === 'voix' ? 'sans-voix' : 'serre'
+      if (el.classList.contains(cls) && deborde() + gains.current[etape] <= 0) el.classList.remove(cls)
+    }
+    for (const etape of ['serre', 'voix'] as const) {
+      const cls = etape === 'voix' ? 'sans-voix' : 'serre'
+      if (deborde() <= 0 || el.classList.contains(cls)) continue
+      if (etape === 'voix' && !el.querySelector('.saisie-focus > .voix')) continue
+      const avant = deborde()
+      el.classList.add(cls)
+      gains.current[etape] = avant - deborde()
+    }
+    el.classList.toggle('tient', deborde() <= 0)
   })
 
   const exos = useMemo(
@@ -729,6 +753,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onFermer={() => setSeriesDe(null)}
         />
       )}
+      {noteDe !== null && plans[noteDe] && <FenetreNote seance={seance} exo={exos[noteDe]} noteFixe={plans[noteDe].note ?? exos[noteDe].notes} noteAvant={noteAvant(plans[noteDe].exoId)} onFermer={() => setNoteDe(null)} />}
       {choix && (
         <ChoixExo
           catalogue={catalogue}
@@ -1113,9 +1138,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   </div>
                 )}
                 {(() => {
-                  // La note du jour d'abord, sur une ligne : la saisie doit rester à l'écran.
+                  // La note du jour d'abord, sur deux lignes au plus : la saisie doit rester à l'écran. Un appui l'ouvre en entier.
                   const note = seance.notes[p.exoId] || (noteAvant(p.exoId) ? `La dernière fois : ${noteAvant(p.exoId)}` : p.note ?? exo.notes)
-                  return note ? <div className="faible note-saisie"><StickyNote size={14} className="ico-texte" /> {note}</div> : null
+                  return note ? (
+                    <button type="button" className="faible note-saisie" onClick={() => setNoteDe(enCours)}>
+                      <StickyNote size={14} className="ico-texte" /> {note}
+                    </button>
+                  ) : null
                 })()}
                 <Editeur
                   key={`${p.exoId}-${n}-${suggestions[enCours].charges.join()}`}
@@ -1940,6 +1969,55 @@ function FenetreSeries({ seance, plan, exo, total, cible, repos, noteAvant, onAj
           <textarea rows={2} placeholder="Réglage machine, sensation, douleur…" value={texte} onChange={(e) => setTexte(e.target.value)} />
         </label>
         {noteAvant && !texte && <div className="faible">La dernière fois : {noteAvant}</div>}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+/** La note d'un exercice en entier, ouverte d'un appui sur la note de la saisie : celle du jour s'écrit au fil de la frappe, les autres se lisent. */
+function FenetreNote({ seance, exo, noteFixe, noteAvant, onFermer }: { seance: Seance; exo: Exercice; noteFixe?: string; noteAvant?: string; onFermer: () => void }) {
+  const [texte, setTexte] = useState(seance.notes[exo.id] ?? '')
+  const ecrire = (v: string) =>
+    void majSeance(seance.id, (s) => {
+      s.notes[exo.id] = v
+    })
+  useEffect(() => {
+    if (texte === (seance.notes[exo.id] ?? '')) return
+    const t = setTimeout(() => ecrire(texte), 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [texte])
+  const fermer = () => {
+    if (texte !== (seance.notes[exo.id] ?? '')) ecrire(texte)
+    onFermer()
+  }
+  useRetour(true, fermer)
+  return createPortal(
+    <div className="modal-fond" onClick={fermer}>
+      <div className="modal pile" onClick={(e) => e.stopPropagation()}>
+        <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
+          <h2 style={{ minWidth: 0 }}>{exo.nom}</h2>
+          <button className="btn-fermer" aria-label="Fermer" onClick={fermer}>
+            <X size={22} />
+          </button>
+        </div>
+        {noteFixe && (
+          <div className="pile note-entiere">
+            <span className="faible">Note de l’exercice</span>
+            <p>{noteFixe}</p>
+          </div>
+        )}
+        {noteAvant && (
+          <div className="pile note-entiere">
+            <span className="faible">La dernière fois</span>
+            <p>{noteAvant}</p>
+          </div>
+        )}
+        <label className="pile note-series">
+          <span className="faible">Ta note du jour</span>
+          <textarea rows={3} placeholder="Réglage machine, sensation, douleur…" value={texte} onChange={(e) => setTexte(e.target.value)} />
+        </label>
       </div>
     </div>,
     document.body
