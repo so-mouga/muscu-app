@@ -18,8 +18,10 @@ import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { debloquerSon, ecranAllume, signalSerie } from '../lib/appareil'
 import { recordDuJour } from '../lib/historique'
+import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
+import Disque, { IconeCran } from '../components/Disque'
 import { verrou } from '../lib/verrou'
-import { chargeQte, chauffeTropLourde, texteChauffe, chargesTexte, chargeTexte, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, enTemps, kg, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chauffeTropLourde, texteChauffe, chargesTexte, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -357,6 +359,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return `${ref.nom}, ${chargeQte(ref, r.charge, r.reps)}, effort ${kg(r.rpe)}/10 (${r.date})`
   }
 
+  /** Cette série gagne le cran de son exercice : elle bat le record, et aucune série d'avant ne l'avait fait aujourd'hui. Jamais en séance allégée. */
+  const gagneCran = (s: Serie) => {
+    if (seance.deload) return false
+    const exo = exoAvecReglages(catalogue.exo(s.exoId), reglages)
+    const histo = historiqueDe(terminees, s.exoId)
+    const deja = seance.series.filter((x) => x.exoId === s.exoId)
+    return !recordDuJour(exo, histo, deja) && !!recordDuJour(exo, histo, [...deja, s])
+  }
+  /** Le cran gagné sur un exercice aujourd'hui, avec la série qui l'a gagné. */
+  const cranDe = (exoId: string) => (seance.deload ? null : cranDuJour(exoAvecReglages(catalogue.exo(exoId), reglages), historiqueDe(terminees, exoId), seance.series.filter((x) => x.exoId === exoId)))
+
   const valider = (s: Serie, repos: number) => {
     debloquerSon()
     // Signal : mieux que la même série la dernière fois, ou fin de l'exercice (on change de machine).
@@ -365,7 +378,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const i = plans.findIndex((p) => p.exoId === s.exoId)
       const avantSerie = seance.deload ? undefined : historiqueDe(terminees, s.exoId)[0]?.[k]
       const fini = i >= 0 && k + 1 >= totalDe(i)
-      signalSerie(fini ? 'finExercice' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation)
+      signalSerie(fini ? 'finExercice' : gagneCran(s) ? 'cran' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation)
     }
     // Verrou levé quand la série est écrite (voir plus haut), au pire après 8 s.
     setVerrou(true)
@@ -383,13 +396,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       if (repos === 0 && nbFaites(plans[curIdx + 1].exoId) < totalDe(curIdx + 1)) setToast(`Enchaîne : ${exos[curIdx + 1].nom}`)
       if (idx === curIdx) setIdx(curIdx + 1)
     }
-    // Records (seulement s'il existe un historique pour comparer ; jamais en déload)
-    if (seance.deload) return
-    const exo = exoAvecReglages(catalogue.exo(s.exoId), reglages)
-    // Même mesure que la fin de séance, le Journal et le Bilan (`suiviProgres`) : la charge et les reps, jamais l'effort noté.
-    const record = recordDuJour(exo, historiqueDe(terminees, s.exoId), [s], seance.series.filter((x) => x.exoId === s.exoId))
-    if (record === 'charge') setToast(exo.assistance ? `Nouveau record : ${chargeTexte(exo, s.charge, true)} × ${s.reps}` : `Nouveau record de charge : ${chargeTexte(exo, s.charge)} × ${s.reps}`)
-    else if (record === 'reps') setToast(enTemps(exo) ? `Nouveau record de temps à ${chargeTexte(exo, s.charge)} : ${s.reps} s` : `Nouveau record de reps à ${chargeTexte(exo, s.charge)} : ${s.reps}`)
+    // Cran gagné : en plein écran avec un repos, le cercle le dit ; sinon un message en haut.
+    if (gagneCran(s) && !(focus && repos > 0 && restantes > 1)) setToast('Record battu · +1 cran')
   }
 
   const choisir = async (exoId: string, cree?: Parameters<typeof planParDefaut>[0]) => {
@@ -723,6 +731,11 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const e = avant && ecartSerie(derniereSerie, avant, exos[i])
       return { i, k, mieux: e?.sens === 'mieux' ? e.texte : null }
     })()
+    // Le repos qui suit la série qui a gagné le cran de son exercice : le cercle le dit tant qu'il dure.
+    const cranRepos = (() => {
+      const c = derniereSerie && cranDe(derniereSerie.exoId)
+      return c && c.serie.id === derniereSerie!.id ? c : null
+    })()
     // L'exercice qu'on vient de finir, quand la suite change de machine : on le signale clairement.
     const exoFini = (() => {
       if (!derniereSerie || enCours < 0) return null
@@ -760,7 +773,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   <Check size={20} /> <span>{exoFini} terminé</span>
                 </div>
                 <div className="fin-exo-rang">
-                  <LigneSeries court exo={exos[derniere!.i]} faites={seance.series.filter((x) => x.exoId === plans[derniere!.i].exoId)} total={totalDe(derniere!.i)} cible={() => ''} onCorriger={(f) => setCorrige(f.id)} />
+                  <LigneSeries court exo={exos[derniere!.i]} faites={seance.series.filter((x) => x.exoId === plans[derniere!.i].exoId)} total={totalDe(derniere!.i)} cible={() => ''} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(plans[derniere!.i].exoId)?.serie.id} />
                   <button className="btn petit" onClick={() => void ajusterSeries(derniere!.i, 1)}>
                     + série
                   </button>
@@ -783,7 +796,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {p.finisseur && n === t - 1 && <span className="pastille fin"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</span>}
           {enSuperset && ensuiteSuperset(enCours)}
           {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
-          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} vient={vient && derniere?.i === enCours ? (derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
+          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} vient={vient && derniere?.i === enCours ? (derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId), t)}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
@@ -807,7 +820,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return (
       <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
-        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} legende={vueRepos && exoFini ? 'exercice fini' : undefined} />}
+        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} legende={vueRepos && exoFini ? 'exercice fini' : undefined} cran={vueRepos && cranRepos ? pourquoiCran(cranRepos) : undefined} />}
         {correction}
         {vueRepos ? (
           prochaine ?? blocTerminer
@@ -834,7 +847,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
-                <LigneSeries avant={n === 0 && chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]).length ? <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} />
+                <LigneSeries avant={n === 0 && chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]).length ? <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} />
                 {(derniereFois?.[n] || plus) && (
                   <div className="faible">
                     {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n], false, false)} · effort {kg(derniereFois[n].rpe)}/10</>}
@@ -858,6 +871,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   reposRestant={reposRestant}
                   verrou={verrou}
                   compact
+                  seuilCran={seance.deload ? undefined : (charge) => seuilCran(exo, historiqueDe(terminees, p.exoId), seance.series.filter((x) => x.exoId === p.exoId), charge)}
                   onFini={(s) => valider(s, reposApresSuperset(plans, enCours, n, t, faitesParExo(), totalDe))}
                   onAnnulerEdition={() => undefined}
                 />
@@ -1422,6 +1436,15 @@ function FinSeance({
   const tousSuivis = modifiables.length > 0 && modifiables.every((l) => choixDe(l.exo.id, l.conseil!) === 'conseil')
   const basculerTous = () => modifiables.forEach((l) => (tousSuivis ? retirerObjectif(l.exo.id) : suivreConseil(l.exo.id, l.conseil!)))
   const resumeForme = seance.deload ? null : resumeSeance(seance, terminees, catalogue.exo)
+  // Les crans de la séance (un record battu = un cran), et où en est le disque avec eux.
+  const crans = cransDeSeance(seance, terminees, catalogue.exo)
+  const cransAvant = totalCrans(terminees.filter((s) => s.id !== seance.id), catalogue.exo)
+  const disque = etatDisque(cransAvant + crans.length)
+  const disquePlein = disque.pleins > etatDisque(cransAvant).pleins
+  const cransMontres = disque.crans || (disque.total ? 12 : 0)
+  // Toute première séance : rien à battre encore, on dit ce qui vient d'être posé.
+  const premiereSeance = !seance.deload && seance.series.length > 0 && !terminees.some((s) => s.id !== seance.id)
+  const enSeche = phaseA(catalogue.objectifs, seance.date)?.phase === 'seche'
 
   return (
     <div className="apparait">
@@ -1438,9 +1461,53 @@ function FinSeance({
         )}
       </div>
       <div className="carte fin-resume">
-        <h2>{seance.nom}</h2>
+        {crans.length > 0 ? (
+          <>
+            <div className="fin-crans">
+              <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={76} chiffre />
+              <div>
+                <h2>{seance.nom}</h2>
+                <div className="fin-crans-titre">
+                  {crans.length} record{crans.length > 1 ? 's' : ''} battu{crans.length > 1 ? 's' : ''}
+                </div>
+                <div className="faible petit">
+                  {disquePlein
+                    ? disque.crans
+                      ? `Disque plein, et ${disque.crans} cran${disque.crans > 1 ? 's' : ''} dans le suivant`
+                      : '12 crans sur 12 : ton disque est plein'
+                    : `${disque.crans} cran${disque.crans > 1 ? 's' : ''} sur 12 dans ton ${disque.numero > 1 ? `${disque.numero}e ` : ''}disque`}
+                </div>
+              </div>
+            </div>
+            <div className="petit fin-crans-liste">
+              {crans.map((c) => (
+                <div key={c.exo.id}>
+                  {c.exo.nom} <span className="fin-crans-gain">{texteCran(c, true)}</span>
+                </div>
+              ))}
+            </div>
+            {/* La règle, une seule fois : le jour du tout premier cran. */}
+            {cransAvant === 0 && <div className="faible petit fin-crans-regle">Un cran = un record battu sur un exercice. Il ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.</div>}
+            {resumeForme && resumeForme.mieux > crans.length && (
+              <div className="faible petit">
+                {resumeForme.mieux} exercices mieux que la dernière fois
+              </div>
+            )}
+          </>
+        ) : (
+          <h2>{seance.nom}</h2>
+        )}
+        {premiereSeance && (
+          <div className="fin-reperes">
+            <strong>
+              Tes repères sont posés : {new Set(seance.series.map((x) => x.exoId)).size} exercice{new Set(seance.series.map((x) => x.exoId)).size > 1 ? 's' : ''}.
+            </strong>
+            <div className="faible petit">La prochaine fois, chaque record battu taille un cran dans ton disque.</div>
+          </div>
+        )}
+        {enSeche && !seance.deload && !premiereSeance && crans.length === 0 && seance.series.length > 0 && <div className="faible petit">En sèche, on vise à tenir : garder tes charges, c’est réussi.</div>}
         {/* Le moment où on est le plus réceptif : ce qui a été mieux aujourd'hui (jamais en déload). */}
-        {resumeForme && (resumeForme.mieux > 0 || resumeForme.records > 0) && (
+        {crans.length === 0 && resumeForme && (resumeForme.mieux > 0 || resumeForme.records > 0) && (
           <div className="mieux-titre fin-mieux">
             {resumeForme.records > 0 ? <Trophy size={16} /> : <TrendingUp size={16} />}
             <span>
@@ -1784,7 +1851,7 @@ function FenetreSeries({ seance, plan, exo, total, cible, repos, noteAvant, onAj
 /** « 40 kg × 10 » devient « 40×10 ». */
 const compacte = (t: string) => t.replace(' kg', '').replace(' × ', '×')
 
-function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant, court }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void; vient?: string; /** Échauffements de l'exercice, avant S1. */ avant?: ReactNode; /** Forme courte : « S1 40×10 ». */ court?: boolean }) {
+function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant, court, cranId }: { exo: Exercice; faites: Serie[]; total: number; cible: (k: number) => string; onCorriger?: (s: Serie) => void; vient?: string; /** La série qui a gagné le cran de l'exercice : le disque à la place du crayon. */ cranId?: string; /** Échauffements de l'exercice, avant S1. */ avant?: ReactNode; /** Forme courte : « S1 40×10 ». */ court?: boolean }) {
   // Toutes les séries de l'exercice, chacune une seule fois : faites (✎ pour corriger), en cours (▶, sa cible est affichée en grand à côté), à venir.
   const rangee = useRef<HTMLDivElement>(null)
   // Une seule rangée qui défile : la série en cours reste visible, même sur 5 séries.
@@ -1806,7 +1873,7 @@ function LigneSeries({ exo, faites, total, cible, onCorriger, vient, avant, cour
         if (f)
           return onCorriger ? (
             <button key={k} className={'faite' + (vient && k === faites.length - 1 ? ' ' + vient : '')} onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
-              S{k + 1} {court ? compacte(serieTexte(exo, f, false, false)) : serieTexte(exo, f, false, false)} {!court && <Pencil size={13} />}
+              {f.id === cranId && <IconeCran taille={13} className="ico-texte cran-pastille" />} S{k + 1} {court ? compacte(serieTexte(exo, f, false, false)) : serieTexte(exo, f, false, false)} {!court && <Pencil size={13} />}
             </button>
           ) : (
             <span key={k} className="faite">

@@ -56,18 +56,19 @@ export function tic(dernier = false) {
 
 /**
  * Signal à la validation d'une série : un petit tintement ; deux montants si la série bat la dernière
- * fois ; trois coups et une longue vibration quand l'exercice est terminé, pour le sentir sans regarder.
+ * fois ; un cran gagné (record battu) : deux vibrations courtes et trois notes qui montent ; trois coups et une longue vibration quand l'exercice est terminé, pour le sentir sans regarder.
  * Avec des écouteurs Bluetooth, le son arrive environ 440 ms après l'appui (mesuré sur le S25) : c'est la vibration qui confirme tout de suite.
  */
-export function signalSerie(genre: 'normale' | 'mieux' | 'finExercice', son = true) {
+export function signalSerie(genre: 'normale' | 'mieux' | 'cran' | 'finExercice', son = true) {
   try {
-    navigator.vibrate?.(genre === 'finExercice' ? [120, 80, 120, 80, 240] : genre === 'mieux' ? [40, 40, 80] : 40)
+    navigator.vibrate?.(genre === 'finExercice' ? [120, 80, 120, 80, 240] : genre === 'cran' ? [70, 90, 70] : genre === 'mieux' ? [40, 40, 80] : 40)
   } catch {
     /* pas de vibration */
   }
   if (!son) return
   if (genre === 'normale') fonte(0, 1500, 0.14, 0.2)
   else if (genre === 'mieux') (fonte(0, 1300, 0.18, 0.22), fonte(0.12, 1950, 0.3, 0.22))
+  else if (genre === 'cran') (fonte(0, 1300, 0.18, 0.24), fonte(0.12, 1950, 0.22, 0.24), fonte(0.26, 2600, 0.5, 0.24))
   else (fonte(0, 1000, 0.5), fonte(0.16, 1000, 0.5), fonte(0.32, 1500, 0.8))
 }
 

@@ -70,6 +70,8 @@ export function suiviProgres(exo: Exercice) {
   }
   return {
     plusDur: () => plusDur,
+    /** Le plus de reps jamais faites à cette charge ; rien si elle n'a jamais été faite. */
+    meilleur: (charge: number) => meilleures.get(charge)?.[0],
     repartir: () => {
       plusDur = -Infinity
       meilleures = new Map()

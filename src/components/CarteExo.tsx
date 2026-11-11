@@ -2,12 +2,13 @@ import { Check, ChevronRight, Info, Lightbulb, Pencil, Sparkles, Timer, Triangle
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { db, uid } from '../db'
-import { chargeDecalee, chargeTexte, enTemps, fourchette, kg, RIR } from '../lib/calc'
+import { chargeDecalee, chargeTexte, enTemps, fourchette, kg, qte, RIR } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import ChronoTenue from './ChronoTenue'
 import { PuceDisques } from './CalculateurDisques'
 import ReglagesMachine from './ReglagesMachine'
+import { IconeCran } from './Disque'
 import { vibrer } from '../lib/appareil'
 import { chargeProposee, cibleSerie, monterMaintenant, type Suggestion } from '../lib/progression'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
@@ -65,6 +66,8 @@ interface EditeurProps {
   heure?: number
   /** Dans une fenêtre : reçoit de quoi la fermer en gardant la correction (appui à côté, retour). */
   fermeture?: { current: (() => void) | null }
+  /** Plein écran : ce qu'il faut faire à cette charge pour gagner le cran de l'exercice (`seuilCran`). */
+  seuilCran?: (charge: number) => { reps: number; record?: number } | null
 }
 
 interface Brouillon {
@@ -96,7 +99,7 @@ function oublierBrouillon(cle: string) {
   }
 }
 
-export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture }: EditeurProps) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture, seuilCran }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1
@@ -377,6 +380,36 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   return (
     <div className={'pile' + (compact ? ' editeur-compact' : '')}>
+      {/* Ce qui vaut un cran, dit avant la série : il suit la charge réglée. Pas sur un finisseur (seules les séries normales comptent). */}
+      {compact &&
+        !edition &&
+        !finisseur &&
+        type === 'normale' &&
+        !aRegler &&
+        (() => {
+          const s = seuilCran?.(charge)
+          if (!s) return null
+          return (
+            <div className="cran-des">
+              <IconeCran taille={18} />
+              <span>
+                {s.record === undefined ? (
+                  <>
+                    <strong>Cran dès cette série</strong> · {exo.assistance ? 'jamais fait avec si peu d’aide' : 'charge jamais faite'}
+                  </>
+                ) : (
+                  <>
+                    <strong>
+                      Cran dès {qte(exo, s.reps)}
+                      {enTemps(exo) ? '' : ' reps'}
+                    </strong>{' '}
+                    · ton record{exo.mode === 'poids_corps' && charge === 0 ? '' : ` à ${chargeTexte(exo, charge)}`} : {qte(exo, s.record)}
+                  </>
+                )}
+              </span>
+            </div>
+          )
+        })()}
       {!compact && (
         <div className="ligne entre">
           {edition && <h3>Modifier la série {index + 1}</h3>}
@@ -464,7 +497,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           return (
             <div className="conseil-surcharge discret">
               <span className="faible">
-                <Lightbulb size={14} className="ico-texte" /> {prec.reps} reps, bien au-dessus de {plan.series[Math.min(index - 1, plan.series.length - 1)].repsMax} : tu peux monter d’un cran.
+                <Lightbulb size={14} className="ico-texte" /> {prec.reps} reps, bien au-dessus de {plan.series[Math.min(index - 1, plan.series.length - 1)].repsMax} : tu peux monter la charge.
               </span>
               <button className="btn petit" onClick={() => (setCharge(c), setChargeTxt(null))}>
                 {chargeTexte(exo, c)}

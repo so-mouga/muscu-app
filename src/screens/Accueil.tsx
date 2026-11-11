@@ -15,6 +15,9 @@ import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
+import Disque from '../components/Disque'
+import FenetreDisque from '../components/FenetreDisque'
+import { aPortee, etatDisque, totalCrans } from '../lib/crans'
 import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
@@ -113,6 +116,7 @@ export default function Accueil({
   onObjectif: () => void
 }) {
   const [choix, setChoix] = useState(false)
+  const [voirDisque, setVoirDisque] = useState(false)
   const [seanceFaiteModal, setSeanceFaiteModal] = useState<Seance | null>(null)
   const [ouvert, setOuvert] = useState<string | null>(null)
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
@@ -479,10 +483,22 @@ export default function Accueil({
     return progres.exo.mesure === 'temps' ? `+${dr} s` : `+${dr} rep${dr > 1 ? 's' : ''}`
   })()
 
+  // Records à ta portée : le conseil est « Tu peux viser plus » et une rep de plus bat le record (`aPortee`). Un record battu = un cran.
+  const recordsAPortee = (m: SeanceModele) =>
+    new Map(
+      (recentes ? m.exercices : []).flatMap((p) => {
+        const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
+        const r = aPortee(exo, p, historiqueDe(recentes!, p.exoId))
+        return r ? [[p.exoId, `record : ${chargeQte(exo, r.charge, r.reps)}`] as const] : []
+      })
+    )
   const lignesDe = (m: SeanceModele, avecGains: boolean): LigneExo[] => {
     const gains = avecGains ? new Map(aBattreDe(m).map((x) => [x.exo.id, x.plus])) : undefined
-    return m.exercices.map((p, i) => ({ id: `${p.exoId}-${i}`, nom: catalogue.exo(p.exoId).nom, gain: gains?.get(p.exoId) }))
+    const records = avecGains ? recordsAPortee(m) : undefined
+    return m.exercices.map((p, i) => ({ id: `${p.exoId}-${i}`, nom: catalogue.exo(p.exoId).nom, gain: records?.get(p.exoId) ?? gains?.get(p.exoId) }))
   }
+  // Le disque : seulement à partir du premier cran gagné.
+  const disque = etatDisque(terminees ? totalCrans(terminees, catalogue.exo) : 0)
   // Retour après un trou : pas de reproche, on reprend où on en était.
   const joursSans = terminees ? joursSansSeance(terminees, dateISO()) : null
   const etiquetteProchaine = (e: EntreePlanning) => (e.jour === (jour % 7) + 1 ? 'Demain' : `Prochaine (${JOURS[e.jour!]})`)
@@ -499,7 +515,7 @@ export default function Accueil({
         </span>
         <span className="seance-jour-duree">{dureeDe(e.modele)}</span>
       </div>
-      <ListeExosJour lignes={lignesDe(e.modele, false)} entiere />
+      <ListeExosJour lignes={lignesDe(e.modele, false)} entiere serree={disque.total > 0 && (rappels.length >= 2 || window.innerHeight < 720)} />
       <div className="seance-jour-actions">
         <button type="button" className="btn" onClick={() => (e.modele.exercices.length ? voir(e.modele) : onAjouterExercices(e.modele.id))}>
           {e.modele.exercices.length ? 'Voir la séance' : 'Ajouter des exercices'}
@@ -569,6 +585,15 @@ export default function Accueil({
               Moyenne : {[moyenne.pas !== undefined && `${milliers(moyenne.pas)} pas`, moyenne.notes && `${moyenne.tenus} jour${moyenne.tenus! > 1 ? 's' : ''} tenu${moyenne.tenus! > 1 ? 's' : ''} sur ${moyenne.notes}`].filter(Boolean).join(' · ')}
             </div>
           )}
+          {disque.total > 0 && (
+            <button type="button" className="accueil-semaine accueil-disque" onClick={() => setVoirDisque(true)} aria-label="Ton disque : voir tes crans">
+              <strong>{disque.pleins > 0 ? `Ton ${disque.numero}e disque` : 'Ton disque'}</strong>
+              <Disque crans={disque.crans} taille={22} />
+              <span className="semaine-texte">
+                {disque.crans > 0 ? `${disque.crans} cran${disque.crans > 1 ? 's' : ''} · plus que ${disque.reste}` : `${disque.pleins} disque${disque.pleins > 1 ? 's' : ''} plein${disque.pleins > 1 ? 's' : ''}`} ›
+              </span>
+            </button>
+          )}
           {progres && gainBloc && (
             <div className="accueil-progres">
               <span className="accueil-progres-nom">{progres.exo.nom}</span>
@@ -633,6 +658,18 @@ export default function Accueil({
               {joursSans !== null && joursSans >= 10 && <div className="faible seance-jour-retour">Première séance depuis {joursSans} jours : mêmes charges que la dernière fois, baisse un peu si c’est trop dur.</div>}
               {proposee.modele.exercices.length ? (
                 <>
+                  {!etat?.deload &&
+                    (() => {
+                      const n = recordsAPortee(proposee.modele).size
+                      return n ? (
+                        <div className="seance-jour-records">
+                          <strong>
+                            {n} record{n > 1 ? 's' : ''} à ta portée
+                          </strong>
+                          {disque.total === 0 && <span className="faible"> · un record battu = un cran</span>}
+                        </div>
+                      ) : null
+                    })()}
                   <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload)} />
                   <div className="seance-jour-actions">
                     <button type="button" className="btn primaire" onClick={() => lancer(proposee.modele)}>
@@ -711,6 +748,7 @@ export default function Accueil({
         </div>
       </>
 
+      {voirDisque && terminees && <FenetreDisque seances={terminees} exo={catalogue.exo} onFermer={() => setVoirDisque(false)} />}
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

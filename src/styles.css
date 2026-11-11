@@ -6445,3 +6445,116 @@ button.jour-pas {
 .note-jour input {
   width: 100%;
 }
+
+/* --- Crans : un record battu = un cran, douze crans = un disque --- */
+.disque-vide {
+  stroke: var(--controle);
+}
+.disque-cran {
+  stroke: var(--texte-salle);
+}
+.disque-nouveau {
+  stroke: var(--ok);
+  transform-origin: 50px 50px;
+  animation: cran-pose var(--duree-longue) var(--sortie) both;
+}
+.disque-chiffre {
+  fill: var(--texte);
+  font-size: 24px;
+  font-weight: 800;
+}
+@keyframes cran-pose {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+/* Dans le cercle du repos, au-dessus du temps : blanc, ni vert (exercice fini) ni orange (le repos). */
+.cran-signal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  color: var(--texte);
+  font-size: var(--t-petit);
+  font-weight: 700;
+  white-space: nowrap;
+  animation: vient-monter var(--duree-longue) var(--sortie) both;
+}
+.legende-chrono.cran-pourquoi {
+  color: var(--texte-salle);
+  font-weight: 400;
+  max-width: 170px;
+}
+.cran-pastille {
+  color: var(--texte);
+}
+/* À la saisie : ce qui vaut un cran, sur une ligne. */
+.cran-des {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  min-width: 0;
+  font-size: var(--t-petit);
+  color: var(--texte-2);
+}
+.cran-des svg {
+  flex: none;
+  color: var(--texte);
+}
+.cran-des > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cran-des strong {
+  color: var(--texte);
+}
+/* Fin de séance : le disque et ce qui l'a rempli. */
+.fin-crans {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+}
+.fin-crans .disque {
+  flex: none;
+}
+.fin-crans-titre,
+.fin-crans-gain {
+  color: var(--ok);
+  font-weight: 600;
+}
+.fin-crans-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fin-crans-gain {
+  font-weight: 400;
+}
+/* Accueil : la ligne du disque (depuis le premier cran) et les records à portée de la séance du jour. */
+.accueil-disque .disque {
+  margin-left: auto;
+  flex: none;
+}
+.accueil-disque .semaine-texte {
+  margin-left: 0;
+}
+.accueil-semaine + .accueil-disque {
+  margin-top: calc(-1 * var(--e2));
+}
+.seance-jour-records {
+  margin-top: var(--e2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.seance-jour-records strong {
+  font-weight: 600;
+}
+.seance-jour-records + .exos-jour {
+  margin-top: var(--e1);
+}

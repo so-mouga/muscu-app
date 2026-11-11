@@ -11,24 +11,35 @@ const REGLES: [string, string[]][] = [
     'La règle de base',
     [
       'Rien ne monte tout seul : la prochaine fois, l’objectif est de refaire pareil que la dernière fois. C’est toi qui décides de monter, en fin de séance.',
-      'L’appli ne commente jamais ton poids, ne compte pas de série de jours (le repos fait partie du programme) et ne donne pas de badges.',
+      'L’appli ne commente jamais ton poids et ne compte pas de série de jours (le repos fait partie du programme).',
     ],
   ],
   [
     'Pendant la séance',
     [
-      'Nouveau record, dès la série validée : une charge jamais soulevée, sinon plus de reps (ou de temps) que jamais à cette charge. Jamais en déload. La fin de séance, le Journal et le Bilan comptent les mêmes records.',
+      'Record battu, dès la série validée : une charge jamais soulevée, sinon plus de reps (ou de temps) que jamais à cette charge. Jamais en séance allégée. La fin de séance, le Journal et le Bilan comptent les mêmes records.',
       'Progresser, partout dans l’appli, c’est une charge plus lourde ou une rep de plus à une charge déjà faite, sur tes séries normales. L’effort noté et la force estimée n’y entrent jamais : mêmes charge et reps notées plus faciles, ce n’est ni « mieux » ni un record.',
-      '« Monte d’un cran » : ta série d’avant dépasse le haut de la fourchette de 3 reps ou plus. Proposé : la charge + un pas de l’exercice (sauf au maximum du matériel).',
+      '« Tu peux monter la charge » : ta série d’avant dépasse le haut de la fourchette de 3 reps ou plus. Proposé : la charge + un pas de l’exercice (sauf au maximum du matériel).',
       '« Faute de frappe ? » : une charge bien plus lourde que d’habitude (plus de 1,5 fois et au moins 20 kg de plus).',
       'Exercice bloqué : une ligne sur la carte de l’exercice (voir « Exercice bloqué »).',
       'Séance ouverte depuis plus de 4 h : un avertissement ; si rien n’a été fait depuis 2 h, l’appli demande à la réouverture s’il faut l’enregistrer.',
     ],
   ],
   [
+    'Les crans et ton disque',
+    [
+      'Un cran = un record battu sur un exercice : une charge jamais faite, ou plus de reps que jamais à une charge déjà faite, sur une série normale.',
+      'Un seul cran par exercice et par séance. Aucun en séance allégée. En sèche aussi, un record vaut un cran.',
+      'Un cran gagné ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.',
+      'Avant la série, « Cran dès 11 reps » dit ce qu’il faut faire à la charge réglée. Rien si l’exercice n’a jamais été fait, si la charge est plus légère que tout ce que tu as fait, ou si le cran du jour est déjà gagné.',
+      'Sur l’accueil, « record à ta portée » : le conseil de la dernière fois était « Tu peux viser plus », et ta meilleure série était déjà à ton record. Une rep de plus le bat.',
+      'Les crans se comptent depuis le 9 novembre 2026. Les séances d’avant servent de référence.',
+    ],
+  ],
+  [
     'En fin de séance',
     [
-      'En tête : combien d’exercices ont été mieux que la dernière fois (charge plus lourde, ou rep de plus à une charge de la dernière fois), et les records.',
+      'En tête : tes records battus et ton disque. Sans record, combien d’exercices ont été mieux que la dernière fois (charge plus lourde, ou rep de plus à une charge de la dernière fois).',
       'Une série à l’échec, dégressive ou en rest-pause compte comme une série faite : elle ne fait plus dire « Tu as fait 2 séries sur 3 ».',
       'Chaque exercice a une fourchette de reps, écrite pendant la saisie : 8–12 d’office s’il fait travailler plusieurs articulations, 12–15 sinon. Avec le même nombre des deux côtés, pas de conseil pour monter. Chaque série est jugée sur sa propre fourchette. Tu l’appliques ou non.',
       'Une rep de plus, même charge : sur deux séries si toutes étaient faciles (effort 7/10 ou moins, 3 reps en réserve), sinon sur une seule ; celles qui sont le plus loin du haut de leur fourchette.',

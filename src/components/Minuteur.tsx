@@ -6,6 +6,7 @@ import { alarme, tic } from '../lib/appareil'
 import { chrono } from '../lib/calc'
 import { natif } from '../lib/natif'
 import Anneau from './Anneau'
+import { IconeCran } from './Disque'
 
 export interface EtatMinuteur {
   /** Horodatage de fin : le temps restant ne dépend jamais d'un décompte en mémoire. */
@@ -36,9 +37,11 @@ interface Props {
   onAgrandir?: () => void
   /** Cercle du plein écran : mot sous le temps (« exercice fini »). */
   legende?: string
+  /** Cercle du plein écran : la série d'avant vient de gagner un cran. Le texte dit pourquoi (« ton record était 10 »). */
+  cran?: string
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -129,11 +132,17 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
             fluide={!enPause && !fini}
             saut={saut}
           >
-            <div className={'etat-chrono' + (enPause ? ' en-pause' : '') + (fini ? ' fini' : '')}>
-              {fini ? <Check size={24} /> : enPause ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
-            </div>
+            {cran && !fini && !enPause ? (
+              <div className="cran-signal">
+                <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+              </div>
+            ) : (
+              <div className={'etat-chrono' + (enPause ? ' en-pause' : '') + (fini ? ' fini' : '')}>
+                {fini ? <Check size={24} /> : enPause ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
+              </div>
+            )}
             <div className="temps-grand">{temps}</div>
-            {legende && <div className="legende-chrono">{legende}</div>}
+            {legende ? <div className="legende-chrono">{legende}</div> : cran && !fini && <div className="legende-chrono cran-pourquoi">{cran}</div>}
           </Anneau>
         </button>
         <div className="ligne boutons-grand">{boutons}</div>
