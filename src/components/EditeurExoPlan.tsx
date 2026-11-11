@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { NomInfos } from './InfosExo'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { chauffeCalculable, chauffeDuJour, kg, lireChauffe, lirePourcentChauffe } from '../lib/calc'
+import { chauffeCalculable, chauffeDuJour, kg, lireChauffe, lirePourcentChauffe, RIR } from '../lib/calc'
 import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import { reposParDefaut } from '../lib/programme'
@@ -11,7 +11,8 @@ import ChoixDuree from './ChoixDuree'
 import Interrupteur from './Interrupteur'
 import Deplie from './Deplie'
 
-const RPES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+/** Les mêmes cinq efforts qu'en séance. */
+const RPES = [6, 7, 8, 9, 10]
 
 const PALIERS = [
   [0.5, 8],
@@ -106,7 +107,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
   const [charges, setCharges] = useState(() => plan.series.map((s) => kg(s.charge ?? plan.charge ?? undefined).replace('—', '')))
   const [chauffes, setChauffes] = useState<LigneChauffe[]>(() => plan.chauffes.map(versLigne))
   const [aideFin, setAideFin] = useState(false)
-  const [avance, setAvance] = useState(false)
   const n = p.series.length
   const temps = exo.mesure === 'temps'
   // Toujours une fourchette ; en temps, un seul nombre (pas de conseil de montée), sauf si une fourchette existe déjà.
@@ -148,6 +148,33 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
     })
   const majCharge = (i: number, t: string) =>
     setCharges((c) => c.map((x, j) => (j === i || (j > i && x === c[i]) ? t : x)))
+
+  // Le cas courant : toutes les séries pareilles, réglées une seule fois (reps, effort). Le finisseur de la dernière
+  // série, toujours à 10, n'en fait pas une série différente. « Série par série » pour le reste (12 / 10 / 8, série lourde puis légères).
+  const estFinisseur = (i: number) => p.finisseur && i === n - 1
+  const effort = p.series.find((_, i) => !estFinisseur(i))?.rpe ?? p.series[0].rpe
+  const pareilles =
+    p.series.every((s, i) => s.repsMin === p.series[0].repsMin && s.repsMax === p.series[0].repsMax && (estFinisseur(i) || s.rpe === effort) && (s.repos === undefined || s.repos === p.repos)) &&
+    charges.every((c) => c === charges[0])
+  // Ouvert à la demande ; des séries déjà différentes s'affichent toujours une par une.
+  const [detail, setDetail] = useState(false)
+  // La ligne reste pendant qu'on efface la charge pour en taper une autre.
+  const [avaitCharge] = useState(() => !!charges[0])
+  const parSerie = detail || !pareilles
+  const majToutes = (f: (s: ExoPlan['series'][number], i: number, q: ExoPlan) => void) => maj((q) => q.series.forEach((s, i) => f(s, i, q)))
+  const remettrePareilles = () => {
+    maj((q) => {
+      const a = q.series[0]
+      q.series.forEach((s, i) => {
+        s.repsMin = a.repsMin
+        s.repsMax = a.repsMax
+        if (!(q.finisseur && i === q.series.length - 1)) s.rpe = effort
+        delete s.repos
+      })
+    })
+    setCharges((c) => c.map(() => c[0] ?? ''))
+    setDetail(false)
+  }
 
 
   const resultat = (): ExoPlan => {
@@ -199,16 +226,6 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
     const j = chauffeDuJour(exo, `${pct.trim()}%×${reps}`, lireCharge(charges[0] ?? ''))
     return j && 'charge' in j ? `${kg(j.charge)} kg` : ''
   }
-  const resumeAvance = [
-    `effort ${[...new Set(p.series.map((s) => kg(s.rpe)))].join(', ')}/10`,
-    p.series.some((s) => s.repos !== undefined && s.repos !== p.repos) ? 'repos par série' : '',
-    p.finisseur ? 'finisseur' : '',
-    p.optionnel ? 'optionnel' : '',
-    p.note?.trim() ? 'note' : '',
-  ]
-    .filter(Boolean)
-    .join(' · ')
-
   return (
     <div className={`modal-fond${sansMontee ? ' sans-montee' : ''}`} onClick={valider}>
       <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
@@ -223,37 +240,44 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
           <MiniStepper valeur={n} min={1} max={10} onChange={setNombre} />
         </div>
 
-        <div className="tableau-series">
-          <span />
-          <span className="faible">{temps ? 'Secondes' : 'Reps'}</span>
-          <span className="faible">Charge ({unite})</span>
-          {p.series.map((s, i) => (
-            <Fragment key={i}>
-              <span className="faible">S{i + 1}</span>
+        {!parSerie && (
+          <>
+            <div className="ligne entre">
+              <span>
+                {temps ? 'Secondes' : 'Reps'}
+                {!temps && <div className="faible">{p.series[0].repsMin < p.series[0].repsMax ? 'vise le haut, puis monte la charge' : 'même nombre : pas de conseil de montée'}</div>}
+              </span>
               {fourchette ? (
                 <span className="ligne" style={{ gap: 4 }}>
-                  <NombreCourt valeur={s.repsMin} onChange={(v) => majReps(i, 'repsMin', v)} />
+                  <NombreCourt valeur={p.series[0].repsMin} onChange={(v) => majToutes((s) => ((s.repsMin = v), (s.repsMax = Math.max(v, s.repsMax))))} />
                   <span className="faible">–</span>
-                  <NombreCourt valeur={s.repsMax} onChange={(v) => majReps(i, 'repsMax', v)} />
+                  <NombreCourt valeur={p.series[0].repsMax} onChange={(v) => majToutes((s) => ((s.repsMax = v), (s.repsMin = Math.min(v, s.repsMin))))} />
                 </span>
               ) : (
-                <NombreCourt valeur={s.repsMin} onChange={(v) => majReps(i, 'les2', v)} />
+                <NombreCourt valeur={p.series[0].repsMin} onChange={(v) => majToutes((s) => ((s.repsMin = v), (s.repsMax = v)))} />
               )}
-              <input
-                inputMode="decimal"
-                className="charge-serie"
-                placeholder="—"
-                value={charges[i] ?? ''}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => majCharge(i, e.target.value)}
-              />
-            </Fragment>
-          ))}
-        </div>
-        {!temps && <div className="faible">{p.series.some((x) => x.repsMin < x.repsMax) ? 'Vise le haut : en fin de séance, l’appli te conseille quand monter.' : 'Même nombre des deux côtés : l’appli ne te conseille pas de monter.'}</div>}
-        <div className="faible">
-          Change la 1re série, les suivantes identiques suivent. La charge ne sert que la première fois ; pas d’idée ? Laisse « — ».
-        </div>
+            </div>
+            {/* L'effort visé, avec les boutons de la séance : c'est lui qui dit quand une série compte comme « dure ». */}
+            <div className="reglage-effort">
+              <div className="ligne entre">
+                <span>
+                  Effort visé <span className="mot-salle">RPE</span>
+                </span>
+                <span className="faible">
+                  {kg(effort)}/10 · {RIR[Math.floor(effort)] ?? ''}
+                </span>
+              </div>
+              <div className="rpe" style={{ gridTemplateColumns: `repeat(${RPES.length}, 1fr)` }}>
+                {RPES.map((r) => (
+                  <button key={r} type="button" className={Math.round(effort) === r ? 'actif' : ''} aria-pressed={Math.round(effort) === r} onClick={() => majToutes((s, k, q) => !(q.finisseur && k === q.series.length - 1) && (s.rpe = r))}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+              {p.finisseur && n > 1 && <div className="faible">La dernière série est un finisseur : à fond, 10/10.</div>}
+            </div>
+          </>
+        )}
 
         <div className="ligne entre">
           <span>
@@ -267,9 +291,72 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
           <div className="ligne entre">
             <span>
               Repos avant l’exercice suivant
-              <div className="faible">après la dernière série (changer de machine, souffler)</div>
+              <div className="faible">après la dernière série</div>
             </span>
             <ChoixDuree valeur={p.reposApres ?? p.repos} onChange={(v) => maj((q) => (q.reposApres = v === q.repos ? undefined : v))} />
+          </div>
+        )}
+
+        <button type="button" className="liste-btn lien-detail" aria-expanded={parSerie} onClick={() => (pareilles ? setDetail(!detail) : undefined)}>
+          <span>Régler série par série</span>
+          <span className="faible">{!pareilles ? 'séries différentes' : detail ? 'refermer' : 'toutes pareilles'} {pareilles && <ChevronRight size={16} className={'muted' + (detail ? ' tourne' : '')} />}</span>
+        </button>
+        {parSerie && (
+          <div className="pile">
+            <div className="tableau-detail">
+              <span />
+              <span className="faible">{temps ? 'Secondes' : 'Reps'}</span>
+              <span className="faible">Effort</span>
+              <span className="faible">Charge ({unite})</span>
+              {p.series.map((s, i) => (
+                <Fragment key={i}>
+                  <span className="faible">S{i + 1}</span>
+                  {fourchette ? (
+                    <span className="ligne" style={{ gap: 4 }}>
+                      <NombreCourt valeur={s.repsMin} onChange={(v) => majReps(i, 'repsMin', v)} />
+                      <span className="faible">–</span>
+                      <NombreCourt valeur={s.repsMax} onChange={(v) => majReps(i, 'repsMax', v)} />
+                    </span>
+                  ) : (
+                    <NombreCourt valeur={s.repsMin} onChange={(v) => majReps(i, 'les2', v)} />
+                  )}
+                  <select aria-label={`Effort visé, série ${i + 1}`} value={s.rpe} disabled={estFinisseur(i)} onChange={(e) => maj((q) => (q.series[i].rpe = parseFloat(e.target.value)))}>
+                    {[...new Set([...RPES, s.rpe])].sort((x, y) => x - y).map((r) => (
+                      <option key={r} value={r}>
+                        {kg(r)}/10
+                      </option>
+                    ))}
+                  </select>
+                  <input inputMode="decimal" className="charge-serie" aria-label={`Charge de départ, série ${i + 1}`} placeholder="—" value={charges[i] ?? ''} onFocus={(e) => e.target.select()} onChange={(e) => majCharge(i, e.target.value)} />
+                </Fragment>
+              ))}
+            </div>
+            <div className="faible">Chaque série est jugée sur sa propre fourchette. La charge sert seulement la première fois : sans idée, laisse « — ».</div>
+            <div>
+              <div className="petit">Repos après chaque série</div>
+              {p.series.map((s, i) => (
+                <div key={i} className="ligne entre" style={{ marginTop: 6 }}>
+                  <span className="faible">S{i + 1}</span>
+                  <ChoixDuree compact valeur={s.repos ?? p.repos} onChange={(v) => maj((q) => (q.series[i].repos = v))} />
+                </div>
+              ))}
+            </div>
+            <button type="button" className="btn discret petit" onClick={remettrePareilles}>
+              Remettre toutes les séries pareilles
+            </button>
+          </div>
+        )}
+        {/* Une charge de départ déjà notée reste visible, même avec des séries toutes pareilles. */}
+        {!parSerie && avaitCharge && (
+          <div className="ligne entre">
+            <span>
+              Charge de départ
+              <div className="faible">sert seulement la première fois</div>
+            </span>
+            <span className="ligne" style={{ gap: 6 }}>
+              <input inputMode="decimal" className="charge-depart" aria-label="Charge de départ" placeholder="—" value={charges[0] ?? ''} onFocus={(e) => e.target.select()} onChange={(e) => setCharges((c) => c.map(() => e.target.value))} />
+              <span className="faible">{unite}</span>
+            </span>
           </div>
         )}
 
@@ -290,7 +377,7 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
             />
           </div>
           <div className="faible" style={{ margin: '4px 0 6px' }}>
-            Séries légères, cochées pendant la séance. Elles ne comptent ni dans le volume ni dans la progression.
+            Légères, cochées en séance. Elles ne comptent ni dans le volume ni dans la progression.
           </div>
           {chauffes.map((l, i) => (
             <div key={i} className="ligne" style={{ marginBottom: 6, gap: 6 }}>
@@ -337,93 +424,59 @@ export default function EditeurExoPlan({ exo, plan, onValider, onModifie, onSuiv
           )}
         </div>
 
-        {/* Réglages pour aller plus loin, repliés : par défaut l'appli vise RPE 8 sans qu'on ait à y penser. */}
-        <button type="button" className="groupe-repli" onClick={() => setAvance(!avance)} aria-expanded={avance}>
-          <span>
-            Avancé <span className="faible">· {resumeAvance}</span>
-          </span>
-          <span className={'muted chevron-accordeon' + (avance ? ' ouvert' : '')}>▸</span>
-        </button>
-        <Deplie ouvert={avance}>
-          <div className="pile">
-            <label className="champ">
-              <span>Note (consigne pour cette séance)</span>
-              <input value={p.note ?? ''} onChange={(e) => maj((q) => (q.note = e.target.value))} />
-            </label>
-            <div>
-              <div className="petit">Effort visé par série</div>
-              <div className="faible" style={{ marginBottom: 6 }}>
-                8/10 = il te reste 2 reps en réserve ; 10/10 = échec. C’est lui qui dit quand une série compte comme « dure ».
-              </div>
-              {p.series.map((s, i) => (
-                <div key={i} className="ligne" style={{ marginBottom: 6, gap: 6 }}>
-                  <span className="faible" style={{ width: 22, flex: '0 0 auto' }}>
-                    S{i + 1}
-                  </span>
-                  <select value={s.rpe} disabled={p.finisseur && i === n - 1} onChange={(e) => maj((q) => (q.series[i].rpe = parseFloat(e.target.value)))}>
-                    {RPES.map((r) => (
-                      <option key={r} value={r}>
-                        {kg(r)}/10
-                        {r === 10 ? ' (échec)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <ChoixDuree compact valeur={s.repos ?? p.repos} onChange={(v) => maj((q) => (q.series[i].repos = v))} />
-                </div>
+        {/* Plus de menu « Avancé » (11 nov. 2026) : trois réglages ne se cachent pas derrière un appui. */}
+        <Interrupteur
+          on={p.finisseur}
+          onChange={(v) =>
+            maj((q) => {
+              q.finisseur = v
+              if (v) q.series[q.series.length - 1].rpe = 10
+            })
+          }
+          label="Finisseur sur la dernière série"
+          aide={p.finisseur ? 'Effort 10/10 sur cette série. Plutôt sur de l’isolation, un ou deux par séance.' : 'Une technique pour finir à fond.'}
+        />
+        {p.finisseur && (
+          <div className="pile" style={{ gap: 8 }}>
+            <div className="chips">
+              {(Object.keys(FINISSEURS) as TypeFinisseur[]).map((t) => (
+                <button key={t} className={typeFinisseur(p) === t ? 'actif' : ''} onClick={() => maj((q) => (q.typeFinisseur = t))}>
+                  {FINISSEURS[t].nom}
+                </button>
               ))}
-              <div className="faible">À droite : repos après chaque série (par défaut, celui réglé plus haut).</div>
             </div>
-
-            <Interrupteur
-              on={p.finisseur}
-              onChange={(v) =>
-                maj((q) => {
-                  q.finisseur = v
-                  if (v) q.series[q.series.length - 1].rpe = 10
-                })
-              }
-              label="Finisseur sur la dernière série"
-              aide="Une technique d’intensité sur la dernière série. Plutôt sur de l’isolation, un ou deux par séance."
-            />
-            {p.finisseur && (
-              <div className="pile" style={{ gap: 8 }}>
+            <div className="suggestion petit">{FINISSEURS[typeFinisseur(p)].aide}</div>
+            {typeFinisseur(p) === 'partielles' && (
+              <div className="ligne entre wrap">
+                <span className="petit">Zone des demi-reps</span>
                 <div className="chips">
-                  {(Object.keys(FINISSEURS) as TypeFinisseur[]).map((t) => (
-                    <button key={t} className={typeFinisseur(p) === t ? 'actif' : ''} onClick={() => maj((q) => (q.typeFinisseur = t))}>
-                      {FINISSEURS[t].nom}
+                  {ZONES.map(([z, nom]) => (
+                    <button key={z} className={(p.zone ?? 'etiree') === z ? 'actif' : ''} onClick={() => maj((q) => (q.zone = z))}>
+                      {nom}
                     </button>
                   ))}
                 </div>
-                <div className="suggestion petit">{FINISSEURS[typeFinisseur(p)].aide}</div>
-                {typeFinisseur(p) === 'partielles' && (
-                  <div className="ligne entre wrap">
-                    <span className="petit">Zone des demi-reps</span>
-                    <div className="chips">
-                      {ZONES.map(([z, nom]) => (
-                        <button key={z} className={(p.zone ?? 'etiree') === z ? 'actif' : ''} onClick={() => maj((q) => (q.zone = z))}>
-                          {nom}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <button type="button" className="btn discret petit" onClick={() => setAideFin(!aideFin)}>
-                  <span className={'chevron-accordeon' + (aideFin ? ' ouvert' : '')}>▸</span> C’est quoi, chaque technique ?
-                </button>
-                <Deplie ouvert={aideFin}>
-                  <div className="pile petit" style={{ gap: 6 }}>
-                    {Object.values(FINISSEURS).map((f) => (
-                      <div key={f.nom}>
-                        <strong>{f.nom}</strong> <span className="muted">— {f.aide}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Deplie>
               </div>
             )}
-            <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" aide="À faire seulement si tu as le temps." />
+            <button type="button" className="btn discret petit" onClick={() => setAideFin(!aideFin)}>
+              <span className={'chevron-accordeon' + (aideFin ? ' ouvert' : '')}>▸</span> C’est quoi, chaque technique ?
+            </button>
+            <Deplie ouvert={aideFin}>
+              <div className="pile petit" style={{ gap: 6 }}>
+                {Object.values(FINISSEURS).map((f) => (
+                  <div key={f.nom}>
+                    <strong>{f.nom}</strong> <span className="muted">— {f.aide}</span>
+                  </div>
+                ))}
+              </div>
+            </Deplie>
           </div>
-        </Deplie>
+        )}
+        <Interrupteur on={!!p.optionnel} onChange={(v) => maj((q) => (q.optionnel = v || undefined))} label="Optionnel" aide="Seulement si tu as le temps." />
+        <label className="champ">
+          <span>Note</span>
+          <input value={p.note ?? ''} placeholder="ex. tempo lent à la descente" onChange={(e) => maj((q) => (q.note = e.target.value))} />
+        </label>
 
         <div className="exo-plan-plus">
           {onRemplacer && (

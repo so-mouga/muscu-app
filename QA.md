@@ -97,6 +97,16 @@ Depuis le 11 nov. 2026, l'appli n'écrit plus « phase » : là où les points s
 - Nouvelle séance : un nom libre est proposé. Le vider, ajouter des exercices et quitter : la séance est gardée sous le nom proposé.
 - Superset A puis B : retirer B. A n'est plus lié à l'exercice suivant et retrouve un vrai repos.
 
+### 4 bis. Le réglage d'un exercice (Programme → une séance → un exercice)
+
+Depuis le 11 nov. 2026, cet écran n'a plus de menu « Avancé » : si un point plus haut en parle, lis ce qui suit.
+
+- En haut, sans défiler : Séries, **une seule fourchette de reps**, **Effort visé** avec cinq boutons de 6 à 10 et une petite étiquette « RPE », les deux repos. Un appui sur un bouton d'effort le règle pour toutes les séries ; la ligne à droite dit « 8/10 · 2 en réserve ».
+- « Régler série par série » : déplie une ligne par série (reps, effort, charge de départ) puis le repos de chaque série. Change une série : l'écran reste déplié et le lien dit « séries différentes ». « Remettre toutes les séries pareilles » revient au bloc simple. Rouvre l'exercice : des séries différentes s'affichent tout de suite une par une.
+- En bas : « Finisseur sur la dernière série » (le choix de la technique n'apparaît qu'une fois activé ; le haut de l'écran dit alors que la dernière série est à 10/10), « Optionnel », « Note ». Rien n'est caché derrière un menu.
+- Tout s'enregistre sans bouton : ferme par « Terminer », un appui à côté ou le retour, rouvre, tout est là. Ouvrir puis fermer sans rien changer ne doit rien modifier (pas de carte de cycle qui apparaît).
+- En séance, à la saisie : « Effort » avec la même étiquette « RPE », et tout tient toujours sans défiler.
+
 ### 5. Exercices (dans Progrès, plus d'onglet)
 - Barre du bas à 4 onglets. Progrès → Exercices : tes exercices d'abord avec leur dernière performance et « ça monte », « stable » ou « bloqué » ; les autres par la recherche, les filtres ou « Voir les n autres ». « Voir tous les exercices » du Bilan y mène, en haut de la liste ; retour d'une fiche à la même position. Fiche ouverte depuis le Bilan, appui sur Progrès dans la barre du bas, ou sur un autre onglet puis retour sur Progrès : on retrouve le Bilan, même période et même position. En changeant de partie (Bilan, Journal, Exercices), le titre et les boutons ne bougent pas et les deux contenus ne se superposent jamais ; en arrivant sur Exercices, jamais de longue liste de « jamais fait » si tu as déjà des séances.
 - Créer un exercice : nom, muscle, matériel, palier, le reste dans « Plus d'options », dont « Machine assistée » (moins de kg = plus dur). Le modifier (⋯ de la fiche) : pas de bouton Enregistrer, tout est gardé, y compris par le retour. Le supprimer.

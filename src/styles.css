@@ -6708,3 +6708,41 @@ button.jour-pas {
 .objectif-choix .demarrage-option.pris {
   background: var(--voile-fort);
 }
+
+/* Réglage d'un exercice (refait le 11 nov. 2026) : l'effort visé sous les reps, « série par série » à la demande. */
+.reglage-effort {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.lien-detail {
+  justify-content: space-between;
+}
+.lien-detail > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e1);
+}
+.lien-detail .tourne {
+  transform: rotate(90deg);
+}
+.tableau-detail {
+  display: grid;
+  grid-template-columns: 24px auto minmax(72px, auto) minmax(56px, 1fr);
+  align-items: center;
+  gap: 6px var(--e2);
+}
+.tableau-detail select {
+  width: 100%;
+  padding: 8px 4px;
+}
+.tableau-detail .charge-serie,
+.charge-depart {
+  width: 100%;
+  max-width: 96px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.charge-depart {
+  width: 96px;
+}

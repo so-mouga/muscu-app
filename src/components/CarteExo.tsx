@@ -361,7 +361,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const ligneEffort = (
     <div className={'ligne entre faible ligne-effort' + (compact ? ' une-ligne' : '')}>
       <span className="texte-effort">
-        {compact ? <strong>Effort </strong> : 'Effort '}{kg(rpe)}/10 ·{' '}
+        {compact ? (
+          <>
+            <strong>Effort</strong> <span className="mot-salle">RPE</span>{' '}
+          </>
+        ) : (
+          'Effort '
+        )}
+        {kg(rpe)}/10 ·{' '}
         {compact && plusDur ? (
           <span style={{ color: 'var(--alerte)' }}>plus dur que prévu ({kg(p.rpe)})</span>
         ) : (
