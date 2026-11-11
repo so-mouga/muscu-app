@@ -82,4 +82,26 @@ describe('texte d’une séance à partager', () => {
     expect(allegee).not.toContain('   prochaine fois :')
     expect(allegee).not.toContain('82')
   })
+
+  it('ordre réel : numéroté dans l’ordre fait, « prévu en n » seulement pour ce qui a changé de place', () => {
+    // Développé militaire fait avant le rowing (machine occupée) ; dips sautés.
+    const decale = { ...jour, series: jour.series.map((x) => (x.exoId === 'dev_militaire' ? { ...x, heure: x.heure - 3 * 3600000 } : x)) }
+    const s = texteSeance(decale, donnees, true)
+    expect(s).toContain('1. Développé militaire barre (prévu en 2) · 3 × 8–12')
+    expect(s).toContain('2. Rowing haltère (prévu en 1) · 3 × 8–12')
+    // Ordre respecté : rien.
+    expect(t).not.toContain('prévu en')
+    // Après « Échanger », le plan a bougé, mais l’ordre de départ est gardé.
+    const echange = { ...decale, exercices: [decale.exercices[1], decale.exercices[0], decale.exercices[2]], ordrePrevu: ['rowing_haltere', 'dev_militaire', 'dips'] }
+    expect(texteSeance(echange, donnees, true)).toContain('1. Développé militaire barre (prévu en 2)')
+  })
+
+  it('remplacement : le remplaçant dit ce qu’il remplace, et l’exercice prévu n’est pas « pas fait »', () => {
+    const r = { ...jour, exercices: [plan('rowing_haltere', 30), plan('dev_militaire', 20), plan('dips', 0)].map((p) => (p.exoId === 'rowing_haltere' ? { ...p, exoId: 'rowing_machine' } : p)), series: jour.series.map((x) => (x.exoId === 'rowing_haltere' ? { ...x, exoId: 'rowing_machine' } : x)), remplacements: [{ a: 'rowing_haltere', b: 'rowing_machine' }], ordrePrevu: ['rowing_haltere', 'dev_militaire', 'dips'] }
+    const s = texteSeance(r, { ...donnees }, true)
+    expect(s).toMatch(/1\. [^\n]+\n   à la place de Rowing haltère \(machine prise\)\n   aujourd’hui/)
+    expect(s).not.toContain('prévu en')
+    expect(s).toContain('Pas fait aujourd’hui : Dips penchés en avant')
+    expect(s).not.toMatch(/Pas fait[^\n]*Rowing haltère/)
+  })
 })

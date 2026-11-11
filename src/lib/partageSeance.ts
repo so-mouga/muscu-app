@@ -88,6 +88,32 @@ export function faitTexte(exo: Exercice, series: Serie[]): string {
 }
 
 /**
+ * Les exercices faits dans l'ordre où ils ont été faits (heure de leur 1re série), et, pour ceux qui ont changé de
+ * place par rapport au plan, leur rang prévu (« prévu en 2 », en comptant les exercices sautés). Un remplaçant prend
+ * la place de l'exercice qu'il remplace ; un exercice ajouté pendant la séance n'a pas de rang prévu.
+ */
+export function ordreReel(seance: Seance, plans: ExoPlan[]): { faits: ExoPlan[]; prevuEn: Map<string, number> } {
+  const premiere = (id: string) => Math.min(...seance.series.filter((x) => x.exoId === id).map((x) => x.heure))
+  const faits = plans.filter((p) => seance.series.some((x) => x.exoId === p.exoId)).sort((a, b) => premiere(a.exoId) - premiere(b.exoId))
+  const prevu = seance.ordrePrevu ?? plans.filter((p) => p.series.length).map((p) => p.exoId)
+  const remplace = new Map((seance.remplacements ?? []).map((r) => [r.b, r.a]))
+  const rang = (id: string): number | undefined => {
+    const k = prevu.indexOf(id)
+    if (k >= 0) return k
+    const a = remplace.get(id)
+    return a && a !== id ? rang(a) : undefined
+  }
+  // On compare seulement les exercices prévus et faits : un exercice sauté ou ajouté ne décale personne.
+  const prevus = faits.filter((p) => rang(p.exoId) !== undefined)
+  const selonPlan = [...prevus].sort((a, b) => rang(a.exoId)! - rang(b.exoId)! || premiere(a.exoId) - premiere(b.exoId))
+  const prevuEn = new Map<string, number>()
+  prevus.forEach((p, i) => {
+    if (selonPlan[i] !== p) prevuEn.set(p.exoId, rang(p.exoId)! + 1)
+  })
+  return { faits, prevuEn }
+}
+
+/**
  * Une séance faite, en texte, pour un coach ou une IA : la question qu'on lui pose, puis ce qui était prévu, ce qui a
  * été fait, la fois d'avant, le conseil de l'appli et ce qui a été choisi pour la prochaine fois. Jamais le poids ni le corps.
  */
@@ -126,14 +152,19 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
   const plans = [...seance.exercices]
   // Un exercice fait sans être au plan du jour (rare) garde quand même sa place.
   for (const id of new Set(seance.series.map((x) => x.exoId))) if (!plans.some((p) => p.exoId === id)) plans.push({ exoId: id, repos: 0, series: [], charge: null, chauffes: [], finisseur: false })
-  plans.forEach((p, i) => {
+  // Remplacements du jour (« Machine prise ») : les anciennes séances n'ont que ceux à relier.
+  const remplace = new Map((seance.remplacements ?? seance.aRelier ?? []).map((r) => [r.b, r.a]))
+  for (const p of plans) if (!seance.series.some((x) => x.exoId === p.exoId)) pasFaits.push(d.exo(p.exoId).nom)
+  const { faits: ordre, prevuEn } = ordreReel(seance, plans)
+  ordre.forEach((p, i) => {
     const exo = d.exo(p.exoId)
     const series = seance.series.filter((x) => x.exoId === p.exoId)
-    if (!series.length) {
-      pasFaits.push(exo.nom)
-      return
-    }
-    l.push('', p.series.length ? ligneExo(exo, p, i) : `${i + 1}. ${exo.nom} · ajouté pendant la séance`)
+    const enPlus = !p.series.length
+    const titre = enPlus ? `${i + 1}. ${exo.nom} · ajouté pendant la séance` : ligneExo(exo, p, i)
+    const k = prevuEn.get(p.exoId)
+    l.push('', k ? titre.replace(`${i + 1}. ${exo.nom}`, `${i + 1}. ${exo.nom} (prévu en ${k})`) : titre)
+    const ancien = remplace.get(p.exoId)
+    if (ancien) l.push(`   à la place de ${d.exo(ancien).nom}${seance.series.some((x) => x.exoId === ancien) ? ', pour les séries qui restaient' : ''} (machine prise)`)
     l.push(`   aujourd’hui : ${faitTexte(exo, series)}`)
     if (avecAvant) {
       const precedente = avant.find((s) => !s.deload && s.series.some((x) => x.exoId === p.exoId))

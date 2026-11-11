@@ -150,6 +150,10 @@ export interface Seance {
   ajustSeries: Record<string, number>
   /** Exercices remplacés aujourd'hui : on propose de les relier en fin de séance, pas en pleine série. */
   aRelier?: { a: string; b: string }[]
+  /** Tous les remplacements du jour (« Machine prise → Remplacer ») : `b` fait à la place de `a`. Pour le texte partagé. */
+  remplacements?: { a: string; b: string }[]
+  /** Ordre du plan au démarrage, gardé dès qu'un échange ou un remplacement le change : pour dire « prévu en 2 ». */
+  ordrePrevu?: string[]
   /** Objectifs fixés à la main en fin de séance pour la prochaine fois, par exercice. */
   objectifs?: Record<string, Objectif>
   ressenti?: number

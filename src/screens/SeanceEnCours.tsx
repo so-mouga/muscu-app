@@ -405,6 +405,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const nomAncien = catalogue.exo(ancien.exoId).nom
       const noteSubstitut = chargeAncien ? `Tu étais à ${kg(chargeAncien)} kg sur ${nomAncien}` : undefined
       const substitut = { ...ancien, exoId, charge: chargeSubstitut, chauffes: [], finisseur: ancien.finisseur && exo.type === 'isolation', note: noteSubstitut }
+      await majSeance(seance.id, (s) => {
+        s.ordrePrevu ??= s.exercices.map((p) => p.exoId)
+        s.remplacements = [...(s.remplacements ?? []), { a: ancien.exoId, b: exoId }]
+      })
       if (faites === 0) {
         await majSeance(seance.id, (s) => {
           s.exercices[c.i] = substitut
@@ -433,6 +437,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const echanger = async (i: number, j: number) => {
     setMachineDe(null)
     await majSeance(seance.id, (s) => {
+      s.ordrePrevu ??= s.exercices.map((p) => p.exoId)
       s.exercices = echangerExos(s.exercices, i, j, (p) => reposParDefaut(catalogue.exo(p.exoId)))
       s.courant = s.exercices[i].exoId
     })
