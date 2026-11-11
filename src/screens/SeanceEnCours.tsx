@@ -20,10 +20,10 @@ import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { battement, debloquerSon, ecranAllume, signalSerie, sonFinSeance } from '../lib/appareil'
 import { revanche, revanchePrise } from '../lib/revanche'
 import { recordDuJour } from '../lib/historique'
-import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
+import { aPortee, cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
 import Disque, { IconeCran } from '../components/Disque'
 import { verrou } from '../lib/verrou'
-import { chargeQte, chargeTexte, ecartQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chargeTexte, duree, dureeSeanceEffective, ecartQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -916,6 +916,13 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </div>
           ) : (
             <>
+              {restantes === 1 && !(p.finisseur && n === t - 1) && !seance.deload && (
+                <div className="voix">
+                  Dernière série du jour.
+                  <br />
+                  <span className="voix-accent">Finis fort.</span>
+                </div>
+              )}
               <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId), t)}</div>
               {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
               {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
@@ -937,7 +944,17 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     })()
     const blocTerminer = (
       <div className="focus-bloc pile">
-        <h2>{seance.passes?.length ? 'Plus rien à faire' : 'Toutes les séries sont faites'}</h2>
+        {seance.passes?.length || !seance.series.length ? (
+          <h2>{seance.passes?.length ? 'Plus rien à faire' : 'Toutes les séries sont faites'}</h2>
+        ) : (
+          <div className="voix grand">
+            Séance faite.
+            <br />
+            <span className="voix-gris">
+              {seance.series.length} série{seance.series.length > 1 ? 's' : ''}.{dureeSeanceEffective(seance) >= 60000 ? ` ${duree(dureeSeanceEffective(seance))}.` : ''}
+            </span>
+          </div>
+        )}
         {!!seance.passes?.length && <div className="faible">Sauté : {seance.passes.map((id) => catalogue.exo(id).nom).join(', ')}. Pour en reprendre un, passe par « Voir la séance ».</div>}
         <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
           Terminer la séance
@@ -1049,6 +1066,27 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             return (
               <div className="focus-bloc pile saisie-focus">
                 {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
+                {/* La voix (voir « La voix » dans AGENTS.md) : le début de la séance, tant qu'aucune série n'est validée. */}
+                {seance.series.length === 0 &&
+                  restantesChauffe === 0 &&
+                  (() => {
+                    const records = seance.deload ? 0 : plans.filter((x, i) => aPortee(exos[i], x, historiqueDe(terminees, x.exoId))).length
+                    return (
+                      <div className="voix">
+                        {seance.nom}.{' '}
+                        {records > 0 ? (
+                          <>
+                            <span className="voix-accent">
+                              {records} record{records > 1 ? 's' : ''}
+                            </span>{' '}
+                            à prendre.
+                          </>
+                        ) : (
+                          `${plans.length} exercice${plans.length > 1 ? 's' : ''}.`
+                        )}
+                      </div>
+                    )
+                  })()}
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>
                     <h2>{exo.nom}</h2>
@@ -1696,7 +1734,15 @@ function FinSeance({
         )}
         {enSeche && !seance.deload && !premiereSeance && crans.length === 0 && seance.series.length > 0 && <div className="faible petit">En sèche, on vise à tenir : garder tes charges, c’est réussi.</div>}
         {/* Le moment où on est le plus réceptif : ce qui a été mieux aujourd'hui (jamais en déload). */}
-        {crans.length === 0 && resumeForme && (resumeForme.mieux > 0 || resumeForme.records > 0) && (
+        {crans.length === 0 && resumeForme && resumeForme.mieux > 0 && resumeForme.records === 0 && (
+          <div className="voix grand">
+            {resumeForme.mieux} exercice{resumeForme.mieux > 1 ? 's' : ''} mieux.
+            <br />
+            <span className="voix-gris voix-suite">Pas de record. Pas loin.</span>
+          </div>
+        )}
+        {crans.length === 0 && !seance.deload && !premiereSeance && seance.series.length > 0 && !(resumeForme && (resumeForme.mieux > 0 || resumeForme.records > 0)) && <div className="voix grand">Séance tenue.</div>}
+        {crans.length === 0 && resumeForme && resumeForme.records > 0 && (
           <div className="mieux-titre fin-mieux">
             {resumeForme.records > 0 ? <Trophy size={16} /> : <TrendingUp size={16} />}
             <span>

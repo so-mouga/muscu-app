@@ -7358,3 +7358,30 @@ button.jour-pas {
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* --- La voix (maquette voix.html, 11 nov. 2026) : une phrase courte, grosse et penchée, pour un moment clé de la séance. --- */
+.voix {
+  font-size: var(--t-page);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1.12;
+}
+.voix.grand {
+  font-size: var(--t-chiffre);
+  line-height: 1.08;
+}
+.voix-accent {
+  color: var(--accent);
+}
+.voix-gris {
+  color: var(--texte-2);
+}
+.voix-suite {
+  font-size: var(--t-page);
+}
+/* La phrase du début s'efface quand la place manque : la saisie doit tenir sans défiler. */
+@media (max-height: 700px) {
+  .saisie-focus > .voix {
+    display: none;
+  }
+}
