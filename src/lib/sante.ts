@@ -74,12 +74,26 @@ export async function autoriserSante(): Promise<EtatSante> {
 /** Une nuit compte pour le jour où l'on se réveille, si on se lève avant 15 h : une sieste l'après-midi n'est pas une nuit. */
 const HEURE_LIMITE_NUIT = 15
 
-/** Heures dormies par jour de réveil (sommes des périodes de la nuit, éveils retirés), au centième d'heure. */
+/**
+ * Heures dormies par jour de réveil, au centième d'heure. Mi Fitness écrit la nuit plusieurs fois pendant qu'elle se
+ * déroule sans effacer les versions d'avant (00:08 → 02:59, puis 00:08 → 06:36, puis 00:08 → 07:34 : vu le 11 nov. 2026),
+ * et une 2e appli peut recopier la même nuit : des périodes qui se chevauchent sont la même nuit, on garde la plus
+ * longue. Des périodes séparées (réveil au milieu de la nuit) s'additionnent.
+ */
 export function nuitsParJour(nuits: NuitBrute[]): Record<string, number> {
   const minutes: Record<string, number> = {}
-  for (const n of nuits) {
+  const triees = nuits.filter((n) => n.minutes > 0 && n.fin > n.debut).sort((a, b) => a.debut - b.debut)
+  const groupes: { fin: number; garde: NuitBrute }[] = []
+  for (const n of triees) {
+    const g = groupes[groupes.length - 1]
+    if (g && n.debut < g.fin) {
+      g.fin = Math.max(g.fin, n.fin)
+      if (n.minutes > g.garde.minutes) g.garde = n
+    } else groupes.push({ fin: n.fin, garde: n })
+  }
+  for (const { garde: n } of groupes) {
     const fin = new Date(n.fin)
-    if (fin.getHours() >= HEURE_LIMITE_NUIT || n.minutes <= 0) continue
+    if (fin.getHours() >= HEURE_LIMITE_NUIT) continue
     const jour = dateISO(fin)
     minutes[jour] = (minutes[jour] ?? 0) + n.minutes
   }

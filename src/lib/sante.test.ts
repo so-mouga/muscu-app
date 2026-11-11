@@ -16,6 +16,17 @@ describe('nuits de la montre rangées par jour', () => {
     ]
     expect(nuitsParJour(nuits)).toEqual({ '2026-11-10': 7.33 })
   })
+
+  it('une nuit écrite plusieurs fois par la montre ne compte qu’une fois : la version la plus longue', () => {
+    // Vu le 11 nov. 2026 : Mi Fitness avait laissé 4 versions de la même nuit, Cran affichait 16 h 29.
+    const nuits = [
+      { debut: h('2026-11-11T00:08:00'), fin: h('2026-11-11T00:37:00'), minutes: 29 },
+      { debut: h('2026-11-11T00:08:00'), fin: h('2026-11-11T02:59:00'), minutes: 165 },
+      { debut: h('2026-11-11T00:08:00'), fin: h('2026-11-11T07:34:00'), minutes: 420 },
+      { debut: h('2026-11-11T00:08:00'), fin: h('2026-11-11T06:36:00'), minutes: 375 },
+    ]
+    expect(nuitsParJour(nuits)).toEqual({ '2026-11-11': 7 })
+  })
 })
 
 describe('ce que la montre change dans le journal', () => {
