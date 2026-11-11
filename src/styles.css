@@ -7147,44 +7147,43 @@ button.jour-pas {
 .face.pris .face-avant {
   opacity: 0.4;
 }
-.revanche-prise {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
+/* Finisseur plus discret (retour de l'utilisateur après essai sur son téléphone : l'écran tout violet l'a surpris) : fond
+   noir habituel, boutons gris ; le violet ne reste que sur le cercle, « À fond. » et « J'y vais ». */
+.focus.moment-fin {
+  background: var(--bg);
+}
+.focus.moment-fin .moment-haut {
+  color: var(--texte-2);
+}
+.focus.moment-fin .moment-boutons .btn,
+.focus.moment-fin .moment-bas .btn:not(.finisseur) {
+  background: var(--controle);
+}
+.focus.moment-fin .moment > .ligne-series > .courante {
+  background: var(--finisseur-voile);
+  color: var(--finisseur);
+}
+/* La revanche, version sobre : dans le bloc du repos, sous le cercle orange habituel. */
+.rev-bloc {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--e3);
-  padding: var(--e5);
-  border: none;
-  border-radius: 0;
-  background: var(--bg);
-  color: var(--texte);
-  text-align: center;
-  animation: fondu var(--duree-courte) var(--sortie);
+  align-items: flex-start;
 }
-.revanche-exo {
+.rev-avant {
   color: var(--texte-2);
-  font-size: var(--t-petit);
+  font-size: var(--t-texte);
   font-weight: 600;
+  line-height: 1.2;
 }
-.revanche-titre {
-  margin-top: var(--e5);
-  font-size: var(--t-chiffre);
+.rev-auj {
+  font-size: var(--t-page);
   font-weight: 800;
-  line-height: 1.1;
-  animation: vient-monter var(--duree-longue) var(--sortie) calc(var(--duree-courte) + var(--duree-longue)) both;
+  line-height: 1.15;
 }
-.revanche-passe {
-  position: absolute;
-  bottom: calc(var(--e5) + env(safe-area-inset-bottom));
-  color: var(--texte-3);
-  font-size: var(--t-legende);
+.rev-bloc .face {
+  max-width: none;
+  margin-top: var(--e2);
 }
-@media (prefers-reduced-motion: reduce) {
-  .revanche-prise,
-  .revanche-prise * {
-    animation: none !important;
-  }
+.rev-bloc .face b {
+  font-size: var(--t-chiffre);
 }

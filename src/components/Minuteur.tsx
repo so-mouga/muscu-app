@@ -35,8 +35,8 @@ interface Props {
   variante?: 'barre' | 'grand' | 'bandeau' | 'finisseur'
   /** `finisseur` : ce qui s'affiche entre le cercle et les boutons (l'annonce, la consigne, les séries). */
   children?: ReactNode
-  /** `finisseur` : `noir` pour la revanche (noir et orange), sinon le violet du finisseur. */
-  ton?: 'noir'
+  /** Cercle du plein écran : la série d'avant vient de prendre sa revanche. Le texte dit le détail (« 8 reps · tu en avais fait 6 »). */
+  revanche?: string
   /** Barre : appui sur le temps → mode plein écran. */
   onAgrandir?: () => void
   /** Cercle du plein écran : mot sous le temps (« exercice fini »). */
@@ -47,7 +47,7 @@ interface Props {
   cranVient?: boolean
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient, children, ton }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient, children, revanche }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -131,13 +131,19 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
   // Fini, il attend un appui (« J'y vais ») : l'annonce ne se rate plus, même si on ne regardait pas à la fin du repos.
   if (variante === 'finisseur') {
     return (
-      <div className={'moment' + (ton ? ' ' + ton : '') + (fini ? ' fige' : enPause ? ' en-pause' : seconde <= 10 ? ' vite' : ' lent')}>
+      <div className={'moment' + (fini ? ' fige' : enPause ? ' en-pause' : seconde <= 10 ? ' vite' : ' lent')}>
         <button type="button" className="moment-anneau" onClick={() => !fini && basculerPause()} aria-label={fini ? 'Repos terminé' : enPause ? 'Reprendre le repos' : `Repos, ${temps}. Mettre en pause`}>
           <i />
           <i />
-          {cran && !fini && !enPause && (
+          {(cran || revanche) && !fini && !enPause && (
             <span className={'cran-signal' + (anime ? ' vient' : '')}>
-              <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+              {cran ? (
+                <>
+                  <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+                </>
+              ) : (
+                <span>Revanche prise.</span>
+              )}
             </span>
           )}
           <span className="moment-temps">{fini ? 'Prêt' : temps}</span>
@@ -146,7 +152,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
         {children}
         <div className={'moment-bas' + (fini ? ' un' : '')}>
           {fini ? (
-            <button type="button" className={'btn grand ' + (ton === 'noir' ? 'primaire' : 'finisseur')} onClick={() => onChange(null)}>
+            <button type="button" className="btn finisseur grand" onClick={() => onChange(null)}>
               J’y vais
             </button>
           ) : (
@@ -184,9 +190,16 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
             fluide={!enPause && !fini}
             saut={saut}
           >
-            {cran && !fini && !enPause ? (
+            {(cran || revanche) && !fini && !enPause ? (
               <div className={'cran-signal' + (anime ? ' vient' : '')}>
-                <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+                {/* Un record passe devant une revanche : il est plus rare. */}
+                {cran ? (
+                  <>
+                    <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+                  </>
+                ) : (
+                  <span>Revanche prise.</span>
+                )}
               </div>
             ) : (
               <div className={'etat-chrono' + (enPause ? ' en-pause' : '') + (fini ? ' fini' : '')}>
@@ -194,7 +207,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
               </div>
             )}
             <div className="temps-grand">{temps}</div>
-            {legende ? <div className="legende-chrono">{legende}</div> : cran && !fini && <div className={'legende-chrono cran-pourquoi' + (anime ? ' vient' : '')}>{cran}</div>}
+            {legende ? <div className="legende-chrono">{legende}</div> : (cran || revanche) && !fini && <div className={'legende-chrono cran-pourquoi' + (anime ? ' vient' : '')}>{cran ?? revanche}</div>}
           </Anneau>
         </button>
         <div className="ligne boutons-grand">{boutons}</div>
