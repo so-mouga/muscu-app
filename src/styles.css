@@ -1279,9 +1279,6 @@ html[data-sens^='carte']::view-transition-new(root) {
   z-index: 30;
   pointer-events: none;
 }
-.focus.sans-voix .saisie-focus > .voix {
-  display: none;
-}
 .focus.serre .saisie-focus {
   --salle-ecart: 4px;
 }
@@ -7411,10 +7408,4 @@ button.jour-pas {
 }
 .voix-suite {
   font-size: var(--t-page);
-}
-/* La phrase du début s'efface quand la place manque : la saisie doit tenir sans défiler. */
-@media (max-height: 700px) {
-  .saisie-focus > .voix {
-    display: none;
-  }
 }

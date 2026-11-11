@@ -20,7 +20,7 @@ import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { battement, debloquerSon, ecranAllume, signalSerie, sonFinSeance } from '../lib/appareil'
 import { revanche, revanchePrise } from '../lib/revanche'
 import { recordDuJour } from '../lib/historique'
-import { aPortee, cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
+import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
 import Disque, { IconeCran } from '../components/Disque'
 import { verrou } from '../lib/verrou'
 import { chargeQte, chargeTexte, duree, dureeSeanceEffective, ecartQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
@@ -383,10 +383,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       battement()
     }
   })
-  // Saisie qui ne tient pas sans défiler (une note sur deux lignes et la phrase du début : la page défilait sous la barre
-  // d'état, S25, 11 nov. 2026) : d'abord les lignes se resserrent (`serre`), puis la phrase du début s'efface
-  // (`sans-voix`). Chaque étape retient la place qu'elle a gagnée, pour revenir en arrière dès qu'il y a de nouveau la place.
-  const gains = useRef({ voix: 0, serre: 0 })
+  // Saisie qui ne tient pas sans défiler (une note sur deux lignes : la page défilait sous la barre d'état, S25,
+  // 11 nov. 2026) : les lignes se resserrent (`serre`). On retient la place gagnée, pour revenir en arrière dès qu'il y
+  // a de nouveau la place.
+  const gainSerre = useRef(0)
   useLayoutEffect(() => {
     const el = ecranFocus.current
     if (!el) return
@@ -395,19 +395,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const enfants = [...el.children] as HTMLElement[]
       return Math.max(0, ...enfants.map((c) => c.offsetTop + c.offsetHeight)) + parseFloat(getComputedStyle(el).paddingBottom) - el.clientHeight
     }
-    for (const etape of ['voix', 'serre'] as const) {
-      const cls = etape === 'voix' ? 'sans-voix' : 'serre'
-      if (el.classList.contains(cls) && deborde() + gains.current[etape] <= 0) el.classList.remove(cls)
-    }
-    for (const etape of ['serre', 'voix'] as const) {
-      const cls = etape === 'voix' ? 'sans-voix' : 'serre'
-      if (deborde() <= 0 || el.classList.contains(cls)) continue
-      if (etape === 'voix' && !el.querySelector('.saisie-focus > .voix')) continue
+    if (el.classList.contains('serre') && deborde() + gainSerre.current <= 0) el.classList.remove('serre')
+    if (deborde() > 0 && !el.classList.contains('serre')) {
       const avant = deborde()
-      el.classList.add(cls)
-      gains.current[etape] = avant - deborde()
+      el.classList.add('serre')
+      gainSerre.current = avant - deborde()
     }
-    el.classList.toggle('tient', deborde() <= 0)
+    // 1 px de marge : sur le S25 les hauteurs ont des décimales (689,67 px), et un arrondi ne doit pas rendre l'écran défilable.
+    el.classList.toggle('tient', deborde() <= 1)
   })
 
   const exos = useMemo(
@@ -1091,27 +1086,6 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             return (
               <div className="focus-bloc pile saisie-focus">
                 {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
-                {/* La voix (voir « La voix » dans AGENTS.md) : le début de la séance, tant qu'aucune série n'est validée. */}
-                {seance.series.length === 0 &&
-                  restantesChauffe === 0 &&
-                  (() => {
-                    const records = seance.deload ? 0 : plans.filter((x, i) => aPortee(exos[i], x, historiqueDe(terminees, x.exoId))).length
-                    return (
-                      <div className="voix">
-                        {seance.nom}.{' '}
-                        {records > 0 ? (
-                          <>
-                            <span className="voix-accent">
-                              {records} record{records > 1 ? 's' : ''}
-                            </span>{' '}
-                            à prendre.
-                          </>
-                        ) : (
-                          `${plans.length} exercice${plans.length > 1 ? 's' : ''}.`
-                        )}
-                      </div>
-                    )
-                  })()}
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>
                     <h2>{exo.nom}</h2>
