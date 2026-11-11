@@ -75,6 +75,7 @@ function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglag
   )
   const bipsReglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
   const sonValidation = useLiveQuery(() => db.reglages.get('sonValidation'), [])
+  const annonceFinisseur = useLiveQuery(() => db.reglages.get('annonceFinisseur'), [])
   const bips = typeof bipsReglage?.valeur === 'number' ? bipsReglage.valeur : BIPS_DEFAUT
 
   const sauvegarderTout = async () => {
@@ -141,6 +142,7 @@ function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglag
           label="Son quand je valide une série"
           aide="La vibration reste dans tous les cas."
         />
+        <Interrupteur on={annonceFinisseur?.valeur !== false} onChange={(v) => void setReglage('annonceFinisseur', v)} label="Annonce avant un finisseur" aide="Deux secondes pour te dire quoi faire, avant la dernière série." />
         <RappelSeance />
       </div>
 

@@ -47,6 +47,7 @@
   --finisseur: #c58bff;
   --finisseur-voile: rgba(197, 139, 255, 0.12);
   --finisseur-texte: #1b0d2b;
+  --finisseur-fond: #160d22;
 
   /* Données : silhouette, disques de fonte, courbes de tendances. */
   --silhouette: #44403c;
@@ -6831,5 +6832,124 @@ button.jour-pas {
   .fin-disque-plein *,
   .fin-disque-plein > * {
     animation: none !important;
+  }
+}
+
+/* --- Avant la série (maquette avant-la-serie.html, 11 nov. 2026) : le finisseur annoncé à temps, l'objectif à battre. --- */
+.consigne-fin {
+  padding: var(--e2) var(--e3);
+  border-radius: var(--rayon-2);
+  background: var(--finisseur-voile);
+  color: var(--texte-salle);
+  font-size: var(--t-petit);
+  line-height: 1.35;
+}
+.consigne-fin strong {
+  color: var(--finisseur);
+  font-weight: 600;
+}
+.prochaine-finisseur {
+  font-weight: 600;
+}
+.a-battre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vise {
+  font-size: var(--t-chiffre);
+  font-weight: 800;
+  line-height: 1.05;
+}
+.vise-chiffre {
+  color: var(--accent);
+}
+.vise-record {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  margin-top: var(--e1);
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.stepper .valeur input.vise-atteint {
+  color: var(--accent);
+}
+.cran-des > svg.lucide {
+  color: var(--texte-2);
+}
+/* L'instant d'avant un finisseur : plein écran, deux secondes, un appui le passe. */
+.avant-fin {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--e5);
+  border: none;
+  border-radius: 0;
+  background: var(--finisseur-fond);
+  color: var(--texte);
+  text-align: center;
+  animation: fondu var(--duree-courte) var(--sortie);
+}
+.avant-fin-petit {
+  color: var(--finisseur);
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.avant-fin-grand {
+  margin-top: var(--e3);
+  font-size: var(--t-chiffre);
+  font-weight: 800;
+  line-height: 1.1;
+}
+.avant-fin-fort {
+  color: var(--finisseur);
+  font-size: var(--t-chrono);
+  font-weight: 800;
+  line-height: 1;
+}
+.avant-fin-consigne {
+  max-width: 280px;
+  margin-top: var(--e5);
+  font-size: var(--t-texte);
+  line-height: 1.4;
+}
+.avant-fin-passe {
+  position: absolute;
+  bottom: calc(var(--e5) + env(safe-area-inset-bottom));
+  color: var(--texte-3);
+  font-size: var(--t-legende);
+}
+.avant-fin-pouls {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border: 2px solid var(--finisseur);
+  border-radius: 50%;
+  opacity: 0;
+  animation: avant-pouls 1.1s ease-out 2;
+}
+@keyframes avant-pouls {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avant-fin,
+  .avant-fin-pouls {
+    animation: none;
   }
 }

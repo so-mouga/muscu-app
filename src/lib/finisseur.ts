@@ -43,3 +43,18 @@ export const ZONES: [ZoneDemiReps, string][] = [
 ]
 
 export const typeFinisseur = (p: ExoPlan): TypeFinisseur => p.typeFinisseur ?? 'partielles'
+
+/** Charge après la baisse d'un drop set : les trois quarts, au palier de la machine. */
+export const chargeBaisse = (charge: number, pas: number) => Math.max(0, Math.round((charge * 0.75) / pas) * pas)
+
+/**
+ * Ce qu'il faut faire sur un finisseur, en une phrase, dite AVANT la série (repos, annonce, saisie) : apprise après
+ * l'appui, elle arrive trop tard (retour du cousin de l'utilisateur, 11 nov. 2026). `baisse` : la charge après la
+ * baisse d'un drop set, déjà écrite (« 15 kg »).
+ */
+export function consigne(tf: TypeFinisseur, baisse?: string): string {
+  if (tf === 'drop') return `Va jusqu’à l’échec, ${baisse ? `baisse à ${baisse}` : 'baisse la charge d’un quart'} et repars tout de suite, sans repos.`
+  if (tf === 'rest_pause') return 'Va jusqu’à l’échec, pose la charge 15 secondes, repars. Deux fois.'
+  if (tf === 'partielles') return 'Va jusqu’à l’échec, puis enchaîne 5 à 8 demi-reps sans poser la charge.'
+  return 'Continue jusqu’à ne plus pouvoir faire une rep propre.'
+}

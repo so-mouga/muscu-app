@@ -72,6 +72,15 @@ export function signalSerie(genre: 'normale' | 'mieux' | 'cran' | 'finExercice',
   else (fonte(0, 1000, 0.5), fonte(0.16, 1000, 0.5), fonte(0.32, 1500, 0.8))
 }
 
+/** Annonce d'un finisseur : deux battements, comme un cœur. */
+export function battement() {
+  try {
+    navigator.vibrate?.([90, 150, 90, 520, 90, 150, 90])
+  } catch {
+    /* pas de vibration */
+  }
+}
+
 export function vibrer(ms = 20) {
   try {
     navigator.vibrate?.(ms)

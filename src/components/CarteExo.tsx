@@ -1,9 +1,9 @@
-import { Check, ChevronRight, Info, Lightbulb, Pencil, Sparkles, Timer, TriangleAlert, X } from 'lucide-react'
+import { Check, ChevronRight, Info, Lightbulb, Pencil, Sparkles, Target, Timer, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { db, uid } from '../db'
 import { chargeDecalee, chargeTexte, enTemps, fourchette, kg, qte, RIR } from '../lib/calc'
-import { FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
+import { chargeBaisse, consigne, FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import ChronoTenue from './ChronoTenue'
 import { PuceDisques } from './CalculateurDisques'
@@ -68,6 +68,8 @@ interface EditeurProps {
   fermeture?: { current: (() => void) | null }
   /** Plein écran : ce qu'il faut faire à cette charge pour gagner le cran de l'exercice (`seuilCran`). */
   seuilCran?: (charge: number) => { reps: number; record?: number } | null
+  /** Plein écran : l'objectif fixé pour cette série, plus haut que la dernière fois à la même charge (`avant` : les reps de la dernière fois). */
+  objectif?: { charge: number; reps: number; avant: number }
 }
 
 interface Brouillon {
@@ -99,7 +101,7 @@ function oublierBrouillon(cle: string) {
   }
 }
 
-export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture, seuilCran }: EditeurProps) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture, seuilCran, objectif }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1
@@ -238,7 +240,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   const ouvrirPanneau = () => {
     // Drop set : ~25 % de moins, arrondi au pas ; rest-pause : même charge, deux mini-séries.
-    if (tf === 'drop') setSuite([{ charge: Math.max(0, Math.round((charge * 0.75) / exo.pas) * exo.pas), reps: 6 }])
+    if (tf === 'drop') setSuite([{ charge: chargeBaisse(charge, exo.pas), reps: 6 }])
     if (tf === 'rest_pause') setSuite([{ charge, reps: 4 }, { charge, reps: 2 }])
     setPanneau(true)
   }
@@ -345,7 +347,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     <div className="stepper">
       <button onClick={() => setReps(Math.max(0, reps - pasQte))}>−</button>
       <div className="valeur">
-        <input inputMode="numeric" value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
+        <input inputMode="numeric" className={compact && objectif && charge === objectif.charge && reps >= objectif.reps ? 'vise-atteint' : undefined} value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
         <span className="unite">
           {temps ? 'secondes tenues' : 'reps'}
           {compact && !finisseur && (!temps || p.repsMin < p.repsMax) && ` · vise ${p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`}`}
@@ -387,7 +389,8 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   return (
     <div className={'pile' + (compact ? ' editeur-compact' : '')}>
-      {/* Ce qui vaut un cran, dit avant la série : il suit la charge réglée. Pas sur un finisseur (seules les séries normales comptent). */}
+      {/* Avant la série, sur une ligne : l'objectif fixé (« Vise 9 ») et ce qui vaut un cran. Les deux se rejoignent souvent : une
+          seule ligne. Elle suit la charge réglée. Pas sur un finisseur (seules les séries normales comptent). */}
       {compact &&
         !edition &&
         !finisseur &&
@@ -395,6 +398,23 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         !aRegler &&
         (() => {
           const s = seuilCran?.(charge)
+          const obj = objectif && charge === objectif.charge ? objectif : null
+          if (obj) {
+            const record = !!s && s.record !== undefined && obj.reps >= s.reps
+            return (
+              <div className="cran-des">
+                {record ? <IconeCran taille={18} /> : <Target size={18} />}
+                <span>
+                  <strong>
+                    Vise {qte(exo, obj.reps)}
+                    {enTemps(exo) ? '' : ' reps'}
+                  </strong>{' '}
+                  · à battre : {qte(exo, obj.avant)}
+                  {record ? (s!.record === obj.avant ? ', ton record' : ' · ce sera un record') : ''}
+                </span>
+              </div>
+            )
+          }
           if (!s) return null
           return (
             <div className="cran-des">
@@ -433,9 +453,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </div>
       )}
 
+      {/* La consigne, avant la série : apprise après l'appui, elle arrive trop tard. */}
       {finisseur && (
-        <div className="bandeau-fin">
-          <Sparkles size={16} className="ico-texte" /> Finisseur · {info.nom} : {info.court}
+        <div className="consigne-fin">
+          <strong>
+            <Sparkles size={14} className="ico-texte" /> Finisseur · {info.nom}.
+          </strong>{' '}
+          {consigne(tf, tf === 'drop' && charge > 0 ? chargeTexte(exo, chargeBaisse(charge, exo.pas)) : undefined)}
+          {tf !== 'echec' && ' Tu notes la suite après.'}
         </div>
       )}
 
@@ -560,7 +585,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
         </button>
       ) : finisseur ? (
         <button className={'btn grand' + (enRepos ? '' : ' finisseur')} disabled={aRegler} onClick={() => (tf === 'echec' ? enregistrer(construire('echec')) : ouvrirPanneau())}>
-          {tf === 'echec' ? 'Valider (échec)' : 'Échec atteint'}
+          {tf === 'echec' ? 'Valider la série' : 'J’ai fini · noter la suite'}
         </button>
       ) : temps && !edition && !saisieManuelle ? null : (
         <button

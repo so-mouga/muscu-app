@@ -22,7 +22,7 @@ import { recordDuJour } from '../lib/historique'
 import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
 import Disque, { IconeCran } from '../components/Disque'
 import { verrou } from '../lib/verrou'
-import { chargeQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chargeTexte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -33,7 +33,8 @@ import { reposParDefaut } from '../lib/programme'
 import { alterneEncore, delier, echangerExos, estDansSuperset, groupeSuperset, prochainExoDeSeance, remplacerEnCours, reposApresSuperset, suivantDansGroupe } from '../lib/superset'
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
-import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
+import { chargeBaisse, consigne, FINISSEURS, typeFinisseur } from '../lib/finisseur'
+import AvantFinisseur from '../components/AvantFinisseur'
 import { remplacesDe, textePlace } from '../lib/partageSeance'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
@@ -49,6 +50,27 @@ function stocke<T>(cle: string, defaut: T): T {
     return defaut
   }
 }
+/** Annonces de finisseur déjà montrées (`séance:exercice`) : ni revenir de la liste, ni rouvrir l'appli en pleine séance ne les rejoue. */
+const annoncesVues = new Set<string>(
+  (() => {
+    try {
+      return JSON.parse(localStorage.getItem('annoncesFinisseur') ?? '[]') as string[]
+    } catch {
+      return []
+    }
+  })()
+)
+/** Note l'annonce comme vue ; seules celles de la séance en cours sont gardées. */
+function annonceVue(cle: string) {
+  annoncesVues.add(cle)
+  const seance = cle.split(':')[0]
+  try {
+    localStorage.setItem('annoncesFinisseur', JSON.stringify([...annoncesVues].filter((c) => c.startsWith(seance + ':'))))
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
 function range(cle: string, v: unknown) {
   try {
     if (v === null) localStorage.removeItem(cle)
@@ -168,6 +190,9 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
   const [seriesDe, setSeriesDe] = useState<number | null>(null)
   const reglageSon = useLiveQuery(() => db.reglages.get('sonValidation'), [])
   const sonValidation = reglageSon?.valeur !== false
+  // L'annonce d'un finisseur (deux secondes avant la dernière série) : une fois par exercice et par séance, coupable dans Réglages.
+  const reglageAnnonce = useLiveQuery(() => db.reglages.get('annonceFinisseur'), [])
+  const [, setAnnonceVue] = useState(0)
   /** Fiche d'exécution ouverte depuis le plein écran. */
   const [infos, setInfos] = useState<string | null>(null)
   /** Objectif réglé sur place (index de l'exercice dans la séance). */
@@ -699,6 +724,21 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     )
   })()
 
+  /** La consigne du finisseur de cet exercice, avec la charge de la baisse quand elle est connue. */
+  const consigneDe = (i: number) => {
+    const tf = typeFinisseur(plans[i])
+    const c = suggestions[i].charges[Math.min(nbFaites(plans[i].exoId), suggestions[i].charges.length - 1)]
+    return consigne(tf, tf === 'drop' && typeof c === 'number' && c > 0 ? chargeTexte(exos[i], chargeBaisse(c, exos[i].pas)) : undefined)
+  }
+  /** L'objectif fixé pour la série `n` : plus de reps que la dernière fois, à la même charge. Jamais en séance allégée. */
+  const objectifSerie = (i: number, n: number) => {
+    if (seance.deload) return undefined
+    const d = historiqueDe(terminees, plans[i].exoId)[0]?.[n]
+    const c = suggestions[i].charges[n]
+    const r = suggestions[i].reps[n]
+    return d && typeof c === 'number' && c === d.charge && typeof r === 'number' && r > d.reps ? { charge: c, reps: r, avant: d.reps } : undefined
+  }
+
   if (focus) {
     const faitesParExo = () => Object.fromEntries(plans.map((x) => [x.exoId, nbFaites(x.exoId)]))
     /** Superset : badge et ce qui vient après la série à faire, pour remplacer la liste du groupe. */
@@ -751,6 +791,8 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const t = totalDe(enCours)
       const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
       const plus = hausse(exo, suggestions[enCours], historiqueDe(terminees, p.exoId)[0], n)
+      const objectif = p.finisseur && n === t - 1 ? undefined : objectifSerie(enCours, n)
+      const seuil = objectif ? seuilCran(exo, historiqueDe(terminees, p.exoId), seance.series.filter((x) => x.exoId === p.exoId), objectif.charge) : null
       const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
       return (
         <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
@@ -784,7 +826,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             </>
           ) : (
             <div className="entete-prochaine">
-              <div className="faible">Prochaine série</div>
+              <div className={p.finisseur && n === t - 1 ? 'texte-finisseur prochaine-finisseur' : 'faible'}>{p.finisseur && n === t - 1 ? 'Prochaine série : finisseur' : 'Prochaine série'}</div>
               <button className="lien-prochaine" onClick={() => setSeriesDe(enCours)}>
                 Séries, note <ChevronRight size={16} />
               </button>
@@ -794,13 +836,41 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             <h2>{exo.nom}</h2>
             <BoutonInfos onClick={() => setInfos(exo.id)} />
           </div>
-          {p.finisseur && n === t - 1 && <span className="pastille fin"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</span>}
           {enSuperset && ensuiteSuperset(enCours)}
           {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
           {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} vient={vient && derniere?.i === enCours ? (cranRepos ? 'vient-cran' : derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
-          <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId), t)}</div>
-          {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
-          {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
+          {objectif && avant ? (
+            // L'objectif fixé, en grand, pendant qu'on se prépare : le chiffre à atteindre, et s'il vaut un record.
+            <div className="a-battre">
+              <div className="faible">
+                À battre : {serieTexte(exo, avant, false, false)}
+                {seuil?.record === objectif.avant ? ', ton record' : ''}
+              </div>
+              <div className="vise">
+                Vise <span className="vise-chiffre">{qte(exo, objectif.reps)}</span>
+              </div>
+              {seuil && objectif.reps >= seuil.reps && (
+                <div className="vise-record">
+                  <IconeCran taille={16} /> Ce sera un record : +1 cran
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId), t)}</div>
+              {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
+              {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
+            </>
+          )}
+          {/* Le finisseur s'annonce pendant le repos, avec ce qu'il faudra faire. */}
+          {p.finisseur && n === t - 1 && (
+            <div className="consigne-fin">
+              <strong>
+                <Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}.
+              </strong>{' '}
+              {consigneDe(enCours)}
+            </div>
+          )}
           {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} />}
           {(p.note || exo.notes) && <div className="faible"><Info size={14} className="ico-texte" /> {p.note ?? exo.notes}</div>}
         </div>
@@ -836,20 +906,26 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             const t = totalDe(enCours)
             const derniereFois = historiqueDe(terminees, p.exoId)[0]
             const plus = hausse(exo, suggestions[enCours], derniereFois, n)
+            const finisseurIci = !!p.finisseur && n === t - 1
+            const objectifSaisie = finisseurIci ? undefined : objectifSerie(enCours, n)
+            const cleAnnonce = `${seance.id}:${p.exoId}`
             const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
             return (
               <div className="focus-bloc pile saisie-focus">
+                {finisseurIci && reglageAnnonce?.valeur !== false && !annoncesVues.has(cleAnnonce) && !corrige && (
+                  <AvantFinisseur exo={exo.nom} technique={FINISSEURS[typeFinisseur(p)].nom} consigne={consigneDe(enCours)} onFin={() => (annonceVue(cleAnnonce), setAnnonceVue((x) => x + 1))} />
+                )}
                 {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
                 <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
                   <div style={{ minWidth: 0 }}>
-                    {p.finisseur && n === t - 1 && <div className="faible"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</div>}
                     <h2>{exo.nom}</h2>
                     {enSuperset && ensuiteSuperset(enCours)}
                   </div>
                   <BoutonInfos onClick={() => setInfos(exo.id)} />
                 </div>
                 <LigneSeries avant={n === 0 && chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]).length ? <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee /> : undefined} exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} />
-                {(derniereFois?.[n] || plus) && (
+                {/* Avec un objectif à battre, l'éditeur l'écrit en une ligne (« Vise 9 · à battre : 8 ») : pas de doublon ici. */}
+                {!objectifSaisie && (derniereFois?.[n] || plus) && (
                   <div className="faible">
                     {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n], false, false)} · effort {kg(derniereFois[n].rpe)}/10</>}
                     {plus && <span className="badge-hausse"> ↑ {plus}</span>}
@@ -873,6 +949,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   verrou={verrou}
                   compact
                   seuilCran={seance.deload ? undefined : (charge) => seuilCran(exo, historiqueDe(terminees, p.exoId), seance.series.filter((x) => x.exoId === p.exoId), charge)}
+                  objectif={objectifSaisie}
                   onFini={(s) => valider(s, reposApresSuperset(plans, enCours, n, t, faitesParExo(), totalDe))}
                   onAnnulerEdition={() => undefined}
                 />
