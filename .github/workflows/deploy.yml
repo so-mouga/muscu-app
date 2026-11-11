@@ -27,7 +27,9 @@ jobs:
       - run: npm test
       - run: npm run build
       # Parcours principal dans un vrai navigateur (séance, export / import, ancienne base) : bloque la mise en ligne s'il casse.
-      - run: npx playwright install --with-deps chromium
+      # Sans --with-deps : la machine de GitHub a déjà ce qu'il faut pour Chrome, et ces paquets Ubuntu (des polices)
+      # ont bloqué la mise en ligne le 11 nov. 2026, quand leurs serveurs étaient injoignables.
+      - run: npx playwright install chromium
       - run: npm run e2e
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
