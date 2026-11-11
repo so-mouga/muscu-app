@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EXERCICES } from '../data/exercices'
-import type { Cycle, Programme, Seance, SeanceModele } from '../types'
-import { texteProgramme, type DonneesProgramme } from './partageProgramme'
+import type { Cycle, ExoPlan, Programme, Seance, SeanceModele } from '../types'
+import { effort, reposPartage, texteProgramme, type DonneesProgramme } from './partageProgramme'
 import { ciblesEnVigueur } from './volume'
 
 const haut: SeanceModele = {
@@ -50,10 +50,10 @@ describe('texte d’un programme à partager', () => {
 
   it('chaque exercice : séries, effort, repos, superset, finisseur, échauffements et note', () => {
     expect(t).toContain('Échauffement : moulinets de bras 10 par sens')
-    expect(t).toContain('1. Développé incliné Smith · 3 × 8–10 · effort 7, 8/10 · repos 3:00')
+    expect(t).toContain('1. Développé incliné Smith · 3 × 8–10 · effort 7, 8, 8/10 · repos 3:00 après chaque série')
     expect(t).toContain('   échauffement 50 % × 8, 25 kg × 4')
-    expect(t).toContain('2. Butterfly · 2 × 12–15 · effort 8/10 · superset avec le 3, 0:30 pour changer de poste')
-    expect(t).toContain('3. Élévation latérale poulie · 2 × 12–15 · effort 9/10 · repos 1:30 · finisseur')
+    expect(t).toContain('2. Butterfly · 2 × 12–15 · effort 8, 8/10 · superset avec le 3, 0:30 pour changer de poste')
+    expect(t).toContain('3. Élévation latérale poulie · 2 × 12–15 · effort 9, 9/10 · repos 1:30 après chaque série · finisseur')
     expect(t).toContain('   note : Coude haut')
   })
 
@@ -81,3 +81,17 @@ describe('texte d’un programme à partager', () => {
     expect(texteProgramme(programme, donnees({ cycle: { ...cycle, programmeId: 'autre' } }), true)).not.toContain('Cycle')
   })
 })
+
+describe('effort et repos visés, série par série', () => {
+  const p = (rpe: number[], repos: (number | undefined)[], reposApres?: number): ExoPlan => ({ exoId: 'x', repos: 180, reposApres, series: rpe.map((r, i) => ({ repsMin: 8, repsMax: 12, rpe: r, repos: repos[i] })), charge: 50, chauffes: [], finisseur: false })
+  it('une valeur d’effort par série, même quand elles sont toutes pareilles', () => {
+    expect(effort(p([8, 8, 9], []))).toBe('effort 8, 8, 9/10')
+    expect(effort(p([9, 9, 9], []))).toBe('effort 9, 9, 9/10')
+  })
+  it('le repos dit à quelles séries il s’applique', () => {
+    expect(reposPartage(p([8, 8, 8], []))).toBe('repos 3:00 après chaque série')
+    expect(reposPartage(p([8, 8, 8], [], 120))).toBe('repos 3:00 entre les séries, puis 2:00 avant l’exercice suivant')
+    expect(reposPartage(p([8, 8, 8], [180, 120, 90]))).toBe('repos 3:00, 2:00 entre les séries, puis 1:30 avant l’exercice suivant')
+  })
+})
+

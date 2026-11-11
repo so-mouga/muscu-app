@@ -109,7 +109,7 @@ describe('texte du bilan et séance allégée pour un seul jour', () => {
     const s2 = seance('s2', '2026-10-27', [52.5, 52.5], { exercices: [plan] })
     s2.series.push({ id: 'd', exoId: 'smith_incline', type: 'drop', charge: 52.5, reps: 8, rpe: 10, heure: 0, suite: [{ charge: 40, reps: 6 }] })
     const t = genererBilan(donnees([seance('s1', '2026-10-20', [50, 50, 50]), s2]), '2026-10-19', '2026-10-29')
-    expect(t).toContain('Développé incliné Smith (pecs) · 3 × 8–12, effort 8/10 · 1re')
+    expect(t).toContain('Développé incliné Smith (pecs) · 3 × 8–12, effort 8, 8, 8/10 · 1re')
     expect(t).toContain('dégressive : 52,5 kg × 8, puis 40 kg × 6')
     expect(t).toContain('Effort sur 10 : 10 = échec')
   })

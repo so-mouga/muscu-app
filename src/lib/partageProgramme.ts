@@ -1,7 +1,7 @@
 import { MUSCLES } from '../data/exercices'
 import { mouvement, MOUVEMENTS, echauffementDe, type MouvementEchauffement } from '../data/echauffements'
 import type { Cycle, Exercice, ExoPlan, Muscle, Programme, Seance, SeanceModele } from '../types'
-import { chrono, dateCourte, dureeEstimee, kg, reposTexte, schemaPlan, semaineType, seriesEnClair, texteChauffe, volumePrevu } from './calc'
+import { chrono, dateCourte, dureeEstimee, kg, schemaPlan, semaineType, seriesEnClair, texteChauffe, volumePrevu } from './calc'
 import { etatCycle } from './cycle'
 import { historiqueDe } from './historique'
 import { sousTitrePerso } from './programme'
@@ -24,12 +24,28 @@ export interface DonneesProgramme {
   aujourdhui: string
 }
 
-/** « effort 8/10 », « effort 7, 8/10 » si l'effort change d'une série à l'autre. */
-export const effort = (p: ExoPlan) => `effort ${[...new Set(p.series.map((s) => kg(Math.round(s.rpe))))].join(', ')}/10`
+/**
+ * Effort visé, une valeur par série et sans raccourci (« effort 8, 8, 9/10 », « effort 8, 8, 8/10 ») : pour une IA,
+ * « 8, 9 » ne dit pas quelle série est à 9 (retour de l'IA de l'utilisateur, 11 nov. 2026). Textes partagés seulement.
+ */
+export const effort = (p: ExoPlan) => `effort ${p.series.map((s) => kg(Math.round(s.rpe))).join(', ')}/10`
+
+/**
+ * Repos d'un exercice, sans ambiguïté sur les séries concernées : « repos 3:00 après chaque série », « repos 3:00,
+ * 2:00 entre les séries » (un repos de moins que de séries), puis « 1:30 avant l'exercice suivant » s'il diffère.
+ */
+export function reposPartage(p: ExoPlan): string {
+  const n = p.series.length
+  const entre = p.series.slice(0, Math.max(0, n - 1)).map((s) => s.repos ?? p.repos)
+  const dernier = p.reposApres ?? p.series[n - 1]?.repos ?? p.repos
+  if (entre.every((r) => r === dernier)) return `repos ${chrono(dernier)} après chaque série`
+  const t = entre.every((r) => r === entre[0]) ? `${chrono(entre[0])} entre les séries` : `${entre.map(chrono).join(', ')} entre les séries`
+  return `repos ${t}, puis ${chrono(dernier)} avant l’exercice suivant`
+}
 
 /** Ligne d'un exercice : séries, effort, repos ou superset, et ce qui le distingue. */
 export function ligneExo(exo: Exercice, p: ExoPlan, i: number): string {
-  const repos = p.enchaine ? `superset avec le ${i + 2}, ${p.repos > 0 ? `${chrono(p.repos)} pour changer de poste` : 'sans repos entre les deux'}` : `repos ${reposTexte(p)}`
+  const repos = p.enchaine ? `superset avec le ${i + 2}, ${p.repos > 0 ? `${chrono(p.repos)} pour changer de poste` : 'sans repos entre les deux'}` : reposPartage(p)
   return [`${i + 1}. ${exo.nom}`, schemaPlan(exo, p), effort(p), repos, p.finisseur ? 'finisseur' : '', p.optionnel ? 'optionnel' : ''].filter(Boolean).join(' · ')
 }
 

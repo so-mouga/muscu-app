@@ -45,7 +45,7 @@ describe('texte d’une séance à partager', () => {
   })
 
   it('chaque exercice : prévu, fait avec l’effort, la fois d’avant, la note', () => {
-    expect(t).toContain('1. Rowing haltère · 3 × 8–12 · effort 8/10 · repos 2:00')
+    expect(t).toContain('1. Rowing haltère · 3 × 8–12 · effort 8, 8, 8/10 · repos 2:00 après chaque série')
     expect(t).toContain('   aujourd’hui : 30 kg/main × 12, 12, 12 · effort 8, 8, 8/10')
     expect(t).toContain('   la fois d’avant (lun. 2 nov.) : 30 kg/main × 11, 11, 10 · effort 8, 8, 8/10')
     expect(t).toContain('   note : Coude serré')
