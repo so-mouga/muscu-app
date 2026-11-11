@@ -66,6 +66,7 @@ Un cran = un record battu sur un exercice : une charge jamais faite, ou plus de 
 - **Fin de séance** : un disque à 12 segments, les nouveaux en vert, « n records battus », « n crans sur 12 dans ton disque », la liste des exercices avec le gain. La phrase « Un cran = un record battu… » ne s'affiche que le jour du tout premier cran.
 - **Accueil ensuite** : une ligne « Ton disque · n crans · plus que m › » sous « Cette semaine » (absente avant le premier cran) ; un appui ouvre une fenêtre avec la règle et les derniers crans. Dans la carte de la séance du jour, « n records à ta portée » et « record : 60 kg × 10 » sur certaines lignes ; « Démarrer » reste à l'écran.
 - **Séance allégée** : aucun cran, aucune ligne « Cran dès », même avec une série meilleure que le record.
+- **Animations** : au moment du cran, le petit disque arrive dans le cercle et son encoche se taille, puis les deux textes montent (moins d'une seconde) ; passer par « Voir la séance » puis revenir ne doit rien rejouer. Au 12e cran, la fin de séance montre un grand disque qui fait un tour et passe au vert, puis « Disque plein ». Ni confettis ni rebond.
 - **Jamais retiré** : une séance moins bonne ensuite ne fait pas baisser le nombre de crans. Corriger ou supprimer la séance qui a donné le cran le retire, c'est normal.
 
 ### 3 ter. Le mot « objectif » (plus de « phase » à l'écran)

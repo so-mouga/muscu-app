@@ -39,9 +39,11 @@ interface Props {
   legende?: string
   /** Cercle du plein écran : la série d'avant vient de gagner un cran. Le texte dit pourquoi (« ton record était 10 »). */
   cran?: string
+  /** Le cran vient d'être gagné à l'instant : le disque arrive et son encoche se taille. Faux en revenant de la liste : rien ne se rejoue. */
+  cranVient?: boolean
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -53,6 +55,12 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
     return () => clearInterval(t)
   }, [])
 
+  // Décidé une fois par repos, au moment où le cran apparaît (la série est écrite un instant après le début du repos) :
+  // le parent repasse à faux au bout de 1,5 s, l'animation ne doit ni se couper ni repartir.
+  const animation = useRef<{ debut?: number; oui: boolean | null }>({ debut: etat.debut, oui: null })
+  if (animation.current.debut !== etat.debut) animation.current = { debut: etat.debut, oui: null }
+  if (cran && animation.current.oui === null) animation.current.oui = !!cranVient
+  const anime = !!animation.current.oui
   const enPause = etat.pause !== undefined
   const reste = resteRepos(etat, maintenant)
   const fini = reste <= 0
@@ -133,7 +141,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
             saut={saut}
           >
             {cran && !fini && !enPause ? (
-              <div className="cran-signal">
+              <div className={'cran-signal' + (anime ? ' vient' : '')}>
                 <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
               </div>
             ) : (
@@ -142,7 +150,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
               </div>
             )}
             <div className="temps-grand">{temps}</div>
-            {legende ? <div className="legende-chrono">{legende}</div> : cran && !fini && <div className="legende-chrono cran-pourquoi">{cran}</div>}
+            {legende ? <div className="legende-chrono">{legende}</div> : cran && !fini && <div className={'legende-chrono cran-pourquoi' + (anime ? ' vient' : '')}>{cran}</div>}
           </Anneau>
         </button>
         <div className="ligne boutons-grand">{boutons}</div>

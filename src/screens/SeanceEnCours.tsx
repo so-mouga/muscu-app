@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, Share2, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
 import Anneau from '../components/Anneau'
@@ -797,7 +797,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           {p.finisseur && n === t - 1 && <span className="pastille fin"><Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}</span>}
           {enSuperset && ensuiteSuperset(enCours)}
           {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
-          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} vient={vient && derniere?.i === enCours ? (derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
+          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} vient={vient && derniere?.i === enCours ? (cranRepos ? 'vient-cran' : derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
           <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId), t)}</div>
           {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
           {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
@@ -821,7 +821,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
     return (
       <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
         {avancementCompact}
-        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} legende={vueRepos && exoFini ? 'exercice fini' : undefined} cran={vueRepos && cranRepos ? pourquoiCran(cranRepos) : undefined} />}
+        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} legende={vueRepos && exoFini ? 'exercice fini' : undefined} cran={vueRepos && cranRepos ? pourquoiCran(cranRepos) : undefined} cranVient={vient && !!cranRepos} />}
         {correction}
         {vueRepos ? (
           prochaine ?? blocTerminer
@@ -1402,22 +1402,34 @@ function FinSeance({
       <div className="carte fin-resume">
         {crans.length > 0 ? (
           <>
-            <div className="fin-crans">
-              <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={76} chiffre />
-              <div>
-                <h2>{seance.nom}</h2>
+            {disquePlein ? (
+              // Le 12e cran : le seul moment qui a droit à une animation plus longue (une fois toutes les deux ou trois semaines).
+              <div className="fin-disque-plein" style={{ '--apres': `${0.25 + Math.min(crans.length, 12) * 0.25}s` } as CSSProperties}>
+                <Disque crans={12} nouveaux={Math.min(crans.length - disque.crans, 12)} taille={132} chiffre plein />
+                <h2>Disque plein</h2>
                 <div className="fin-crans-titre">
-                  {crans.length} record{crans.length > 1 ? 's' : ''} battu{crans.length > 1 ? 's' : ''}
+                  {crans.length} record{crans.length > 1 ? 's' : ''} battu{crans.length > 1 ? 's' : ''} aujourd’hui
                 </div>
-                <div className="faible petit">
-                  {disquePlein
-                    ? disque.crans
-                      ? `Disque plein, et ${disque.crans} cran${disque.crans > 1 ? 's' : ''} dans le suivant`
-                      : '12 crans sur 12 : ton disque est plein'
-                    : `${disque.crans} cran${disque.crans > 1 ? 's' : ''} sur 12 dans ton ${disque.numero > 1 ? `${disque.numero}e ` : ''}disque`}
+                <div className="faible petit fin-disque-suite">
+                  {disque.crans ? `Ton ${disque.numero}e disque a déjà ${disque.crans} cran${disque.crans > 1 ? 's' : ''}.` : `Ton ${disque.numero}e disque commence à la prochaine séance.`}
+                </div>
+                <span className="pastille fin-disque-suite">
+                  <Disque crans={12} taille={16} plein /> {disque.pleins} disque{disque.pleins > 1 ? 's' : ''} plein{disque.pleins > 1 ? 's' : ''}
+                </span>
+                <div className="faible petit fin-disque-suite">{seance.nom}</div>
+              </div>
+            ) : (
+              <div className="fin-crans">
+                <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={76} chiffre />
+                <div>
+                  <h2>{seance.nom}</h2>
+                  <div className="fin-crans-titre">
+                    {crans.length} record{crans.length > 1 ? 's' : ''} battu{crans.length > 1 ? 's' : ''}
+                  </div>
+                  <div className="faible petit">{`${disque.crans} cran${disque.crans > 1 ? 's' : ''} sur 12 dans ton ${disque.numero > 1 ? `${disque.numero}e ` : ''}disque`}</div>
                 </div>
               </div>
-            </div>
+            )}
             <div className="petit fin-crans-liste">
               {crans.map((c) => (
                 <div key={c.exo.id}>
