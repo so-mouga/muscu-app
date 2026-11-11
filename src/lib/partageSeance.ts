@@ -133,7 +133,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
     l.push(`Cycle ${d.cycle.nom ?? d.cycle.programme.nom}${seance.semaine ? `, semaine ${seance.semaine} sur ${total}` : ''}`)
   }
   const phase = phaseA(d.objectifs, seance.date)
-  if (phase) l.push(`Phase : ${nomPhase(phase.phase)}`)
+  if (phase) l.push(`Objectif : ${nomPhase(phase.phase)}`)
   const sens = sensationSeance(seance)
   if (sens) l.push(`Sensation : ${sens.label}`)
   // Les pas de la veille (ceux du jour ne sont pas finis au moment de la séance) et la nuit d'avant.

@@ -11,7 +11,7 @@ import { db } from '../db'
 import { dateCourte, dateISO, kg, milliers } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { paireDepart, poseCommune } from '../lib/photos'
-import { ecartPesees, nomPhase, phaseA, phaseAffichee, phasesPassees, poidsDepart, poidsSemaine } from '../lib/objectifs'
+import { ecartPesees, nomVise, phaseA, phaseAffichee, phasesPassees, poidsDepart, poidsSemaine } from '../lib/objectifs'
 import { objectifDuJour } from '../lib/nutrition'
 import type { Mesure, PhotoCorps } from '../types'
 import { confirmer } from '../components/Dialogues'
@@ -32,7 +32,7 @@ const serie = (mesures: Mesure[], cle: string) => mesures.filter((m) => m.valeur
 
 export type PageCorps = 'phases' | 'pesees' | 'mensurations' | 'photos' | `recap:${string}`
 
-const TITRES: Record<'phases' | 'pesees' | 'mensurations' | 'photos', string> = { phases: 'Phases', pesees: 'Toutes les pesées', mensurations: 'Mensurations', photos: 'Photos' }
+const TITRES: Record<'phases' | 'pesees' | 'mensurations' | 'photos', string> = { phases: 'Ton objectif', pesees: 'Toutes les pesées', mensurations: 'Mensurations', photos: 'Photos' }
 
 /** Corps, puis sa page de détail, puis le récap d'une phase. */
 const profondeur = (p: PageCorps | null) => (!p ? 0 : p.startsWith('recap:') ? 2 : 1)
@@ -160,7 +160,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
       {phase ? (
         <button type="button" className="carte corps-carte corps-phase" onClick={() => onPage('phases')}>
           <span className="ligne entre">
-            <strong className="corps-titre">{nomPhase(phase.phase)}</strong>
+            <strong className="corps-titre">{nomVise(phase.phase)}</strong>
             <span className="corps-detail-droite">
               {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : phase.depassee ? 'fin dépassée' : `sem. ${phase.semaine}${totalPhase ? `/${totalPhase}` : ''}`}
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
@@ -183,7 +183,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
       ) : catalogue.sansObjectif ? (
         <button type="button" className="carte corps-carte corps-phase" onClick={() => onPage('phases')}>
           <span className="ligne entre">
-            <strong className="corps-titre">Phase</strong>
+            <strong className="corps-titre">Objectif</strong>
             <span className="corps-detail-droite">
               Pas d’objectif pour l’instant
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
@@ -192,10 +192,10 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
         </button>
       ) : (
         <section className="carte corps-carte">
-          <strong className="corps-titre">Phase</strong>
+          <strong className="corps-titre">Objectif</strong>
           <p className="faible petit-texte">Qu’est-ce que tu vises en ce moment ?</p>
           <button type="button" className="btn plein" onClick={() => onPage('phases')}>
-            Choisir ma phase
+            Choisir mon objectif
           </button>
         </section>
       )}
@@ -209,7 +209,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           }}
         >
           <span>
-            Phases précédentes <span className="faible">({nbPassees})</span>
+            Objectifs précédents <span className="faible">({nbPassees})</span>
           </span>
           <ChevronRight size={16} strokeWidth={1.75} className="muted" />
         </button>
@@ -269,7 +269,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           <>
             <div className="ligne entre">
               <strong className="corps-titre">Mensurations</strong>
-              {principalesTriees.some((c) => ecartRepere(serie(mesures, c), enCours?.debut) !== null) && <span className="faible petit-texte">{enCours ? 'depuis le début de la phase' : 'depuis la première prise'}</span>}
+              {principalesTriees.some((c) => ecartRepere(serie(mesures, c), enCours?.debut) !== null) && <span className="faible petit-texte">{enCours ? 'depuis le début de l’objectif' : 'depuis la première prise'}</span>}
             </div>
             {principalesTriees.map((c) => {
               const s = serie(mesures, c)
@@ -467,7 +467,7 @@ function Mensurations({ mesures, depuis, onSaisir }: { mesures: Mesure[]; depuis
 
       {mesures.length > 0 && (
         <div className="carte" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 600 }}>{depuis ? 'Depuis le début de la phase' : 'Depuis le début'}</h3>
+          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-texte)', fontWeight: 600 }}>{depuis ? 'Depuis le début de l’objectif' : 'Depuis le début'}</h3>
           {principales.map(ligne)}
           {autres.length > 0 && principales.length > 0 && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>

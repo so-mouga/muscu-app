@@ -37,7 +37,7 @@ describe('texte d’un programme à partager', () => {
 
   it('en tête : le programme, la phase sans poids, et la légende de l’effort', () => {
     expect(t).toMatch(/^Programme Recompo · 3 séances par semaine\n/)
-    expect(t).toContain('Phase : Prise de muscle')
+    expect(t).toContain('Objectif : Prise de muscle')
     expect(t).toContain('8/10 = il reste environ 2 reps')
     expect(t).not.toMatch(/kg\s*\n.*poids/i)
   })

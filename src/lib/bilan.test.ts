@@ -60,8 +60,8 @@ describe('bilan à partager', () => {
       { depuis: '2026-10-22', phase: 'seche' as const, finPrevue: '2027-01-14', volume: {} },
     ]
     const t = genererBilan({ ...donnees([seance('s1', '2026-10-20', [50, 50, 50])]), objectifs }, '2026-10-19', '2026-10-29')
-    expect(t).toMatch(/Phase : Sèche depuis le .*22 oct.* \(semaine 2 sur 12, fin prévue/)
-    expect(t).toMatch(/Phase précédente pendant la période : prise de muscle du .* au .*21 oct/)
+    expect(t).toMatch(/Objectif : Sèche depuis le .*22 oct.* \(semaine 2 sur 12, fin prévue/)
+    expect(t).toMatch(/Objectif précédent pendant la période : prise de muscle du .* au .*21 oct/)
   })
 
   it('une phase encore en cours n’est pas une phase précédente, même si la suivante est déjà prévue', () => {
@@ -70,8 +70,8 @@ describe('bilan à partager', () => {
       { depuis: '2026-11-16', phase: 'seche' as const, volume: {} },
     ]
     const t = genererBilan({ ...donnees([seance('s1', '2026-10-20', [50, 50, 50])]), objectifs }, '2026-10-19', '2026-10-29')
-    expect(t).toContain('Phase : Prise de muscle')
-    expect(t).not.toContain('Phase précédente')
+    expect(t).toContain('Objectif : Prise de muscle')
+    expect(t).not.toContain('Objectif précédent')
   })
 
   it('reprend « À retenir » en tête', () => {
@@ -139,6 +139,6 @@ describe('texte du bilan et séance allégée pour un seul jour', () => {
 
   it('rythme visé par la phase quand elle a un poids visé et une fin', () => {
     const d = { ...donnees([seance('s0', '2026-10-20', [50]), seance('s1', '2026-10-27', [50])]), objectifs: [{ depuis: '2026-10-05', phase: 'prise' as const, volume: {}, ecartVise: 3, finPrevue: '2026-12-28' }] }
-    expect(genererBilan(d, '2026-10-19', '2026-10-29')).toContain('visé par ta phase : +3 kg en 12 semaines, soit +0,25 kg/semaine')
+    expect(genererBilan(d, '2026-10-19', '2026-10-29')).toContain('visé par ton objectif : +3 kg en 12 semaines, soit +0,25 kg/semaine')
   })
 })

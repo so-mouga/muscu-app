@@ -19,6 +19,7 @@ import {
   finNouvellePhase,
   modifier,
   nomPhase,
+  nomVise,
   periodes,
   phaseA,
   PHASES,
@@ -83,7 +84,7 @@ export function SuitePhase({ catalogue, onChoix }: { catalogue: Catalogue; onCho
             onChoix(x.id)
           }}
         >
-          Passer en {x.court.toLowerCase()}
+          {x.vise}
         </button>
       ))}
     </div>
@@ -142,10 +143,10 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
       {enCours && finie && (
         <div className="carte pile rappel-phase" style={{ padding: '16px', borderRadius: 'var(--rayon)', marginBottom: 12 }}>
           <strong>
-            Ta {nomPhase(enCours.phase).toLowerCase()} prévue jusqu’au {jour(plusJours(enCours.finPrevue!, -1))} est finie.
+            Ton objectif « {nomVise(enCours.phase)} », prévu jusqu’au {jour(plusJours(enCours.finPrevue!, -1))}, est terminé.
           </strong>
           <button type="button" className="bilan-tous" onClick={() => onRecap(enCours.debut)}>
-            <span>Voir le récap de cette phase</span>
+            <span>Voir le récap de cet objectif</span>
             <ChevronRight size={16} strokeWidth={1.75} className="muted" />
           </button>
           <SuitePhase catalogue={catalogue} onChoix={(type) => {
@@ -176,7 +177,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className={`point-phase phase-${enCours.phase}`} style={{ width: 10, height: 10 }} />
                     <span style={{ fontSize: 'var(--t-texte)', fontWeight: 600, color: 'var(--texte)' }}>
-                      {nomPhase(enCours.phase)}
+                      {nomVise(enCours.phase)} <span className="mot-salle">{nomPhase(enCours.phase).toLowerCase()}</span>
                     </span>
                   </div>
 
@@ -196,7 +197,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
                     </span>
                     <button
                       type="button"
-                      aria-label="Modifier la phase en cours"
+                      aria-label="Modifier l’objectif en cours"
                       style={{
                         background: 'transparent',
                         border: 'none',
@@ -289,7 +290,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <span className={`point-phase phase-${enCours.phase}`} />
-                  <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>Modifier {nomPhase(enCours.phase)}</strong>
+                  <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>Modifier « {nomVise(enCours.phase)} »</strong>
                 </div>
 
                 <EditeurPhase
@@ -316,49 +317,22 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
             <div className="faible" style={{ marginBottom: 8 }}>
               Qu’est-ce que tu vises en ce moment ? C’est facultatif.
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {PHASES.map((x) => (
-                <button
-                  key={x.id}
-                  type="button"
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 'var(--rayon-2)',
-                    background: 'var(--voile)',
-                    border: '1px solid var(--bord)',
-                    color: 'var(--texte)',
-                    fontSize: 'var(--t-petit)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => commencer(x.id)}
-                >
-                  {x.nom}
-                </button>
-              ))}
-              <button
-                type="button"
-                aria-pressed={!!catalogue.sansObjectif}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 'var(--rayon-2)',
-                  background: catalogue.sansObjectif ? 'var(--voile-fort)' : 'var(--voile)',
-                  border: '1px solid var(--bord)',
-                  color: 'var(--texte)',
-                  fontSize: 'var(--t-petit)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-                onClick={() => void setReglage(CLE_SANS_OBJECTIF, !catalogue.sansObjectif)}
-              >
-                Pas d’objectif pour l’instant
+            <div className="demarrage-choix objectif-choix">
+              {PHASES.slice()
+                .sort((a, b) => ['prise', 'seche', 'maintien'].indexOf(a.id) - ['prise', 'seche', 'maintien'].indexOf(b.id))
+                .map((x) => (
+                  <button key={x.id} type="button" className="demarrage-option" onClick={() => commencer(x.id)}>
+                    <strong>
+                      {x.vise} <span className="mot-salle">{x.nom.toLowerCase()}</span>
+                    </strong>
+                    {x.aide && <span>{x.aide}</span>}
+                  </button>
+                ))}
+              <button type="button" aria-pressed={!!catalogue.sansObjectif} className={catalogue.sansObjectif ? 'demarrage-option pris' : 'demarrage-option'} onClick={() => void setReglage(CLE_SANS_OBJECTIF, !catalogue.sansObjectif)}>
+                <strong>Pas d’objectif pour l’instant</strong>
+                <span>Tu t’entraînes, c’est tout</span>
               </button>
             </div>
-            {catalogue.sansObjectif && (
-              <div className="faible petit-texte" style={{ marginTop: 8 }}>
-                Tu t’entraînes, c’est tout : l’appli ne te demande rien de plus.
-              </div>
-            )}
           </div>
         )}
 
@@ -431,7 +405,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
                       >
                         <div>
                           <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>
-                            {nomPhase(p.phase)}
+                            {nomVise(p.phase)}
                           </div>
                           <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginTop: 2 }}>
                             Du {jour(p.debut)} {p.finPrevue ? `au ${jour(plusJours(p.finPrevue, -1))}` : ''}
@@ -455,7 +429,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
                           border: '1px solid var(--voile-fort)',
                         }}
                       >
-                        <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)', marginBottom: 10 }}>{nomPhase(p.phase)} (à venir)</div>
+                        <div style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)', marginBottom: 10 }}>{nomVise(p.phase)} (à venir)</div>
                         <EditeurPhase
                           p={p}
                           enCours={false}
@@ -523,15 +497,15 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
 
         {derniere && !derniere.fin && !derniere.finPrevue && !editionEnCours && !ouverte && (
           <div className="faible" style={{ fontSize: 'var(--t-legende)', marginTop: 8 }}>
-            Fixe une durée à la dernière phase pour pouvoir en ajouter une après.
+            Fixe une durée au dernier objectif pour pouvoir en ajouter un après.
           </div>
         )}
 
         {/* --- PHASES PRÉCÉDENTES --- */}
         {passees.length === 0 ? (
           <div className="phases-passees">
-            <span className="phases-passees-titre">Phases précédentes</span>
-            <p className="faible petit-texte">Pas encore de phase terminée. Tu retrouveras ici le récap de chacune.</p>
+            <span className="phases-passees-titre">Objectifs précédents</span>
+            <p className="faible petit-texte">Pas encore d’objectif terminé. Tu retrouveras ici le récap de chacun.</p>
           </div>
         ) : (
           <div ref={blocPassees} className="phases-passees">
@@ -543,7 +517,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
               style={{ padding: '4px 0' }}
             >
               <span style={{ fontSize: 'var(--t-petit)' }}>
-                Phases précédentes <span className="faible">({passees.length})</span>
+                Objectifs précédents <span className="faible">({passees.length})</span>
               </span>
               <ChevronRight size={16} className={'muted depliable-chevron' + (voirAvant ? ' ouvert' : '')} />
             </button>
@@ -630,8 +604,8 @@ function EditeurPhase({
 
   const supprimer = async () => {
     if (
-      await confirmer(suivante ? 'Les phases suivantes avancent d’autant.' : p.debut === aujourdhui ? 'Elle a commencé aujourd’hui : rien n’en sera gardé.' : 'Elle n’a pas encore commencé.', {
-        titre: `Supprimer cette ${nomPhase(p.phase).toLowerCase()} ?`,
+      await confirmer(suivante ? 'Les objectifs suivants avancent d’autant.' : p.debut === aujourdhui ? 'Il a commencé aujourd’hui : rien n’en sera gardé.' : 'Il n’a pas encore commencé.', {
+        titre: `Supprimer l’objectif « ${nomVise(p.phase)} » ?`,
         oui: 'Supprimer',
         danger: true,
       })
@@ -644,10 +618,10 @@ function EditeurPhase({
   const terminer = async () => {
     if (
       await confirmer(
-        suivante ? 'La phase suivante commence aujourd’hui, les autres avancent d’autant.' : 'Tu n’auras plus de phase en cours.',
+        suivante ? 'L’objectif suivant commence aujourd’hui, les autres avancent d’autant.' : 'Tu n’auras plus d’objectif en cours.',
         {
-          titre: `Terminer ta ${nomPhase(p.phase).toLowerCase()} aujourd’hui ?`,
-          oui: suivante ? 'Passer à la suivante' : 'Terminer la phase',
+          titre: `Terminer « ${nomVise(p.phase)} » aujourd’hui ?`,
+          oui: suivante ? 'Passer au suivant' : 'Terminer cet objectif',
         },
       )
     ) {
@@ -660,7 +634,7 @@ function EditeurPhase({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Switch de type de phase si future */}
       {!enCours && (
-        <div className="segments" role="radiogroup" aria-label="Type de phase">
+        <div className="segments" role="radiogroup" aria-label="Type d’objectif">
           {PHASES.map((x) => (
             <button
               key={x.id}
@@ -679,7 +653,7 @@ function EditeurPhase({
 
       {/* Durée sur une seule ligne horizontale compacte */}
       <div>
-        <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginBottom: 6 }}>Durée de la phase</div>
+        <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)', marginBottom: 6 }}>Durée</div>
         <div style={{ display: 'flex', gap: 4 }}>
           {DUREES.map((n) => {
             const fin = finApres(p.debut, n)
@@ -826,7 +800,7 @@ function EditeurPhase({
             style={{ color: 'var(--accent)', fontSize: 'var(--t-legende)' }}
             onClick={terminer}
           >
-            {suivante ? 'Passer à la phase suivante maintenant' : 'Terminer la phase'}
+            {suivante ? 'Passer à l’objectif suivant maintenant' : 'Terminer cet objectif'}
           </button>
         ) : (
           <button
@@ -835,7 +809,7 @@ function EditeurPhase({
             style={{ color: 'var(--danger)', fontSize: 'var(--t-legende)' }}
             onClick={supprimer}
           >
-            Supprimer cette phase
+            Supprimer cet objectif
           </button>
         )}
 
@@ -880,7 +854,7 @@ function LignePassee({ p, pesees, onOuvrir }: { p: PeriodePhase; pesees: Pesees;
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className={`point-phase phase-${p.phase}`} style={{ width: 8, height: 8 }} />
         <div>
-          <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>{nomPhase(p.phase)}</span>
+          <span style={{ fontSize: 'var(--t-petit)', fontWeight: 600, color: 'var(--texte)' }}>{nomVise(p.phase)}</span>
           <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
             {jour(p.debut)} → {jour(p.fin!)}{autreAnnee ? ` ${p.fin!.slice(0, 4)}` : ''} · {semainesEntre(p.debut, plusJours(p.fin!, 1))} sem.
           </div>

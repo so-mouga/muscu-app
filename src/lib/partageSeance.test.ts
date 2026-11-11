@@ -29,7 +29,7 @@ describe('texte d’une séance à partager', () => {
 
   it('en tête : la question, puis séance, date, durée, phase, sensation et légende de l’effort', () => {
     expect(t).toMatch(/^Ma question : le conseil de l’appli pour la prochaine fois te paraît-il juste \? Réponds avec mes chiffres, en quelques lignes\.\n\nSéance Haut A · lun\. 9 nov\. · \d+ min\n/)
-    expect(t).toContain('Phase : Prise de muscle')
+    expect(t).toContain('Objectif : Prise de muscle')
     expect(t).toContain('Sensation : Bien')
     expect(t).toContain('8/10 = il reste environ 2 reps')
     expect(t).toContain('Échauffement : moulinets de bras 10 par sens')

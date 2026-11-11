@@ -6628,3 +6628,22 @@ button.jour-pas {
   flex: none;
   font-style: normal;
 }
+
+/* Le mot de salle (prise, sèche, maintien) à côté de l'objectif dit en clair : on l'apprend en passant. */
+.mot-salle {
+  margin-left: var(--e1);
+  padding: 1px var(--e2);
+  border-radius: 999px;
+  background: var(--controle);
+  color: var(--texte-2);
+  font-size: var(--t-legende);
+  font-weight: 400;
+  white-space: nowrap;
+}
+/* Dans une carte, les choix d'objectif prennent le fond des boutons pour se détacher. */
+.objectif-choix .demarrage-option {
+  background: var(--controle);
+}
+.objectif-choix .demarrage-option.pris {
+  background: var(--voile-fort);
+}

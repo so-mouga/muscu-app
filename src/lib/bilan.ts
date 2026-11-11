@@ -73,10 +73,10 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   // Phase(s) de la période : en cours à la fin, et celles qui ont commencé ou fini pendant.
   if (d.objectifs?.length) {
     const phase = textePhase(d.objectifs, fin, jour)
-    if (phase) lignes.push(`Phase : ${phase}`)
+    if (phase) lignes.push(`Objectif : ${phase}`)
     // Phases finies pendant la période : celle encore en cours à la fin de la période n'en fait pas partie.
     const autres = periodes(d.objectifs).filter((p) => p.fin && p.fin >= depart && p.fin < fin)
-    for (const p of autres) lignes.push(`Phase précédente pendant la période : ${p.phase === 'seche' ? 'sèche' : p.phase === 'prise' ? 'prise de muscle' : 'maintien'} du ${jour(p.debut)} au ${jour(p.fin!)}`)
+    for (const p of autres) lignes.push(`Objectif précédent pendant la période : ${p.phase === 'seche' ? 'sèche' : p.phase === 'prise' ? 'prise de muscle' : 'maintien'} du ${jour(p.debut)} au ${jour(p.fin!)}`)
   }
   const dernierPoids = [...d.pesees].filter((p) => p.date <= fin).sort((a, b) => b.date.localeCompare(a.date))[0]
   if (dernierPoids) lignes.push(`Poids actuel : ${kg(dernierPoids.poids)} kg`)
@@ -208,7 +208,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
         const ph = d.objectifs ? phaseA(d.objectifs, fin) : null
         const zone =
           ph?.ecartVise && ph.total
-            ? `, visé par ta phase : ${ecart(ph.ecartVise, 'kg')} en ${ph.total} semaines, soit ${ecart(ph.ecartVise / ph.total, 'kg', 2)}/semaine`
+            ? `, visé par ton objectif : ${ecart(ph.ecartVise, 'kg')} en ${ph.total} semaines, soit ${ecart(ph.ecartVise / ph.total, 'kg', 2)}/semaine`
             : ph?.phase === 'prise'
               ? ', zone conseillée en prise : +0,15 à +0,4 kg/semaine'
               : ph?.phase === 'seche'

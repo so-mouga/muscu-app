@@ -66,7 +66,7 @@ describe('« Compléter » : les phases du fichier et les jours du journal', () 
   })
   it('l’aperçu l’annonce, et « Compléter » n’est plus « rien à ajouter » quand il n’y a que ça', () => {
     const f = lire(sauvegarde({ reglages: avecPhases.reglages }))
-    expect(apercu(f, { ...vide, programmes: ['p'], reglages: ['objectifs'] }).ajouts).toBe('tes phases')
+    expect(apercu(f, { ...vide, programmes: ['p'], reglages: ['objectifs'] }).ajouts).toBe('tes objectifs')
     expect(apercu(f, { ...vide, seances: ['s'], reglages: ['objectifs'] }).ajouts).toBe('')
   })
   it('un jour déjà là reçoit ce qui lui manque, sans rien écraser', () => {

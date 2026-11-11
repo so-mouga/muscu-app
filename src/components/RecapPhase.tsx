@@ -6,7 +6,7 @@ import { clesDe, MESURES, nomCle, PRINCIPALES } from '../data/mesures'
 import { db } from '../db'
 import { dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { ecartTexte, nomPhase, periodes, type PeriodePhase } from '../lib/objectifs'
+import { ecartTexte, nomVise, periodes, type PeriodePhase } from '../lib/objectifs'
 import { poseCommune } from '../lib/photos'
 import { datesPhotosPhase, finRecap, recapMesures, recapPoids } from '../lib/recap'
 import { PlanchePhotos } from '../screens/Photos'
@@ -86,9 +86,9 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
   return (
     <div>
       <div className="entete">
-        <BoutonRetour onClick={onRetour} label="Retour aux phases" />
+        <BoutonRetour onClick={onRetour} label="Retour à ton objectif" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>{nomPhase(p.phase)}</h2>
+          <h2>{nomVise(p.phase)}</h2>
           <div className="faible">
             {datesPhase(debut, dernierJour)} · {semaines} semaine{semaines > 1 ? 's' : ''}
           </div>
@@ -104,7 +104,7 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
             </strong>
           </div>
           <div className="faible petit-texte recap-droite">{ecartTexte(poids.ecart)}, en moyenne sur quelques jours</div>
-          {poids.points.length >= 2 && <Courbe points={poids.points} format={(v) => `${kg(v)} kg`} label={`Poids pendant la phase ${nomPhase(p.phase)}`} sansEnTete />}
+          {poids.points.length >= 2 && <Courbe points={poids.points} format={(v) => `${kg(v)} kg`} label={`Poids pendant l’objectif « ${nomVise(p.phase)} »`} sansEnTete />}
         </section>
       )}
 
@@ -138,7 +138,7 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
           )}
           <button type="button" className="bilan-tous" onClick={() => setVoirPhotos(true)}>
             <span>
-              Voir {nbPhotos > 1 ? `les ${nbPhotos} photos` : 'la photo'} de cette phase
+              Voir {nbPhotos > 1 ? `les ${nbPhotos} photos` : 'la photo'} de cet objectif
             </span>
             <ChevronRight size={16} strokeWidth={1.75} className="muted" />
           </button>
@@ -147,7 +147,7 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
 
       {seances > 0 && (
         <section className="carte ligne entre recap-ligne">
-          <span>Séances pendant cette phase</span>
+          <span>Séances pendant cet objectif</span>
           <strong>{seances}</strong>
         </section>
       )}
@@ -161,7 +161,7 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
         </section>
       )}
 
-      {voirPhotos && <PhotosPhase dates={dates} titre={`${nomPhase(p.phase)} · ${datesPhase(debut, dernierJour)}`} onFermer={() => setVoirPhotos(false)} />}
+      {voirPhotos && <PhotosPhase dates={dates} titre={`${nomVise(p.phase)} · ${datesPhase(debut, dernierJour)}`} onFermer={() => setVoirPhotos(false)} />}
       {comparer && paire.length === 2 && <PlanchePhotos photos={paire} dates={bouts} pose={pose} onFermer={() => setComparer(false)} />}
     </div>
   )
@@ -177,7 +177,7 @@ function PhotosPhase({ dates, titre, onFermer }: { dates: string[]; titre: strin
       <div className="entete">
         <BoutonRetour onClick={onFermer} label="Retour au récap" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>Photos de cette phase</h2>
+          <h2>Photos de cet objectif</h2>
           <div className="faible">{titre}</div>
         </div>
       </div>

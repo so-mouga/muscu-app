@@ -161,7 +161,7 @@ test('« Compléter » sur un téléphone qui n’a que le programme du démarra
   await ouvrirSauvegarde(p)
   await p.locator('input[type=file]').setInputFiles({ name: 'cran.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(fichier)) })
   // Un programme et un cycle : le téléphone n'est pas « vide », on choisit.
-  await expect(p.getByText('et tes phases')).toBeVisible()
+  await expect(p.getByText('et tes objectifs')).toBeVisible()
   await p.getByRole('button', { name: 'Compléter', exact: true }).last().click()
   await expect(p.getByText('Ajouté ✓')).toBeVisible()
 

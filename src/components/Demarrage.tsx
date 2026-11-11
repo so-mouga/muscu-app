@@ -6,7 +6,7 @@ import { dateISO, dureeEstimee, jourSemaine, minutes } from '../lib/calc'
 import { debutCycle } from '../lib/cycle'
 import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, pourObjectif, pourquoi, quand, recommande, seSuivent, type EtatDemarrage, type Etape, type Niveau, type Objectif } from '../lib/demarrage'
 import { transition, useRetour } from '../lib/nav'
-import { CLE_SANS_OBJECTIF, objectifsA } from '../lib/objectifs'
+import { CLE_SANS_OBJECTIF, objectifsA, PHASES } from '../lib/objectifs'
 import { setReglage } from '../db'
 import { IconeCran } from './Disque'
 
@@ -15,9 +15,7 @@ export type ModeDemarrage = 'parcours' | 'programme' | 'objectif'
 
 // « Prendre du muscle » d'abord : c'est le cas le plus courant, et la sèche est le mode où l'appli commente le moins.
 const OBJECTIFS: { id: Objectif; nom: string; aide?: string }[] = [
-  { id: 'prise', nom: 'Prendre du muscle' },
-  { id: 'seche', nom: 'Perdre du gras', aide: 'En gardant ton muscle' },
-  { id: 'maintien', nom: 'Progresser, poids stable', aide: 'Gagner en force sans viser le poids' },
+  ...(['prise', 'seche', 'maintien'] as const).map((id) => ({ id, nom: PHASES.find((x) => x.id === id)!.vise, aide: PHASES.find((x) => x.id === id)!.aide })),
   { id: 'aucun', nom: 'Pas d’objectif pour l’instant', aide: 'Tu t’entraînes, c’est tout. Tu pourras en choisir un plus tard' },
 ]
 const NIVEAUX: { id: Niveau; nom: string; aide?: string }[] = [

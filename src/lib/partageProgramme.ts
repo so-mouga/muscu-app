@@ -69,7 +69,7 @@ export function texteProgramme(p: Programme, d: DonneesProgramme, avecCharges: b
     l.push(etat.n < 1 ? `Cycle de ${etat.total} semaines, commence le ${dateCourte(d.cycle.debut)}${allegees}` : `Cycle de ${etat.total} semaines, semaine ${etat.n}${etat.pause ? ' (en pause)' : ''}${allegees}`)
   }
   const phase = phaseA(d.objectifs, d.aujourdhui)
-  if (phase) l.push(`Phase : ${nomPhase(phase.phase)}`)
+  if (phase) l.push(`Objectif : ${nomPhase(phase.phase)}`)
   l.push('Effort sur 10 : 8/10 = il reste environ 2 reps avant l’échec. Fourchette 8–12 : la charge monte quand toutes les séries atteignent le haut.')
 
   const historique = avecCharges ? [...d.seances].filter((s) => !s.enCours).sort((a, b) => b.debut - a.debut) : []

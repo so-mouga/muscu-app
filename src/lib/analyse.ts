@@ -261,7 +261,7 @@ export function aRetenir(a: Analyse, avant: Analyse | null, cibles: Record<Muscl
     const lecture = lecturePhase(ap, phase)
     r.push(...lecture)
     if (!lecture.length && phase !== 'maintien' && !(ap.poids && ap.poids.semaines >= 2) && ap.progressions.length < 2)
-      r.push(`${nomPhase(phase)} : pas encore assez de données depuis le début de la phase pour juger (il faut 2 semaines de pesées).`)
+      r.push(`${nomPhase(phase)} : pas encore assez de données depuis le début de ton objectif pour juger (il faut 2 semaines de pesées).`)
   }
 
   // Sommeil court : il explique souvent une baisse de forme avant le programme.

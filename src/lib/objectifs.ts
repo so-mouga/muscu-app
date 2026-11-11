@@ -39,13 +39,19 @@ export interface PeriodePhase {
   calories?: number
 }
 
-export const PHASES: { id: Phase; nom: string; court: string; explication: string }[] = [
-  { id: 'seche', nom: 'Sèche', court: 'Sèche', explication: 'Tu manges un peu moins pour perdre du gras. Garder tes charges, c’est déjà réussir : une baisse de force est le signal à surveiller.' },
-  { id: 'maintien', nom: 'Maintien', court: 'Maintien', explication: 'Poids stable : tu peux quand même gagner en force et perdre du tour de taille.' },
-  { id: 'prise', nom: 'Prise de muscle', court: 'Prise', explication: 'Tu manges un peu plus pour construire du muscle : le poids monte doucement, les charges aussi.' },
+/**
+ * `vise` : l'objectif dit avec les mots du démarrage (« Prendre du muscle »), ce qu'on lit à l'écran ; `nom` et `court` :
+ * le mot de salle (« Prise de muscle », « Prise »), gardé là où la place manque et dans les phrases du Bilan.
+ */
+export const PHASES: { id: Phase; nom: string; court: string; vise: string; aide?: string; explication: string }[] = [
+  { id: 'seche', nom: 'Sèche', court: 'Sèche', vise: 'Perdre du gras', aide: 'En gardant ton muscle', explication: 'Tu manges un peu moins pour perdre du gras. Garder tes charges, c’est déjà réussir : une baisse de force est le signal à surveiller.' },
+  { id: 'maintien', nom: 'Maintien', court: 'Maintien', vise: 'Progresser, poids stable', aide: 'Gagner en force sans viser le poids', explication: 'Poids stable : tu peux quand même gagner en force et perdre du tour de taille.' },
+  { id: 'prise', nom: 'Prise de muscle', court: 'Prise', vise: 'Prendre du muscle', explication: 'Tu manges un peu plus pour construire du muscle : le poids monte doucement, les charges aussi.' },
 ]
 export const nomPhase = (p: Phase) => PHASES.find((x) => x.id === p)!.nom
 export const nomCourtPhase = (p: Phase) => PHASES.find((x) => x.id === p)!.court
+/** L'objectif en clair, comme au démarrage : « Prendre du muscle ». */
+export const nomVise = (p: Phase) => PHASES.find((x) => x.id === p)!.vise
 
 const JOUR = 86400000
 const veille = (iso: string) => new Date(Date.parse(iso + 'T12:00:00') - JOUR).toISOString().slice(0, 10)

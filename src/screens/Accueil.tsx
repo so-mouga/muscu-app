@@ -8,7 +8,7 @@ import { moyenneSemaine } from '../lib/nutrition'
 import { sousTitrePerso, sousTitreSeance } from '../lib/programme'
 import { creneauxFaits, creneauxRates } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
-import { derniereSemainePhase, nomCourtPhase, periodes, phaseAffichee } from '../lib/objectifs'
+import { derniereSemainePhase, nomCourtPhase, nomVise, periodes, phaseAffichee } from '../lib/objectifs'
 import { phaseFinie, reperesAPrendre, reperesDeFin, type Repere } from '../lib/recap'
 import { PriseCorps, type PageCorps } from './Corps'
 import { debloquerSon } from '../lib/appareil'
@@ -308,41 +308,50 @@ export default function Accueil({
     return d.charAt(0).toUpperCase() + d.slice(1)
   })()
 
-  const phaseDerniere = !!phase && !phase.aVenir && derniereSemainePhase(phase, dateISO())
-  const textePhase = phase
-    ? phaseDerniere
-      ? `${nomCourtPhase(phase.phase)} · dernière semaine`
-      : phase.aVenir
-      ? `${nomCourtPhase(phase.phase)} (dès ${
-          phase.debut === dateISO(new Date(Date.now() + 86400000))
-            ? 'demain'
-            : new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-        })`
-      : phase.depassee
-        ? `${nomCourtPhase(phase.phase)} · fin dépassée`
-        : `${nomCourtPhase(phase.phase)} · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`
-    : ''
-
   const texteCycle =
     cycle && etat
       ? etat.fini
         ? arret
-          ? 'Cycle arrêté'
-          : 'Cycle terminé'
+          ? 'Programme arrêté'
+          : 'Programme terminé'
         : etat.n <= 0
-        ? `Cycle · ${
+        ? `Programme · ${
             cycle.debut === dateISO(new Date(Date.now() + 86400000))
               ? 'Dès demain'
               : new Date(cycle.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
           }`
         : etat.pause
-        ? 'Cycle en pause'
+        ? 'Semaine en pause'
         : etat.n === etat.total
-        ? `${etat.deload ? 'Allégée' : 'Cycle'} · dernière semaine`
+        ? `${etat.deload ? 'Allégée' : 'Programme'} · dernière semaine`
         : etat.deload
         ? `Allégée · sem. ${etat.n}/${etat.total}`
-        : `Cycle · sem. ${etat.n}/${etat.total}`
+        : `Programme · sem. ${etat.n}/${etat.total}`
       : ''
+  const phaseDerniere = !!phase && !phase.aVenir && derniereSemainePhase(phase, dateISO())
+  // L'objectif avec les mots du démarrage (« Prendre du muscle »), à côté du programme, sur une seule ligne (328 px à 360 de large,
+  // mesuré : environ 7,2 px par lettre en gras, 6,4 sinon). Si tout ne tient pas : d'abord sans le compte des semaines (il est
+  // dans Corps), sinon le mot de salle. Ce qui presse (« dernière semaine », « fin dépassée ») reste toujours écrit.
+  const suitePhase = !phase
+    ? ''
+    : phaseDerniere
+      ? ' · dernière semaine'
+      : phase.aVenir
+        ? ` (dès ${phase.debut === dateISO(new Date(Date.now() + 86400000)) ? 'demain' : new Date(phase.debut + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })})`
+        : phase.depassee
+          ? ' · fin dépassée'
+          : ` · sem. ${phase.semaine}${phase.total ? `/${phase.total}` : ''}`
+  const tient = (nom: string, suite: string) => nom.length * 7.2 + (suite.length + texteCycle.length) * 6.4 <= (texteCycle ? 296 : 308)
+  const semainesSeules = !!phase && !phaseDerniere && !phase.aVenir && !phase.depassee
+  const [nomObjectif, suiteAffichee] = !phase
+    ? ['', '']
+    : tient(nomVise(phase.phase), suitePhase)
+      ? [nomVise(phase.phase), suitePhase]
+      : semainesSeules && tient(nomVise(phase.phase), '')
+        ? [nomVise(phase.phase), '']
+        : [nomCourtPhase(phase.phase), suitePhase]
+  const textePhase = nomObjectif + suiteAffichee
+
   // « dernière semaine » ressort : c'est le moment de penser à la suite.
   const avecFin = (texte: string) => {
     const i = texte.indexOf('dernière semaine')
@@ -386,7 +395,7 @@ export default function Accueil({
       <div key="phase" className="rappel-ligne">
         <button type="button" className="texte" onClick={() => (marquer(`phase:${finDePhase.debut}`), onCorps(`recap:${finDePhase.debut}`))}>
           <Target size={16} strokeWidth={2} className="rappel-ico ok" />
-          <span className="rappel-texte">Phase finie : voir le récap</span>
+          <span className="rappel-texte">Objectif terminé : voir le récap</span>
         </button>
         <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel" onClick={() => marquer(`phase:${finDePhase.debut}`)}>
           <X size={15} strokeWidth={2} />
@@ -411,9 +420,9 @@ export default function Accueil({
       <div key="fin-reperes" className="rappel-ligne">
         <button type="button" className="texte" onClick={() => prendre(finReperes.manque)}>
           <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
-          <span className="rappel-texte">{finReperes.dernierJour ? 'Dernier jour de phase' : 'Fin de phase demain'} : {tesReperes(finReperes.manque)}</span>
+          <span className="rappel-texte">{finReperes.dernierJour ? 'Dernier jour de ton objectif' : 'Ton objectif finit demain'} : {tesReperes(finReperes.manque)}</span>
         </button>
-        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cette fin de phase" onClick={() => (masquer('mesures'), marquer(`fin-reperes:${finReperes.debut}`))}>
+        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cette fin d’objectif" onClick={() => (masquer('mesures'), marquer(`fin-reperes:${finReperes.debut}`))}>
           <X size={15} strokeWidth={2} />
         </button>
       </div>
@@ -436,9 +445,9 @@ export default function Accueil({
       <div key="reperes" className="rappel-ligne">
         <button type="button" className="texte" onClick={() => prendre(reperes.manque)}>
           <Ruler size={16} strokeWidth={2} className="rappel-ico info" />
-          <span className="rappel-texte">Début de phase : {reperes.manque.length > 1 ? 'note ' : ''}{tesReperes(reperes.manque)}</span>
+          <span className="rappel-texte">Nouvel objectif : {reperes.manque.length > 1 ? 'note ' : ''}{tesReperes(reperes.manque)}</span>
         </button>
-        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cette phase" onClick={() => (masquer('mesures'), marquer(`reperes:${reperes.debut}`))}>
+        <button type="button" className="fermer-rappel" aria-label="Ne plus afficher ce rappel pour cet objectif" onClick={() => (masquer('mesures'), marquer(`reperes:${reperes.debut}`))}>
           <X size={15} strokeWidth={2} />
         </button>
       </div>
@@ -534,26 +543,32 @@ export default function Accueil({
 
       <div className="accueil-reperes">
         {phase ? (
-          <button type="button" onClick={onObjectifs} aria-label={`Objectif de phase : ${textePhase}`}>
+          <button type="button" onClick={onObjectifs} aria-label={`Ton objectif : ${textePhase}`}>
             <span className={phase.aVenir ? 'repere-point a-venir' : 'repere-point'} />
             {phase.aVenir ? (
               textePhase
             ) : (
               <>
-                <span className="repere-fort">{nomCourtPhase(phase.phase)}</span>
-                {avecFin(textePhase.slice(nomCourtPhase(phase.phase).length))}
+                <span className="repere-fort">{nomObjectif}</span>
+                {avecFin(textePhase.slice(nomObjectif.length))}
               </>
             )}
           </button>
         ) : (
-          !periodes(catalogue.objectifs).length && !catalogue.sansObjectif && (
+          // Toujours une porte vers l'objectif, même pour qui a répondu « pas d'objectif » : en gris, sans insister.
+          !periodes(catalogue.objectifs).length &&
+          (catalogue.sansObjectif ? (
+            <button type="button" onClick={onObjectifs}>
+              Sans objectif ›
+            </button>
+          ) : (
             <button type="button" onClick={onObjectif}>
               + Ton objectif
             </button>
-          )
+          ))
         )}
         {cycle && etat && (
-          <button type="button" onClick={onProgrammes} aria-label={`Cycle d'entraînement : ${texteCycle}`}>
+          <button type="button" onClick={onProgrammes} aria-label={`Ton programme : ${texteCycle}`}>
             {avecFin(texteCycle)}
           </button>
         )}
@@ -853,7 +868,7 @@ export default function Accueil({
         <div className="modal-fond" onClick={() => setPrise(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="ligne entre choix-seance-titre">
-              <h2>{finReperes ? 'Fin de phase' : 'Début de phase'}</h2>
+              <h2>{finReperes ? 'Fin de ton objectif' : 'Début de ton objectif'}</h2>
               <button type="button" className="btn-fermer" onClick={() => setPrise(null)} aria-label="Fermer">
                 <X size={22} />
               </button>

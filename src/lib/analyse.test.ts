@@ -193,7 +193,7 @@ describe('calories et sommeil dans la lecture', () => {
     const debutPhase = { ...a, progressions: [], poids: { debut: 80, fin: 80.2, semaines: 1 } } as Analyse
     const t = aRetenir(a, null, cibles(), true, 'seche', debutPhase).join('\n')
     expect(t).not.toMatch(/ne baisse pas/)
-    expect(t).toMatch(/pas encore assez de données depuis le début de la phase/)
+    expect(t).toMatch(/pas encore assez de données depuis le début de ton objectif/)
   })
   it('sommeil court signalé dans « À retenir »', () => {
     const a = { ...base({ ok: 0, trop: 0, pasAssez: 0 }), douleurs: [], prevues: null, volume: {}, stagnations: [], mesures: [], records: [], rpe: null, energie: null, sommeil: { moyenne: 6, nuits: 5 } } as unknown as Analyse

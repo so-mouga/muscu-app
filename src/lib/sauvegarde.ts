@@ -217,7 +217,7 @@ export function apercu({ data, presentes }: Fichier, cles: ClesTelephone, journa
     ajouts: enClair([
       ...RUBRIQUES.map((r) => ({ ...r, n: ajoutes(r.table) })),
       { n: joursCompletes, un: 'jour complété', plusieurs: 'jours complétés' },
-    ]) + (phasesDuFichier(data, cles.seances.length) ? (ajoutsBase || joursCompletes ? ', et tes phases' : 'tes phases') : ''),
+    ]) + (phasesDuFichier(data, cles.seances.length) ? (ajoutsBase || joursCompletes ? ', et tes objectifs' : 'tes objectifs') : ''),
     pertes: enClair(RUBRIQUES.map((r) => ({ ...r, n: perdus(r.table) }))),
     avecPhotos: touchees.has('photos'),
   }
