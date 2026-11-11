@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Cycle, Seance } from '../types'
-import { depuisDebut, exercicesDuBloc, faitesSurPrevues, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle, tenuesSurPeriode } from './motivation'
+import { depuisDebut, exercicesDuBloc, faitesSurPrevues, gainsDeSeance, joursSansSeance, resumeSeance, seuilSemaine, semainesTenues, suiviCycle, tenuesSurPeriode } from './motivation'
 import { nouveauCycle } from './cycle'
 
 type S = [exoId: string, charge: number, reps: number, rpe?: number]
@@ -183,5 +183,41 @@ describe('semaines tenues sur une période', () => {
   })
   it('ne compte pas les semaines avant la toute première séance', () => {
     expect(tenuesSurPeriode(seances, 2, [], '2026-09-07', '2026-10-11')).toEqual({ n: 1, sur: 1 })
+  })
+})
+
+describe('accueil, séance faite : le gain de chaque exercice', () => {
+  const avant = seance('a', '2026-11-04', [
+    ['dev_couche_barre', 60, 10], ['dev_couche_barre', 60, 10],
+    ['rowing_haltere', 30, 10], ['rowing_haltere', 30, 9],
+    ['curl_barre', 30, 10],
+    ['dev_militaire', 30, 10],
+  ])
+  const jour = seance('j', '2026-11-11', [
+    ['curl_barre', 30, 10],
+    ['dev_couche_barre', 62.5, 8], ['dev_couche_barre', 62.5, 8],
+    ['rowing_haltere', 30, 10], ['rowing_haltere', 30, 10],
+    ['dev_militaire', 30, 8],
+    ['elevation_laterale_halteres', 8, 15],
+  ])
+  const g = gainsDeSeance(jour, [avant], exo)
+
+  it('dans l’ordre fait : le gain en charge ou en reps, « = » si pareil, rien si moins bien ou première fois', () => {
+    expect(g).toEqual([
+      { exoId: 'curl_barre', gain: '=' },
+      { exoId: 'dev_couche_barre', gain: '+2,5 kg' },
+      { exoId: 'rowing_haltere', gain: '+1 rep' },
+      { exoId: 'dev_militaire' },
+      { exoId: 'elevation_laterale_halteres' },
+    ])
+  })
+
+  it('autant de gains que « n exercices mieux que la dernière fois »', () => {
+    expect(g.filter((x) => x.gain && x.gain !== '=').length).toBe(resumeSeance(jour, [avant], exo).mieux)
+  })
+
+  it('séance allégée, ou séance allégée d’avant : jamais de comparaison avec elle', () => {
+    expect(gainsDeSeance({ ...jour, deload: true }, [avant], exo).every((x) => !x.gain)).toBe(true)
+    expect(gainsDeSeance(jour, [{ ...avant, deload: true }], exo).every((x) => !x.gain)).toBe(true)
   })
 })

@@ -2,7 +2,8 @@ import type { Cycle, Exercice, Seance, Serie } from '../types'
 import { dateISO } from './calc'
 import { prevuDuCycle, type EtapePrevu } from './prevu'
 import { couvre, etatCycle, lignesCycle } from './cycle'
-import { meilleureDeTravail, mieuxParSeance, recordsParSeance, semaineDe, sensPerf } from './historique'
+import { gain } from './constat'
+import { meilleureDeTravail, meilleureSerie, mieuxParSeance, recordsParSeance, semaineDe, sensPerf, serieComptee, suiviProgres } from './historique'
 
 /**
  * Ce qui aide à continuer, sans pression : des faits tirés des séances (semaines tenues, progrès du
@@ -133,6 +134,27 @@ export type LigneBloc = { exo: Exercice; avant: Serie; apres: Serie; seances: nu
 export function resumeSeance(seance: Seance, avant: Seance[], exo: (id: string) => Exercice): { mieux: number; records: number } {
   const toutes = [...avant.filter((s) => s.id !== seance.id && !s.enCours), { ...seance, enCours: false }]
   return { mieux: mieuxParSeance(toutes, exo)[seance.id] ?? 0, records: recordsParSeance(toutes, exo)[seance.id] ?? 0 }
+}
+
+/**
+ * Chaque exercice d'une séance face à la fois d'avant, avec la même mesure que « n exercices mieux que la dernière fois »
+ * (`mieuxParSeance`) : son gain (« +2 kg », « +1 rep »), « = » si les séries sont les mêmes, rien sinon (moins bien,
+ * première fois, séance allégée : pas de reproche). Dans l'ordre où ils ont été faits. Pour l'Accueil, une fois la séance faite.
+ */
+export function gainsDeSeance(seance: Seance, avant: Seance[], exo: (id: string) => Exercice): { exoId: string; gain?: string }[] {
+  const precedentes = avant.filter((s) => s.id !== seance.id && !s.enCours && !s.deload && s.debut < seance.debut).sort((a, b) => b.debut - a.debut)
+  const comptees = (s: Seance, id: string) => s.series.filter((x) => x.exoId === id && serieComptee(x))
+  return [...new Set(seance.series.map((x) => x.exoId))].map((id) => {
+    const jour = comptees(seance, id)
+    const prec = precedentes.map((s) => comptees(s, id)).find((l) => l.length)
+    if (seance.deload || !jour.length || !prec) return { exoId: id }
+    const e = exo(id)
+    const suivi = suiviProgres(e)
+    suivi.juger(prec)
+    if (suivi.progres(jour) && sensPerf(e, meilleureSerie(prec, e.assistance)!, meilleureSerie(jour, e.assistance)!) >= 0) return { exoId: id, gain: gain(e, prec, jour)?.court ?? '↑' }
+    const pareil = jour.length === prec.length && jour.every((x, k) => x.charge === prec[k].charge && x.reps === prec[k].reps)
+    return pareil ? { exoId: id, gain: '=' } : { exoId: id }
+  })
 }
 
 /** Jours depuis la dernière séance terminée (null s'il n'y en a pas). */

@@ -5,11 +5,15 @@ const HAUT_LIGNE = 26
 
 export type LigneExo = { id: string; nom: string; gain?: string }
 
+/** Un vrai gain d'abord (« +2 kg »), puis « = », puis le reste : ce qu'on garde quand tout ne tient pas. */
+const rang = (l: LigneExo) => (l.gain && l.gain !== '=' ? 0 : l.gain ? 1 : 2)
+
 /**
  * Exercices d'une séance sur l'accueil : autant de lignes que la place en laisse, le reste en « +n autres ».
- * Quand tout ne tient pas, ceux qui ont un objectif à battre passent en premier.
+ * Quand tout ne tient pas, ceux qui ont un gain (à battre, ou gagné) passent en premier.
+ * `fait` : la séance faite aujourd'hui, le gain en vert ; les exercices sans gain en gris, sans reproche.
  */
-export default function ListeExosJour({ lignes, entiere, serree }: { lignes: LigneExo[]; /** Toute la liste, en secondaire : la séance qui vient, rien à lancer. */ entiere?: boolean; /** Liste entière sur un écran déjà plein (deux rappels et la ligne du disque) : 3 lignes au plus. */ serree?: boolean }) {
+export default function ListeExosJour({ lignes, fait, onClick }: { lignes: LigneExo[]; fait?: boolean; /** Un appui sur la liste (séance faite : l'ouvrir). */ onClick?: () => void }) {
   const zone = useRef<HTMLDivElement>(null)
   const [place, setPlace] = useState(lignes.length)
   useLayoutEffect(() => {
@@ -21,15 +25,13 @@ export default function ListeExosJour({ lignes, entiere, serree }: { lignes: Lig
     o.observe(el)
     return () => o.disconnect()
   }, [])
-  // Liste entière : la carte suit son contenu ; sur un écran peu haut, on garde « Voir la séance » à l'écran.
-  const possibles = entiere ? (serree ? 3 : window.innerHeight < 720 ? 5 : lignes.length) : place
-  const tout = possibles >= lignes.length
-  const montrees = tout ? lignes : [...lignes.filter((l) => l.gain), ...lignes.filter((l) => !l.gain)].slice(0, Math.max(1, possibles - 1))
+  const tout = place >= lignes.length
+  const montrees = tout ? lignes : [...lignes].sort((a, b) => rang(a) - rang(b)).slice(0, Math.max(1, place - 1))
   return (
-    <div ref={zone} className={'exos-jour' + (entiere ? ' entiere' : '')}>
+    <div ref={zone} className={'exos-jour' + (fait ? ' fait' : '')} onClick={onClick} role={onClick ? 'button' : undefined}>
       <div className="exos-jour-lignes">
         {montrees.map((l) => (
-          <div key={l.id} className="exo-jour">
+          <div key={l.id} className={'exo-jour' + (fait && rang(l) > 0 ? ' terne' : '')}>
             <span className="exo-jour-nom">{l.nom}</span>
             {l.gain && <span className="exo-jour-gain">{l.gain}</span>}
           </div>

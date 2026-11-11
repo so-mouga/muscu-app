@@ -4720,16 +4720,14 @@ html[data-sens='fondu']::view-transition-new(root) {
 .seance-jour-retour {
   margin-top: var(--e2);
 }
-.seance-jour-suite {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--e3);
+/* La séance qui vient, en une ligne au-dessus de « Voir la séance ». */
+.seance-jour-ensuite {
   margin-top: var(--e3);
-  padding-top: var(--e3);
-  border-top: 1px solid var(--voile);
-  font-size: var(--t-texte);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+}
+.seance-jour-ensuite strong {
+  color: var(--texte);
   font-weight: 600;
 }
 .seance-jour-espace {
@@ -4775,15 +4773,14 @@ html[data-sens='fondu']::view-transition-new(root) {
   gap: var(--e3);
   color: var(--texte);
 }
-.exos-jour.entiere {
-  flex: none;
-  min-height: 0;
+/* Séance faite : le gain en vert, le reste en gris (pareil ou moins bien, sans reproche). */
+.exos-jour.fait .exo-jour-gain {
+  color: var(--ok);
 }
-.exos-jour.entiere .exos-jour-lignes {
-  position: static;
-}
-.exos-jour.entiere .exo-jour {
+.exos-jour.fait .exo-jour.terne,
+.exos-jour.fait .exo-jour.terne .exo-jour-gain {
   color: var(--texte-2);
+  font-weight: 400;
 }
 .exo-jour-nom {
   min-width: 0;

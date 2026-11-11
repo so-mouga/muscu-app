@@ -24,16 +24,15 @@ import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import { conseilsAChoisir } from '../lib/prochaineFois'
-import { depuisDebut, faitesSurPrevues, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
+import { depuisDebut, faitesSurPrevues, gainsDeSeance, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
-import { CLE_DEMARRAGE, type EtatDemarrage } from '../lib/demarrage'
+import { CLE_DEMARRAGE, NOMS_JOURS, type EtatDemarrage } from '../lib/demarrage'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 import Deplie from '../components/Deplie'
 
 const CLE_RAPPELS_FAITS = 'rappelsFaits'
-const JOURS = ['', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim']
 
 /** Sans modèle : séance libre, les exercices s'ajoutent à la volée. */
 /** Contexte du cycle au démarrage : semaine en cours et déload éventuel. */
@@ -500,22 +499,20 @@ export default function Accueil({
   const disque = etatDisque(terminees ? totalCrans(terminees, catalogue.exo) : 0)
   // Retour après un trou : pas de reproche, on reprend où on en était.
   const joursSans = terminees ? joursSansSeance(terminees, dateISO()) : null
-  const etiquetteProchaine = (e: EntreePlanning) => (e.jour === (jour % 7) + 1 ? 'Demain' : `Prochaine (${JOURS[e.jour!]})`)
 
   const aLancer = proposee && duJour && proposee === duJour && !faite(duJour)
   const mieuxAuj = faiteAuj && !faiteAuj.deload && terminees ? resumeSeance(faiteAuj, terminees, catalogue.exo) : null
   const aChoisirAuj = faiteAuj && terminees ? conseilsAChoisir(faiteAuj, terminees, (id) => exoAvecReglages(catalogue.exo(id), reglages)) : 0
 
-  /** La séance qui vient, quand il n'y a rien à lancer aujourd'hui : on la regarde, sans orange. */
-  const blocProchaine = (e: EntreePlanning) => (
+  /**
+   * La séance qui vient, quand il n'y a rien à lancer aujourd'hui : une ligne et « Voir la séance », à la place de « Démarrer ».
+   * Ni ses exercices ni sa durée (retour de l'utilisateur : la séance de vendredi prenait la moitié de l'écran mercredi soir).
+   */
+  const blocSuite = (e: EntreePlanning) => (
     <>
-      <div className="seance-jour-suite">
-        <span>
-          {etiquetteProchaine(e)} : {e.modele.nom}
-        </span>
-        <span className="seance-jour-duree">{dureeDe(e.modele)}</span>
+      <div className="seance-jour-ensuite">
+        Ensuite, {e.jour === (jour % 7) + 1 ? 'demain' : NOMS_JOURS[e.jour!]} : <strong>{e.modele.nom}</strong>
       </div>
-      <ListeExosJour lignes={lignesDe(e.modele, false)} entiere serree={disque.total > 0 && (rappels.length >= 2 || window.innerHeight < 720)} />
       <div className="seance-jour-actions">
         <button type="button" className="btn" onClick={() => (e.modele.exercices.length ? voir(e.modele) : onAjouterExercices(e.modele.id))}>
           {e.modele.exercices.length ? 'Voir la séance' : 'Ajouter des exercices'}
@@ -523,6 +520,8 @@ export default function Accueil({
       </div>
     </>
   )
+  /** Séance faite aujourd'hui : chaque exercice, avec son gain face à la fois d'avant (« = » si pareil, rien si moins bien). */
+  const lignesAuj: LigneExo[] = faiteAuj && terminees ? gainsDeSeance(faiteAuj, terminees, catalogue.exo).map((g) => ({ id: g.exoId, nom: catalogue.exo(g.exoId).nom, gain: g.gain })) : []
 
   return (
     <div className="accueil">
@@ -605,7 +604,7 @@ export default function Accueil({
         </div>
 
         {/* La séance d'abord : elle prend la place qui reste, « Démarrer » reste au même endroit. */}
-        <div className={(aLancer || !proposee) && !etat?.pause ? 'seance-jour' : 'seance-jour sans-action'}>
+        <div className={etat?.pause ? 'seance-jour sans-action' : 'seance-jour'}>
           {cycle && etat?.pause && !etat.fini ? (
             <>
               <div className="seance-jour-haut">
@@ -705,24 +704,23 @@ export default function Accueil({
                   Autre séance ›
                 </button>
               </div>
-              {mieuxAuj && (mieuxAuj.mieux > 0 || mieuxAuj.records > 0) && (
-                <div className="seance-jour-mieux">
-                  {[mieuxAuj.mieux > 0 && `${mieuxAuj.mieux} exercice${mieuxAuj.mieux > 1 ? 's' : ''} mieux que la dernière fois`, mieuxAuj.records > 0 && `${mieuxAuj.records} record${mieuxAuj.records > 1 ? 's' : ''}`].filter(Boolean).join(', ')}
-                </div>
-              )}
-              {/* Un appui ouvre la séance enregistrée. S'il reste un conseil à choisir pour la prochaine fois, on le dit à la place
-                  de la durée (elle est sur la page de la séance) : la carte ne grandit pas, à 667 px de haut tout doit tenir. */}
-              {faiteAuj &&
-                (aChoisirAuj > 0 ? (
-                  <button type="button" className="seance-jour-stats seance-jour-choisir" onClick={() => onVoirSeance(faiteAuj.id)}>
-                    Prochaine fois : {aChoisirAuj} conseil{aChoisirAuj > 1 ? 's' : ''} à choisir ›
-                  </button>
-                ) : (
+              {/* Ce que tu viens de faire, pas la séance suivante : la durée, puis chaque exercice avec son gain. Un appui ouvre la séance. */}
+              {faiteAuj ? (
+                <>
                   <button type="button" className="seance-jour-stats" onClick={() => onVoirSeance(faiteAuj.id)}>
-                    {duree(dureeSeanceEffective(faiteAuj))} · {faiteAuj.series.filter(estDure).length} séries dures ›
+                    {[duree(dureeSeanceEffective(faiteAuj)), `${faiteAuj.series.filter(estDure).length} séries dures`, mieuxAuj && mieuxAuj.records > 0 && `${mieuxAuj.records} record${mieuxAuj.records > 1 ? 's' : ''}`].filter(Boolean).join(' · ')} ›
                   </button>
-                ))}
-              {prochaine && prochaine !== duJour && blocProchaine(prochaine)}
+                  <ListeExosJour lignes={lignesAuj} fait onClick={() => onVoirSeance(faiteAuj.id)} />
+                  {aChoisirAuj > 0 && (
+                    <button type="button" className="seance-jour-stats seance-jour-choisir" onClick={() => onVoirSeance(faiteAuj.id)}>
+                      Prochaine fois : {aChoisirAuj} conseil{aChoisirAuj > 1 ? 's' : ''} à choisir ›
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="seance-jour-espace" />
+              )}
+              {prochaine && prochaine !== duJour && blocSuite(prochaine)}
             </>
           ) : proposee ? (
             <>
@@ -737,7 +735,8 @@ export default function Accueil({
                   Faire une séance ›
                 </button>
               </div>
-              {blocProchaine(proposee)}
+              <div className="seance-jour-espace" />
+              {blocSuite(proposee)}
             </>
           ) : (
             /* Programme sans jours : rien de prévu, mais on peut toujours lancer une séance. */
