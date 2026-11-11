@@ -173,7 +173,14 @@ export function FenetreJour({
               // L'appli de repas fait foi : le verdict se déduit de son total (choix de l'utilisateur, 10 nov. 2026).
               <>
                 <div>
-                  {date === aujourdhui ? 'Jusqu’ici' : 'Lu dans ton appli de repas'} : <strong>{milliers(journal?.kcal ?? 0)} kcal</strong>
+                  {journal?.kcal === undefined ? (
+                    // MyFitnessPal date ses repas de 10 h à 22 h : le matin, Health Connect n'a encore rien pour aujourd'hui (11 nov. 2026).
+                    'Rien de lu pour l’instant : ton appli de repas envoie la journée plus tard dans la matinée.'
+                  ) : (
+                    <>
+                      {date === aujourdhui ? 'Jusqu’ici' : 'Lu dans ton appli de repas'} : <strong>{milliers(journal.kcal)} kcal</strong>
+                    </>
+                  )}
                   {date !== aujourdhui && journal?.calories && <> · {TEXTE_CALORIES[journal.calories]}</>}
                 </div>
                 {journal && macros(journal) && <div className="faible">{macros(journal)}</div>}
@@ -230,7 +237,7 @@ export default function JournalMatin({ catalogue }: { catalogue: Catalogue }) {
           nom="Calories"
           valeur={
             <>
-              {milliers(duJour?.kcal ?? 0)}
+              {duJour?.kcal === undefined ? '—' : milliers(duJour.kcal)}
               {objectif && <small> / {milliers(objectif.kcal)}</small>}
             </>
           }
