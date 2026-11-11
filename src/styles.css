@@ -3490,6 +3490,67 @@ button.phase-accueil {
 .choix-prochaine strong {
   font-weight: 600;
 }
+/* Objectif fixé au crayon : une 3e option cochée, sur toute la largeur, qui rouvre la fenêtre d'objectif. */
+.choix-prochaine button.large {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--e2);
+}
+.choix-texte {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.choix-crayon {
+  flex: none;
+  color: var(--texte-2);
+}
+/* Dans une option de la grille, la coche va dans le coin : devant le texte, elle faisait passer « Comme aujourd'hui » sur deux lignes à 360 px. */
+.choix-prochaine button {
+  position: relative;
+}
+.choix-prochaine button.actif:not(.large) {
+  padding-right: 28px;
+}
+.choix-prochaine button:not(.large) .choix-coche {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+}
+/* La coche du choix retenu : la même dans les trois cas. */
+.choix-coche {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--texte);
+  color: var(--bg);
+  vertical-align: -3px;
+}
+/* « On refait pareil » : l'objectif fixé au crayon, en blanc sur un fond neutre, pas une fin de ligne grise. */
+.objectif-pastille {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: var(--e1);
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--voile-fort);
+  color: var(--texte);
+  font-size: var(--t-legende);
+  font-weight: 500;
+}
+.objectif-pastille .choix-coche {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  vertical-align: -2px;
+}
 /* Ce qui change d'une option à l'autre : du texte orange, pas un fond plein. */
 .fin-diff {
   color: var(--accent);

@@ -1,4 +1,4 @@
-import { ChevronDown, Pencil } from 'lucide-react'
+import { Check, ChevronDown, Pencil } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import EditeurObjectif from './EditeurObjectif'
@@ -71,7 +71,8 @@ export default function ProchaineFois({
   const statut = (exo: Exercice, raison: string | null, c: Suggestion | null) => {
     if (seance.deload) return ''
     const o = objectifs[exo.id]
-    if (o) return `prochaine fois ${cibleTexte(exo, o.charges, o.reps, true)}`
+    // Objectif fixé : la pastille « Ton objectif » le dit, en blanc.
+    if (o) return ''
     if (raison) return raison
     if (c) return c.message.replace(/^Pourquoi : /, '').replace('\n', ' ')
     const precedente = historiqueDe(avant, exo.id)[0] ?? []
@@ -157,23 +158,37 @@ export default function ProchaineFois({
                 </div>
                 <div className="choix-prochaine" role="radiogroup" aria-label={`Prochaine fois, ${exo.nom}`}>
                   <button type="button" role="radio" aria-checked={choix === 'pareil'} className={choix === 'pareil' ? 'actif' : ''} onClick={() => retirerObjectif(exo.id)}>
-                    <span className="faible">{comme}</span>
+                    <span className="faible">
+                      {choix === 'pareil' && <Coche />}
+                      {comme}
+                    </span>
                     <strong>{base.reps.join('/')}</strong>
                   </button>
                   <button type="button" role="radio" aria-checked={choix === 'conseil'} className={choix === 'conseil' ? 'actif' : ''} onClick={() => suivreConseil(exo.id, c!)}>
-                    <span className="faible">{libelleConseil(c!, base)}</span>
+                    <span className="faible">
+                      {choix === 'conseil' && <Coche />}
+                      {libelleConseil(c!, base)}
+                    </span>
                     <strong>
-                      {memeCharge ? (
-                        <RepsDiff reps={c!.reps} avant={base.reps} />
-                      ) : (
-                        <>
-                          <span className="fin-diff">{chargesCourtes(exo, c!.charges)}</span> × {c!.reps.join('/')}
-                        </>
-                      )}
+                      <Valeur exo={exo} cible={c!} base={base} />
                     </strong>
                   </button>
+                  {/* Fixé au crayon : c'est le choix coché, aussi visible que les deux autres (avant, une petite ligne grise faisait croire que rien n'était enregistré). */}
+                  {choix === 'perso' && (
+                    <button type="button" role="radio" aria-checked className="actif large" onClick={() => setAjuste(exo.id)} aria-label={`Ton objectif pour ${exo.nom}, le changer`}>
+                      <span className="choix-texte">
+                        <span className="faible">
+                          <Coche />
+                          Ton objectif
+                        </span>
+                        <strong>
+                          <Valeur exo={exo} cible={o!} base={base} />
+                        </strong>
+                      </span>
+                      <Pencil size={18} className="choix-crayon" />
+                    </button>
+                  )}
                 </div>
-                {choix === 'perso' && <div className="faible"><Pencil size={14} className="ico-texte" /> Fixé par toi : {cibleTexte(exo, o!.charges, o!.reps, true)}</div>}
                 <div className="faible petit fin-pourquoi">{c!.message}</div>
                 {ouverts[exo.id] && detailSeries?.(exo)}
               </div>
@@ -187,7 +202,7 @@ export default function ProchaineFois({
           <h3 className="fin-titre">{seance.deload ? 'Tes exercices' : 'On refait pareil'}</h3>
           {seance.deload && <div className="faible fin-deload">Séance allégée : pas d’objectif à fixer, la prochaine vraie séance reprend là où tu en étais.</div>}
           <div className="carte pile fin-lignes">
-            {autres.map(({ plan, exo, raison, conseil: c }) => {
+            {autres.map(({ plan, exo, raison, conseil: c, s: base }) => {
               const texte = statut(exo, raison, c)
               return (
                 <div key={plan.exoId}>
@@ -195,10 +210,18 @@ export default function ProchaineFois({
                     {nom(
                       exo,
                       'ligne-fin-principal',
-                      <span className="faible petit">
-                        {resumeDuJour(exo)}
-                        {texte && ` · ${texte}`}
-                      </span>
+                      <>
+                        <span className="faible petit">
+                          {resumeDuJour(exo)}
+                          {texte && ` · ${texte}`}
+                        </span>
+                        {objectifs[exo.id] && (
+                          <span className="objectif-pastille">
+                            <Coche />
+                            Ton objectif : <Valeur exo={exo} cible={objectifs[exo.id]} base={base} long />
+                          </span>
+                        )}
+                      </>
                     )}
                     {!seance.deload && (
                       <button type="button" className="decision-crayon" onClick={() => setAjuste(exo.id)} aria-label={`Fixer un objectif pour ${exo.nom}`}>
@@ -235,6 +258,27 @@ export default function ProchaineFois({
             />
           )
         })()}
+    </>
+  )
+}
+
+/** La coche du choix retenu : les trois choix (comme aujourd'hui, conseil, ton objectif) se lisent pareil. */
+function Coche() {
+  return (
+    <span className="choix-coche" aria-hidden="true">
+      <Check size={12} strokeWidth={3} />
+    </span>
+  )
+}
+
+/** Charge et reps d'un choix, ce qui change par rapport à aujourd'hui en orange. `long` : la charge en entier (« 32 kg/main »), même inchangée. */
+function Valeur({ exo, cible, base, long = false }: { exo: Exercice; cible: { charges: (number | null)[]; reps: number[] }; base: Suggestion; long?: boolean }) {
+  const memeCharge = JSON.stringify(base.charges) === JSON.stringify(cible.charges)
+  if (memeCharge && !long) return <RepsDiff reps={cible.reps} avant={base.reps} />
+  return (
+    <>
+      {/* La charge change : elle seule en orange, les reps repartent forcément d'ailleurs. */}
+      <span className={memeCharge ? undefined : 'fin-diff'}>{memeCharge ? chargesTexte(exo, cible.charges) : chargesCourtes(exo, cible.charges)}</span> × {memeCharge ? <RepsDiff reps={cible.reps} avant={base.reps} /> : cible.reps.join('/')}
     </>
   )
 }
