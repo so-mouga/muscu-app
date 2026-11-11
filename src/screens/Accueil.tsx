@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
-import { Check, ChevronRight, Clock, CloudUpload, Download, Flame, Info, Moon, RefreshCw, Ruler, Scale, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
+import { Check, ChevronRight, CloudUpload, Download, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, milliers, minutes } from '../lib/calc'
@@ -21,8 +21,9 @@ import { aPortee, etatDisque, totalCrans } from '../lib/crans'
 import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
-import type { Programme, Seance, SeanceModele } from '../types'
+import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
+import { conseilsAChoisir } from '../lib/prochaineFois'
 import { depuisDebut, faitesSurPrevues, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { CLE_DEMARRAGE, type EtatDemarrage } from '../lib/demarrage'
@@ -117,7 +118,6 @@ export default function Accueil({
 }) {
   const [choix, setChoix] = useState(false)
   const [voirDisque, setVoirDisque] = useState(false)
-  const [seanceFaiteModal, setSeanceFaiteModal] = useState<Seance | null>(null)
   const [ouvert, setOuvert] = useState<string | null>(null)
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(() => {
@@ -155,7 +155,6 @@ export default function Accueil({
   const [prise, setPrise] = useState<Repere | 'choix' | null>(null)
   useRetour(choix, () => setChoix(false))
   useRetour(prise === 'choix', () => setPrise(null))
-  useRetour(!!seanceFaiteModal, () => setSeanceFaiteModal(null))
   const voir = (m: SeanceModele | null) => {
     setChoix(false)
     transition(() => setApercuEtat(m && catalogue.pourDemarrer(m)), m ? 'avant' : 'arriere')
@@ -505,6 +504,7 @@ export default function Accueil({
 
   const aLancer = proposee && duJour && proposee === duJour && !faite(duJour)
   const mieuxAuj = faiteAuj && !faiteAuj.deload && terminees ? resumeSeance(faiteAuj, terminees, catalogue.exo) : null
+  const aChoisirAuj = faiteAuj && terminees ? conseilsAChoisir(faiteAuj, terminees, (id) => exoAvecReglages(catalogue.exo(id), reglages)) : 0
 
   /** La séance qui vient, quand il n'y a rien à lancer aujourd'hui : on la regarde, sans orange. */
   const blocProchaine = (e: EntreePlanning) => (
@@ -710,11 +710,18 @@ export default function Accueil({
                   {[mieuxAuj.mieux > 0 && `${mieuxAuj.mieux} exercice${mieuxAuj.mieux > 1 ? 's' : ''} mieux que la dernière fois`, mieuxAuj.records > 0 && `${mieuxAuj.records} record${mieuxAuj.records > 1 ? 's' : ''}`].filter(Boolean).join(', ')}
                 </div>
               )}
-              {faiteAuj && (
-                <button type="button" className="seance-jour-stats" onClick={() => setSeanceFaiteModal(faiteAuj)}>
-                  {duree(dureeSeanceEffective(faiteAuj))} · {faiteAuj.series.filter(estDure).length} séries dures ›
-                </button>
-              )}
+              {/* Un appui ouvre la séance enregistrée. S'il reste un conseil à choisir pour la prochaine fois, on le dit à la place
+                  de la durée (elle est sur la page de la séance) : la carte ne grandit pas, à 667 px de haut tout doit tenir. */}
+              {faiteAuj &&
+                (aChoisirAuj > 0 ? (
+                  <button type="button" className="seance-jour-stats seance-jour-choisir" onClick={() => onVoirSeance(faiteAuj.id)}>
+                    Prochaine fois : {aChoisirAuj} conseil{aChoisirAuj > 1 ? 's' : ''} à choisir ›
+                  </button>
+                ) : (
+                  <button type="button" className="seance-jour-stats" onClick={() => onVoirSeance(faiteAuj.id)}>
+                    {duree(dureeSeanceEffective(faiteAuj))} · {faiteAuj.series.filter(estDure).length} séries dures ›
+                  </button>
+                ))}
               {prochaine && prochaine !== duJour && blocProchaine(prochaine)}
             </>
           ) : proposee ? (
@@ -867,148 +874,6 @@ export default function Accueil({
       )}
       {(prise === 'photos' || prise === 'mensurations') && <PriseCorps prise={prise} onFermer={() => setPrise(null)} />}
 
-      {seanceFaiteModal && (() => {
-        const s = seanceFaiteModal
-        const dures = s.series.filter(estDure).length
-        const t = duree(dureeSeanceEffective(s))
-        const d = new Date(s.debut)
-        const dateTexte = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-        const dateFormatee = dateTexte.charAt(0).toUpperCase() + dateTexte.slice(1)
-
-        const exosMap = new Map<string, typeof s.series>()
-        for (const serie of s.series) {
-          const list = exosMap.get(serie.exoId) ?? []
-          list.push(serie)
-          exosMap.set(serie.exoId, list)
-        }
-
-        return (
-          <div className="modal-fond" onClick={() => setSeanceFaiteModal(null)}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="ligne entre" style={{ marginBottom: 14, alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--ok-voile)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Check size={18} strokeWidth={2.5} style={{ color: 'var(--ok)' }} />
-                  </div>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 'var(--t-titre)', fontWeight: 700 }}>{s.nom}</h2>
-                    <div className="faible" style={{ fontSize: 'var(--t-petit)', marginTop: 2 }}>
-                      {dateFormatee}
-                    </div>
-                  </div>
-                </div>
-                <button type="button" className="btn-fermer" onClick={() => setSeanceFaiteModal(null)} aria-label="Fermer">
-                  <X size={22} />
-                </button>
-              </div>
-
-              {/* Badges récapitulatifs */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-                <span className="pastille-detail">
-                  <Clock size={14} /> {t}
-                </span>
-                {dures > 0 && (
-                  <span className="pastille-detail">
-                    <Flame size={14} /> {dures} série{dures > 1 ? 's' : ''} dure{dures > 1 ? 's' : ''}
-                  </span>
-                )}
-                <span className="pastille-detail">
-                  <Target size={14} /> {exosMap.size} exercice{exosMap.size > 1 ? 's' : ''}
-                </span>
-                {s.poidsCorps && (
-                  <span className="pastille-detail">
-                    <Scale size={14} /> {kg(s.poidsCorps)} kg
-                  </span>
-                )}
-              </div>
-
-              {/* Liste des exercices et séries */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '46dvh', overflowY: 'auto', marginBottom: 16 }}>
-                {Array.from(exosMap.entries()).map(([exoId, series]) => {
-                  const exo = catalogue.exo(exoId)
-                  return (
-                    <div
-                      key={exoId}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--rayon-2)',
-                        background: 'var(--surface-2)',
-                        border: '1px solid var(--voile)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600, fontSize: 'var(--t-petit)', color: 'var(--texte)' }}>
-                          {exo.nom}
-                        </span>
-                        <span className="faible" style={{ fontSize: 'var(--t-legende)' }}>
-                          {series.length} série{series.length > 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {series.map((serie, idx) => {
-                          const dure = estDure(serie)
-                          return (
-                            <span
-                              key={serie.id || idx}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                padding: '3px 8px',
-                                borderRadius: 'var(--rayon-2)',
-                                background: dure ? 'var(--accent-voile)' : 'var(--surface-2)',
-                                border: '1px solid ' + (dure ? 'var(--accent-bord)' : 'var(--bord)'),
-                                fontSize: 'var(--t-legende)',
-                                color: dure ? 'var(--accent)' : 'var(--texte)',
-                                fontWeight: dure ? 600 : 400,
-                              }}
-                            >
-                              {chargeQte(exo, serie.charge, serie.reps)}
-                              {serie.rpe ? <span style={{ opacity: 0.65, fontSize: 'var(--t-legende)' }}>effort {kg(serie.rpe)}/10</span> : null}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn discret"
-                  onClick={() => {
-                    const id = s.id
-                    setSeanceFaiteModal(null)
-                    onVoirSeance(id)
-                  }}
-                  style={{
-                    height: 44,
-                    borderRadius: 'var(--rayon-2)',
-                    fontSize: 'var(--t-petit)',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  Ouvrir l'historique complet pour modifier ›
-                </button>
-                <button
-                  type="button"
-                  className="btn discret plein"
-                  onClick={() => setSeanceFaiteModal(null)}
-                  style={{ height: 40, borderRadius: 'var(--rayon-2)' }}
-                >
-                  Fermer
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
     </div>
   )

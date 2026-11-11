@@ -10,7 +10,7 @@ const REGLES: [string, string[]][] = [
   [
     'La règle de base',
     [
-      'Rien ne monte tout seul : la prochaine fois, l’objectif est de refaire pareil que la dernière fois. C’est toi qui décides de monter, en fin de séance.',
+      'Rien ne monte tout seul : la prochaine fois, l’objectif est de refaire pareil que la dernière fois. C’est toi qui décides de monter, en fin de séance ou plus tard sur la séance enregistrée.',
       'L’appli ne commente jamais ton poids et ne compte pas de série de jours (le repos fait partie du programme).',
     ],
   ],
@@ -49,7 +49,7 @@ const REGLES: [string, string[]][] = [
       'Deux séances ratées de suite (fourchette avec deux nombres différents) : baisser d’environ 5 % (au moins un pas).',
       'Exercice assisté (tractions à la machine) : les kg notés aident, donc tout s’inverse. Progresser, c’est retirer de l’assistance, d’un palier à la fois ; c’est aussi ce qui compte comme un progrès.',
       'Séance écourtée (moins de séries que prévu) : pas de conseil, refais d’abord la séance en entier.',
-      'Chaque conseil dit pourquoi, avec tes chiffres du jour (quelle série, combien de reps, quel effort). En fin de séance, tu choisis entre « Comme aujourd’hui » (coché par défaut) et le conseil, un par un ou tous d’un coup avec « suivre les conseils » ; rien ne monte tout seul.',
+      'Chaque conseil dit pourquoi, avec tes chiffres du jour (quelle série, combien de reps, quel effort). En fin de séance, tu choisis entre « Comme aujourd’hui » (coché par défaut) et le conseil, un par un ou tous d’un coup avec « suivre les conseils » ; rien ne monte tout seul. Une fois la séance enregistrée, le même choix reste sur sa page (un appui sur la séance faite à l’Accueil, ou dans le Journal), tant que tu n’as pas refait l’exercice : c’est toujours ta dernière fois qui compte.',
       'Sans conseil, la carte dit pourquoi on refait pareil : effort plus dur que prévu, ou série d’échec trop courte.',
     ],
   ],

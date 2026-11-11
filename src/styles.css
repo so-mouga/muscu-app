@@ -3498,6 +3498,23 @@ button.phase-accueil {
   white-space: pre-line;
   line-height: 1.35;
 }
+/* Séance enregistrée dont les exercices ont été refaits depuis : la prochaine fois se décide sur la plus récente. */
+.ligne-refaits {
+  display: block;
+  width: 100%;
+  min-height: var(--cible);
+  margin: var(--e4) 0 0;
+  padding: var(--e2) 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  line-height: 1.35;
+}
+.ligne-refaits .lien-texte {
+  color: var(--texte);
+  white-space: nowrap;
+}
 /* Fin de séance : les autres exercices, une ligne chacun. */
 .ligne-fin {
   display: flex;
@@ -4695,6 +4712,10 @@ html[data-sens='fondu']::view-transition-new(root) {
   color: var(--texte-2);
   font-size: var(--t-petit);
   cursor: pointer;
+}
+/* Un choix qui attend encore : en blanc, sans orange (rien ne presse). */
+.seance-jour-choisir {
+  color: var(--texte);
 }
 .seance-jour-retour {
   margin-top: var(--e2);

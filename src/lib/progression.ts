@@ -339,6 +339,12 @@ export function conseil(exo: Exercice, plan: ExoPlan, historique: Serie[][]): Su
 }
 
 /**
+ * Le conseil ne propose rien de plus que refaire pareil (« Confirme d'abord », « Charge max atteinte ») :
+ * pas de faux choix en fin de séance, ni dans le texte partagé.
+ */
+export const rienDePlus = (c: Suggestion, base: Suggestion) => c.decision === 'consolider' && c.charges.every((x, i) => x === base.charges[i]) && c.reps.every((r, i) => r <= base.reps[i])
+
+/**
  * Pourquoi on refait pareil quand il n'y a pas de conseil (exercice avec fourchette) : effort plus
  * dur que prévu ou série d'échec trop courte. Null si rien à expliquer.
  */

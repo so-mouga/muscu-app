@@ -6,7 +6,7 @@ import { historiqueDe } from './historique'
 import { nomPhase, phaseA, type EtapeObjectifs } from './objectifs'
 import { ligneExo } from './partageProgramme'
 import { moyenneRepas, texteRepas } from './nutrition'
-import { conseil, pareil, type Suggestion } from './progression'
+import { conseil, pareil, rienDePlus, type Suggestion } from './progression'
 
 export interface DonneesSeance {
   /** Exercice avec ses réglages (palier) : ceux de la séance. */
@@ -31,9 +31,7 @@ const memeCible = (a: { charges: (number | null)[]; reps: number[] }, b: { charg
 function conseilUtile(exo: Exercice, p: ExoPlan, histo: Serie[][]): Suggestion | null {
   const c = conseil(exo, p, histo)
   if (!c) return null
-  const base = pareil(exo, p, histo)
-  const rienDePlus = c.decision === 'consolider' && c.charges.every((x, i) => x === base.charges[i]) && c.reps.every((r, i) => r <= base.reps[i])
-  return rienDePlus ? null : c
+  return rienDePlus(c, pareil(exo, p, histo)) ? null : c
 }
 
 /** Le type d'une série, en mots : rien pour une série normale. */

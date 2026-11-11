@@ -1,16 +1,18 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import Exercices from './Exercices'
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, Dumbbell, Flame, Frown, Pencil, Ruler, Share2, Smile, Trophy, X } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
 import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import PartageSeance from '../components/PartageSeance'
+import ProchaineFois from '../components/ProchaineFois'
 import { db, exoAvecReglages } from '../db'
 import { dateISO, duree, estDure, kg, sensationSeance, milliers } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
 import { useRetour } from '../lib/nav'
+import { decideProchaineFois } from '../lib/prochaineFois'
 import { suggestionPour } from '../lib/progression'
 import type { JourJournal, Mesure, PhotoCorps, Reglage, Seance, Serie } from '../types'
 import { CaseJour, FenetreJour, heures, TEXTE_CALORIES, type SaisieJour } from '../components/JournalMatin'
@@ -119,8 +121,11 @@ export default function Historique({ catalogue, detail, onDetail, vue, onVue, on
   if (ouverte)
     return (
       <DetailSeance
+        key={ouverte.id}
         seance={ouverte}
         avant={terminees.filter((s) => s.debut < ouverte.debut)}
+        toutes={terminees}
+        onOuvrir={(id) => (seanceBilan ? setSeanceBilan(id) : onDetail(id))}
         records={records[ouverte.id] ?? 0}
         reglages={reglages}
         catalogue={catalogue}
@@ -657,19 +662,40 @@ function LigneSeance({ seance, records, mieux, onOuvrir }: { seance: Seance; rec
 function DetailSeance({
   seance,
   avant,
+  toutes,
   records,
   reglages,
   catalogue,
+  onOuvrir,
   onRetour,
 }: {
   seance: Seance
   avant: Seance[]
+  /** Toutes les séances terminées : pour savoir si celle-ci est encore la dernière fois d'un exercice. */
+  toutes: Seance[]
   records: number
   reglages: Reglage[]
   catalogue: Catalogue
+  /** Ouvre une autre séance (la plus récente, où se décide la prochaine fois). */
+  onOuvrir: (id: string) => void
   onRetour: () => void
 }) {
   const [edition, setEdition] = useState<Serie | null>(null)
+  // « Pour la prochaine fois », comme en fin de séance : chaque choix part dans la base dès l'appui.
+  const [objectifs, setObjectifs] = useState(seance.objectifs ?? {})
+  const objectifsLus = useRef(true)
+  useEffect(() => {
+    if (objectifsLus.current) {
+      objectifsLus.current = false
+      return
+    }
+    void db.seances.update(seance.id, { objectifs })
+  }, [seance.id, objectifs])
+  const faits = [...new Set(seance.series.map((x) => x.exoId))]
+  const decide = (id: string) => decideProchaineFois(seance, toutes, id)
+  // Exercices refaits depuis : la prochaine fois se décide sur la séance la plus récente.
+  const refaits = seance.deload ? [] : faits.filter((id) => !decide(id))
+  const plusRecente = refaits.length ? toutes.filter((s) => !s.deload && s.debut > seance.debut && s.series.some((x) => refaits.includes(x.exoId))).sort((a, b) => b.debut - a.debut)[0] : undefined
   /** Exercice auquel on ajoute une série oubliée. */
   const [ajout, setAjout] = useState<string | null>(null)
   const [partager, setPartager] = useState(false)
@@ -736,6 +762,24 @@ function DetailSeance({
         </div>
         {passes.length > 0 && <div className="faible" style={{ marginTop: 8 }}>Passés ce jour-là : {passes.join(', ')}</div>}
       </div>
+
+      {!seance.deload && faits.some(decide) && (
+        <ProchaineFois
+          seance={{ ...seance, objectifs }}
+          avant={avant}
+          catalogue={catalogue}
+          reglages={reglages}
+          objectifs={objectifs}
+          onObjectifs={setObjectifs}
+          pour={decide}
+          quand={seance.date === dateISO() ? 'aujourd’hui' : 'ce jour-là'}
+        />
+      )}
+      {plusRecente && (
+        <button type="button" className="ligne-refaits faible petit" onClick={() => onOuvrir(plusRecente.id)}>
+          {refaits.length === faits.length ? 'Tu as refait ces exercices depuis' : `Refait depuis : ${refaits.map((id) => catalogue.exo(id).nom).join(', ')}`}. La prochaine fois se décide sur ta dernière séance, {plusRecente.nom} du {jourCourt(plusRecente.date)}. <span className="lien-texte">Ouvrir ›</span>
+        </button>
+      )}
 
       <h3 style={{ margin: '18px 0 4px' }}>Récap par exercice</h3>
       <div className="faible" style={{ marginBottom: 10 }}>
