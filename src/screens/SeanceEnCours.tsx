@@ -31,6 +31,7 @@ import { alterneEncore, delier, echangerExos, estDansSuperset, groupeSuperset, p
 import { phaseA } from '../lib/objectifs'
 import type { Exercice, ExoPlan, Objectif, Reglage, Seance, Serie } from '../types'
 import { FINISSEURS, typeFinisseur } from '../lib/finisseur'
+import { remplacesDe, textePlace } from '../lib/partageSeance'
 import { planParDefaut } from './Seances'
 import { confirmer } from '../components/Dialogues'
 import Echauffement, { echauffementActif } from '../components/Echauffement'
@@ -1327,6 +1328,12 @@ function FinSeance({
   const aDecider = seance.deload ? [] : lignes.filter(vraiChoix)
   const autres = seance.deload ? lignes : lignes.filter((l) => !vraiChoix(l))
   const nonFaits = seance.exercices.filter((p) => !seance.series.some((s) => s.exoId === p.exoId))
+  const remplaces = remplacesDe(seance)
+  /** Sous le nom d'un remplaçant : l'exercice prévu à sa place (il garde sa charge pour la prochaine fois). */
+  const place = (exoId: string) => {
+    const a = remplaces.get(exoId)
+    return a ? <span className="faible legende">{textePlace(catalogue.exo(a).nom, seance.series.some((x) => x.exoId === a))}</span> : null
+  }
   const retirerObjectif = (id: string) =>
     setObjectifs((x) => {
       const { [id]: _retire, ...reste } = x
@@ -1484,6 +1491,7 @@ function FinSeance({
                 <div className="decision-tete">
                   <button type="button" className="decision-nom" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
                     <strong>{exo.nom}</strong>
+                    {place(exo.id)}
                     <span className="faible petit">
                       {memeCharge ? '' : 'aujourd’hui '}
                       {chargesTexte(exo, base.charges, true)} · {ouverts[exo.id] ? 'masquer' : 'voir'} les séries
@@ -1533,6 +1541,7 @@ function FinSeance({
                   <div className="ligne-fin">
                     <button type="button" className="ligne-fin-principal" onClick={() => basculer(exo.id)} aria-expanded={!!ouverts[exo.id]}>
                       <strong>{exo.nom}</strong>
+                      {place(exo.id)}
                       <span className="faible petit">
                         {resumeDuJour(exo)}
                         {texte && ` · ${texte}`}

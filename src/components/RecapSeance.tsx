@@ -6,6 +6,7 @@ import { duree, dureeSeanceEffective, e1rm, ecartSerie, estDure, kg, kgSouleves,
 import type { Exercice, ExoPlan, Reglage, Seance, Serie } from '../types'
 import { recordDuJour } from '../lib/historique'
 import Deplie from './Deplie'
+import { remplacesDe, textePlace } from '../lib/partageSeance'
 
 /** Durée d'une séance : effective (de la 1re à la dernière série), ou jusqu'à maintenant si elle est en cours. */
 /** Séance en cours : le temps écoulé ; au-delà de 4 h (oubliée, longue coupure), la même durée que le Journal. */
@@ -71,6 +72,7 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
 
   const temps = tempsParExo(seance)
   const plans = seance.exercices.filter((p) => seance.series.some((s) => s.exoId === p.exoId))
+  const remplaces = remplacesDe(seance)
 
   return (
     <>
@@ -87,7 +89,10 @@ export default function RecapExos({ seance, avant, reglages, catalogue, basExo, 
         return (
           <div key={exo.id} className="carte pile recap">
             <div className="ligne entre" style={{ alignItems: 'center' }}>
-              <strong style={{ fontSize: 'var(--t-texte)' }}>{exo.nom}</strong>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                <strong style={{ fontSize: 'var(--t-texte)' }}>{exo.nom}</strong>
+                {remplaces.has(plan.exoId) && <span className="faible legende">{textePlace(catalogue.exo(remplaces.get(plan.exoId)!).nom, seance.series.some((x) => x.exoId === remplaces.get(plan.exoId)))}</span>}
+              </div>
               <button
                 type="button"
                 className={'btn discret petit' + (ouvert ? ' actif' : '')}

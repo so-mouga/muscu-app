@@ -87,6 +87,12 @@ export function faitTexte(exo: Exercice, series: Serie[]): string {
     .join(' · ')
 }
 
+/** Remplacements du jour (« Machine prise ») : remplaçant → exercice prévu. Les anciennes séances n'ont que ceux à relier. */
+export const remplacesDe = (seance: Pick<Seance, 'remplacements' | 'aRelier'>) => new Map((seance.remplacements ?? seance.aRelier ?? []).map((r) => [r.b, r.a]))
+
+/** « à la place de Rowing haltère (machine prise) », sous le nom du remplaçant : écran de fin, Journal et texte partagé. */
+export const textePlace = (nomPrevu: string, enCours = false) => `à la place de ${nomPrevu}${enCours ? ', pour les séries qui restaient' : ''} (machine prise)`
+
 /**
  * Les exercices faits dans l'ordre où ils ont été faits (heure de leur 1re série), et, pour ceux qui ont changé de
  * place par rapport au plan, leur rang prévu (« prévu en 2 », en comptant les exercices sautés). Un remplaçant prend
@@ -153,7 +159,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
   // Un exercice fait sans être au plan du jour (rare) garde quand même sa place.
   for (const id of new Set(seance.series.map((x) => x.exoId))) if (!plans.some((p) => p.exoId === id)) plans.push({ exoId: id, repos: 0, series: [], charge: null, chauffes: [], finisseur: false })
   // Remplacements du jour (« Machine prise ») : les anciennes séances n'ont que ceux à relier.
-  const remplace = new Map((seance.remplacements ?? seance.aRelier ?? []).map((r) => [r.b, r.a]))
+  const remplace = remplacesDe(seance)
   for (const p of plans) if (!seance.series.some((x) => x.exoId === p.exoId)) pasFaits.push(d.exo(p.exoId).nom)
   const { faits: ordre, prevuEn } = ordreReel(seance, plans)
   ordre.forEach((p, i) => {
@@ -164,7 +170,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
     const k = prevuEn.get(p.exoId)
     l.push('', k ? titre.replace(`${i + 1}. ${exo.nom}`, `${i + 1}. ${exo.nom} (prévu en ${k})`) : titre)
     const ancien = remplace.get(p.exoId)
-    if (ancien) l.push(`   à la place de ${d.exo(ancien).nom}${seance.series.some((x) => x.exoId === ancien) ? ', pour les séries qui restaient' : ''} (machine prise)`)
+    if (ancien) l.push(`   ${textePlace(d.exo(ancien).nom, seance.series.some((x) => x.exoId === ancien))}`)
     l.push(`   aujourd’hui : ${faitTexte(exo, series)}`)
     if (avecAvant) {
       const precedente = avant.find((s) => !s.deload && s.series.some((x) => x.exoId === p.exoId))
