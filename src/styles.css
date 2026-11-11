@@ -48,6 +48,9 @@
   --finisseur-voile: rgba(197, 139, 255, 0.12);
   --finisseur-texte: #1b0d2b;
   --finisseur-fond: #160d22;
+  /* La trame des records : traits de vitesse et points, gris sur noir. */
+  --trame-trait: rgba(255, 255, 255, 0.085);
+  --trame-point: rgba(255, 255, 255, 0.2);
 
   /* Données : silhouette, disques de fonte, courbes de tendances. */
   --silhouette: #44403c;
@@ -7186,4 +7189,99 @@ button.jour-pas {
 }
 .rev-bloc .face b {
   font-size: var(--t-chiffre);
+}
+
+/* --- Style de dépassement (maquette style-shonen.html, jugée sur le téléphone, 11 nov. 2026) ---
+   Le penché gras pour tout ce qui est fort ; la trame (traits de vitesse et points, gris sur noir) seulement derrière un
+   record en fin de séance et derrière le disque plein. Ni ombre orange, ni couleur sur tout le fond. */
+.vise,
+.moment-grand,
+.moment-fort,
+.moment-temps,
+.rev-auj,
+.cran-signal > span,
+.fin-heros-chiffre b,
+.fin-heros-titre,
+.fin-disque-plein > h2,
+.face-apres b {
+  font-style: italic;
+}
+.fin-resume.trame {
+  position: relative;
+  overflow: hidden;
+}
+.fin-resume.trame > * {
+  position: relative;
+}
+.fin-resume.trame::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 230px;
+  background: repeating-linear-gradient(-18deg, var(--trame-trait) 0 2px, transparent 2px 13px);
+  mask-image: linear-gradient(100deg, transparent 18%, #000 62%), linear-gradient(#000 60%, transparent);
+  mask-composite: intersect;
+}
+.fin-resume.trame::after {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 210px;
+  height: 210px;
+  background: radial-gradient(circle, var(--trame-point) 1.3px, transparent 1.8px) 0 0 / 9px 9px;
+  mask-image: radial-gradient(circle, #000 20%, transparent 70%);
+}
+.fin-heros {
+  display: flex;
+  flex-direction: column;
+  padding: var(--e1) 0 var(--e2);
+}
+.fin-heros-exo {
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  font-weight: 600;
+}
+.fin-heros-chiffre {
+  display: flex;
+  align-items: baseline;
+  gap: var(--e2);
+}
+.fin-heros-chiffre b {
+  padding-right: 6px;
+  font-size: 96px;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  animation: cran-arrive var(--duree-longue) var(--sortie) var(--duree) both;
+}
+.fin-heros-chiffre span {
+  color: var(--texte-2);
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+.fin-heros-titre {
+  margin-top: var(--e1);
+  font-size: var(--t-chiffre);
+  font-weight: 800;
+  line-height: 1.05;
+}
+.fin-heros .fin-crans-titre {
+  margin-top: var(--e1);
+}
+.fin-heros-disque {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+  margin-top: var(--e3);
+  font-size: var(--t-petit);
+}
+.fin-heros-disque .disque {
+  flex: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fin-heros-chiffre b {
+    animation: none;
+  }
 }

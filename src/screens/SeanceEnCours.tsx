@@ -23,7 +23,7 @@ import { recordDuJour } from '../lib/historique'
 import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
 import Disque, { IconeCran } from '../components/Disque'
 import { verrou } from '../lib/verrou'
-import { chargeQte, chargeTexte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chargeTexte, ecartQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -1552,7 +1552,7 @@ function FinSeance({
           </button>
         )}
       </div>
-      <div className="carte fin-resume">
+      <div className={'carte fin-resume' + (crans.length > 0 ? ' trame' : '')}>
         {crans.length > 0 ? (
           <>
             {disquePlein ? (
@@ -1572,24 +1572,41 @@ function FinSeance({
                 <div className="faible petit fin-disque-suite">{seance.nom}</div>
               </div>
             ) : (
-              <div className="fin-crans">
-                <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={76} chiffre />
-                <div>
-                  <h2>{seance.nom}</h2>
-                  <div className="fin-crans-titre">
-                    {crans.length} record{crans.length > 1 ? 's' : ''} battu{crans.length > 1 ? 's' : ''}
-                  </div>
-                  <div className="faible petit">{`${disque.crans} cran${disque.crans > 1 ? 's' : ''} sur 12 dans ton ${disque.numero > 1 ? `${disque.numero}e ` : ''}disque`}</div>
+              // Le record du jour en grand, penché, sur sa trame : le premier de la séance, les autres en liste dessous.
+              <div className="fin-heros">
+                <div className="fin-heros-exo">
+                  {crans[0].exo.nom} · {seance.nom}
+                </div>
+                <div className="fin-heros-chiffre">
+                  <b>{crans[0].genre === 'charge' ? kg(crans[0].serie.charge) : crans[0].serie.reps}</b>
+                  <span>{crans[0].genre === 'charge' ? (crans[0].exo.mode === 'elastique' ? 'niveau' : 'kg') : crans[0].exo.mesure === 'temps' ? 's' : 'reps'}</span>
+                </div>
+                <div className="fin-heros-titre">{crans.length > 1 ? `${crans.length} records battus.` : 'Record battu.'}</div>
+                <div className="fin-crans-titre">
+                  {crans[0].genre === 'charge'
+                    ? `${crans[0].exo.assistance ? 'jamais fait avec si peu d’aide' : 'charge jamais faite'} · ${crans[0].serie.reps} reps`
+                    : `${ecartQte(crans[0].exo, crans[0].serie.reps - crans[0].ancien)} · ton record était ${crans[0].ancien}`}
+                </div>
+                <div className="fin-heros-disque">
+                  <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={26} />
+                  <span>
+                    <strong>
+                      {disque.crans} cran{disque.crans > 1 ? 's' : ''} sur 12
+                    </strong>{' '}
+                    <span className="faible">dans ton {disque.numero > 1 ? `${disque.numero}e ` : ''}disque</span>
+                  </span>
                 </div>
               </div>
             )}
-            <div className="petit fin-crans-liste">
-              {crans.map((c) => (
-                <div key={c.exo.id}>
-                  {c.exo.nom} <span className="fin-crans-gain">{texteCran(c, true)}</span>
-                </div>
-              ))}
-            </div>
+            {(disquePlein || crans.length > 1) && (
+              <div className="petit fin-crans-liste">
+                {(disquePlein ? crans : crans.slice(1)).map((c) => (
+                  <div key={c.exo.id}>
+                    {c.exo.nom} <span className="fin-crans-gain">{texteCran(c, true)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {/* La règle, une seule fois : le jour du tout premier cran. */}
             {cransAvant === 0 && <div className="faible petit fin-crans-regle">Un cran = un record battu sur un exercice. Il ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.</div>}
             {resumeForme && resumeForme.mieux > crans.length && (
