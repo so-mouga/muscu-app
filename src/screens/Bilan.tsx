@@ -1,8 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, Share } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import Aide from '../components/Aide'
+import { PisteCap, useCaps } from '../components/Caps'
+import Disque from '../components/Disque'
+import FenetreDisque from '../components/FenetreDisque'
 import ChoixDates from '../components/ChoixDates'
 import PartageBilan from '../components/PartageBilan'
 import { NiveauJauge } from '../components/VolumeMuscles'
@@ -13,7 +16,9 @@ import BoutonRetour from '../components/BoutonRetour'
 import { VueCycle } from '../components/Cycle'
 import { transition, useRetour } from '../lib/nav'
 import { MUSCLES } from '../data/exercices'
-import { analyser, analyserDates, aRetenir, ceQuiMonte, erreurDates, essentiel, semaineOuverte, semainesFinies, type LigneExercice } from '../lib/analyse'
+import { analyser, analyserDates, aRetenir, ceQuiMonte, erreurDates, essentiel, phraseBilan, semaineOuverte, semainesFinies, type LigneExercice } from '../lib/analyse'
+import { capsEnCours, dureeCap, etatCap, texteCap, texteReste } from '../lib/caps'
+import { DEBUT_CRANS, etatDisque, totalCrans } from '../lib/crans'
 import { gain } from '../lib/constat'
 import { genererBilan, type DonneesBilan } from '../lib/bilan'
 import type { ContenuImage } from '../lib/imageBilan'
@@ -69,6 +74,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   // Ce qui est dans les champs : le bilan ne suit que des dates correctes.
   const [saisieDates, setSaisieDates] = useState<Dates>(() => memoire.dates ?? { du: '', au: dateISO() })
   const [partage, setPartage] = useState(false)
+  const [voirDisque, setVoirDisque] = useState(false)
   const [sous, setSous] = useState<SousVue | null>(() => {
     const s = memoire.sous
     memoire.sous = null
@@ -93,6 +99,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])
   const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   const prevusNotes = useLiveQuery(() => db.reglages.get(CLE_PREVUS), [])
+  const caps = useCaps() ?? []
   const donneesPretes = !!seances
 
   useEffect(() => {
@@ -142,7 +149,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   const cycleTexte = periode === 'cycle' ? cycle : cycleParDefaut && cycleParDefaut.debut <= fin ? cycleParDefaut : undefined
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
   const cibles = catalogue.ciblesA(fin)
-  const donnees: DonneesBilan = { seances, cycles, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, cycle: cycleTexte && `Cycle « ${nomCycle(cycleTexte)} » (${cycleTexte.programme.nom}), ${etatCycle(cycleTexte).fini ? 'terminé' : `semaine ${Math.max(1, etatCycle(cycleTexte).n)}/${cycleTexte.semaines}`}${cycleTexte.priorites?.length ? `, priorité : ${cycleTexte.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
+  const donnees: DonneesBilan = { seances, cycles, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, caps, cycle: cycleTexte && `Cycle « ${nomCycle(cycleTexte)} » (${cycleTexte.programme.nom}), ${etatCycle(cycleTexte).fini ? 'terminé' : `semaine ${Math.max(1, etatCycle(cycleTexte).n)}/${cycleTexte.semaines}`}${cycleTexte.priorites?.length ? `, priorité : ${cycleTexte.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
   const etapesPrevues = (prevusNotes?.valeur as EtapePrevu[] | undefined) ?? []
   const prevues = prevuDeSemaine(etapesPrevues, cycles, seances, catalogue.planning.length)
   const phaseEnCours = phaseA(catalogue.objectifs, fin)
@@ -404,11 +411,72 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   const dansZone = muscles.filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) === 'optimal')
   const sansConseil = MUSCLES.filter((m) => m.cible > 0 && cibles[m.id] <= 0 && a.volume[m.id] > 0)
   const notesCalories = a.calories.ok + a.calories.trop + a.calories.pasAssez
+  // Le disque et les caps disent où tu en es aujourd'hui : seulement sur une période qui va jusqu'à la dernière semaine finie.
+  const actuelle = fin >= finSemaines
+  const disque = etatDisque(totalCrans(seances, catalogue.exo))
+  const capsAffiches = actuelle
+    ? capsEnCours(caps, seances)
+        .map((c) => ({ c, exo: catalogue.exo(c.exoId), etat: etatCap(c, seances) }))
+        .filter((x) => !x.exo.supprime)
+    : []
+  // Un cap franchi pendant la période passe avant tout : le plus récent.
+  const capFranchi = caps
+    .map((c) => ({ c, f: etatCap(c, seances).franchi }))
+    .filter((x) => x.f && x.f.date >= a.debut && x.f.date <= fin)
+    .sort((x, y) => y.f!.date.localeCompare(x.f!.date))[0]
+  // Un record = un cran : comptés depuis le même jour que les crans (avant, des séances d'essai).
+  const phrase = phraseBilan(
+    { ...a, records: a.records.filter((r) => r.date >= DEBUT_CRANS) },
+    exercices.montent.length,
+    phaseFin,
+    capFranchi && { charge: texteCap(catalogue.exo(capFranchi.c.exoId), capFranchi.c, capFranchi.c.cible), exo: catalogue.exo(capFranchi.c.exoId).nom, duree: dureeCap(capFranchi.c.depuis, capFranchi.f!.date) }
+  )
 
   return (
     <div>
       {haut}
       {choixPeriode}
+
+      {/* En tête : une phrase avec les chiffres de la période, la régularité, le disque, et Partager (c'est ce qu'on vient faire le dimanche). */}
+      <section className="bilan-tete">
+        <div className="bilan-tete-haut">
+          <h2 className="voix">{phrase.texte}</h2>
+          <button type="button" className="bilan-partage" aria-label="Partager ce bilan" onClick={() => setPartage(true)}>
+            <Share size={20} strokeWidth={1.75} />
+          </button>
+        </div>
+        {phrase.sous && <div className="faible petit-texte">{phrase.sous}</div>}
+        <p className="petit-texte">
+          <strong>{a.prevues ? `${a.faites} séance${a.faites > 1 ? 's' : ''} sur ${a.prevues}` : `${a.seances} séance${a.seances > 1 ? 's' : ''}`}</strong>
+          {a.enPlus > 0 && <span className="faible"> (+{a.enPlus} en plus)</span>}
+          {surDates ? null : surCycle ? tenuesCycle >= 2 && <span className="tenue"> · {tenuesCycle} semaines tenues</span> : tenues >= 2 && <span className="tenue"> · {tenues}e semaine tenue</span>}
+        </p>
+        {surChoix?.coupees && surChoix.entieres > 0 && (
+          <p className="faible petit-texte">
+            Comptée sur {surChoix.entieres > 1 ? `les ${surChoix.entieres} semaines entières` : 'la semaine entière'} de ces dates : les semaines coupées n’entrent pas ici.
+          </p>
+        )}
+        {actuelle && disque.total > 0 && (
+          <button type="button" className="accueil-disque bilan-disque" onClick={() => setVoirDisque(true)} aria-label="Ton disque : voir tes crans">
+            <Disque crans={disque.crans} taille={20} />
+            <span>
+              {disque.crans > 0 ? (
+                <>
+                  <strong>
+                    {disque.crans} cran{disque.crans > 1 ? 's' : ''} sur 12
+                  </strong>{' '}
+                  · plus que {disque.reste}
+                </>
+              ) : (
+                <strong>
+                  {disque.pleins} disque{disque.pleins > 1 ? 's' : ''} plein{disque.pleins > 1 ? 's' : ''}
+                </strong>
+              )}{' '}
+              ›
+            </span>
+          </button>
+        )}
+      </section>
 
       {lignes.length > 0 && (
         <section className="carte bilan-carte">
@@ -428,7 +496,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
         </section>
       )}
 
-      {exercices.montent.length + exercices.bloques.length > 0 && (
+      {exercices.montent.length + exercices.bloques.length + capsAffiches.length > 0 && (
         <section className="carte bilan-carte">
           <h3>Exercices</h3>
           {exercices.montent.length > 0 && <div className="bilan-intertitre">Ce qui monte</div>}
@@ -438,6 +506,22 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
           {exercices.bloques.length > 0 && <div className="bilan-intertitre">Ce qui bloque</div>}
           {exercices.bloques.slice(0, 2).map((l) => (
             <LigneExo key={l.id} {...l} onClick={ouvrirExo && (() => ouvrirExo(l.id))} />
+          ))}
+          {capsAffiches.length > 0 && <div className="bilan-intertitre">{capsAffiches.length > 1 ? 'Tes caps' : 'Ton cap'}</div>}
+          {capsAffiches.map(({ c, exo, etat }) => (
+            <button key={c.exoId} type="button" className="bilan-cap" onClick={() => ouvrirExo?.(c.exoId)} disabled={!ouvrirExo}>
+              <div className="cap-tete">
+                <span>{exo.nom}</span>
+                <span className="cap-but">
+                  {texteCap(exo, c, c.cible)}
+                  <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+                </span>
+              </div>
+              <PisteCap part={etat.part} />
+              <div className="faible cap-legende">
+                Tu es à {texteCap(exo, c, etat.niveau)}. {texteReste(c, etat.reste)}
+              </div>
+            </button>
           ))}
           {!surCycle && exercices.montent.length + exercices.bloques.length > 2 && (
             <button type="button" className="bilan-tous" onClick={() => onTousExos?.()}>
@@ -457,19 +541,6 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
         </button>
       )}
 
-      <section className="carte bilan-carte bilan-regularite">
-        <h3>Régularité</h3>
-        <p>
-          <strong>{a.prevues ? `${a.faites} séance${a.faites > 1 ? 's' : ''} sur ${a.prevues}` : `${a.seances} séance${a.seances > 1 ? 's' : ''}`}</strong>
-          {a.enPlus > 0 && <span className="faible"> (+{a.enPlus} en plus)</span>}
-          {surDates ? null : surCycle ? tenuesCycle >= 2 && <span className="tenue"> · {tenuesCycle} semaines tenues</span> : tenues >= 2 && <span className="tenue"> · {tenues}e semaine tenue</span>}
-        </p>
-        {surChoix?.coupees && surChoix.entieres > 0 && (
-          <p className="faible petit-texte">
-            Comptée sur {surChoix.entieres > 1 ? `les ${surChoix.entieres} semaines entières` : 'la semaine entière'} de ces dates : les semaines coupées n’entrent pas ici.
-          </p>
-        )}
-      </section>
 
       {seancesCycle.length > 0 && (
         <button type="button" className="liste-btn bilan-lien-detail" onClick={() => ouvrirSous('seances')}>
@@ -566,10 +637,8 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
         </section>
       )}
 
-      <button type="button" className="bilan-partager" onClick={() => setPartage(true)}>
-        Partager ce bilan
-      </button>
       {partage && <PartageBilan contenu={contenuImage} texte={texteComplet} onFermer={() => setPartage(false)} />}
+      {voirDisque && <FenetreDisque seances={seances} exo={catalogue.exo} onFermer={() => setVoirDisque(false)} />}
     </div>
   )
 }

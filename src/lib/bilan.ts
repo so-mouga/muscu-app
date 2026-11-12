@@ -4,11 +4,14 @@ import type { Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from
 import { chargeQte, dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, schemaPlan, sensationSeance, volumeParMuscle } from './calc'
 import { effort } from './partageProgramme'
 import { faitTexte } from './partageSeance'
-import { dureeReelle, evolutionForce, recordsParSeance, seanceSemaineAllegee, semaineDe, sensPerf } from './historique'
+import { dureeReelle, evolutionForce, seanceSemaineAllegee, semaineDe, sensPerf } from './historique'
 import { gain } from './constat'
 import { periodes, phaseA, textePhase, type EtapeObjectifs } from './objectifs'
 import { moyenneRepas, objectifDuJour, texteRepas } from './nutrition'
 import { diagnostic, texteBlocage } from './blocages'
+import { recordsDePeriode } from './analyse'
+import { etatCap, texteCap, type Cap } from './caps'
+import { DEBUT_CRANS } from './crans'
 
 
 /** « 12 400 » : espace des milliers, comme à l'écran. */
@@ -32,6 +35,8 @@ export interface DonneesBilan {
   cycle?: string
   /** Tous les cycles : leurs semaines en pause ne comptent ni dans le prévu, ni dans le volume. */
   cycles?: Cycle[]
+  /** Les caps fixés (une charge visée sur un exercice). */
+  caps?: Cap[]
 }
 
 const SEMAINE = 7 * 86400000
@@ -51,7 +56,6 @@ export const debutPeriode = (semaines: number, aujourdhui = dateISO()) =>
 export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), retenir: string[] = [], semainesCoupees = false, question = ''): string {
   const periode = d.seances.filter((s) => s.date >= debut && s.date <= fin).sort((a, b) => a.debut - b.debut)
   const travail = periode.filter((s) => !s.deload)
-  const records = recordsParSeance(d.seances, d.exo)
   const lignes: string[] = []
   const titre = (t: string) => lignes.push('', `== ${t} ==`)
 
@@ -103,8 +107,26 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     const moy = moyenne(sensations.map((s) => s.val))!
     lignes.push(`Sensation moyenne : ${niveauSensation(moy)} (${kg(arrondi(moy))}/5 sur ${sensations.length} séance${sensations.length > 1 ? 's' : ''})`)
   }
-  const nbRecords = periode.reduce((a, s) => a + (records[s.id] ?? 0), 0)
-  if (nbRecords) lignes.push(`${nbRecords} record${nbRecords > 1 ? 's' : ''} battu${nbRecords > 1 ? 's' : ''}`)
+
+  // Records battus, datés, depuis le début des crans : la même mesure que les crans et que la phrase du Bilan. On écrit « record », le mot que l'IA connaît.
+  const recs = recordsDePeriode(d, debut < DEBUT_CRANS ? DEBUT_CRANS : debut, fin)
+  if (recs.length) {
+    titre(`Records battus (${recs.length})`)
+    for (const r of recs) lignes.push(`- ${r.exo.nom} : ${r.perf} (${jour(r.date)})`)
+  }
+  // Caps : en cours, ou franchis pendant la période.
+  const caps = (d.caps ?? []).flatMap((c) => {
+    const e = etatCap(c, d.seances)
+    return e.franchi && (e.franchi.date < debut || e.franchi.date > fin) ? [] : [{ c, e, exo: d.exo(c.exoId) }]
+  })
+  if (caps.length) {
+    titre('Mes caps (une charge que je vise, sans date)')
+    for (const { c, e, exo } of caps) {
+      const vise = c.genre === 'charge' ? `${texteCap(exo, c, c.cible)} sur ${c.series > 1 ? `mes ${c.series} séries` : 'ma série'}, à ${c.reps} reps ou plus` : `${c.series > 1 ? `${c.series} séries` : 'une série'} de ${c.cible} reps`
+      const ou = (v: number) => (c.genre === 'charge' ? texteCap(exo, c, v) : `${v} reps`)
+      lignes.push(e.franchi ? `- ${exo.nom} : ${vise}. Franchi le ${jour(e.franchi.date)} (parti de ${ou(c.depart)} le ${jour(c.depuis)}).` : `- ${exo.nom} : ${vise}. J'en suis à ${ou(e.niveau)}, parti de ${ou(c.depart)} le ${jour(c.depuis)}.`)
+    }
+  }
 
   // Semaine par semaine
   titre('Semaine par semaine')

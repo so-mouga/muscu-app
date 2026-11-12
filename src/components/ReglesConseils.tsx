@@ -47,6 +47,16 @@ const REGLES: [string, string[]][] = [
       '« Tu es à… » : la charge la plus lourde où tu as déjà fait toutes ces séries. Les séances allégées, les séries à l’échec, dégressives ou en rest-pause ne comptent pas.',
       'Sur l’accueil, « Va chercher les 60. » seulement le jour où les charges prévues pour la séance sont celles du cap.',
       'Le cap ne change aucun conseil. Pas de cap sur un exercice assisté, en temps ou à l’élastique.',
+      'Dans le Bilan, tes caps en cours sont dans la carte « Exercices », avec leur barre.',
+    ],
+  ],
+  [
+    'Bilan : la phrase en tête',
+    [
+      'Une phrase avec les chiffres de la période, le plus rare d’abord : un cap franchi (« Cap franchi. 60 kg. »), sinon tes records battus (« 5 records battus. »), sinon les exercices qui montent, sinon, en sèche, « Tes charges tiennent. » si la plupart ne baissent pas, sinon le nombre de séances. Jamais un reproche, jamais ton poids.',
+      'Un record = un cran : comptés depuis le 9 novembre 2026, comme les crans, aucun en séance allégée.',
+      'Dessous, tes séances face au prévu et tes semaines tenues, puis ton disque (depuis ton premier cran). Le disque et tes caps disent où tu en es aujourd’hui : ils ne s’affichent pas sur une période passée (un ancien cycle, des dates anciennes).',
+      'Le texte partagé liste aussi tes records battus, datés, et tes caps (où tu en es, d’où tu es parti).',
     ],
   ],
   [

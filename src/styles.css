@@ -5186,15 +5186,69 @@ html[data-sens='fondu']::view-transition-new(root) {
   grid-template-columns: 1fr 1.4fr;
   gap: var(--e2);
 }
-.bilan-partager {
-  display: block;
-  width: 100%;
-  min-height: var(--cible);
-  margin-bottom: var(--e4);
+/* En tête du Bilan (12 nov. 2026, maquette bilan-voix.html) : la phrase, la régularité, le disque, et Partager. */
+.bilan-tete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  margin: 0 0 var(--e3);
+}
+.bilan-tete p {
+  margin: 0;
+}
+.bilan-tete-haut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+}
+.bilan-tete-haut .voix {
+  margin: 0;
+  min-width: 0;
+}
+.bilan-partage {
+  flex: none;
+  width: var(--cible);
+  height: var(--cible);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+  color: var(--texte);
+}
+.bilan-disque {
+  align-self: flex-start;
+  min-height: 36px;
+}
+.bilan-disque strong {
+  color: var(--texte);
+  font-weight: 600;
+}
+.bilan-cap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  width: 100%;
+  padding: var(--e1) 0;
+  border: 0;
   background: none;
-  color: var(--texte-2);
-  font-size: var(--t-petit);
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+}
+.bilan-cap:disabled {
+  opacity: 1;
+}
+.bilan-cap .cap-but {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--t-texte);
+}
+.bilan-cap .cap-legende {
+  font-size: var(--t-legende);
 }
 
 /* Corps : une page, le détail à un appui */

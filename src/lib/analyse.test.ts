@@ -1,6 +1,6 @@
 import { EXERCICES } from '../data/exercices'
 import type { Seance } from '../types'
-import { analyser, analyserDates, aRetenir, ceQuiMonte, erreurDates, essentiel, lecturePhase, libelleMesure, semaineOuverte, semainesEntieres, semainesFinies, type Analyse } from './analyse'
+import { analyser, analyserDates, aRetenir, ceQuiMonte, erreurDates, essentiel, lecturePhase, libelleMesure, phraseBilan, semaineOuverte, semainesEntieres, semainesFinies, type Analyse } from './analyse'
 import { cibles } from './cycle'
 
 const seance = (id: string, date: string, smith: number[], extra: Partial<Seance> = {}): Seance =>
@@ -393,5 +393,25 @@ describe('Bilan : « Ce qui monte » et « Ce qui bloque » ne se contredisent p
   it('charge montée et reps reparties au bas : dans « ce qui monte », avec le gain en kilos et jamais un pourcentage de force', () => {
     const a = analyser(donnees([smith('a', '2026-10-05', 60, 12), smith('b', '2026-10-26', 62.5, 8, 9)]), '2026-10-05', '2026-11-01', 1)
     expect(ceQuiMonte(a).montent).toEqual([{ id: 'smith_incline', nom: EXERCICES.smith_incline.nom, detail: '60 kg × 12 → 62,5 kg × 8 · record', valeur: '+2,5 kg' }])
+  })
+})
+
+describe('phrase en tête du Bilan', () => {
+  const base = { seances: 7, records: [], progressions: [] } as unknown as Pick<Analyse, 'seances' | 'records' | 'progressions'>
+  const exo = EXERCICES.smith_incline
+  const prog = (sens: -1 | 0 | 1) => ({ sens }) as Analyse['progressions'][number]
+  it('le plus rare d’abord : un cap franchi, puis les records', () => {
+    const recs = [{ date: '2026-11-10', exo, perf: '60 kg × 10' }, { date: '2026-11-11', exo, perf: '62,5 kg × 8' }]
+    expect(phraseBilan({ ...base, records: recs }, 3, 'prise', { charge: '60 kg', exo: 'Développé incliné Smith', duree: 'en 9 semaines' })).toEqual({ texte: 'Cap franchi. 60 kg.', sous: 'Développé incliné Smith · en 9 semaines' })
+    expect(phraseBilan({ ...base, records: recs }, 3).texte).toBe('2 records battus.')
+    expect(phraseBilan({ ...base, records: recs.slice(0, 1) }, 3).texte).toBe('1 record battu.')
+  })
+  it('sans record : ce qui monte, puis en sèche des charges qui tiennent, sinon les faits', () => {
+    expect(phraseBilan(base, 3).texte).toBe('3 exercices montent.')
+    expect(phraseBilan(base, 1).texte).toBe('1 exercice monte.')
+    expect(phraseBilan({ ...base, progressions: [prog(0), prog(0), prog(-1)] }, 0, 'seche').texte).toBe('Tes charges tiennent.')
+    expect(phraseBilan({ ...base, progressions: [prog(0), prog(-1)] }, 0, 'seche').texte).toBe('7 séances.')
+    expect(phraseBilan({ ...base, progressions: [prog(0), prog(0)] }, 0, 'prise').texte).toBe('7 séances.')
+    expect(phraseBilan({ ...base, seances: 1 }, 0).texte).toBe('1 séance.')
   })
 })

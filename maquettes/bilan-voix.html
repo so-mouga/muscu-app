@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · le Bilan, avec ta voix</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#191716;--carte-2:#24211f;--controle:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--ok:#22c55e;--info:#56b4e9;--alerte:#f5c04a;--piste:#2f2b28;--trait:rgba(255,255,255,.085);--point:rgba(255,255,255,.2);--neuf:#5a96f7}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+p{margin:0;line-height:1.4}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;justify-content:center;background:var(--bg);position:relative;overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 12px;gap:9px;position:relative}
+.tel.onglet{padding-bottom:0}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;text-align:center;flex:none}
+.note{color:#9cc0ff;font-size:12px;line-height:1.3;text-align:center;margin-top:-4px;flex:none}
+.ligne{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.g{color:var(--t2)}.g3{color:var(--t3)}.petit{font-size:14px}.legende{font-size:12px}.v{color:var(--ok)}.o{color:var(--accent)}.b{color:var(--texte)}
+.voix{font-style:italic;font-weight:800;font-size:28px;line-height:1.05}
+.carte{background:var(--carte);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:7px;flex:none}
+h1{font-size:26px;font-weight:700;margin:0}
+h2{font-size:20px;font-weight:600;margin:0}
+h3{font-size:16px;font-weight:600;margin:0}
+.neuf{outline:1.5px dashed var(--neuf);outline-offset:3px;border-radius:8px}
+.carte.neuf{border-radius:18px}
+.onglets{margin:0 -16px;height:58px;flex:none;display:flex;justify-content:space-around;align-items:center;background:#131211;font-size:12px;color:var(--t2)}
+.onglets .ici{color:var(--accent)}
+.page{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:9px;-webkit-mask:linear-gradient(#000 calc(100% - 26px),transparent);mask:linear-gradient(#000 calc(100% - 26px),transparent)}
+.ico-cran{width:15px;height:15px;flex:none}
+
+/* Intro */
+.intro{gap:11px;justify-content:center}
+.intro ul{margin:0;padding-left:18px}
+.intro li{margin:0 0 7px;line-height:1.33;font-size:15px}
+.dir{background:var(--carte);border-radius:14px;padding:9px 12px;font-size:15px;line-height:1.3}
+.dir b{font-weight:600}
+
+/* Progrès */
+.segments{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--carte);border-radius:14px;padding:4px;flex:none}
+.segments span{text-align:center;padding:7px 0;border-radius:10px;font-size:14px;color:var(--t2)}
+.segments .ici{background:var(--controle);color:var(--texte)}
+.periodes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:none}
+.periodes span{text-align:center;padding:7px 0;border-radius:999px;font-size:14px;color:var(--t2);background:var(--carte)}
+.periodes .ici{background:var(--carte-2);color:var(--texte);font-weight:600}
+.dates{font-size:12px;color:var(--t2);margin-top:-4px;flex:none}
+
+/* L'en-tête du Bilan */
+.tete{display:flex;flex-direction:column;gap:5px;padding:2px 0;flex:none}
+.tete .haut{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.partage{width:44px;height:44px;border-radius:14px;background:var(--controle);display:flex;align-items:center;justify-content:center;flex:none;color:var(--texte)}
+.partage svg{width:20px;height:20px}
+.cran-ligne{display:flex;align-items:center;gap:7px;font-size:14px}
+.cran-ligne b{font-weight:600}
+
+/* Cartes du Bilan */
+.inter{font-size:12px;color:var(--t2)}
+.exo{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:42px}
+.exo>span:first-child{min-width:0}
+.exo b{font-weight:400;font-size:16px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exo small{font-size:12px;color:var(--t2)}
+.exo .gain{white-space:nowrap;font-weight:600;color:var(--ok);display:flex;align-items:center;gap:5px}
+.exo .gain.rec{color:var(--texte)}
+.fl{color:var(--t3);margin-left:4px;font-weight:400}
+.cap{display:flex;flex-direction:column;gap:5px;padding:3px 0}
+.cap .but{font-style:italic;font-weight:800;font-size:17px;white-space:nowrap}
+.piste{height:5px;border-radius:3px;background:var(--piste);position:relative}
+.piste i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--texte)}
+.jauge{display:flex;flex-direction:column;gap:4px}
+.jauge .barre{height:5px;border-radius:3px;background:var(--piste);position:relative}
+.jauge .barre i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--info)}
+.forme{display:flex;justify-content:space-between;font-size:15px;min-height:26px;align-items:center}
+.forme b{font-weight:600}
+
+/* Les cas */
+.cas{display:flex;flex-direction:column;gap:3px;flex:none}
+.cas .quand{font-size:12px;color:#9cc0ff}
+.cas .voix{font-size:25px}
+.sep{height:1px;background:rgba(255,255,255,.07);flex:none}
+
+/* Texte partagé */
+.texte{background:var(--carte);border-radius:14px;padding:11px 12px;font-size:13px;line-height:1.42;color:var(--t2);white-space:pre-wrap;flex:none}
+.texte mark{background:none;color:var(--texte)}
+
+/* La trame : variante osée seulement */
+.trame{position:relative;border-radius:18px;overflow:hidden;background:var(--carte);flex:none}
+.trame::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-18deg,var(--trait) 0 2px,transparent 2px 13px)}
+.trame::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,var(--point) 1.3px,transparent 1.8px) 0 0/9px 9px;-webkit-mask:linear-gradient(to left,#000,transparent 55%);mask:linear-gradient(to left,#000,transparent 55%)}
+.trame>*{position:relative}
+.heros{padding:12px 14px}
+.heros .chiffre{display:flex;align-items:baseline;gap:10px}
+.heros .chiffre b{font-style:italic;font-weight:800;font-size:92px;line-height:.86;letter-spacing:-.02em}
+.heros .titre{font-style:italic;font-weight:800;font-size:26px;line-height:1.05}
+.records>div{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:28px;font-size:15px}
+.records span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.records .gain{white-space:nowrap;font-weight:600;display:flex;align-items:center;gap:5px}
+.plie{display:flex;justify-content:space-between;align-items:center;background:var(--carte);border-radius:14px;padding:0 14px;min-height:46px;font-size:15px;flex:none}
+
+/* Choix */
+.choix{background:var(--carte);border-radius:14px;padding:10px 12px;font-size:15px;line-height:1.32}
+.choix b{font-weight:600}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="cran" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2.14A10 10 0 1 0 13.7 2.14L13.2 6.4h-2.4zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></symbol>
+  <symbol id="partage" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></g></symbol>
+</defs></svg>
+
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Le Bilan, avec ta voix · glisse vers le bas</span>
+  <h1>Le Bilan dit d'abord ce dont tu es fier</h1>
+  <ul class="g">
+    <li><b class="b">Une phrase en tête, avec tes chiffres.</b> « 5 records battus. » Jamais un reproche, jamais ton poids.</li>
+    <li><b class="b">Ton disque et tes caps</b> y entrent, une ligne chacun.</li>
+    <li><b class="b">Partager passe en haut.</b> C'est ce que tu viens faire le dimanche, et le lien était tout en bas.</li>
+    <li><b class="b">Le reste ne bouge pas</b> : À retenir, Exercices, Muscles, Forme. Rien de ce qui a été retiré ne revient.</li>
+  </ul>
+  <div class="dir"><b>7 écrans.</b> <span class="g">Aujourd'hui, la version A (celle que je te conseille) en haut puis en défilant, ses phrases, le texte pour ton IA, la version B plus osée, puis mon avis.</span></div>
+  <p class="legende" style="color:#9cc0ff">Ce qui est nouveau est entouré de pointillés bleus.</p>
+</div></section>
+
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">1/7 · Aujourd'hui</span>
+  <p class="note">Un rapport juste, mais rien sur tes records, ton disque ni tes caps.</p>
+  <div class="page">
+    <h1>Progrès</h1>
+    <div class="segments"><span class="ici">Bilan</span><span>Journal</span><span>Exercices</span></div>
+    <div class="periodes"><span class="ici">4 sem.</span><span>3 mois</span><span>Cycles</span><span>Dates</span></div>
+    <div class="dates">Du 19 oct. au 15 nov.</div>
+    <div class="carte"><h3>À retenir</h3><p>Prise qui marche : +0,25 kg par semaine et des charges en hausse (+1 %).</p></div>
+    <div class="carte">
+      <h3>Exercices</h3>
+      <div class="inter">Ce qui monte</div>
+      <div class="exo"><span><b>Développé incliné Smith</b><small>52,5 kg × 9 → 52,5 kg × 10 · record</small></span><span class="gain">+1 rep<span class="fl">›</span></span></div>
+      <div class="exo"><span><b>Presse à cuisses</b><small>67 kg × 9 → 67 kg × 10 · record</small></span><span class="gain">+1 rep<span class="fl">›</span></span></div>
+      <div class="exo"><span><b style="font-weight:600">Voir tous les exercices</b></span><span class="fl">›</span></div>
+    </div>
+    <div class="carte"><h3>Régularité</h3><p><b style="font-weight:600">16 séances sur 16</b> <span class="v">· 4e semaine tenue</span></p></div>
+    <div class="carte"><div class="ligne"><h3>Muscles</h3><span class="legende g">séries dures par semaine</span></div></div>
+  </div>
+  <div class="onglets"><span>Accueil</span><span class="ici">Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">2/7 · Version A · celle que je te conseille · le haut</span>
+  <p class="note">La carte « Régularité » disparaît : sa ligne monte sous la phrase.</p>
+  <div class="page">
+    <h1>Progrès</h1>
+    <div class="segments"><span class="ici">Bilan</span><span>Journal</span><span>Exercices</span></div>
+    <div class="periodes"><span class="ici">4 sem.</span><span>3 mois</span><span>Cycles</span><span>Dates</span></div>
+    <div class="dates">Du 19 oct. au 15 nov.</div>
+    <div class="tete neuf">
+      <div class="haut"><div class="voix">5 records battus.</div><div class="partage"><svg><use href="#partage"/></svg></div></div>
+      <div class="petit"><b style="font-weight:600">16 séances sur 16</b> <span class="v">· 4e semaine tenue</span></div>
+      <div class="cran-ligne"><span class="disque" data-crans="5" data-nouveaux="0" data-taille="20"></span><span><b>5 crans sur 12</b> <span class="g">· plus que 7</span></span><span class="fl">›</span></div>
+    </div>
+    <div class="carte"><h3>À retenir</h3><p>Prise qui marche : +0,25 kg par semaine et des charges en hausse (+1 %).</p></div>
+    <div class="carte">
+      <h3>Exercices</h3>
+      <div class="inter">Ce qui monte</div>
+      <div class="exo"><span><b>Développé incliné Smith</b><small>52,5 kg × 9 → 52,5 kg × 10 · record</small></span><span class="gain">+1 rep<span class="fl">›</span></span></div>
+      <div class="exo"><span><b>Presse à cuisses</b><small>67 kg × 9 → 67 kg × 10 · record</small></span><span class="gain">+1 rep<span class="fl">›</span></span></div>
+      <div class="inter neuf" style="align-self:flex-start">Ton cap</div>
+      <div class="cap neuf">
+        <div class="ligne"><span>Développé incliné Smith</span><span class="but">60 kg<span class="fl" style="font-style:normal">›</span></span></div>
+        <div class="piste"><i style="width:25%"></i></div>
+        <div class="legende g">Tu es à 52,5 kg. Encore 7,5 kg.</div>
+      </div>
+      <div class="exo"><span><b style="font-weight:600">Voir tous les exercices</b></span><span class="fl">›</span></div>
+    </div>
+  </div>
+  <div class="onglets"><span>Accueil</span><span class="ici">Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">3/7 · Version A · en défilant</span>
+  <p class="note">Ton cap entre dans « Exercices ». Muscles et Forme : comme aujourd'hui.</p>
+  <div class="page">
+    <div class="carte">
+      <h3>Exercices</h3>
+      <div class="inter">Ce qui monte</div>
+      <div class="exo"><span><b>Développé incliné Smith</b><small>52,5 kg × 9 → 52,5 kg × 10 · record</small></span><span class="gain">+1 rep<span class="fl">›</span></span></div>
+      <div class="exo"><span><b>Presse à cuisses</b><small>67 kg × 9 → 67 kg × 10 · record</small></span><span class="gain">+1 rep<span class="fl">›</span></span></div>
+      <div class="inter neuf" style="align-self:flex-start">Ton cap</div>
+      <div class="cap neuf">
+        <div class="ligne"><span>Développé incliné Smith</span><span class="but">60 kg<span class="fl" style="font-style:normal">›</span></span></div>
+        <div class="piste"><i style="width:25%"></i></div>
+        <div class="legende g">Tu es à 52,5 kg. Encore 7,5 kg.</div>
+      </div>
+      <div class="exo"><span><b style="font-weight:600">Voir tous les exercices</b></span><span class="fl">›</span></div>
+    </div>
+    <div class="carte">
+      <div class="ligne"><h3>Muscles</h3><span class="legende g">séries dures par semaine</span></div>
+      <div class="jauge"><div class="ligne petit"><span>Quadriceps</span><span><b style="font-weight:600">5</b> <span class="g">sur 10</span> <span style="color:var(--info)">· Léger</span></span></div><div class="barre"><i style="width:50%"></i></div></div>
+      <div class="jauge"><div class="ligne petit"><span>Mollets</span><span><b style="font-weight:600">3</b> <span class="g">sur 6</span> <span style="color:var(--info)">· Léger</span></span></div><div class="barre"><i style="width:50%"></i></div></div>
+      <p class="petit"><span class="v">Optimal : </span>Pecs 16 · Biceps 6 · Triceps 9,5</p>
+    </div>
+    <div class="carte">
+      <h3>Forme</h3>
+      <div class="forme"><span>Sommeil moyen</span><b>7 h 04</b></div>
+      <div class="forme"><span>Poids moyen</span><span><b>70,5 kg</b> <span class="g">+0,5 kg ›</span></span></div>
+    </div>
+    <p class="petit g" style="text-align:center">Partager ce bilan</p>
+  </div>
+  <div class="onglets"><span>Accueil</span><span class="ici">Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">4/7 · Version A · la phrase change avec ta période</span>
+  <p class="note">Elle prend le plus rare d'abord. Sans rien de fort, elle dit juste les faits.</p>
+  <div class="cas"><span class="quand">Un cap est tombé sur la période</span><div class="voix">Cap franchi. 60 kg.</div><div class="petit g">Développé incliné Smith · en 9 semaines</div></div>
+  <div class="sep"></div>
+  <div class="cas"><span class="quand">Des records</span><div class="voix">5 records battus.</div><div class="petit"><b style="font-weight:600">16 séances sur 16</b> <span class="v">· 4e semaine tenue</span></div></div>
+  <div class="sep"></div>
+  <div class="cas"><span class="quand">Pas de record, mais ça monte</span><div class="voix">3 exercices montent.</div><div class="petit"><b style="font-weight:600">14 séances sur 16</b> <span class="v">· 2e semaine tenue</span></div></div>
+  <div class="sep"></div>
+  <div class="cas"><span class="quand">Sèche, les charges tiennent</span><div class="voix">Tes charges tiennent.</div><div class="petit"><b style="font-weight:600">12 séances sur 12</b> <span class="v">· 6e semaine tenue</span></div></div>
+  <div class="sep"></div>
+  <div class="cas"><span class="quand">Période creuse : pas de phrase forcée</span><div class="voix">7 séances.</div><div class="petit g">7 séances sur 16</div></div>
+  <div class="sep"></div>
+  <p class="petit g">Le disque ne s'affiche que depuis ton premier cran, comme sur l'Accueil. Sur un ancien cycle ou des dates passées : les records de cette période, sans le disque d'aujourd'hui.</p>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">5/7 · Version A · le texte pour ton IA</span>
+  <p class="note">Deux blocs en plus (en blanc). On écrit « records », pas « crans » : ton IA ne connaît pas le mot.</p>
+  <div class="texte">BILAN du 19 oct. au 15 nov.
+Objectif : Prise de muscle depuis le 19 oct.
+Régularité : 16 séances sur 16, 4 semaines tenues
+
+<mark>Records battus (5) :
+- Développé incliné Smith : 52,5 kg × 10, +1 rep (10 nov.)
+- Presse à cuisses : 67 kg × 10, +1 rep (11 nov.)
+- Butterfly prise haute : 35 kg × 14, +1 rep (12 nov.)
+- Tirage vertical : 67 kg × 12, +1 rep (13 nov.)
+- Curl incliné : 14 kg/main, +2 kg (13 nov.)
+
+Mes caps (une charge que je vise) :
+- Développé incliné Smith : 60 kg sur mes 3 séries, à 8 reps ou plus. J'en suis à 52,5 kg, parti de 50 kg.</mark>
+
+À retenir : …
+Exercices : …</div>
+  <p class="petit g">Ça revient sur une règle écrite hier : « les crans ne vont pas dans les textes partagés pour l'instant ». Je pense qu'il faut la lever : un record daté et ton cap sont exactement ce qui aide ton IA à te répondre.</p>
+</div></section>
+
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">6/7 · Version B · plus osée</span>
+  <p class="note">Comme une fin de séance. Le rapport passe derrière un appui.</p>
+  <div class="page">
+    <div class="periodes"><span class="ici">4 sem.</span><span>3 mois</span><span>Cycles</span><span>Dates</span></div>
+    <div class="trame neuf"><div class="heros">
+      <div class="ligne" style="align-items:flex-start"><span class="legende g">Du 19 oct. au 15 nov.</span><div class="partage" style="margin:-2px -4px 0 0"><svg><use href="#partage"/></svg></div></div>
+      <div class="chiffre" style="margin-top:-18px"><b>5</b></div>
+      <div class="titre" style="margin-top:8px">records battus.</div>
+      <div class="petit" style="margin-top:6px"><b style="font-weight:600">16 séances sur 16</b> <span class="v">· 4e semaine tenue</span></div>
+      <div class="cran-ligne" style="margin-top:8px"><span class="disque" data-crans="5" data-nouveaux="0" data-taille="22"></span><span><b>5 crans sur 12</b> <span class="g">· plus que 7</span></span></div>
+    </div></div>
+    <div class="carte neuf">
+      <div class="records">
+        <div><span>Développé incliné Smith</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+1 rep</span></div>
+        <div><span>Presse à cuisses</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+1 rep</span></div>
+        <div><span class="g">+3 autres</span></div>
+      </div>
+    </div>
+    <div class="carte neuf">
+      <div class="cap">
+        <div class="ligne"><span><span class="legende g" style="display:block">Ton cap</span>Développé incliné Smith</span><span class="but">60 kg</span></div>
+        <div class="piste"><i style="width:25%"></i></div>
+        <div class="legende g">Tu es à 52,5 kg. Encore 7,5 kg.</div>
+      </div>
+    </div>
+    <div class="plie neuf"><span>Le rapport <span class="g petit">· à retenir, muscles, forme</span></span><span class="fl">›</span></div>
+  </div>
+  <div class="onglets"><span>Accueil</span><span class="ici">Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">7/7 · Mon avis</span>
+  <h1>Je te conseille la A</h1>
+  <div class="choix"><b>A.</b> <span class="g">Trois petites touches sur un écran que tu connais. Une carte en moins (Régularité), donc la page ne s'allonge pas. C'est ce que tu as gardé à chaque refonte.</span></div>
+  <div class="choix"><b>B.</b> <span class="g">Plus de souffle, mais trois risques : le grand chiffre revient chaque dimanche (plus rien de rare), « À retenir » se retrouve derrière un appui alors que c'est la réponse du Bilan, et la trame était réservée au record en fin de séance. C'est le chemin de l'écran de séance retiré hier.</span></div>
+  <div class="choix"><b>Dans les deux.</b> <span class="g">Rien sur le poids dans la phrase. Pas d'orange. Pas d'animation : on lit ce Bilan au calme.</span></div>
+  <p class="petit g">Réponds « A », « B », ou dis ce que tu changerais. Je ne code rien avant.</p>
+</div></section>
+
+</div>
+<script>
+// Le disque : 12 segments, les crans gagnés en blanc.
+function disque(crans, nouveaux, taille) {
+  const r = 10, c = 12, seg = []
+  for (let i = 0; i < 12; i++) {
+    const a0 = (i * 30 + 4 - 90) * Math.PI / 180, a1 = ((i + 1) * 30 - 4 - 90) * Math.PI / 180
+    const coul = i >= crans ? 'var(--piste)' : i >= crans - nouveaux ? 'var(--ok)' : 'var(--texte)'
+    seg.push(`<path d="M${c + r * Math.cos(a0)} ${c + r * Math.sin(a0)}A${r} ${r} 0 0 1 ${c + r * Math.cos(a1)} ${c + r * Math.sin(a1)}" stroke="${coul}" stroke-width="3" fill="none" stroke-linecap="round"/>`)
+  }
+  return `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" style="flex:none;display:block">${seg.join('')}</svg>`
+}
+document.querySelectorAll('.disque').forEach((d) => (d.innerHTML = disque(+d.dataset.crans, +d.dataset.nouveaux, +d.dataset.taille)))
+</script>
+</body>
+</html>

@@ -60,6 +60,47 @@ export interface Analyse {
   mesures: { cle: string; debut: number; fin: number }[]
 }
 
+/**
+ * Records battus pendant la période, au plus un par exercice et par séance, hors séances allégées : on rejoue tout
+ * l'historique (même mesure que partout : `suiviProgres`, la même que les crans). Le Bilan, sa phrase et son texte les lisent.
+ */
+export function recordsDePeriode(d: Pick<DonneesBilan, 'seances' | 'exo'>, debut: string, fin: string): Record_[] {
+  const suivis = new Map<string, ReturnType<typeof suiviProgres>>()
+  const records: Record_[] = []
+  for (const s of [...d.seances].sort((a, b) => a.debut - b.debut)) {
+    if (s.deload || s.enCours) continue
+    for (const id of new Set(s.series.map((x) => x.exoId))) {
+      const series = s.series.filter((x) => x.exoId === id && serieComptee(x))
+      if (!series.length) continue
+      if (!suivis.has(id)) suivis.set(id, suiviProgres(d.exo(id)))
+      const battu = suivis.get(id)!.juger(series).record
+      const serie = meilleureSerie(series, d.exo(id).assistance)!
+      if (battu && s.date >= debut && s.date <= fin) records.push({ date: s.date, exo: d.exo(id), perf: chargeQte(d.exo(id), serie.charge, serie.reps) })
+    }
+  }
+  return records
+}
+
+export interface PhraseBilan {
+  texte: string
+  /** Sous un cap franchi : l'exercice et le temps mis. */
+  sous?: string
+}
+
+/**
+ * La phrase en tête du Bilan, avec les chiffres de la période : le plus rare d'abord (un cap franchi, puis les records,
+ * puis les exercices qui montent ; en sèche, des charges qui tiennent), sinon les faits (« 7 séances. »). Jamais un
+ * reproche, jamais le poids.
+ */
+export function phraseBilan(a: Pick<Analyse, 'seances' | 'records' | 'progressions'>, montent: number, phase?: Phase, cap?: { charge: string; exo: string; duree: string }): PhraseBilan {
+  if (cap) return { texte: `Cap franchi. ${cap.charge}.`, sous: `${cap.exo} · ${cap.duree}` }
+  const n = a.records.length
+  if (n) return { texte: `${n} record${n > 1 ? 's' : ''} battu${n > 1 ? 's' : ''}.` }
+  if (montent) return { texte: `${montent} exercice${montent > 1 ? 's' : ''} monte${montent > 1 ? 'nt' : ''}.` }
+  if (phase === 'seche' && a.progressions.length >= 2 && a.progressions.filter((p) => p.sens < 0).length * 2 < a.progressions.length) return { texte: 'Tes charges tiennent.' }
+  return { texte: `${a.seances} séance${a.seances > 1 ? 's' : ''}.` }
+}
+
 /** Tout ce qu'on peut dire d'une période, à partir des séances, pesées, mesures et activités. */
 export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesParSemaine: number | ((lundi: string) => number) = 0, phase?: Phase): Analyse {
   const prevuDe = typeof prevuesParSemaine === 'function' ? prevuesParSemaine : () => prevuesParSemaine
@@ -80,20 +121,7 @@ export function analyser(d: DonneesBilan, debut: string, fin: string, prevuesPar
   const total = volumeParMuscle(periode.filter((s) => !seanceSemaineAllegee(s)), d.exercices)
   const volume = Object.fromEntries(MUSCLES.map((m) => [m.id, total[m.id] / nbTravail])) as Record<Muscle, number>
 
-  // Records : on rejoue tout l'historique pour savoir ce qui a été battu pendant la période (même mesure que partout : `suiviProgres`).
-  const suivis = new Map<string, ReturnType<typeof suiviProgres>>()
-  const records: Record_[] = []
-  for (const s of [...d.seances].sort((a, b) => a.debut - b.debut)) {
-    if (s.deload) continue
-    for (const id of new Set(s.series.map((x) => x.exoId))) {
-      const series = s.series.filter((x) => x.exoId === id && serieComptee(x))
-      if (!series.length) continue
-      if (!suivis.has(id)) suivis.set(id, suiviProgres(d.exo(id)))
-      const battu = suivis.get(id)!.juger(series).record
-      const serie = meilleureSerie(series, d.exo(id).assistance)!
-      if (battu && s.date >= debutEffectif && s.date <= fin) records.push({ date: s.date, exo: d.exo(id), perf: chargeQte(d.exo(id), serie.charge, serie.reps) })
-    }
-  }
+  const records = recordsDePeriode(d, debutEffectif, fin)
 
   // Progressions et stagnations, exercice par exercice
   const ids = [...new Set(travail.flatMap((s) => s.series.map((x) => x.exoId)))]
