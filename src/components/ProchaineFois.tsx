@@ -1,5 +1,5 @@
 import { Check, ChevronDown, Pencil } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import EditeurObjectif from './EditeurObjectif'
 import { exoAvecReglages } from '../db'
@@ -27,6 +27,7 @@ export default function ProchaineFois({
   quand = 'aujourd’hui',
   detailSeries,
   place,
+  groupes = false,
 }: {
   seance: Seance
   /** Séances terminées avant celle-ci, la plus récente en premier. */
@@ -43,6 +44,8 @@ export default function ProchaineFois({
   detailSeries?: (exo: Exercice) => ReactNode
   /** Sous le nom d'un remplaçant : l'exercice prévu à sa place. */
   place?: (exoId: string) => ReactNode
+  /** Fin de séance : pas de titre (la page le porte), et deux groupes, ce qui monte d'abord, ce qu'on allège ensuite. */
+  groupes?: boolean
 }) {
   const [ajuste, setAjuste] = useState<string | null>(null)
   /** Exercices dont on a déplié les séries. */
@@ -53,7 +56,13 @@ export default function ProchaineFois({
   const lignes = lignesProchaineFois(seance, avant, exoDe).filter((l) => pour(l.plan.exoId))
   // En déload, rien à décider : tout passe dans la liste simple.
   // « Confirme d'abord » et « Charge max atteinte » ne proposent rien de plus qu'aujourd'hui : pas de faux choix, une simple ligne.
-  const aDecider = seance.deload ? [] : lignes.filter(vraiChoix)
+  // Les bonnes nouvelles d'abord : ce qui monte (une rep, la charge), puis ce qu'on reprend ou qu'on allège.
+  const monte = (l: (typeof lignes)[number]) => l.conseil?.decision === 'augmenter' || l.conseil?.decision === 'plus_une_rep'
+  const choix = seance.deload ? [] : lignes.filter(vraiChoix)
+  const aDecider = [...choix.filter(monte), ...choix.filter((l) => !monte(l))]
+  const nbMonte = choix.filter(monte).length
+  /** Titre du 2e groupe : « À alléger » si tout y baisse, sinon il y a aussi des séries à refaire à la même charge. */
+  const titreReste = aDecider.slice(nbMonte).every((l) => l.conseil?.decision === 'baisser') ? 'À alléger' : 'À reprendre'
   const autres = seance.deload ? lignes : lignes.filter((l) => !vraiChoix(l))
 
   const retirerObjectif = (id: string) =>
@@ -122,20 +131,28 @@ export default function ProchaineFois({
       {/* Ce qui compte : décider de la prochaine fois, seulement là où il y a un conseil. Le reste en une ligne. */}
       {aDecider.length > 0 && (
         <>
-          <div className="fin-titre ligne entre">
-            <h3>Pour la prochaine fois</h3>
+          <div className={'fin-titre ligne entre' + (groupes ? ' fin-titre-groupes' : '')}>
+            {groupes ? <span className="faible petit">Sans choix de ta part, on refait {comme.toLowerCase()}.</span> : <h3>Pour la prochaine fois</h3>}
             {aDecider.length >= 3 && modifiables.length > 0 && (
               <button type="button" className="fin-suivre" onClick={basculerTous}>
                 {tousSuivis ? `tout ${comme.toLowerCase()}` : 'suivre les conseils'}
               </button>
             )}
           </div>
-          {aDecider.map(({ plan, exo, s: base, conseil: c }) => {
+          {aDecider.map(({ plan, exo, s: base, conseil: c }, rang) => {
             const o = objectifs[exo.id]
             const choix = choixDe(exo.id, c!)
             const memeCharge = JSON.stringify(base.charges) === JSON.stringify(c!.charges)
+            const titreGroupe = !groupes ? null : rang === 0 && nbMonte > 0 ? ['Tu peux viser plus', nbMonte] : rang === nbMonte ? [titreReste, aDecider.length - nbMonte] : null
             return (
-              <div key={plan.exoId} className="carte decision">
+              <Fragment key={plan.exoId}>
+              {titreGroupe && (
+                <div className="fin-groupe">
+                  <h3>{titreGroupe[0]}</h3>
+                  <span className="faible petit">{titreGroupe[1]}</span>
+                </div>
+              )}
+              <div className="carte decision">
                 <div className="decision-tete">
                   {nom(
                     exo,
@@ -192,6 +209,7 @@ export default function ProchaineFois({
                 <div className="faible petit fin-pourquoi">{c!.message}</div>
                 {ouverts[exo.id] && detailSeries?.(exo)}
               </div>
+              </Fragment>
             )
           })}
         </>

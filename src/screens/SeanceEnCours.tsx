@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
-import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, Share2, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Info, Link2, Minus, Pencil, Play, Plus, Repeat, Share2, SkipForward, Square, StickyNote, Sparkles, Timer, TriangleAlert, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
 import BoutonRetour from '../components/BoutonRetour'
 import Anneau from '../components/Anneau'
@@ -12,19 +12,18 @@ import InfosExo, { BoutonInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
 import PartageSeance from '../components/PartageSeance'
 import ProchaineFois from '../components/ProchaineFois'
+import Recompense from '../components/Recompense'
 import Vignette from '../components/Vignette'
 import Minuteur, { BIPS_DEFAUT, reposOublie, resteRepos, type EtatMinuteur } from '../components/Minuteur'
-import { ResumeSeance } from '../components/RecapSeance'
-import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { battement, debloquerSon, ecranAllume, signalSerie, sonFinSeance, vibrer } from '../lib/appareil'
 import { revanche, revanchePrise } from '../lib/revanche'
-import { mieuxQueHier, titreSaisie, verdictSaisie } from '../lib/duel'
+import { titreSaisie, verdictSaisie } from '../lib/duel'
 import { recordDuJour } from '../lib/historique'
-import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
-import Disque, { IconeCran } from '../components/Disque'
+import { cranDuJour, pourquoiCran, seuilCran } from '../lib/crans'
+import { IconeCran } from '../components/Disque'
 import { verrou } from '../lib/verrou'
-import { chargeQte, chargeTexte, duree, dureeSeanceEffective, ecartQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chargeTexte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -972,7 +971,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         <>
           {!!seance.passes?.length && <div className="faible">Sauté : {seance.passes.map((id) => catalogue.exo(id).nom).join(', ')}. Pour en reprendre un, passe par « Voir la séance ».</div>}
           <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
-            Terminer la séance
+            La prochaine fois <ChevronRight size={20} />
           </button>
           <button className="btn discret plein" onClick={() => setChoix({ mode: 'ajouter' })}>
             <Plus size={20} /> Ajouter un exercice
@@ -986,43 +985,20 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             {suite}
           </div>
         )
-      // L'affiche (gardée de la refonte du 12 nov. 2026) : combien de séries ont fait mieux que la même série la dernière fois.
-      // La trame seulement s'il y en a.
-      const mieux = seance.deload ? 0 : plans.reduce((a, p, i) => a + (plans.findIndex((x) => x.exoId === p.exoId) === i ? mieuxQueHier(exos[i], seance.series.filter((x) => x.exoId === p.exoId), historiqueDe(terminees, p.exoId)[0]) : 0), 0)
-      const crans = cransDeSeance(seance, terminees, catalogue.exo)
-      const disque = etatDisque(totalCrans(terminees.filter((x) => x.id !== seance.id), catalogue.exo) + crans.length)
-      const tenue = dureeSeanceEffective(seance) >= 60000 ? duree(dureeSeanceEffective(seance)) : ''
+      // La récompense, sur un seul écran : le record ou ce qui a été mieux, chaque exercice avec son gain, « Comment c'était ? ».
+      // Les choix pour la prochaine fois sont sur l'écran suivant. En plein écran rien ne défile : la liste s'arrête à ce qui tient.
       return (
         <div className="affiche-fin">
-          <div className="voix grand">Séance faite.</div>
-          <div className={'affiche' + (mieux > 0 ? ' trame' : '')}>
-            <div>
-              <b className="affiche-chiffre">{mieux > 0 ? mieux : n}</b>
-              <div className="affiche-texte">
-                {mieux > 0 ? (
-                  <>
-                    série{mieux > 1 ? 's' : ''} sur {n}
-                    <br />
-                    <span className="ok-texte">mieux que la dernière fois.</span>
-                  </>
-                ) : (
-                  <>
-                    série{n > 1 ? 's' : ''} faite{n > 1 ? 's' : ''}.{seance.deload && <span className="voix-gris"> En allégé.</span>}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          {crans.length > 0 && (
-            <div className="affiche-crans">
-              <IconeCran taille={22} /> {crans.length} record{crans.length > 1 ? 's' : ''}. <span className="voix-gris">{disque.crans === 0 ? 'Disque plein.' : disque.reste === 1 ? 'Plus qu’un cran.' : `Plus que ${disque.reste} crans.`}</span>
-            </div>
-          )}
-          <div className="faible">
-            {tenue && `${tenue} · `}
-            {n} série{n > 1 ? 's' : ''}
-          </div>
-          {suite}
+          <Recompense
+            seance={seance}
+            terminees={terminees}
+            catalogue={catalogue}
+            titre="Séance faite."
+            forme={seance.energie ?? seance.ressenti ?? undefined}
+            onForme={(v) => void db.seances.update(seance.id, { ressenti: v, energie: v })}
+            placeListe={window.innerHeight - 410}
+          />
+          <div className="affiche-suite">{suite}</div>
         </div>
       )
     })()
@@ -1606,11 +1582,9 @@ function MachinePrise({
   )
 }
 
-const OPTIONS_FORME = [
-  { val: 1, label: 'Difficile', Icon: Frown, couleur: 'var(--danger)' },
-  { val: 3, label: 'Bien', Icon: Smile, couleur: 'var(--ok)' },
-  { val: 5, label: 'Au top', Icon: Flame, couleur: 'var(--accent)' },
-] as const
+/** Tout ce qui était prévu est fait, rien de sauté : la récompense s'est affichée en plein écran (« Séance faite. »). */
+const seanceComplete = (seance: Seance) =>
+  !seance.passes?.length && seance.series.length > 0 && seance.exercices.every((p) => seance.series.filter((x) => x.exoId === p.exoId).length >= p.series.length + (seance.ajustSeries[p.exoId] ?? 0))
 
 function FinSeance({
   seance,
@@ -1650,12 +1624,19 @@ function FinSeance({
     void db.seances.update(seance.id, { objectifs, ressenti, energie })
   }, [seance.id, objectifs, ressenti, energie])
 
-  const choisirForme = (v: number) => {
-    const n = forme === v ? undefined : v
+  const choisirForme = (n: number | undefined) => {
     setForme(n)
     setRessenti(n)
     setEnergie(n)
   }
+
+  // Deux temps : la récompense, puis les choix pour la prochaine fois. Séance faite jusqu'au bout : la récompense a déjà été
+  // vue en plein écran (« Séance faite. »), on arrive sur les choix.
+  const dejaFetee = useRef(seanceComplete(seance)).current
+  const [etape, setEtape] = useState<'recompense' | 'prochaine'>(dejaFetee ? 'prochaine' : 'recompense')
+  const allerA = (e: 'recompense' | 'prochaine') => (transition(() => setEtape(e), e === 'prochaine' ? 'avant' : 'arriere'), window.scrollTo({ top: 0 }))
+  const retour = () => (etape === 'prochaine' && !dejaFetee ? allerA('recompense') : onRetour())
+  useRetour(etape === 'prochaine' && !dejaFetee, () => allerA('recompense'))
 
   const nonFaits = seance.exercices.filter((p) => !seance.series.some((s) => s.exoId === p.exoId))
   const remplaces = remplacesDe(seance)
@@ -1693,7 +1674,7 @@ function FinSeance({
   const unSeulAppui = useRef(verrou()).current
   const enregistrer = () => unSeulAppui(async () => {
     // Séance faite jusqu'au bout : l'accord a déjà sonné avec l'affiche, une vibration courte suffit. Arrêtée avant : il sonne ici.
-    const complete = !seance.passes?.length && seance.series.length > 0 && seance.exercices.every((p) => seance.series.filter((x) => x.exoId === p.exoId).length >= p.series.length + (seance.ajustSeries[p.exoId] ?? 0))
+    const complete = seanceComplete(seance)
     if (complete) vibrer(40)
     else sonFinSeance(reglages.find((r) => r.cle === 'sonValidation')?.valeur !== false)
     let modeleId = seance.modeleId
@@ -1715,23 +1696,12 @@ function FinSeance({
     await annulerSeance(seance.id)
   }
 
-  const resumeForme = seance.deload ? null : resumeSeance(seance, terminees, catalogue.exo)
-  // Les crans de la séance (un record battu = un cran), et où en est le disque avec eux.
-  const crans = cransDeSeance(seance, terminees, catalogue.exo)
-  const cransAvant = totalCrans(terminees.filter((s) => s.id !== seance.id), catalogue.exo)
-  const disque = etatDisque(cransAvant + crans.length)
-  const disquePlein = disque.pleins > etatDisque(cransAvant).pleins
-  const cransMontres = disque.crans || (disque.total ? 12 : 0)
-  // Toute première séance : rien à battre encore, on dit ce qui vient d'être posé.
-  const premiereSeance = !seance.deload && seance.series.length > 0 && !terminees.some((s) => s.id !== seance.id)
-  const enSeche = phaseA(catalogue.objectifs, seance.date)?.phase === 'seche'
-
   return (
     <div className="apparait">
       <div className="entete">
-        <BoutonRetour onClick={onRetour} label="Reprendre la séance" />
+        <BoutonRetour onClick={retour} label={etape === 'prochaine' && !dejaFetee ? 'Revenir au résumé' : 'Reprendre la séance'} />
         <div style={{ flex: 1 }}>
-          <h1>Fin de séance</h1>
+          <h1>{etape === 'prochaine' ? 'Prochaine fois' : 'Fin de séance'}</h1>
         </div>
         {seance.series.length > 0 && (
           <button type="button" className="btn petit" onClick={() => setPartager(true)}>
@@ -1740,155 +1710,73 @@ function FinSeance({
           </button>
         )}
       </div>
-      <div className={'carte fin-resume' + (crans.length > 0 ? ' trame' : '')}>
-        {crans.length > 0 ? (
-          <>
-            {disquePlein ? (
-              // Le 12e cran : le seul moment qui a droit à une animation plus longue (une fois toutes les deux ou trois semaines).
-              <div className="fin-disque-plein" style={{ '--apres': `${0.25 + Math.min(crans.length, 12) * 0.25}s` } as CSSProperties}>
-                <Disque crans={12} nouveaux={Math.min(crans.length - disque.crans, 12)} taille={132} chiffre plein />
-                <h2>Disque plein</h2>
-                <div className="fin-crans-titre">
-                  {crans.length} record{crans.length > 1 ? 's' : ''} battu{crans.length > 1 ? 's' : ''} aujourd’hui
-                </div>
-                <div className="faible petit fin-disque-suite">
-                  {disque.crans ? `Ton ${disque.numero}e disque a déjà ${disque.crans} cran${disque.crans > 1 ? 's' : ''}.` : `Ton ${disque.numero}e disque commence à la prochaine séance.`}
-                </div>
-                <span className="pastille fin-disque-suite">
-                  <Disque crans={12} taille={16} plein /> {disque.pleins} disque{disque.pleins > 1 ? 's' : ''} plein{disque.pleins > 1 ? 's' : ''}
-                </span>
-                <div className="faible petit fin-disque-suite">{seance.nom}</div>
-              </div>
-            ) : (
-              // Le record du jour en grand, penché, sur sa trame : le premier de la séance, les autres en liste dessous.
-              <div className="fin-heros">
-                <div className="fin-heros-exo">
-                  {crans[0].exo.nom} · {seance.nom}
-                </div>
-                <div className="fin-heros-chiffre">
-                  <b>{crans[0].genre === 'charge' ? kg(crans[0].serie.charge) : crans[0].serie.reps}</b>
-                  <span>{crans[0].genre === 'charge' ? (crans[0].exo.mode === 'elastique' ? 'niveau' : 'kg') : crans[0].exo.mesure === 'temps' ? 's' : 'reps'}</span>
-                </div>
-                <div className="fin-heros-titre">{crans.length > 1 ? `${crans.length} records battus.` : 'Record battu.'}</div>
-                <div className="fin-crans-titre">
-                  {crans[0].genre === 'charge'
-                    ? `${crans[0].exo.assistance ? 'jamais fait avec si peu d’aide' : 'charge jamais faite'} · ${crans[0].serie.reps} reps`
-                    : `${ecartQte(crans[0].exo, crans[0].serie.reps - crans[0].ancien)} · ton record était ${crans[0].ancien}`}
-                </div>
-                <div className="fin-heros-disque">
-                  <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={26} />
-                  <span>
-                    <strong>
-                      {disque.crans} cran{disque.crans > 1 ? 's' : ''} sur 12
-                    </strong>{' '}
-                    <span className="faible">dans ton {disque.numero > 1 ? `${disque.numero}e ` : ''}disque</span>
-                  </span>
-                </div>
-              </div>
-            )}
-            {(disquePlein || crans.length > 1) && (
-              <div className="petit fin-crans-liste">
-                {(disquePlein ? crans : crans.slice(1)).map((c) => (
-                  <div key={c.exo.id}>
-                    {c.exo.nom} <span className="fin-crans-gain">{texteCran(c, true)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* La règle, une seule fois : le jour du tout premier cran. */}
-            {cransAvant === 0 && <div className="faible petit fin-crans-regle">Un cran = un record battu sur un exercice. Il ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.</div>}
-            {resumeForme && resumeForme.mieux > crans.length && (
-              <div className="faible petit">
-                {resumeForme.mieux} exercices mieux que la dernière fois
-              </div>
-            )}
-          </>
-        ) : (
-          <h2>{seance.nom}</h2>
-        )}
-        {premiereSeance && (
-          <div className="fin-reperes">
-            <strong>
-              Tes repères sont posés : {new Set(seance.series.map((x) => x.exoId)).size} exercice{new Set(seance.series.map((x) => x.exoId)).size > 1 ? 's' : ''}.
-            </strong>
-            <div className="faible petit">La prochaine fois, chaque record battu taille un cran dans ton disque.</div>
-          </div>
-        )}
-        {enSeche && !seance.deload && !premiereSeance && crans.length === 0 && seance.series.length > 0 && <div className="faible petit">En sèche, on vise à tenir : garder tes charges, c’est réussi.</div>}
-        {/* Le moment où on est le plus réceptif : ce qui a été mieux aujourd'hui (jamais en déload). */}
-        {crans.length === 0 && resumeForme && resumeForme.mieux > 0 && resumeForme.records === 0 && (
-          <div className="voix grand">
-            {resumeForme.mieux} exercice{resumeForme.mieux > 1 ? 's' : ''} mieux.
-            <br />
-            <span className="voix-gris voix-suite">Pas de record. Pas loin.</span>
-          </div>
-        )}
-        {crans.length === 0 && !seance.deload && !premiereSeance && seance.series.length > 0 && !(resumeForme && (resumeForme.mieux > 0 || resumeForme.records > 0)) && <div className="voix grand">Séance tenue.</div>}
-        {crans.length === 0 && resumeForme && resumeForme.records > 0 && (
-          <div className="mieux-titre fin-mieux">
-            {resumeForme.records > 0 ? <Trophy size={16} /> : <TrendingUp size={16} />}
-            <span>
-              {[
-                resumeForme.mieux > 0 && `${resumeForme.mieux} exercice${resumeForme.mieux > 1 ? 's' : ''} mieux que la dernière fois`,
-                resumeForme.records > 0 && `${resumeForme.records} record${resumeForme.records > 1 ? 's' : ''}`,
-              ]
-                .filter(Boolean)
-                .join(', ')}
-            </span>
-          </div>
-        )}
-        {seance.deload && <strong className="texte-finisseur">Séance allégée</strong>}
-        {seance.series.length > 0 ? <ResumeSeance seance={seance} exo={catalogue.exo} enLigne /> : <div className="faible">Aucune série validée : rien à enregistrer.</div>}
-        {/* Ici plutôt qu'en bas : « Enregistrer » reste toujours visible, on n'irait jamais les chercher. */}
-        {seance.series.length > 0 && (
-          <div className="fin-sensations">
-            <div className="faible petit">Comment c’était ?</div>
-            <div className="fin-sensations-choix">
-              {OPTIONS_FORME.map((o) => (
-                <button key={o.val} type="button" className={forme === o.val ? 'actif' : ''} aria-pressed={forme === o.val} onClick={() => choisirForme(o.val)}>
-                  <o.Icon size={18} style={{ color: forme === o.val ? 'var(--texte)' : o.couleur }} />
-                  {o.label}
+      {etape === 'recompense' ? (
+        <>
+          <Recompense seance={seance} terminees={terminees} catalogue={catalogue} forme={forme} onForme={choisirForme} />
+          {seance.series.length > 0 ? (
+            <>
+              <div className="barre-enregistrer">
+                <button className="btn primaire grand" onClick={() => allerA('prochaine')}>
+                  La prochaine fois <ChevronRight size={20} />
                 </button>
-              ))}
+              </div>
+              <button className="btn discret danger plein fin-supprimer" onClick={abandonner}>
+                Supprimer la séance
+              </button>
+            </>
+          ) : (
+            <button className="btn primaire grand fin-quitter" onClick={() => void annulerSeance(seance.id)}>
+              Quitter sans enregistrer
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <ProchaineFois seance={seance} avant={terminees} catalogue={catalogue} reglages={reglages} objectifs={objectifs} onObjectifs={setObjectifs} detailSeries={detailSeries} place={place} groupes />
+
+
+          {(seance.aRelier ?? []).filter((l) => !reliesIci.includes(l.b)).map((l) => (
+            <div key={l.a + l.b} className="fin-relier">
+              <span className="faible petit">
+                {catalogue.exo(l.a).nom} remplacé par {catalogue.exo(l.b).nom}. Les relier ? Chacun garde sa progression, l’autre sera proposé en premier.
+              </span>
+              <button
+                className="btn petit"
+                onClick={() => {
+                  void modifierEquivalents((eq) => relies(eq, l.a, l.b))
+                  setReliesIci((x) => [...x, l.b])
+                }}
+              >
+                Relier
+              </button>
             </div>
+          ))}
+          {seance.series.length > 0 && nonFaits.length > 0 && (
+            <div className="faible petit fin-non-faits">
+              Pas fait aujourd’hui : {nonFaits.map((p) => catalogue.exo(p.exoId).nom).join(', ')}
+            </div>
+          )}
+
+          {libre && (
+            <div className="carte pile fin-libre">
+              <Interrupteur
+                on={garder}
+                onChange={setGarder}
+                label="Enregistrer comme séance réutilisable"
+                aide="Tu pourras la relancer ou l’ajouter à un programme depuis la page Programme."
+              />
+              {garder && <input placeholder="Nom de la séance" value={nomModele} onChange={(e) => setNomModele(e.target.value)} />}
+            </div>
+          )}
+          <div className="barre-enregistrer">
+            <button className="btn primaire grand" onClick={enregistrer}>
+              ✓ Enregistrer la séance
+            </button>
           </div>
-        )}
-      </div>
-
-      <ProchaineFois seance={seance} avant={terminees} catalogue={catalogue} reglages={reglages} objectifs={objectifs} onObjectifs={setObjectifs} detailSeries={detailSeries} place={place} />
-
-      {(seance.aRelier ?? []).filter((l) => !reliesIci.includes(l.b)).map((l) => (
-        <div key={l.a + l.b} className="fin-relier">
-          <span className="faible petit">
-            {catalogue.exo(l.a).nom} remplacé par {catalogue.exo(l.b).nom}. Les relier ? Chacun garde sa progression, l’autre sera proposé en premier.
-          </span>
-          <button
-            className="btn petit"
-            onClick={() => {
-              void modifierEquivalents((eq) => relies(eq, l.a, l.b))
-              setReliesIci((x) => [...x, l.b])
-            }}
-          >
-            Relier
+          <button className="btn discret danger plein fin-supprimer" onClick={abandonner}>
+            Supprimer la séance
           </button>
-        </div>
-      ))}
-      {seance.series.length > 0 && nonFaits.length > 0 && (
-        <div className="faible petit fin-non-faits">
-          Pas fait aujourd’hui : {nonFaits.map((p) => catalogue.exo(p.exoId).nom).join(', ')}
-        </div>
-      )}
-
-      {libre && (
-        <div className="carte pile fin-libre">
-          <Interrupteur
-            on={garder}
-            onChange={setGarder}
-            label="Enregistrer comme séance réutilisable"
-            aide="Tu pourras la relancer ou l’ajouter à un programme depuis la page Programme."
-          />
-          {garder && <input placeholder="Nom de la séance" value={nomModele} onChange={(e) => setNomModele(e.target.value)} />}
-        </div>
+        </>
       )}
       {corrige &&
         (() => {
@@ -1912,22 +1800,6 @@ function FinSeance({
         })()}
       {/* Les choix et sensations du moment, même s'ils ne sont pas encore relus de la base. */}
       {partager && <PartageSeance seance={{ ...seance, objectifs, ressenti, energie }} avant={terminees} reglages={reglages} catalogue={catalogue} onFermer={() => setPartager(false)} />}
-      {seance.series.length > 0 ? (
-        <>
-          <div className="barre-enregistrer">
-            <button className="btn primaire grand" onClick={enregistrer}>
-              ✓ Enregistrer la séance
-            </button>
-          </div>
-          <button className="btn discret danger plein fin-supprimer" onClick={abandonner}>
-            Supprimer la séance
-          </button>
-        </>
-      ) : (
-        <button className="btn primaire grand fin-quitter" onClick={() => void annulerSeance(seance.id)}>
-          Quitter sans enregistrer
-        </button>
-      )}
     </div>
   )
 }

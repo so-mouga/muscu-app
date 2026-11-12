@@ -35,6 +35,8 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
   await p.getByRole('button', { name: 'METTRE À JOUR' }).click()
 
   await p.getByRole('button', { name: 'Fin de séance' }).first().click()
+  // Deux temps : la récompense, puis les choix pour la prochaine fois, où l'on enregistre.
+  await p.getByRole('button', { name: /La prochaine fois/i }).click()
   await p.getByRole('button', { name: '✓ ENREGISTRER LA SÉANCE' }).click()
   await expect(
     p

@@ -86,8 +86,6 @@
   --salle-valider: clamp(52px, 6.8dvh, 56px);
   --salle-secondaire: 40px;
   --salle-ecart: clamp(6px, 2dvh, 18px);
-  /* Le chiffre de l'affiche « Séance faite ». */
-  --t-affiche: clamp(120px, 26dvh, 190px);
 
   /* Rayons : cartes, puis sous-cartes et boutons. Pastilles : 999px ; ronds : 50 %. */
   --rayon: 18px;
@@ -7528,61 +7526,12 @@ button.jour-pas {
   font-size: var(--t-titre);
 }
 
-/* Séance faite : l'affiche */
+/* Séance faite : la récompense en plein écran, puis les boutons */
 .affiche-fin {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--e3);
-}
-.affiche {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  min-height: 0;
-  padding-left: var(--e1);
-  border-radius: var(--rayon);
-  overflow: hidden;
-}
-.affiche > div {
-  position: relative;
-}
-.affiche.trame::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(-18deg, var(--trame-trait) 0 2px, transparent 2px 13px);
-}
-.affiche.trame::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle, var(--trame-point) 1.3px, transparent 1.8px) 0 0 / 9px 9px;
-  mask-image: linear-gradient(to left, #000, transparent 55%);
-}
-.affiche-chiffre {
-  display: block;
-  font-size: var(--t-affiche);
-  font-style: italic;
-  font-weight: 800;
-  line-height: 0.82;
-  letter-spacing: -0.03em;
-}
-.affiche-texte {
-  margin-top: var(--e3);
-  font-size: var(--t-page);
-  font-style: italic;
-  font-weight: 800;
-  line-height: 1.1;
-}
-.affiche-crans {
-  font-size: var(--t-titre);
-  font-style: italic;
-  font-weight: 800;
-}
-.affiche-crans .icone-cran {
-  vertical-align: -4px;
 }
 @media (prefers-reduced-motion: reduce) {
   .voix-cran.vient .icone-cran,
@@ -7591,4 +7540,104 @@ button.jour-pas {
   .voix-cran.vient > small {
     animation: none;
   }
+}
+
+/* --- Fin de séance en deux temps (12 nov. 2026) : la récompense sur un écran, les choix pour la prochaine fois sur le suivant. --- */
+.recompense {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+.recompense-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e3);
+}
+.recompense-tete > :last-child {
+  flex: none;
+}
+.recompense-nom {
+  font-size: var(--t-titre);
+  font-weight: 600;
+}
+.recompense-sobre {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  padding: var(--e2) 0;
+}
+.recompense .fin-sensations {
+  margin-top: auto;
+}
+/* Chaque exercice et son gain face à la fois d'avant : record en blanc, mieux en vert, le reste en gris, sans reproche. */
+.chasse {
+  display: flex;
+  flex-direction: column;
+}
+.chasse > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+  min-height: 28px;
+}
+.chasse > div > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chasse-gain {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+.chasse-mieux .chasse-gain {
+  color: var(--ok);
+}
+.chasse-egal,
+.chasse-terne {
+  color: var(--texte-2);
+}
+.chasse-egal .chasse-gain {
+  font-weight: 400;
+}
+.affiche-suite {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.fin-titre-groupes {
+  margin-top: var(--e2);
+}
+.fin-groupe {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: var(--e4) 0 var(--e2);
+}
+.fin-groupe h3 {
+  margin: 0;
+}
+/* En plein écran, où rien ne défile : le record un peu moins haut, pour laisser la liste et les boutons à l'écran. */
+.affiche-fin .fin-resume {
+  padding-top: var(--e3);
+  padding-bottom: var(--e3);
+}
+.affiche-fin .fin-heros {
+  padding: 0;
+}
+.affiche-fin .fin-heros-chiffre b {
+  font-size: 76px;
+  line-height: 0.9;
+}
+.affiche-fin .fin-heros-titre {
+  font-size: var(--t-page);
+}
+.affiche-fin .fin-heros-disque {
+  margin-top: var(--e2);
 }
