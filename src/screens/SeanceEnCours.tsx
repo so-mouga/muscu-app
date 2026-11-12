@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, Share2, SkipForward, Smile, Square, StickyNote, Sparkles, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight, Flame, Frown, Info, Link2, Minus, Pencil, Play, Plus, Repeat, Share2, SkipForward, Smile, Square, StickyNote, Timer, TrendingUp, TriangleAlert, Trophy, Unlink, Wind, X, type LucideIcon } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { Catalogue } from '../catalogue'
@@ -8,7 +8,7 @@ import Anneau from '../components/Anneau'
 import { cibleSerie, Editeur, majSeance, Photo } from '../components/CarteExo'
 import ChoixExo from '../components/ChoixExo'
 import { ObjectifApres } from '../components/EditeurObjectif'
-import InfosExo, { BoutonInfos } from '../components/InfosExo'
+import InfosExo, { NomInfos } from '../components/InfosExo'
 import Interrupteur from '../components/Interrupteur'
 import PartageSeance from '../components/PartageSeance'
 import ProchaineFois from '../components/ProchaineFois'
@@ -19,11 +19,12 @@ import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
 import { battement, debloquerSon, ecranAllume, signalSerie, sonFinSeance } from '../lib/appareil'
 import { revanche, revanchePrise } from '../lib/revanche'
+import { gainSerie, mieuxQueHier, phraseRevanche, titreSaisie, verdictSaisie, type Phrase } from '../lib/duel'
 import { recordDuJour } from '../lib/historique'
 import { cranDuJour, cransDeSeance, etatDisque, pourquoiCran, seuilCran, texteCran, totalCrans } from '../lib/crans'
 import Disque, { IconeCran } from '../components/Disque'
 import { verrou } from '../lib/verrou'
-import { chargeQte, chargeTexte, duree, dureeSeanceEffective, ecartQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, kg, minutes, qte, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
+import { chargeQte, chargeTexte, duree, dureeSeanceEffective, ecartQte, chauffeTropLourde, texteChauffe, chrono, cibleTexte, dateCourte, dateISO, ecartSerie, enTemps, kg, minutes, qte, RIR, reposApres, reposTexte, schemaPlan, seanceOubliee, serieTexte } from '../lib/calc'
 import { transition, useRetour } from '../lib/nav'
 import { lireEquivalents, modifierEquivalents, relies, repere } from '../lib/equivalents'
 import { suggestionDeload } from '../lib/cycle'
@@ -383,26 +384,16 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       battement()
     }
   })
-  // Saisie qui ne tient pas sans défiler (une note sur deux lignes : la page défilait sous la barre d'état, S25,
-  // 11 nov. 2026) : les lignes se resserrent (`serre`). On retient la place gagnée, pour revenir en arrière dès qu'il y
-  // a de nouveau la place.
-  const gainSerre = useRef(0)
+  // Écran qui ne tient pas sans défiler (petit téléphone, 5 séries, superset) : les rangées se resserrent (`serre`). Mesuré à
+  // chaque affichage, sans la classe : elle part dès qu'il y a de nouveau la place.
   useLayoutEffect(() => {
     const el = ecranFocus.current
     if (!el) return
-    // Hauteur réelle du contenu (scrollHeight ne descend jamais sous la hauteur de l'écran) : négative = place libre.
-    const deborde = () => {
-      const enfants = [...el.children] as HTMLElement[]
-      return Math.max(0, ...enfants.map((c) => c.offsetTop + c.offsetHeight)) + parseFloat(getComputedStyle(el).paddingBottom) - el.clientHeight
-    }
-    if (el.classList.contains('serre') && deborde() + gainSerre.current <= 0) el.classList.remove('serre')
-    if (deborde() > 0 && !el.classList.contains('serre')) {
-      const avant = deborde()
-      el.classList.add('serre')
-      gainSerre.current = avant - deborde()
-    }
     // 1 px de marge : sur le S25 les hauteurs ont des décimales (689,67 px), et un arrondi ne doit pas rendre l'écran défilable.
-    el.classList.toggle('tient', deborde() <= 1)
+    const deborde = () => el.scrollHeight - el.clientHeight > 1
+    el.classList.remove('serre')
+    if (deborde()) el.classList.add('serre')
+    el.classList.toggle('tient', !deborde())
   })
 
   const exos = useMemo(
@@ -809,6 +800,18 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
 
   if (focus) {
     const faitesParExo = () => Object.fromEntries(plans.map((x) => [x.exoId, nbFaites(x.exoId)]))
+    const faitesDe = (i: number) => seance.series.filter((x) => x.exoId === plans[i].exoId)
+    const histoDe = (i: number) => historiqueDe(terminees, plans[i].exoId)
+    /** La dernière fois, série par série : l'adversaire du jour. Rien en séance allégée (on ne s'y mesure pas). */
+    const hierDe = (i: number) => (seance.deload ? undefined : histoDe(i)[0])
+    /** La charge prévue aujourd'hui pour la série `n` de l'exercice `i`. */
+    const chargePrevue = (i: number, n: number) => {
+      const c = suggestions[i].charges[Math.min(n, suggestions[i].charges.length - 1)]
+      return typeof c === 'number' ? c : undefined
+    }
+    const estFinisseur = (i: number, n: number) => !!plans[i].finisseur && n === totalDe(i) - 1
+    /** La revanche de la série `n` : jamais sur un finisseur ni en séance allégée. */
+    const revDe = (i: number, n: number) => (estFinisseur(i, n) || seance.deload ? null : revanche(exos[i], plans[i], histoDe(i), n, suggestions[i].charges[n]))
     /** Superset : badge et ce qui vient après la série à faire, pour remplacer la liste du groupe. */
     const enteteSuperset = (i: number) => {
       const groupe = groupeSuperset(plans, i)
@@ -826,7 +829,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const nom = suivant !== null && suivant !== i ? exos[suivant].nom : null
       // Le repos d'abord : si le nom est coupé sur un petit écran, l'essentiel reste lisible.
       const texte = restantes <= 1 ? 'Ensuite : fin de la séance' : repos === 0 ? (nom ? `Ensuite, sans repos : ${nom}` : 'Ensuite : sans repos') : suivant !== null && suivant > i ? `Ensuite, repos ${chrono(repos)} : ${nom}` : `Ensuite : repos ${chrono(repos)}`
-      return <div className="petit ensuite-superset">{texte}</div>
+      return <span className="petit ensuite-superset">{texte}</span>
     }
     // La série qu'on vient de faire : battue (on le fête), et de quel exercice (pour la corriger s'il est fini).
     // À l'instant : la fête ne se rejoue pas en revenant de la liste.
@@ -840,36 +843,233 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const e = avant && ecartSerie(derniereSerie, avant, exos[i])
       return { i, k, mieux: e?.sens === 'mieux' ? e.texte : null }
     })()
-    // Le repos qui suit la série qui a gagné le cran de son exercice : le cercle le dit tant qu'il dure.
+    // Le repos qui suit la série qui a gagné le cran de son exercice : le titre le dit tant qu'il dure.
     const cranRepos = (() => {
       const c = derniereSerie && cranDe(derniereSerie.exoId)
       return c && c.serie.id === derniereSerie!.id ? c : null
     })()
-    // L'exercice qu'on vient de finir, quand la suite change de machine : on le signale clairement.
+    // L'exercice qu'on vient de finir, quand la suite change de machine : son tableau reste à l'écran pendant le repos.
     const exoFini = (() => {
-      if (!derniereSerie || enCours < 0) return null
-      const i = plans.findIndex((p) => p.exoId === derniereSerie.exoId)
-      return i >= 0 && i !== enCours && nbFaites(plans[i].exoId) >= totalDe(i) ? exos[i].nom : null
+      if (!derniere || enCours < 0) return null
+      return derniere.i !== enCours && nbFaites(plans[derniere.i].exoId) >= totalDe(derniere.i) ? derniere.i : null
     })()
-    const prochaine = (() => {
+
+    /** Le nom de l'exercice, son ⓘ collé au dernier mot, et la porte vers les séries et la note. */
+    const titreExo = (i: number) => (
+      <div className="duel-titre">
+        <h2>
+          <NomInfos nom={exos[i].nom} onClick={() => setInfos(exos[i].id)} />
+        </h2>
+        <button type="button" className="lien-prochaine" onClick={() => setSeriesDe(i)}>
+          Séries, note <ChevronRight size={16} />
+        </button>
+      </div>
+    )
+    /** La note de l'exercice sur une ligne (celle du jour d'abord) : un appui l'ouvre en entier. */
+    const noteExo = (i: number) => {
+      const p = plans[i]
+      const note = seance.notes[p.exoId] || (noteAvant(p.exoId) ? `La dernière fois : ${noteAvant(p.exoId)}` : p.note ?? exos[i].notes)
+      return note ? (
+        <button type="button" className="note-duel" onClick={() => setNoteDe(i)}>
+          <StickyNote size={14} className="ico-texte" /> {note}
+        </button>
+      ) : null
+    }
+    const phrase = (ph: Phrase | null) =>
+      ph && (
+        <div className="voix-duel">
+          {ph.avant && (
+            <span className="voix-gris">
+              {ph.avant}
+              <br />
+            </span>
+          )}
+          {ph.fort}
+          {ph.accent && <span className="voix-accent">{ph.accent}</span>}
+          {ph.apres && <span className="voix-gris">{ph.apres}</span>}
+        </div>
+      )
+
+    /** Pendant le repos, la case « aujourd'hui » de la série à venir : ce qu'il faut faire pour passer devant. */
+    const actifRepos = (i: number, n: number): ReactNode => {
+      const exo = exos[i]
+      if (estFinisseur(i, n)) return <b className="tab-vise fin">à fond</b>
+      const rev = revDe(i, n)
+      if (rev)
+        return (
+          <>
+            <b className="tab-vise">{rev.genre === 'charge' ? `${kg(rev.vise)} kg` : rev.vise}</b>
+            <small>revanche</small>
+          </>
+        )
+      const objectif = objectifSerie(i, n)
+      if (objectif)
+        return (
+          <>
+            <b className="tab-vise">{qte(exo, objectif.reps)}</b>
+            <small>à viser</small>
+          </>
+        )
+      const h = hierDe(i)?.[n]
+      if (h && chargePrevue(i, n) === h.charge)
+        return (
+          <>
+            <b className="tab-vise">{qte(exo, h.reps + (enTemps(exo) ? 5 : 1))}</b>
+            <small>ou plus</small>
+          </>
+        )
+      const r = suggestions[i].reps[Math.min(n, suggestions[i].reps.length - 1)]
+      return typeof r === 'number' ? (
+        <>
+          <b className="tab-vise neutre">{qte(exo, r)}</b>
+          <small>visé</small>
+        </>
+      ) : (
+        '·'
+      )
+    }
+
+    /** Le titre du repos : une seule phrase, la plus rare d'abord. */
+    const voixRepos = (): ReactNode => {
+      if (cranRepos)
+        return (
+          <div className={'voix-duel voix-cran' + (vient ? ' vient' : '')}>
+            <IconeCran taille={24} /> <span>Record battu.</span> <span className="voix-gris">+1 cran.</span>
+            <small>{pourquoiCran(cranRepos)}</small>
+          </div>
+        )
+      if (revancheFaite && revancheFaite.serie === derniereSerie?.id)
+        return (
+          <div className={'voix-duel' + (vient ? ' vient-monter' : '')}>
+            Revanche prise.
+            <small>{revancheFaite.detail}</small>
+          </div>
+        )
+      if (exoFini !== null) {
+        const t = nbFaites(plans[exoFini].exoId)
+        const m = seance.deload ? 0 : mieuxQueHier(exos[exoFini], faitesDe(exoFini), histoDe(exoFini)[0])
+        return (
+          <div className={'voix-duel' + (vient ? ' vient-monter' : '')}>
+            {m > 0 ? (
+              <span className="ok-texte">
+                {m} série{m > 1 ? 's' : ''} sur {t} mieux.
+              </span>
+            ) : (
+              <>
+                Exercice fini. <span className="voix-gris">{t} série{t > 1 ? 's' : ''}.</span>
+              </>
+            )}
+          </div>
+        )
+      }
       if (enCours < 0) return null
-      const p = plans[enCours]
-      const exo = exos[enCours]
-      const n = nbFaites(p.exoId)
-      const t = totalDe(enCours)
-      const avant = historiqueDe(terminees, p.exoId)[0]?.[n]
-      const plus = hausse(exo, suggestions[enCours], historiqueDe(terminees, p.exoId)[0], n)
-      const objectif = p.finisseur && n === t - 1 ? undefined : objectifSerie(enCours, n)
-      const seuil = objectif ? seuilCran(exo, historiqueDe(terminees, p.exoId), seance.series.filter((x) => x.exoId === p.exoId), objectif.charge) : null
-      // La revanche de la série à venir (version sobre, choix de l'utilisateur) : jamais sur un finisseur ni en séance allégée.
-      const rev = p.finisseur && n === t - 1 ? null : seance.deload ? null : revanche(exo, p, historiqueDe(terminees, p.exoId), n, suggestions[enCours].charges[n])
-      const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
+      const n = nbFaites(plans[enCours].exoId)
+      if (estFinisseur(enCours, n))
+        return (
+          <div className="voix-duel">
+            Dernière série. <span className="voix-accent">À fond.</span>
+          </div>
+        )
+      const rev = revDe(enCours, n)
+      if (rev) return phrase(phraseRevanche(rev))
+      if (restantes === 1 && !seance.deload) return phrase({ avant: 'Dernière série du jour.', fort: '', accent: 'Finis fort.' })
+      if (derniere?.mieux) return <div className={'mieux-titre' + (vient ? ' vient-monter' : '')}>↑ {derniere.mieux} vs la dernière fois</div>
+      return null
+    }
+
+    const blocTerminer = (() => {
+      const n = seance.series.length
+      const suite = (
+        <>
+          {!!seance.passes?.length && <div className="faible">Sauté : {seance.passes.map((id) => catalogue.exo(id).nom).join(', ')}. Pour en reprendre un, passe par « Voir la séance ».</div>}
+          <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
+            Terminer la séance
+          </button>
+          <button className="btn discret plein" onClick={() => setChoix({ mode: 'ajouter' })}>
+            <Plus size={20} /> Ajouter un exercice
+          </button>
+        </>
+      )
+      if (seance.passes?.length || !n)
+        return (
+          <div className="focus-bloc pile">
+            <h2>{seance.passes?.length ? 'Plus rien à faire' : 'Toutes les séries sont faites'}</h2>
+            {suite}
+          </div>
+        )
+      // L'affiche : combien de séries ont fait mieux que la dernière fois. La trame seulement s'il y en a.
+      const mieux = seance.deload ? 0 : plans.reduce((a, _, i) => a + (plans.findIndex((x) => x.exoId === plans[i].exoId) === i ? mieuxQueHier(exos[i], faitesDe(i), histoDe(i)[0]) : 0), 0)
+      const crans = cransDeSeance(seance, terminees, catalogue.exo)
+      const disque = etatDisque(totalCrans(terminees.filter((s) => s.id !== seance.id), catalogue.exo) + crans.length)
+      const tenue = dureeSeanceEffective(seance) >= 60000 ? duree(dureeSeanceEffective(seance)) : ''
       return (
-        <div className={'focus-bloc prochaine-grand' + (exoFini ? ' nouvel-exo' : '')}>
-          {derniere?.mieux && <div className={'mieux-titre' + (vient ? ' vient-monter' : '')}>↑ {derniere.mieux} vs la dernière fois</div>}
-          {enSuperset && enteteSuperset(enCours)}
+        <div className="affiche-fin">
+          <div className="voix grand">Séance faite.</div>
+          <div className={'affiche' + (mieux > 0 ? ' trame' : '')}>
+            <div>
+              <b className="affiche-chiffre">{mieux > 0 ? mieux : n}</b>
+              <div className="affiche-texte">
+                {mieux > 0 ? (
+                  <>
+                    série{mieux > 1 ? 's' : ''} sur {n}
+                    <br />
+                    <span className="ok-texte">mieux que la dernière fois.</span>
+                  </>
+                ) : (
+                  <>
+                    série{n > 1 ? 's' : ''} faite{n > 1 ? 's' : ''}.{seance.deload && <span className="voix-gris"> En allégé.</span>}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          {crans.length > 0 && (
+            <div className="affiche-crans">
+              <IconeCran taille={22} /> {crans.length} record{crans.length > 1 ? 's' : ''}. <span className="voix-gris">{disque.crans === 0 ? 'Disque plein.' : disque.reste === 1 ? 'Plus qu’un cran.' : `Plus que ${disque.reste} crans.`}</span>
+            </div>
+          )}
+          <div className="faible">
+            {tenue && `${tenue} · `}
+            {n} série{n > 1 ? 's' : ''}
+          </div>
+          {suite}
+        </div>
+      )
+    })()
+
+    const communs = (
+      <>
+        {correction}
+        {fenetres}
+        {toast && <div className="toast">{toast}</div>}
+        {objectifDe !== null && plans[objectifDe] && <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />}
+        {infos && <InfosExo exo={exoAvecReglages(catalogue.exo(infos), reglages)} onFermer={() => setInfos(null)} />}
+      </>
+    )
+
+    // Le repos : le tableau reste en place, le temps en chiffres géants, l'effort de la série qu'on vient de faire.
+    if ((vueRepos || momentFin) && enCours >= 0) {
+      const montre = exoFini ?? enCours
+      const n = nbFaites(plans[enCours].exoId)
+      const aVenir = exoFini === null
+      const enSuperset = aVenir && alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
+      const commencer = () => (annonceVue(cleMoment), setAnnonceVue((x) => x + 1))
+      const hierSuivant = hierDe(enCours)?.slice(0, totalDe(enCours))
+      const chargeSuivante = chargePrevue(enCours, 0)
+      return (
+        <div ref={ecranFocus} className={'focus fixe ecran-duel' + (momentFin || (aVenir && estFinisseur(enCours, n)) ? ' ton-fin' : '')}>
+          {avancementCompact}
+          {enSuperset && (
+            <div className="duel-superset">
+              {enteteSuperset(enCours)}
+              {ensuiteSuperset(enCours)}
+            </div>
+          )}
+          {titreExo(montre)}
+          {aVenir && noteExo(enCours)}
+          {voixRepos()}
           {/* Superset : la série d'avant vient de l'autre exercice ; elle reste à portée pour la corriger. */}
-          {enSuperset && !exoFini && derniere && derniere.i !== enCours && (
+          {enSuperset && derniere && derniere.i !== enCours && (
             <div className="ligne entre ligne-terminee superset-avant petit">
               <span>
                 <Check size={14} className="ok-texte ico-texte" /> {chargeQte(exos[derniere.i], derniereSerie!.charge, derniereSerie!.reps)} · {exos[derniere.i].nom}
@@ -879,185 +1079,74 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
               </button>
             </div>
           )}
-          {exoFini ? (
-            <>
-              <div className="fin-exo">
-                <div className={'fin-exo-titre' + (vient ? ' vient-coche' : '')}>
-                  <Check size={20} /> <span>{exoFini} terminé</span>
-                </div>
-                <div className="fin-exo-rang">
-                  <LigneSeries court exo={exos[derniere!.i]} faites={seance.series.filter((x) => x.exoId === plans[derniere!.i].exoId)} total={totalDe(derniere!.i)} cible={() => ''} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(plans[derniere!.i].exoId)?.serie.id} />
-                  <button className="btn petit" onClick={() => void ajusterSeries(derniere!.i, 1)}>
-                    + série
-                  </button>
-                </div>
-              </div>
-              <div className="faible">Exercice suivant</div>
-            </>
-          ) : (
-            <div className="entete-prochaine">
-              <div className={p.finisseur && n === t - 1 ? 'texte-finisseur prochaine-finisseur' : 'faible'}>{p.finisseur && n === t - 1 ? 'Prochaine série : finisseur' : 'Prochaine série'}</div>
-              <button className="lien-prochaine" onClick={() => setSeriesDe(enCours)}>
-                Séries, note <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
-          <div className="ligne entre">
-            <h2>{exo.nom}</h2>
-            <BoutonInfos onClick={() => setInfos(exo.id)} />
+          <div className="focus-bloc tab-carte">
+            <TableauDuel
+              exo={exos[montre]}
+              hier={hierDe(montre)}
+              faites={faitesDe(montre)}
+              total={totalDe(montre)}
+              cranId={cranDe(plans[montre].exoId)?.serie.id}
+              onCorriger={(f) => setCorrige(f.id)}
+              actif={aVenir ? actifRepos(enCours, n) : undefined}
+              chargeActive={aVenir ? chargePrevue(enCours, n) : undefined}
+              barre={aVenir && revDe(enCours, n)?.genre === 'reps'}
+              vient={vient && derniere?.i === montre}
+            />
           </div>
-          {enSuperset && ensuiteSuperset(enCours)}
-          {/* Rien de fait sur cet exercice : la cible dessous suffit, les pastilles ne servent qu'à corriger. */}
-          {n > 0 && <LigneSeries exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} vient={vient && derniere?.i === enCours ? (cranRepos ? 'vient-cran' : derniere.mieux ? 'vient-mieux' : 'vient-faite') : undefined} />}
-          {rev ? (
-            // Deux phrases courtes, puis les deux chiffres face à face : celui d'avant, barré, est l'adversaire.
-            <div className="rev-bloc">
-              <div className="rev-avant">{rev.genre === 'reps' ? `Tu t’étais arrêté à ${rev.avant}.` : `Tu avais dû redescendre à ${kg(rev.avant)} kg.`}</div>
-              <div className="rev-auj">
-                Aujourd’hui, <span className="vise-chiffre">{kg(rev.vise)}</span>.
-              </div>
-              <FaceAFace avant={kg(rev.avant)} apres={kg(rev.vise)} unite={rev.genre === 'charge' ? 'kg' : 'reps'} />
-            </div>
-          ) : objectif && avant ? (
-            // L'objectif fixé, en grand, pendant qu'on se prépare : le chiffre à atteindre, et s'il vaut un record.
-            <div className="a-battre">
-              <div className="faible">
-                À battre : {serieTexte(exo, avant, false, false)}
-                {seuil?.record === objectif.avant ? ', ton record' : ''}
-              </div>
-              <div className="vise">
-                Vise <span className="vise-chiffre">{qte(exo, objectif.reps)}</span>
-              </div>
-              {seuil && objectif.reps >= seuil.reps && (
-                <div className="vise-record">
-                  <IconeCran taille={16} /> Ce sera un record : +1 cran
+          {aVenir && estFinisseur(enCours, n) && <div className="duel-consigne">{consigneDe(enCours)}</div>}
+          {/* Sans repos en cours avant un finisseur : le même écran, figé sur « Prêt ». « Passer » comme « J'y vais » mènent à la saisie. */}
+          <Minuteur etat={minuteur ?? REPOS_FINI} variante="geant" finisseur={momentFin} onChange={(e) => (setMinuteur(e), momentFin && !e && commencer())}>
+            {derniereSerie && derniereSerie.type === 'normale' && <EffortRepos seance={seance} serie={derniereSerie} />}
+            {!aVenir && (
+              <div className="duel-ensuite">
+                <div>
+                  <span className="faible">Ensuite{chargeSuivante !== undefined && !(exos[enCours].mode === 'poids_corps' && chargeSuivante === 0) ? ` · ${chargeTexte(exos[enCours], chargeSuivante)}` : ''}</span>
+                  <strong>{exos[enCours].nom}</strong>
                 </div>
-              )}
-            </div>
-          ) : (
-            <>
-              {restantes === 1 && !(p.finisseur && n === t - 1) && !seance.deload && (
-                <div className="voix">
-                  Dernière série du jour.
-                  <br />
-                  <span className="voix-accent">Finis fort.</span>
-                </div>
-              )}
-              <div className="cible-grand">{cibleSerie(exo, p, suggestions[enCours], n, seance.series.filter((x) => x.exoId === p.exoId), t)}</div>
-              {plus && <div className="badge-hausse grand"><Flame size={16} /> ↑ {plus} par rapport à la dernière fois</div>}
-              {avant && <div className="faible">Dernière fois : {serieTexte(exo, avant, false, false)} · effort {kg(avant.rpe)}/10</div>}
-            </>
-          )}
-          {/* Le finisseur s'annonce pendant le repos, avec ce qu'il faudra faire. */}
-          {p.finisseur && n === t - 1 && (
-            <div className="consigne-fin">
-              <strong>
-                <Sparkles size={14} className="ico-texte" /> {FINISSEURS[typeFinisseur(p)].nom}.
-              </strong>{' '}
-              {consigneDe(enCours)}
-            </div>
-          )}
-          {n === 0 && <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} />}
-          {(p.note || exo.notes) && <div className="faible"><Info size={14} className="ico-texte" /> {p.note ?? exo.notes}</div>}
-        </div>
-      )
-    })()
-    const blocTerminer = (
-      <div className="focus-bloc pile">
-        {seance.passes?.length || !seance.series.length ? (
-          <h2>{seance.passes?.length ? 'Plus rien à faire' : 'Toutes les séries sont faites'}</h2>
-        ) : (
-          <div className="voix grand">
-            Séance faite.
-            <br />
-            <span className="voix-gris">
-              {seance.series.length} série{seance.series.length > 1 ? 's' : ''}.{dureeSeanceEffective(seance) >= 60000 ? ` ${duree(dureeSeanceEffective(seance))}.` : ''}
-            </span>
-          </div>
-        )}
-        {!!seance.passes?.length && <div className="faible">Sauté : {seance.passes.map((id) => catalogue.exo(id).nom).join(', ')}. Pour en reprendre un, passe par « Voir la séance ».</div>}
-        <button className="btn primaire grand" onClick={() => ouvrirFin(true)}>
-          Terminer la séance
-        </button>
-        <button className="btn discret plein" onClick={() => setChoix({ mode: 'ajouter' })}>
-          <Plus size={20} /> Ajouter un exercice
-        </button>
-      </div>
-    )
-    if (momentFin) {
-      const p = plans[enCours]
-      const exo = exos[enCours]
-      const faitesExo = seance.series.filter((x) => x.exoId === p.exoId)
-      const commencer = () => (annonceVue(cleMoment), setAnnonceVue((x) => x + 1))
-      return (
-        <div ref={ecranFocus} className="focus fixe moment-fin">
-          <div className="moment-haut">
-            {exo.nom} · {FINISSEURS[typeFinisseur(p)].nom.toLowerCase()}
-          </div>
-          {/* Les mêmes boutons que sur l'écran habituel : une revanche peut tomber en arrivant sur une machine prise. */}
-          <div className="moment-boutons">
-            <button type="button" className="btn petit" onClick={() => naviguer(() => (setIdx(enCours), setFocus(false)))}>
-              Voir la séance
-            </button>
-            <button type="button" className="btn petit" onClick={() => setMachineDe(enCours)}>
-              Machine prise
-            </button>
-            <button type="button" className="btn petit" onClick={() => ouvrirFin(true)}>
-              Fin de séance
-            </button>
-          </div>
-          {/* Sans repos en cours : le même écran, figé sur « Prêt ». « Passer » comme « J'y vais » mènent à la saisie. */}
-          <Minuteur etat={minuteur ?? REPOS_FINI} variante="finisseur" onChange={(e) => (setMinuteur(e), !e && commencer())} cran={cranRepos ? pourquoiCran(cranRepos) : undefined} cranVient={vient && (!!cranRepos || revancheFaite?.serie === derniereSerie?.id)} revanche={revancheFaite && revancheFaite.serie === derniereSerie?.id ? revancheFaite.detail : undefined}>
-            <div className="moment-texte">
-              <div className="moment-grand">Dernière série.</div>
-              <div className="moment-fort">À fond.</div>
-              <div className="moment-consigne">{consigneDe(enCours)}</div>
-            </div>
-            {/* Les séries déjà faites restent à un appui : c'est pendant ce repos qu'on corrige. */}
-            {faitesExo.length > 0 && <LigneSeries court exo={exo} faites={faitesExo} total={totalDe(enCours)} cible={() => ''} onCorriger={(x) => setCorrige(x.id)} cranId={cranDe(p.exoId)?.serie.id} />}
+                {!!hierSuivant?.length && hierSuivant.every((x) => x.charge === chargeSuivante) && (
+                  <div className="duel-abattre">
+                    <span className="faible">à battre</span>
+                    <b>{hierSuivant.map((x) => qte(exos[enCours], x.reps)).join(' · ')}</b>
+                  </div>
+                )}
+              </div>
+            )}
           </Minuteur>
-          {correction}
-          {fenetres}
-          {toast && <div className="toast">{toast}</div>}
+          {communs}
         </div>
       )
     }
 
     return (
-      <div ref={ecranFocus} className={'focus' + (vueRepos ? ' fixe' : '')}>
+      <div ref={ecranFocus} className="focus ecran-duel">
         {avancementCompact}
-        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante={vueRepos ? 'grand' : 'bandeau'} legende={vueRepos && exoFini ? 'exercice fini' : undefined} cran={vueRepos && cranRepos ? pourquoiCran(cranRepos) : undefined} cranVient={vient && (!!cranRepos || revancheFaite?.serie === derniereSerie?.id)} revanche={vueRepos && revancheFaite && revancheFaite.serie === derniereSerie?.id ? revancheFaite.detail : undefined} />}
-        {correction}
-        {vueRepos ? (
-          prochaine ?? blocTerminer
-        ) : surEchauffement ? (
+        {minuteur && <Minuteur etat={minuteur} onChange={setMinuteur} variante="bandeau" />}
+        {surEchauffement ? (
           <Echauffement seance={seance} onPasser={() => setIdx(Math.max(0, enCours))} />
         ) : enCours >= 0 ? (
-          // Saisie en plein écran : l'essentiel seulement (exercice, cible, dernière fois, saisie, Valider).
+          // Saisie en plein écran : le chiffre du jour face à celui de la dernière fois, puis la charge et « Valider ».
           (() => {
             const p = plans[enCours]
             const exo = exos[enCours]
             const n = nbFaites(p.exoId)
             const t = totalDe(enCours)
-            const derniereFois = historiqueDe(terminees, p.exoId)[0]
-            const plus = hausse(exo, suggestions[enCours], derniereFois, n)
-            const finisseurIci = !!p.finisseur && n === t - 1
-            const revSaisie = finisseurIci || seance.deload ? null : revanche(exo, p, historiqueDe(terminees, p.exoId), n, suggestions[enCours].charges[n])
-            const objectifSaisie = finisseurIci ? undefined : revSaisie?.genre === 'reps' ? { charge: suggestions[enCours].charges[n] as number, reps: revSaisie.vise, avant: revSaisie.avant } : objectifSerie(enCours, n)
+            const histo = histoDe(enCours)
+            const hier = hierDe(enCours)
+            const finisseurIci = estFinisseur(enCours, n)
+            const revSaisie = revDe(enCours, n)
             const enSuperset = alterneEncore(plans, enCours, seance.passes ?? [], nbFaites, totalDe)
+            const reposSuivant = reposApresSuperset(plans, enCours, n, t, faitesParExo(), totalDe)
             // « Échauffement d'abord » (retour de l'utilisateur : il lançait la séance et ne voyait pas les séries de chauffe, en petit
             // au-dessus de la saisie) : tant qu'il en reste à cocher, elles passent avant la première série, en grandes lignes.
             const chauffes = n === 0 ? chauffesDuJour(seance, p, exo, suggestions[enCours].charges[0]) : []
             const restantesChauffe = chauffes.filter(({ i }) => !seance.chauffes[`${exo.id}:${i}`]).length
             const cleChauffe = `${seance.id}:${p.exoId}`
-            if (restantesChauffe > 0 && !chauffesPassees.has(cleChauffe))
+            if (restantesChauffe > 0 && !chauffesPassees.has(cleChauffe)) {
+              const aBattre = hier?.slice(0, t)
               return (
-                <div className="focus-bloc pile saisie-focus etape-chauffe">
-                  <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
-                    <h2>{exo.nom}</h2>
-                    <BoutonInfos onClick={() => setInfos(exo.id)} />
-                  </div>
-                  <div className="etape-titre">Échauffement d’abord.</div>
+                <div className="duel-saisie etape-chauffe">
+                  {titreExo(enCours)}
+                  <div className="voix-duel">Échauffement d’abord.</div>
                   <div className="faible">
                     {restantesChauffe === chauffes.length
                       ? `${chauffes.length} série${chauffes.length > 1 ? 's' : ''} légère${chauffes.length > 1 ? 's' : ''}. Coche-${chauffes.length > 1 ? 'les une par une' : 'la'}.`
@@ -1075,51 +1164,45 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                       </button>
                     )
                   })}
-                  <div className="chauffe-ensuite">
-                    <span className="faible">Ensuite :</span> {t} série{t > 1 ? 's' : ''} à <strong>{cibleSerie(exo, p, suggestions[enCours], 0, [], t).split(' · ')[0]}</strong>
+                  <div className="duel-ensuite">
+                    <div>
+                      <span className="faible">Ensuite</span>
+                      <strong>
+                        {t} série{t > 1 ? 's' : ''} à {cibleSerie(exo, p, suggestions[enCours], 0, [], t).split(' · ')[0].split(' × ')[0]}
+                      </strong>
+                    </div>
+                    {!!aBattre?.length && aBattre.every((x) => x.charge === chargePrevue(enCours, 0)) && (
+                      <div className="duel-abattre">
+                        <span className="faible">à battre</span>
+                        <b>{aBattre.map((x) => qte(exo, x.reps)).join(' · ')}</b>
+                      </div>
+                    )}
                   </div>
                   <button type="button" className="btn plein etape-passer" onClick={() => (passerChauffes(cleChauffe), setAnnonceVue((x) => x + 1))}>
                     {restantesChauffe === chauffes.length ? 'Passer l’échauffement' : 'Passer le reste'}
                   </button>
                 </div>
               )
+            }
             return (
-              <div className="focus-bloc pile saisie-focus">
-                {enSuperset && <div className="superset-badge-saisie">{enteteSuperset(enCours)}</div>}
-                <div className="ligne entre" style={{ alignItems: 'flex-start' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <h2>{exo.nom}</h2>
-                    {enSuperset && ensuiteSuperset(enCours)}
-                  </div>
-                  <BoutonInfos onClick={() => setInfos(exo.id)} />
-                </div>
-                <LigneSeries
-                  avant={
-                    !chauffes.length ? undefined : restantesChauffe === 0 ? (
-                      // Tout est coché : une seule pastille verte ; un appui rouvre l'étape (la dernière case se décoche).
-                      <button type="button" className="pastille-echauffe" onClick={() => void majSeance(seance.id, (x) => void (x.chauffes[`${exo.id}:${chauffes[chauffes.length - 1].i}`] = false))}>
-                        <Check size={14} /> Échauffé
-                      </button>
-                    ) : (
-                      <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} enRangee />
-                    )
-                  } exo={exo} faites={seance.series.filter((x) => x.exoId === p.exoId)} total={t} cible={(k) => cibleSerie(exo, p, suggestions[enCours], k, seance.series.filter((x) => x.exoId === p.exoId), t)} onCorriger={(f) => setCorrige(f.id)} cranId={cranDe(p.exoId)?.serie.id} />
-                {/* Avec un objectif à battre, l'éditeur l'écrit en une ligne (« Vise 9 · à battre : 8 ») : pas de doublon ici. */}
-                {!objectifSaisie && (derniereFois?.[n] || plus) && (
-                  <div className="faible">
-                    {derniereFois?.[n] && <>Dernière fois : {serieTexte(exo, derniereFois[n], false, false)} · effort {kg(derniereFois[n].rpe)}/10</>}
-                    {plus && <span className="badge-hausse"> ↑ {plus}</span>}
+              <div className="duel-saisie">
+                {enSuperset && (
+                  <div className="duel-superset">
+                    {enteteSuperset(enCours)}
+                    {ensuiteSuperset(enCours)}
                   </div>
                 )}
-                {(() => {
-                  // La note du jour d'abord, sur deux lignes au plus : la saisie doit rester à l'écran. Un appui l'ouvre en entier.
-                  const note = seance.notes[p.exoId] || (noteAvant(p.exoId) ? `La dernière fois : ${noteAvant(p.exoId)}` : p.note ?? exo.notes)
-                  return note ? (
-                    <button type="button" className="faible note-saisie" onClick={() => setNoteDe(enCours)}>
-                      <StickyNote size={14} className="ico-texte" /> {note}
+                {titreExo(enCours)}
+                {noteExo(enCours)}
+                {chauffes.length > 0 &&
+                  (restantesChauffe === 0 ? (
+                    // Tout est coché : une seule pastille verte ; un appui rouvre l'étape (la dernière case se décoche).
+                    <button type="button" className="pastille-echauffe" onClick={() => void majSeance(seance.id, (x) => void (x.chauffes[`${exo.id}:${chauffes[chauffes.length - 1].i}`] = false))}>
+                      <Check size={14} /> Échauffé
                     </button>
-                  ) : null
-                })()}
+                  ) : (
+                    <ChauffesCochables seance={seance} plan={p} exo={exo} chargeDuJour={suggestions[enCours].charges[0]} />
+                  ))}
                 <Editeur
                   key={`${p.exoId}-${n}-${suggestions[enCours].charges.join()}`}
                   seance={seance}
@@ -1128,13 +1211,35 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
                   sugg={suggestions[enCours]}
                   index={n}
                   total={t}
-                  faites={seance.series.filter((x) => x.exoId === p.exoId)}
+                  faites={faitesDe(enCours)}
                   reposRestant={reposRestant}
                   verrou={verrou}
                   compact
-                  seuilCran={seance.deload ? undefined : (charge) => seuilCran(exo, historiqueDe(terminees, p.exoId), seance.series.filter((x) => x.exoId === p.exoId), charge)}
-                  objectif={objectifSaisie}
-                  onFini={(s) => valider(s, reposApresSuperset(plans, enCours, n, t, faitesParExo(), totalDe))}
+                  duel={{
+                    // Pas de repos après cette série (enchaînement, toute dernière série) : l'effort se note ici.
+                    effortIci: reposSuivant === 0 || restantes <= 1,
+                    verdict: ({ reps, charge }) => (seance.deload ? null : verdictSaisie(exo, { reps, charge, hier: hier?.[n], seuil: seuilCran(exo, histo, faitesDe(enCours), charge), revanche: revSaisie })),
+                    entete: ({ charge, champ }) => (
+                      <>
+                        {phrase(titreSaisie(exo, { charge, hier: hier?.[n], revanche: revSaisie, premiereFois: !histo.length, allegee: !!seance.deload, finisseur: finisseurIci }))}
+                        <div className="focus-bloc tab-carte">
+                          <TableauDuel
+                            exo={exo}
+                            hier={hier}
+                            faites={faitesDe(enCours)}
+                            total={t}
+                            cranId={cranDe(p.exoId)?.serie.id}
+                            onCorriger={(f) => setCorrige(f.id)}
+                            actif={champ}
+                            arene
+                            chargeActive={charge}
+                            barre={revSaisie?.genre === 'reps' && hier?.[n]?.charge === charge}
+                          />
+                        </div>
+                      </>
+                    ),
+                  }}
+                  onFini={(s) => valider(s, reposSuivant)}
                   onAnnulerEdition={() => undefined}
                 />
               </div>
@@ -1143,12 +1248,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
         ) : (
           blocTerminer
         )}
-        {fenetres}
-        {toast && <div className="toast">{toast}</div>}
-        {objectifDe !== null && plans[objectifDe] && (
-          <ObjectifApres exo={exos[objectifDe]} plan={plans[objectifDe]} terminees={terminees} onFermer={() => setObjectifDe(null)} />
-        )}
-        {infos && <InfosExo exo={exoAvecReglages(catalogue.exo(infos), reglages)} onFermer={() => setInfos(null)} />}
+        {communs}
       </div>
     )
   }
@@ -1998,19 +2098,93 @@ function FenetreNote({ seance, exo, noteFixe, noteAvant, onFermer }: { seance: S
   )
 }
 
-/** Les deux chiffres face à face : ce qu'on avait fait, barré, et ce qu'il faut faire. */
-function FaceAFace({ avant, apres, unite, pris }: { avant: string; apres: string; unite: string; pris?: boolean }) {
+/** Pendant le repos : l'effort de la série qu'on vient de faire, écrit dès l'appui. Sans appui, il reste à l'effort visé. */
+function EffortRepos({ seance, serie }: { seance: Seance; serie: Serie }) {
   return (
-    <div className={'face' + (pris ? ' pris' : '')}>
-      <div className="face-avant">
-        <b>{avant}</b>
-        <span>{unite}, la dernière fois</span>
+    <div className="effort-repos">
+      <div className="ligne-effort une-ligne">
+        <span className="texte-effort">
+          <strong>C’était comment ?</strong> <span className="mot-salle">RPE</span> {kg(serie.rpe)}/10 · {RIR[Math.floor(serie.rpe)] ?? ''}
+        </span>
       </div>
-      <ChevronRight size={28} className="face-fleche" />
-      <div className="face-apres">
-        <b>{apres}</b>
-        <span>{pris ? 'fait' : 'aujourd’hui'}</span>
+      <div className="rpe" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+        {[6, 7, 8, 9, 10].map((r) => (
+          <button
+            key={r}
+            type="button"
+            className={serie.rpe === r ? 'actif' : ''}
+            aria-label={`Effort ${r} sur 10`}
+            onClick={() =>
+              void majSeance(seance.id, (s) => {
+                const x = s.series.find((y) => y.id === serie.id)
+                if (x) x.rpe = r
+              })
+            }
+          >
+            {r}
+          </button>
+        ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Le tableau du duel : chaque série du jour face à la même série de la dernière fois. Il garde la même place de la saisie
+ * au repos. Une seule charge partout : elle est dite une fois, en tête, et les cases ne portent que les reps ; sinon chaque
+ * case écrit « charge×reps ». Une série faite se corrige d'un appui.
+ */
+function TableauDuel({ exo, hier, faites, total, cranId, onCorriger, actif, arene, chargeActive, barre, vient }: { exo: Exercice; hier?: Serie[]; faites: Serie[]; total: number; /** La série qui a gagné le cran de l'exercice. */ cranId?: string; onCorriger?: (s: Serie) => void; /** Contenu de la case « aujourd'hui » de la série à faire (le champ à la saisie, ce qu'il faut viser au repos). Absent : exercice fini. */ actif?: ReactNode; /** Saisie : la rangée en cours s'agrandit, avec le chiffre géant. */ arene?: boolean; /** Charge de la série à faire. */ chargeActive?: number; /** Revanche : le chiffre de la dernière fois est barré. */ barre?: boolean; /** La dernière série vient d'être validée : elle arrive. */ vient?: boolean }) {
+  const charges = new Set([...(hier ?? []).slice(0, total).map((x) => x.charge), ...faites.map((x) => x.charge), ...(chargeActive !== undefined ? [chargeActive] : [])])
+  const uniforme = charges.size <= 1
+  const enTete = (c: number | undefined) => (!uniforme || c === undefined || exo.mode === 'elastique' || (exo.mode === 'poids_corps' && c === 0) ? '' : ` · ${kg(c)} kg`)
+  // Charges différentes : « 24×9 », sans l'unité (elle est sur la ligne de la charge) pour tenir dans la case.
+  const case_ = (s: Serie) => (uniforme || exo.mode === 'elastique' ? qte(exo, s.reps) : `${kg(s.charge)}×${qte(exo, s.reps)}`)
+  return (
+    <div className={'tab-duel' + (uniforme ? '' : ' mixte')}>
+      <span />
+      <span className="tab-tete">{hier?.length ? `la dernière fois${enTete(hier[0].charge)}` : ''}</span>
+      <span className="tab-tete">aujourd’hui{enTete(chargeActive ?? faites[0]?.charge)}</span>
+      {Array.from({ length: total }, (_, k) => {
+        const f = faites[k]
+        const h = hier?.[k]
+        const courant = k === faites.length && actif !== undefined
+        const gain = f ? gainSerie(exo, f, h) : null
+        const contenu = f && (
+          <>
+            {case_(f)}
+            {f.id === cranId ? (
+              <span className="tab-gain cran">
+                <IconeCran taille={15} />
+              </span>
+            ) : (
+              gain && <span className={'tab-gain ' + gain.sens}>{gain.texte}</span>
+            )}
+          </>
+        )
+        return (
+          <div key={k} className={'tab-rang' + (courant ? ' actif' + (arene ? ' arene' : '') : '')}>
+            <span className="tab-num">
+              S{k + 1}
+              {courant && <Play size={11} fill="currentColor" />}
+            </span>
+            <span className={'tab-hier' + (courant && barre ? ' barre' : '')}>{h ? case_(h) : hier?.length ? '—' : ''}</span>
+            {f ? (
+              onCorriger ? (
+                <button type="button" className={'tab-auj fait' + (vient && k === faites.length - 1 ? (f.id === cranId ? ' vient-cran' : ' vient-faite') : '')} onClick={() => onCorriger(f)} aria-label={`Corriger la série ${k + 1}`}>
+                  {contenu}
+                </button>
+              ) : (
+                <span className="tab-auj fait">{contenu}</span>
+              )
+            ) : courant ? (
+              <span className="tab-auj">{actif}</span>
+            ) : (
+              <span className="tab-auj vide">·</span>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

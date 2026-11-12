@@ -1,8 +1,8 @@
-import { Check, ChevronRight, Info, Lightbulb, Pencil, Sparkles, Target, Timer, TriangleAlert, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Check, ChevronRight, Info, Lightbulb, Pencil, Sparkles, Timer, TriangleAlert, X } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { db, uid } from '../db'
-import { chargeDecalee, chargeTexte, enTemps, fourchette, kg, qte, RIR } from '../lib/calc'
+import { chargeDecalee, chargeTexte, enTemps, fourchette, kg, RIR } from '../lib/calc'
 import { chargeBaisse, consigne, FINISSEURS, typeFinisseur, ZONES } from '../lib/finisseur'
 import { useRetour } from '../lib/nav'
 import ChronoTenue from './ChronoTenue'
@@ -11,6 +11,7 @@ import ReglagesMachine from './ReglagesMachine'
 import { IconeCran } from './Disque'
 import { vibrer } from '../lib/appareil'
 import { chargeProposee, cibleSerie, monterMaintenant, type Suggestion } from '../lib/progression'
+import type { Verdict } from '../lib/duel'
 import type { Exercice, ExoPlan, Seance, Serie, TypeSerie, ZoneDemiReps } from '../types'
 import { confirmer, informer } from './Dialogues'
 
@@ -66,10 +67,12 @@ interface EditeurProps {
   heure?: number
   /** Dans une fenêtre : reçoit de quoi la fermer en gardant la correction (appui à côté, retour). */
   fermeture?: { current: (() => void) | null }
-  /** Plein écran : ce qu'il faut faire à cette charge pour gagner le cran de l'exercice (`seuilCran`). */
-  seuilCran?: (charge: number) => { reps: number; record?: number } | null
-  /** Plein écran : l'objectif fixé pour cette série, plus haut que la dernière fois à la même charge (`avant` : les reps de la dernière fois). */
-  objectif?: { charge: number; reps: number; avant: number }
+  /**
+   * Plein écran, le duel (maquette `seance-parcours.html`) : le chiffre du jour s'écrit dans le tableau, face à celui de la
+   * dernière fois. `entete` place le champ des reps dans la rangée en cours ; `verdict` dit où en est le chiffre réglé ;
+   * `effortIci` : pas de repos après cette série, l'effort se note donc ici (sinon pendant le repos).
+   */
+  duel?: { entete: (v: { reps: number; charge: number; champ: ReactNode }) => ReactNode; verdict: (v: { reps: number; charge: number }) => Verdict | null; effortIci: boolean }
 }
 
 interface Brouillon {
@@ -101,7 +104,7 @@ function oublierBrouillon(cle: string) {
   }
 }
 
-export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture, seuilCran, objectif }: EditeurProps) {
+export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition, reposRestant, verrou, onFini, onAnnulerEdition, compact = false, heure, fermeture, duel }: EditeurProps) {
   const p = plan.series[Math.min(index, plan.series.length - 1)]
   const i = Math.min(index, sugg.charges.length - 1)
   const finisseur = !edition && plan.finisseur && index === total - 1
@@ -248,11 +251,27 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
 
   if (panneau) {
     return (
-      <div className="pile">
+      <div className={'pile' + (compact ? ' panneau-duel' : '')}>
         <div className="bandeau-fin">
           <Sparkles size={16} className="ico-texte" /> {info.nom} · {tf === 'partielles' ? 'enchaîne sans reposer la charge' : tf === 'drop' ? 'baisse la charge et repars, sans repos' : 'pose la charge 15 s, puis repars'}
         </div>
-        {tf === 'partielles' && (
+        {tf === 'partielles' && compact && (
+          <>
+            <div className="duel-demi">
+              <b>{demi}</b>
+              <span>demi-reps · vise 5 à 8 · zone {ZONES.find((z) => z[0] === zone)?.[1]}</span>
+            </div>
+            <div className="duel-pm">
+              <button type="button" className="btn" aria-label="Une demi-rep de moins" onClick={() => setDemi(Math.max(0, demi - 1))}>
+                −
+              </button>
+              <button type="button" className="btn" aria-label="Une demi-rep de plus" onClick={() => setDemi(demi + 1)}>
+                +
+              </button>
+            </div>
+          </>
+        )}
+        {tf === 'partielles' && !compact && (
           <>
             <div className="stepper">
               <button onClick={() => setDemi(Math.max(0, demi - 1))}>−</button>
@@ -347,7 +366,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     <div className="stepper">
       <button onClick={() => setReps(Math.max(0, reps - pasQte))}>−</button>
       <div className="valeur">
-        <input inputMode="numeric" className={compact && objectif && charge === objectif.charge && reps >= objectif.reps ? 'vise-atteint' : undefined} value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
+        <input inputMode="numeric" value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
         <span className="unite">
           {temps ? 'secondes tenues' : 'reps'}
           {compact && !finisseur && (!temps || p.repsMin < p.repsMax) && ` · vise ${p.repsMin === p.repsMax ? p.repsMin : `${p.repsMin}–${p.repsMax}`}`}
@@ -387,135 +406,9 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
     </div>
   )
 
-  return (
-    <div className={'pile' + (compact ? ' editeur-compact' : '')}>
-      {/* Avant la série, sur une ligne : l'objectif fixé (« Vise 9 ») et ce qui vaut un cran. Les deux se rejoignent souvent : une
-          seule ligne. Elle suit la charge réglée. Pas sur un finisseur (seules les séries normales comptent). */}
-      {compact &&
-        !edition &&
-        !finisseur &&
-        type === 'normale' &&
-        !aRegler &&
-        (() => {
-          const s = seuilCran?.(charge)
-          const obj = objectif && charge === objectif.charge ? objectif : null
-          if (obj) {
-            const record = !!s && s.record !== undefined && obj.reps >= s.reps
-            return (
-              <div className="cran-des">
-                {record ? <IconeCran taille={18} /> : <Target size={18} />}
-                <span>
-                  <strong>
-                    Vise {qte(exo, obj.reps)}
-                    {enTemps(exo) ? '' : ' reps'}
-                  </strong>{' '}
-                  · à battre : {qte(exo, obj.avant)}
-                  {record ? (s!.record === obj.avant ? ', ton record' : ' · ce sera un record') : ''}
-                </span>
-              </div>
-            )
-          }
-          if (!s) return null
-          return (
-            <div className="cran-des">
-              <IconeCran taille={18} />
-              <span>
-                {s.record === undefined ? (
-                  <>
-                    <strong>Cran dès cette série</strong> · {exo.assistance ? 'jamais fait avec si peu d’aide' : 'charge jamais faite'}
-                  </>
-                ) : (
-                  <>
-                    <strong>
-                      Cran dès {qte(exo, s.reps)}
-                      {enTemps(exo) ? '' : ' reps'}
-                    </strong>{' '}
-                    · ton record{exo.mode === 'poids_corps' && charge === 0 ? '' : ` à ${chargeTexte(exo, charge)}`} : {qte(exo, s.record)}
-                  </>
-                )}
-              </span>
-            </div>
-          )
-        })()}
-      {!compact && (
-        <div className="ligne entre">
-          {edition && <h3>Modifier la série {index + 1}</h3>}
-          <span className="faible">
-            {finisseur && !edition ? (
-              'Finisseur · jusqu’à l’échec'
-            ) : (
-              <>
-                fourchette {fourchette(exo, p.repsMin, p.repsMax)}
-                {enTemps(exo) ? '' : ' reps'} · effort {kg(p.rpe)}/10
-              </>
-            )}
-          </span>
-        </div>
-      )}
-
-      {/* La consigne, avant la série : apprise après l'appui, elle arrive trop tard. */}
-      {finisseur && (
-        <div className="consigne-fin">
-          <strong>
-            <Sparkles size={14} className="ico-texte" /> Finisseur · {info.nom}.
-          </strong>{' '}
-          {consigne(tf, tf === 'drop' && charge > 0 ? chargeTexte(exo, chargeBaisse(charge, exo.pas)) : undefined)}
-          {tf !== 'echec' && ' Tu notes la suite après.'}
-        </div>
-      )}
-
-      {temps && !edition && !saisieManuelle ? (
-        <div className="pile" style={{ alignItems: 'center', margin: '4px 0 8px' }}>
-          {(charge > 0 || exo.mode !== 'poids_corps') && (
-            <div style={{ width: '100%', marginBottom: 6 }}>
-              {stepperCharge}
-            </div>
-          )}
-          <button
-            type="button"
-            className="btn primaire grand"
-            style={{ width: '100%', fontSize: 'var(--t-texte)', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            onClick={() => setChronoOuvert(true)}
-          >
-            <Timer size={20} />
-            <span>Lancer le chrono ({sugg.reps[i] ?? p.repsMax} s)</span>
-          </button>
-          <button
-            type="button"
-            className="btn discret petit lien-action"
-            style={{ marginTop: 4, color: 'var(--texte-3)', fontSize: 'var(--t-petit)' }}
-            onClick={() => setSaisieManuelle(true)}
-          >
-            <Pencil size={14} /> Saisie manuelle ({reps} s)
-          </button>
-        </div>
-      ) : (
-        <>
-          {compact ? (
-            <div className="steppers-duo">
-              {stepperCharge}
-              {stepperReps}
-            </div>
-          ) : (
-            <>
-              {stepperCharge}
-              {stepperReps}
-            </>
-          )}
-          {temps && !edition && (
-            <div style={{ textAlign: 'center', marginTop: 2, marginBottom: 4 }}>
-              <button
-                type="button"
-                className="btn discret petit lien-action"
-                style={{ color: 'var(--accent)', fontSize: 'var(--t-petit)' }}
-                onClick={() => setSaisieManuelle(false)}
-              >
-                <Timer size={16} /> Utiliser le chronomètre interactif
-              </button>
-            </div>
-          )}
-        </>
-      )}
+  // Blocs communs à la saisie habituelle et au duel du plein écran.
+  const autourCharge = (
+    <>
       {reglerPalier && <ReglagesMachine exo={exo} onFermer={() => setReglerPalier(false)} />}
       <div className="ligne-disques">
         <PuceDisques exo={exo} charge={charge} unite={unite} />
@@ -543,7 +436,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           Charge reprise de ta série {index} (cible : {chargeTexte(exo, sugg.charges[i])})
         </div>
       )}
-
+    </>
+  )
+  const fenetreChrono = (
+    <>
       {chronoOuvert && (
         <ChronoTenue
           objectif={sugg.reps[i] ?? p.repsMax}
@@ -558,7 +454,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           }}
         />
       )}
-
+    </>
+  )
+  const zoneEffort = (
+    <>
       {!finisseur && (
         <div className="zone-effort">
           {compact && ligneEffort}
@@ -577,7 +476,10 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           {!compact && ligneEffort}
         </div>
       )}
-
+    </>
+  )
+  const bas = (
+    <>
       <div className="zone-valider">
       {verrou && !edition ? (
         <button className="btn grand" disabled style={{ opacity: 1, color: 'var(--ok)' }}>
@@ -717,6 +619,195 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
           </div>,
           document.body
         )}
+    </>
+  )
+
+  // Le duel (plein écran) : le chiffre du jour dans le tableau, face à la dernière fois ; les reps d'abord, la charge en une ligne.
+  if (duel && !edition) {
+    const v = aRegler || type !== 'normale' || finisseur ? null : duel.verdict({ reps, charge })
+    const uniteCourte = exo.assistance ? 'kg d’aide' : exo.mode === 'elastique' ? 'niveau' : exo.mode === 'poids_corps' ? 'kg de lest' : exo.mode === 'par_main' ? 'kg/main' : 'kg'
+    const champ = <input className={'arene-champ' + (String(reps).length > 2 ? ' long' : '')} inputMode="numeric" aria-label={temps ? 'Secondes tenues' : 'Répétitions'} value={reps} onFocus={(e) => e.target.select()} onChange={(e) => setReps(parseInt(e.target.value) || 0)} />
+    return (
+      <div className={'editeur-duel' + (v ? ` ton-${v.ton}` : '') + (finisseur ? ' ton-fin' : '')}>
+        {duel.entete({ reps, charge, champ })}
+        {!finisseur && (
+          <div className="duel-verdict">
+            {v?.cran && <IconeCran taille={16} />} {v?.texte}
+          </div>
+        )}
+        {/* La consigne, avant la série : apprise après l'appui, elle arrive trop tard. */}
+        {finisseur && (
+          <div className="duel-consigne">
+            {consigne(tf, tf === 'drop' && charge > 0 ? chargeTexte(exo, chargeBaisse(charge, exo.pas)) : undefined)}
+            {tf !== 'echec' && ' Tu notes la suite après.'}
+          </div>
+        )}
+        {temps && !saisieManuelle ? (
+          <div className="duel-chrono-tenue">
+            <button type="button" className="btn primaire grand" onClick={() => setChronoOuvert(true)}>
+              <Timer size={20} /> Lancer le chrono ({sugg.reps[i] ?? p.repsMax} s)
+            </button>
+            <button type="button" className="btn discret petit" onClick={() => setSaisieManuelle(true)}>
+              <Pencil size={14} /> Saisie manuelle ({reps} s)
+            </button>
+          </div>
+        ) : (
+          <div className="duel-pm">
+            <button type="button" className="btn" aria-label={temps ? 'Cinq secondes de moins' : 'Une rep de moins'} onClick={() => setReps(Math.max(0, reps - pasQte))}>
+              −
+            </button>
+            <button type="button" className="btn" aria-label={temps ? 'Cinq secondes de plus' : 'Une rep de plus'} onClick={() => setReps(reps + pasQte)}>
+              +
+            </button>
+          </div>
+        )}
+        {temps && saisieManuelle && (
+          <button type="button" className="btn discret petit" onClick={() => setSaisieManuelle(false)}>
+            <Timer size={16} /> Utiliser le chronomètre
+          </button>
+        )}
+        {exo.mode === 'poids_corps' && charge === 0 && !lestDemande ? (
+          <div className="duel-charge">
+            <span className="duel-charge-nom">Poids du corps</span>
+            <button type="button" className="btn" onClick={() => (setLestDemande(true), setCharge(pas), setChargeTxt(null))}>
+              + lest
+            </button>
+          </div>
+        ) : (
+          <div className="duel-charge">
+            {exo.mode === 'elastique' ? (
+              <span className="duel-charge-nom">Niveau</span>
+            ) : (
+              // Le palier se corrige devant la machine : c'est là qu'on le connaît.
+              <button type="button" className="duel-charge-nom unite-palier" onClick={() => setReglerPalier(!reglerPalier)} aria-label={`Palier de la machine : ${kg(pas)} kg, modifier`}>
+                <span>Charge</span>
+                <small>
+                  ±{kg(pas)} kg <Pencil size={12} />
+                </small>
+              </button>
+            )}
+            <div className="duel-charge-pm">
+              <button type="button" className="btn" aria-label="Baisser la charge" onClick={() => !aRegler && (setCharge(chargeDecalee(exo, charge, -pas)), setChargeTxt(null))}>
+                −
+              </button>
+              <label className="duel-charge-valeur">
+                <input
+                  inputMode="decimal"
+                  placeholder="—"
+                  aria-label="Charge"
+                  value={chargeTxt ?? (aRegler ? '' : kg(charge))}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    setChargeTxt(e.target.value)
+                    const x = parseFloat(e.target.value.replace(',', '.'))
+                    // Négatif : seulement au poids du corps (assistance).
+                    if (!isNaN(x)) (setCharge(exo.mode === 'poids_corps' ? x : Math.max(0, x)), setARegler(false))
+                  }}
+                  onBlur={() => setChargeTxt(null)}
+                />
+                <span>{uniteCourte}</span>
+              </label>
+              <button type="button" className="btn" aria-label="Monter la charge" onClick={() => (setCharge(chargeDecalee(exo, charge, pas)), setChargeTxt(null), setARegler(false))}>
+                +
+              </button>
+            </div>
+          </div>
+        )}
+        {autourCharge}
+        {fenetreChrono}
+        {duel.effortIci && zoneEffort}
+        {bas}
+      </div>
+    )
+  }
+
+  return (
+    <div className={'pile' + (compact ? ' editeur-compact' : '')}>
+      {!compact && (
+        <div className="ligne entre">
+          {edition && <h3>Modifier la série {index + 1}</h3>}
+          <span className="faible">
+            {finisseur && !edition ? (
+              'Finisseur · jusqu’à l’échec'
+            ) : (
+              <>
+                fourchette {fourchette(exo, p.repsMin, p.repsMax)}
+                {enTemps(exo) ? '' : ' reps'} · effort {kg(p.rpe)}/10
+              </>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* La consigne, avant la série : apprise après l'appui, elle arrive trop tard. */}
+      {finisseur && (
+        <div className="consigne-fin">
+          <strong>
+            <Sparkles size={14} className="ico-texte" /> Finisseur · {info.nom}.
+          </strong>{' '}
+          {consigne(tf, tf === 'drop' && charge > 0 ? chargeTexte(exo, chargeBaisse(charge, exo.pas)) : undefined)}
+          {tf !== 'echec' && ' Tu notes la suite après.'}
+        </div>
+      )}
+
+      {temps && !edition && !saisieManuelle ? (
+        <div className="pile" style={{ alignItems: 'center', margin: '4px 0 8px' }}>
+          {(charge > 0 || exo.mode !== 'poids_corps') && (
+            <div style={{ width: '100%', marginBottom: 6 }}>
+              {stepperCharge}
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn primaire grand"
+            style={{ width: '100%', fontSize: 'var(--t-texte)', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            onClick={() => setChronoOuvert(true)}
+          >
+            <Timer size={20} />
+            <span>Lancer le chrono ({sugg.reps[i] ?? p.repsMax} s)</span>
+          </button>
+          <button
+            type="button"
+            className="btn discret petit lien-action"
+            style={{ marginTop: 4, color: 'var(--texte-3)', fontSize: 'var(--t-petit)' }}
+            onClick={() => setSaisieManuelle(true)}
+          >
+            <Pencil size={14} /> Saisie manuelle ({reps} s)
+          </button>
+        </div>
+      ) : (
+        <>
+          {compact ? (
+            <div className="steppers-duo">
+              {stepperCharge}
+              {stepperReps}
+            </div>
+          ) : (
+            <>
+              {stepperCharge}
+              {stepperReps}
+            </>
+          )}
+          {temps && !edition && (
+            <div style={{ textAlign: 'center', marginTop: 2, marginBottom: 4 }}>
+              <button
+                type="button"
+                className="btn discret petit lien-action"
+                style={{ color: 'var(--accent)', fontSize: 'var(--t-petit)' }}
+                onClick={() => setSaisieManuelle(false)}
+              >
+                <Timer size={16} /> Utiliser le chronomètre interactif
+              </button>
+            </div>
+          )}
+        </>
+      )}
+      {autourCharge}
+      {fenetreChrono}
+
+      {zoneEffort}
+
+      {bas}
     </div>
   )
 }

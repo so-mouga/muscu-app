@@ -31,7 +31,8 @@ const REGLES: [string, string[]][] = [
       'Un cran = un record battu sur un exercice : une charge jamais faite, ou plus de reps que jamais à une charge déjà faite, sur une série normale.',
       'Un seul cran par exercice et par séance. Aucun en séance allégée. En sèche aussi, un record vaut un cran.',
       'Un cran gagné ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.',
-      'Avant la série, « Cran dès 11 reps » dit ce qu’il faut faire à la charge réglée. Rien si l’exercice n’a jamais été fait, si la charge est plus légère que tout ce que tu as fait, ou si le cran du jour est déjà gagné.',
+      'À la saisie, le chiffre du jour passe en orange avec « record · +1 cran » dès qu’il bat ton record à la charge réglée. Jamais si l’exercice n’a jamais été fait, si la charge est plus légère que tout ce que tu as fait, ou si le cran du jour est déjà gagné.',
+      'En vert : mieux que la même série la dernière fois (charge plus lourde, ou plus de reps à la même charge), sans battre ton record. Ça ne donne pas de cran.',
       'Sur l’accueil, « record à ta portée » : le conseil de la dernière fois était « Tu peux viser plus », et ta meilleure série était déjà à ton record. Une rep de plus le bat.',
       'Les crans se comptent depuis le 9 novembre 2026. Les séances d’avant servent de référence.',
       'La revanche : une série finie sous le bas de sa fourchette la dernière fois, à la même charge, ou une charge ratée à laquelle tu remontes après une séance plus légère. Elle est annoncée avant la série ; rien n’est dit si tu ne la prends pas.',
@@ -52,6 +53,7 @@ const REGLES: [string, string[]][] = [
       'Séance écourtée (moins de séries que prévu) : pas de conseil, refais d’abord la séance en entier.',
       'Chaque conseil dit pourquoi, avec tes chiffres du jour (quelle série, combien de reps, quel effort). En fin de séance, tu choisis entre « Comme aujourd’hui » (coché par défaut) et le conseil, un par un ou tous d’un coup avec « suivre les conseils » ; rien ne monte tout seul. Une fois la séance enregistrée, le même choix reste sur sa page (un appui sur la séance faite à l’Accueil, ou dans le Journal), tant que tu n’as pas refait l’exercice : c’est toujours ta dernière fois qui compte.',
       'Sans conseil, la carte dit pourquoi on refait pareil : effort plus dur que prévu, ou série d’échec trop courte.',
+      'L’effort d’une série se note pendant le repos qui la suit (« C’était comment ? »). Sans appui, c’est l’effort visé qui est gardé : si la série était plus dure ou plus facile, dis-le, le conseil en dépend.',
     ],
   ],
   [

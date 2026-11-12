@@ -22,10 +22,10 @@ test('séance : valider, corriger une série, enregistrer, tout est là après r
   }
 
   // Plein écran : 1re série à 40 kg. Les reps visées dépendent de la séance, donc du jour du test.
-  const charge = p.locator('.stepper input').first()
+  const charge = p.getByLabel('Charge', { exact: true })
   await charge.fill('40')
   await charge.blur()
-  const repsVisees = Number(await p.locator('.stepper input').nth(1).inputValue())
+  const repsVisees = Number(await p.getByLabel('Répétitions').inputValue())
   await p.getByRole('button', { name: 'VALIDER LA SÉRIE' }).click()
 
   // Corriger la série faite : une rep de plus.
