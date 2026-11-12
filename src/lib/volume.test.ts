@@ -1,5 +1,5 @@
 import { MUSCLES } from '../data/exercices'
-import { cibleDuNiveau, ciblesEnVigueur, etatVolume, niveauDe, zone } from './volume'
+import { cibleDuNiveau, cibleLue, ciblesEnVigueur, ciblesLues, etatVolume, niveauDe, phraseNiveau, resumeMuscles, zone } from './volume'
 
 describe('volume par muscle en jauge', () => {
   it('zone conseillée : léger, optimal, beaucoup', () => {
@@ -52,5 +52,40 @@ describe('volume par muscle en jauge', () => {
     const v = ciblesEnVigueur({ quadriceps: 5, pecs: 18, ischios: 8, abdos: 3, mollets: 0 })
     expect(v).toMatchObject({ quadriceps: 4, pecs: 16, ischios: 8, abdos: 0, dos: 10, mollets: 0 })
     expect(etatVolume('mollets', 5, v.mollets)).toBe('suivi')
+  })
+  it('Priorité avec 2 séances par semaine : 12 à 14 séries, pas 16 à 20', () => {
+    expect(cibleLue('pecs', 16, 2)).toBe(12)
+    expect(zone('pecs', 12, 2)).toEqual({ bas: 12, haut: 14 })
+    expect(etatVolume('pecs', 10, 12, 2)).toBe('leger')
+    expect(etatVolume('pecs', 13, 12, 2)).toBe('optimal')
+    expect(etatVolume('pecs', 15, 12, 2)).toBe('beaucoup')
+    expect(phraseNiveau('pecs', 'priorite', 2)).toContain('Avec 2 séances par semaine, vise 12 à 14 séries.')
+  })
+  it('Priorité à partir de 3 séances, ou sans nombre de séances : rien ne change', () => {
+    for (const n of [undefined, 0, 3, 4, 6]) {
+      expect(cibleLue('pecs', 16, n)).toBe(16)
+      expect(zone('pecs', 16, n)).toEqual({ bas: 16, haut: 20 })
+    }
+    expect(phraseNiveau('pecs', 'priorite', 3)).toBe(phraseNiveau('pecs', 'priorite'))
+  })
+  it('Priorité avec 1 séance : jamais sous le conseil général du muscle', () => {
+    expect(cibleLue('pecs', 16, 1)).toBe(10)
+    expect(cibleLue('biceps', 16, 1)).toBe(6)
+    expect(zone('pecs', 10, 1)).toEqual({ bas: 10, haut: 16 })
+  })
+  it('le nombre de séances ne touche ni Normal, ni Entretien, ni Sans conseil', () => {
+    const v = ciblesLues(ciblesEnVigueur({ pecs: 16, quadriceps: 4, mollets: 0 }), 2)
+    expect(v).toMatchObject({ pecs: 12, dos: 10, quadriceps: 4, mollets: 0, biceps: 6, abdos: 0 })
+    expect(zone('dos', 10, 2)).toEqual({ bas: 10, haut: 16 })
+    expect(zone('quadriceps', 4, 2)).toEqual({ bas: 4, haut: 8 })
+    expect(zone('biceps', 6, 1)).toEqual({ bas: 6, haut: 16 })
+  })
+  it('ligne de la page Programme : le muscle en Priorité d’abord, puis les plus travaillés', () => {
+    const volume = { ...Object.fromEntries(MUSCLES.map((m) => [m.id, 0])), pecs: 10, dos: 7, quadriceps: 7, ischios: 5, abdos: 9 } as Record<(typeof MUSCLES)[number]['id'], number>
+    const perso = ciblesEnVigueur({ pecs: 16 })
+    expect(resumeMuscles(volume, { cibles: ciblesLues(perso, 2), perso, seances: 2 })).toEqual(['Pecs 10, en priorité : vise 12 à 14', 'Dos 7 · Quadriceps 7 · Ischios 5'])
+    const normal = ciblesEnVigueur({})
+    expect(resumeMuscles(volume, { cibles: normal, perso: normal, seances: 2 })).toEqual(['Pecs 10 séries · Dos 7 · Quadriceps 7'])
+    expect(resumeMuscles(volume)).toEqual(['Pecs 10 séries · Dos 7 · Quadriceps 7'])
   })
 })

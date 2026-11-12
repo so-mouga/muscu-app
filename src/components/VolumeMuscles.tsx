@@ -9,7 +9,7 @@ import InfosExo, { aDesInfos } from './InfosExo'
 import { premiereFois } from '../lib/animations'
 import { kg, type LigneVolume } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { cibleConseillee, cibleDuNiveau, etatVolume, zone, LIBELLE_VOLUME, niveauDe, phraseNiveau, type NiveauVolume } from '../lib/volume'
+import { cibleConseillee, cibleDuNiveau, cibleLue, etatVolume, zone, LIBELLE_VOLUME, niveauDe, phraseNiveau, type NiveauVolume } from '../lib/volume'
 import type { Exercice, Muscle } from '../types'
 
 interface Props {
@@ -28,11 +28,20 @@ interface Props {
   onCibles: (v: Record<Muscle, number>) => void
   /** Conseils masqués : les séries seules, sans barre ni choix. */
   masque?: boolean
+  /** Les séances de la semaine, dans l'ordre : la Priorité dépend de leur nombre, et la fenêtre d'un muscle range ses exercices par séance. */
+  seances: SeanceVolume[]
+}
+
+/** Une séance de la semaine : son nom (celui des lignes de volume), son jour en court et sa durée (« ≈ 55 min »). */
+export interface SeanceVolume {
+  nom: string
+  jour: string
+  duree: string
 }
 
 /** « zone 10 à 16 » : 10 est le bas de la zone, pas un objectif à ne pas dépasser. */
-const texteZone = (m: Muscle, cible: number) => {
-  const z = zone(m, cible)!
+const texteZone = (m: Muscle, cible: number, seances: number) => {
+  const z = zone(m, cible, seances)!
   return `zone ${kg(z.bas)} à ${kg(z.haut)}`
 }
 
@@ -59,10 +68,11 @@ export function NiveauJauge({ muscle, etat, valeur, max }: { muscle: Muscle; eta
  * Une jauge par muscle : séries dures de la semaine face au conseil, pleine quand il est atteint ; les muscles hors zone d'abord.
  * Rien à régler d'emblée : un appui sur un muscle montre ses exercices, et permet de choisir son niveau.
  */
-export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, perso, onCibles, masque }: Props) {
+export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, perso, onCibles, masque, seances }: Props) {
+  const n = seances.length
   const [choisi, setChoisi] = useState<Muscle | null>(null)
   const rang = { leger: 0, beaucoup: 1, optimal: 2, suivi: 3 }
-  const jauges = MUSCLES.filter((m) => cibles[m.id] > 0).sort((a, b) => rang[etatVolume(a.id, volume[a.id], cibles[a.id])] - rang[etatVolume(b.id, volume[b.id], cibles[b.id])])
+  const jauges = MUSCLES.filter((m) => cibles[m.id] > 0).sort((a, b) => rang[etatVolume(a.id, volume[a.id], cibles[a.id], n)] - rang[etatVolume(b.id, volume[b.id], cibles[b.id], n)])
   const suivis = MUSCLES.filter((m) => (masque ? cibleConseillee(m.id) : cibles[m.id]) <= 0)
   const sansBarre = masque ? MUSCLES.filter((m) => cibleConseillee(m.id) > 0) : []
 
@@ -71,7 +81,7 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
       {jauges.map((m) => {
         const v = volume[m.id]
         const cible = cibles[m.id]
-        const etat = etatVolume(m.id, v, cible)
+        const etat = etatVolume(m.id, v, cible, n)
         const niveau = niveauDe(m.id, perso[m.id])
         return (
           <button key={m.id} type="button" className="ligne-volume" onClick={() => setChoisi(m.id)}>
@@ -82,7 +92,7 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
                   {niveau !== 'normal' && <span className="faible"> · {niveau === 'priorite' ? 'priorité' : 'entretien'}</span>}
                 </span>
                 <span>
-                  <strong>{kg(v)}</strong> <span className="faible">· {texteZone(m.id, cible)}</span> <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
+                  <strong>{kg(v)}</strong> <span className="faible">· {texteZone(m.id, cible, n)}</span> <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
                 </span>
               </span>
               <span className="jauge">
@@ -127,6 +137,7 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
           enVigueur={cibles[choisi]}
           depart={perso[choisi] ?? 0}
           masque={masque}
+          seances={seances}
           onFin={(c) => {
             setChoisi(null)
             if (c !== undefined && c !== (perso[choisi] ?? 0)) onCibles({ ...perso, [choisi]: c })
@@ -138,7 +149,8 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
 }
 
 /** Un seul muscle : d'où vient son volume, puis ce qu'on veut pour lui. Un appui à côté ou le retour gardent le changement, « Annuler » ne garde rien. */
-function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depart, masque, onFin }: { muscle: Muscle; volume: number; lignes: LigneVolume[]; avecJours: boolean; exo: (id: string) => Exercice; enVigueur: number; depart: number; masque?: boolean; onFin: (cible?: number) => void }) {
+function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depart, masque, seances, onFin }: { muscle: Muscle; volume: number; lignes: LigneVolume[]; avecJours: boolean; exo: (id: string) => Exercice; enVigueur: number; depart: number; masque?: boolean; seances: SeanceVolume[]; onFin: (cible?: number) => void }) {
+  const n = seances.length
   const [c, setC] = useState(depart)
   const [infos, setInfos] = useState<string | null>(null)
   useRetour(true, () => onFin(c))
@@ -146,8 +158,13 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
   const avecConseil = cibleConseillee(muscle) > 0
   const niveau = niveauDe(muscle, c)
   // Tant que rien n'a bougé, le même chiffre que sur la jauge (priorité du cycle comprise).
-  const cible = c === depart ? enVigueur : c
-  const etat = etatVolume(muscle, volume, cible)
+  const cible = c === depart ? enVigueur : cibleLue(muscle, c, n)
+  const etat = etatVolume(muscle, volume, cible, n)
+  const z = zone(muscle, cible, n)
+  // Ce qu'il manque pour atteindre le bas du conseil, arrondi à la demi-série.
+  const manque = z && volume < z.bas ? Math.ceil((z.bas - volume) * 2) / 2 : 0
+  // Les exercices rangés par séance, dans l'ordre de la semaine : on voit où il reste de la place.
+  const groupes = [...seances.map((x) => x.nom), ...lignes.map((l) => l.seance)].filter((nom, i, t) => t.indexOf(nom) === i).map((nom) => ({ nom, info: seances.find((x) => x.nom === nom), lignes: lignes.filter((l) => l.seance === nom) })).filter((g) => g.lignes.length)
   return (
     <div className="modal-fond" onClick={() => onFin(c)}>
       <div className="modal modal-colonne volume-fenetre" onClick={(e) => e.stopPropagation()}>
@@ -160,24 +177,29 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
             {etat !== 'suivi' && (
               <>
                 {' '}
-                · {texteZone(muscle, cible)} <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
+                · {texteZone(muscle, cible, n)} <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
               </>
             )}
           </div>
         </div>
         <div className="modal-defile pile">
           <div className="volume-exos">
-            {lignes.map((l) => {
+            {groupes.map((g) => (
+              <div key={g.nom} className="volume-groupe">
+                <div className="volume-groupe-tete">
+                  <span>{[g.info?.jour, g.nom, g.info?.duree].filter(Boolean).join(' · ')}</span>
+                  <span>
+                    {kg(g.lignes.reduce((a, l) => a + l.series, 0))} série{g.lignes.reduce((a, l) => a + l.series, 0) >= 2 ? 's' : ''}
+                  </span>
+                </div>
+                {g.lignes.map((l) => {
               const avecInfos = aDesInfos(exo(l.exoId))
               const contenu = (
                 <>
                   <span className="volume-exo-nom">
                     {l.nom}
                     {avecInfos && <Info size={16} className="ico-texte volume-exo-info" />}
-                    <span className="faible prog-sous">
-                      {l.seance}
-                      {l.aide ? ' · aide' : ''}
-                    </span>
+                    {l.aide && <span className="faible prog-sous">aide</span>}
                   </span>
                   <span className="volume-exo-series">{kg(l.series)}</span>
                 </>
@@ -193,6 +215,8 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
                 </div>
               )
             })}
+              </div>
+            ))}
             {lignes.length === 0 && <p className="faible petit-texte">Aucun exercice de ce programme ne le travaille pour l'instant.</p>}
             {lignes.some((l) => l.aide) && <p className="faible petit-texte">Un exercice qui aide compte pour moitié.</p>}
           </div>
@@ -209,7 +233,16 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
                     </button>
                   ))}
                 </div>
-                <p className="faible petit-texte volume-sans-conseil">{phraseNiveau(muscle, niveau)}</p>
+                <p className="faible petit-texte volume-sans-conseil">
+                  {manque > 0 && (
+                    <>
+                      <strong className="volume-manque">
+                        Il t’en manque {kg(manque)}.
+                      </strong>{' '}
+                    </>
+                  )}
+                  {phraseNiveau(muscle, niveau, n)}
+                </p>
               </div>
             )
           )}

@@ -404,11 +404,12 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
     )
 
   const tenues = semainesTenues(seances, prevues, cycles, dateISO())
+  const sps = catalogue.seancesParSemaine
   const muscles = MUSCLES.filter((m) => zone(m.id, cibles[m.id]))
   const horsZone = muscles
-    .filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) !== 'optimal')
+    .filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id], sps) !== 'optimal')
     .sort((x, y) => a.volume[x.id] / cibles[x.id] - a.volume[y.id] / cibles[y.id])
-  const dansZone = muscles.filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id]) === 'optimal')
+  const dansZone = muscles.filter((m) => etatVolume(m.id, a.volume[m.id], cibles[m.id], sps) === 'optimal')
   const sansConseil = MUSCLES.filter((m) => m.cible > 0 && cibles[m.id] <= 0 && a.volume[m.id] > 0)
   const notesCalories = a.calories.ok + a.calories.trop + a.calories.pasAssez
   // Le disque et les caps disent où tu en es aujourd'hui : seulement sur une période qui va jusqu'à la dernière semaine finie.
@@ -569,7 +570,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
             <span className="faible petit-texte">séries dures par semaine</span>
           </div>
           {horsZone.map((m) => (
-            <JaugeMuscle key={m.id} muscle={m.id} nom={m.nom} valeur={a.volume[m.id]} cible={cibles[m.id]} />
+            <JaugeMuscle key={m.id} muscle={m.id} nom={m.nom} valeur={a.volume[m.id]} cible={cibles[m.id]} seances={sps} />
           ))}
           {dansZone.length > 0 && (
             <p className="petit-texte">
@@ -663,8 +664,8 @@ function LigneExo({ nom, detail, valeur, onClick }: LigneExercice & { onClick?: 
   )
 }
 
-function JaugeMuscle({ muscle, nom, valeur, cible }: { muscle: Muscle; nom: string; valeur: number; cible: number }) {
-  const etat = etatVolume(muscle, valeur, cible)
+function JaugeMuscle({ muscle, nom, valeur, cible, seances }: { muscle: Muscle; nom: string; valeur: number; cible: number; seances?: number }) {
+  const etat = etatVolume(muscle, valeur, cible, seances)
   return (
     <div className="bilan-jauge">
       <div className="ligne entre">

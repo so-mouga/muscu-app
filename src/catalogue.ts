@@ -4,8 +4,8 @@ import { ANCIENS_NOMS, EXERCICES, MUSCLES } from './data/exercices'
 import { PROGRAMME } from './data/programme'
 import type { ProgrammeType } from './data/programmesTypes'
 import { db, setReglage, uid } from './db'
-import { dateISO, lundi } from './lib/calc'
-import { ciblesEnVigueur } from './lib/volume'
+import { dateISO, lundi, semaineType } from './lib/calc'
+import { ciblesEnVigueur, ciblesLues } from './lib/volume'
 import { avecPriorites, cibles, DUREE_DEFAUT, sourceCibles, ecartCycle, etatCycle, finReelle, nouveauCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_SANS_OBJECTIF, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
@@ -48,6 +48,8 @@ export interface Catalogue {
   ciblesPerso: Record<Muscle, number>
   /** Objectifs de volume en vigueur à une date (bilan d'une période passée). */
   ciblesA: (date: string) => Record<Muscle, number>
+  /** Séances par semaine du programme en service : la Priorité d'un muscle en dépend. */
+  seancesParSemaine: number
   /** Version d'une séance à lancer : celle du cycle si elle en fait partie, sinon la séance de la bibliothèque. */
   pourDemarrer: (m: SeanceModele) => SeanceModele
 }
@@ -106,6 +108,10 @@ export function construireCatalogue(
     return date >= DEBUT_NIVEAUX ? ciblesEnVigueur(sourceCibles(v, cycle, actif)) : cibles(v, cycle, actif)
   }
 
+  // La Priorité se lit avec le nombre de séances du programme en service : 16 à 20 séries ne tiennent pas en 2 séances.
+  const seancesParSemaine = semaineType(actif).filter((e) => pourPlanning(e.modeleId)).length
+  const lues = (date: string) => (date >= DEBUT_NIVEAUX ? ciblesLues(perso(date), seancesParSemaine) : perso(date))
+
   return {
     modeles,
     modele,
@@ -122,9 +128,10 @@ export function construireCatalogue(
     cycle,
     ecart: pilote && ecartCycle(pilote, programmes.find((p) => p.id === pilote.programmeId), modele),
     objectifs,
-    cibles: avecPriorites(perso(dateISO()), cycles, dateISO()),
+    cibles: avecPriorites(lues(dateISO()), cycles, dateISO()),
     ciblesPerso: perso(dateISO()),
-    ciblesA: (date) => avecPriorites(perso(date), cycles, date),
+    ciblesA: (date) => avecPriorites(lues(date), cycles, date),
+    seancesParSemaine,
     pourDemarrer: (m) => duCycle.get(m.id) ?? m,
   }
 }

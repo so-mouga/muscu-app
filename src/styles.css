@@ -3072,6 +3072,26 @@ button.phase-accueil:active {
   padding-bottom: var(--e3);
   border-bottom: 1px solid var(--bord);
 }
+.volume-groupe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.volume-groupe-tete {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e3);
+  font-size: var(--t-petit);
+  color: var(--texte-2);
+}
+.volume-groupe-tete span:last-child {
+  flex-shrink: 0;
+  color: var(--texte);
+  font-weight: 600;
+}
+.volume-manque {
+  color: var(--texte);
+}
 .volume-exo {
   display: flex;
   align-items: center;

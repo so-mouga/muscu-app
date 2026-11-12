@@ -15,7 +15,7 @@ import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
 import { arretCycle, debutCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { etatVolume } from '../lib/volume'
+import { etatVolume, resumeMuscles } from '../lib/volume'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
 import { chargeTexte, dateISO, detailVolume, dureeEstimee, dureeHabituelle, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
@@ -302,9 +302,10 @@ function PageProgramme({
   }
 
   const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
-  const etats = MUSCLES.map((m) => etatVolume(m.id, volume[m.id], catalogue.cibles[m.id]))
+  const etats = MUSCLES.map((m) => etatVolume(m.id, volume[m.id], catalogue.cibles[m.id], catalogue.seancesParSemaine))
   const legers = etats.filter((e) => e === 'leger').length
   const beaucoup = etats.filter((e) => e === 'beaucoup').length
+  const resumeVolume = resumeMuscles(volume, catalogue.conseilsVolumeMasques ? undefined : { cibles: catalogue.cibles, perso: catalogue.ciblesPerso, seances: catalogue.seancesParSemaine })
   const prochainDeload = cycle && etat ? cycle.deloads.find((d) => d >= etat.n) : undefined
   const suivi = cycle ? suiviCycle(cycle, terminees ?? [], dateISO(), prevusNotes) : undefined
   // Les repères de la semaine : ce qui est fait, et ce qui tombe aujourd'hui.
@@ -429,10 +430,17 @@ function PageProgramme({
       {entrees.length > 0 && (
         <button className="liste-btn" onClick={onVolume}>
           <span>
-            Volume par semaine
-            <span className="faible prog-sous">
-              {catalogue.conseilsVolumeMasques ? 'Tes séries, muscle par muscle' : legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles atteignent le conseil'}
-            </span>
+            {TITRE_VOLUME}
+            {resumeVolume.map((l) => (
+              <span key={l} className="faible prog-sous">
+                {l}
+              </span>
+            ))}
+            {!catalogue.conseilsVolumeMasques && (
+              <span className="faible prog-sous">
+                {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles atteignent le conseil'}
+              </span>
+            )}
           </span>
           <ChevronRight size={20} className="muted" />
         </button>
@@ -574,9 +582,13 @@ function FenetreRenommer({ titre = 'Renommer', nom, indice, videPermis = false, 
   )
 }
 
+/** Le titre de la ligne et de la page : « volume » ne dit rien à qui débute (retour du premier testeur, 12 nov. 2026). */
+const TITRE_VOLUME = 'Ce que ton programme travaille'
+
 /** Ce que le programme donne à chaque muscle, sur un écran : un appui sur un muscle pour voir ses exercices et choisir son niveau. */
 function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Programme; onFermer: () => void }) {
-  const modeles = semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m)
+  const semaine = semaineType(p).filter((e) => catalogue.modele(e.modeleId)).sort((a, b) => (a.jour ?? 8) - (b.jour ?? 8))
+  const modeles = semaine.map((e) => catalogue.modele(e.modeleId)!)
   const volume = volumePrevu(modeles, catalogue.exercices)
   const perso = catalogue.ciblesPerso
   const masque = !!catalogue.conseilsVolumeMasques
@@ -584,17 +596,17 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
     <div>
       <div className="entete">
         <BoutonRetour onClick={onFermer} />
-        <h2 style={{ flex: 1 }}>Volume par semaine</h2>
+        <h2 style={{ flex: 1 }}>{TITRE_VOLUME}</h2>
       </div>
       <div className="faible volume-intro">
         {masque ? `Séries par semaine dans ${p.nom}.` : `Séries par semaine dans ${p.nom}, face au conseil. Barre pleine : conseil atteint.`}{' '}
         <Aide
-          titre="Volume par semaine"
-          texte={`Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''}${masque ? ' Un appui sur un muscle pour voir ses exercices.' : ' Pour changer tes séries, modifie les exercices de tes séances. Un appui sur un muscle pour voir ses exercices, et choisir Entretien, Normal ou Priorité.'}`}
+          titre="Le volume par semaine"
+          texte={`Le volume d’un muscle, c’est le nombre de séries dures qu’il reçoit dans la semaine. Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''}${masque ? ' Un appui sur un muscle pour voir ses exercices.' : ' Pour changer tes séries, modifie les exercices de tes séances. Un appui sur un muscle pour voir ses exercices, et choisir Entretien, Normal ou Priorité.'}`}
         />
       </div>
       <div className="carte">
-        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} masque={masque} />
+        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} masque={masque} seances={semaine.map((e) => ({ nom: catalogue.modele(e.modeleId)!.nom, jour: jourCourt(e.jour) ? jourCourt(e.jour) + '.' : '', duree: `≈ ${minutes(dureeEstimee(catalogue.modele(e.modeleId)!))}` }))} />
       </div>
       <div className="carte">
         <MasquerConseilsVolume catalogue={catalogue} />

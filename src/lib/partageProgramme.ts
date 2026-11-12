@@ -116,7 +116,7 @@ export function texteProgramme(p: Programme, d: DonneesProgramme, avecCharges: b
     l.push(
       muscles
         .map((m) => {
-          const etat = etatVolume(m.id, volume[m.id], d.cibles[m.id])
+          const etat = etatVolume(m.id, volume[m.id], d.cibles[m.id], modeles.length)
           return `${m.nom} ${kg(volume[m.id])}${etat === 'leger' ? ' (léger)' : etat === 'beaucoup' ? ' (beaucoup)' : ''}`
         })
         .join(' · ')
