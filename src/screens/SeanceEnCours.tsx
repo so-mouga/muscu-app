@@ -17,7 +17,7 @@ import Minuteur, { BIPS_DEFAUT, reposOublie, resteRepos, type EtatMinuteur } fro
 import { ResumeSeance } from '../components/RecapSeance'
 import { resumeSeance } from '../lib/motivation'
 import { db, exoAvecReglages, historiqueDe, uid } from '../db'
-import { battement, debloquerSon, ecranAllume, signalSerie, sonFinSeance } from '../lib/appareil'
+import { battement, debloquerSon, ecranAllume, signalSerie, sonFinSeance, vibrer } from '../lib/appareil'
 import { revanche, revanchePrise } from '../lib/revanche'
 import { gainSerie, mieuxQueHier, phraseRevanche, titreSaisie, verdictSaisie, type Phrase } from '../lib/duel'
 import { recordDuJour } from '../lib/historique'
@@ -448,11 +448,14 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const i = plans.findIndex((p) => p.exoId === s.exoId)
       const avantSerie = seance.deload ? undefined : historiqueDe(terminees, s.exoId)[0]?.[k]
       const fini = i >= 0 && k + 1 >= totalDe(i)
-      signalSerie(fini ? 'finExercice' : gagneCran(s) ? 'cran' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation, k)
       // La revanche de cette série, si elle en avait une et qu'elle est prise.
       const rv = i >= 0 && !seance.deload ? revanche(exos[i], plans[i], historiqueDe(terminees, s.exoId), k, suggestions[i].charges[k]) : null
       const prise = !!rv && revanchePrise(rv, plans[i], k, s)
       setRevancheFaite(prise ? { serie: s.id, detail: rv!.genre === 'reps' ? `${s.reps} reps · tu en avais fait ${rv!.avant}` : `${kg(s.charge)} kg · tu étais redescendu à ${kg(rv!.avant)}` } : null)
+      // Toute dernière série, rien de sauté : l'affiche « Séance faite » arrive, c'est elle qui sonne (l'accord). Sinon : la fin de
+      // l'exercice d'abord (le signal qu'on sent sans regarder), puis le record, la revanche, une série mieux que la dernière fois.
+      if (restantes <= 1 && !seance.passes?.length) sonFinSeance(sonValidation)
+      else signalSerie(fini ? 'finExercice' : gagneCran(s) ? 'cran' : prise ? 'revanche' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation, k)
       // Sans repos derrière (dernière série, enchaînement direct) : un message en haut.
       if (prise && !(focus && repos > 0 && restantes > 1)) setToast('Revanche prise.')
     }
@@ -1716,7 +1719,10 @@ function FinSeance({
   // Double appui : le second arrivait avant que l'écran ne change, et créait une 2e séance réutilisable.
   const unSeulAppui = useRef(verrou()).current
   const enregistrer = () => unSeulAppui(async () => {
-    sonFinSeance(reglages.find((r) => r.cle === 'sonValidation')?.valeur !== false)
+    // Séance faite jusqu'au bout : l'accord a déjà sonné avec l'affiche, une vibration courte suffit. Arrêtée avant : il sonne ici.
+    const complete = !seance.passes?.length && seance.series.length > 0 && seance.exercices.every((p) => seance.series.filter((x) => x.exoId === p.exoId).length >= p.series.length + (seance.ajustSeries[p.exoId] ?? 0))
+    if (complete) vibrer(40)
+    else sonFinSeance(reglages.find((r) => r.cle === 'sonValidation')?.valeur !== false)
     let modeleId = seance.modeleId
     if (garder && libre) {
       modeleId = 'm_' + uid()

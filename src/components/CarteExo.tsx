@@ -154,6 +154,14 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
   const tf = typeFinisseur(plan)
   const info = FINISSEURS[tf]
   const [aideRpe, setAideRpe] = useState(false)
+  // Le duel : une vibration courte quand le chiffre réglé passe devant (record ou revanche à portée), au moment du passage
+  // seulement. Sans son : le record n'est pas encore fait, et un son à chaque appui lasserait (choix de l'utilisateur).
+  const tonDuel = duel && !edition && !aRegler && type === 'normale' && !finisseur ? duel.verdict({ reps, charge })?.ton : undefined
+  const tonAvant = useRef(tonDuel)
+  useEffect(() => {
+    if (tonDuel === 'gagne' && tonAvant.current !== 'gagne') vibrer(35)
+    tonAvant.current = tonDuel
+  }, [tonDuel])
   useRetour(options, () => setOptions(false))
   useRetour(aideRpe, () => setAideRpe(false))
   // Exercice en temps : « reps » = secondes, par pas de 5 s, et un chrono pour les mesurer.

@@ -56,16 +56,16 @@ export function tic(dernier = false) {
 
 /**
  * Signal à la validation d'une série : un petit tintement ; deux montants si la série bat la dernière
- * fois ; un cran gagné (record battu) : deux vibrations courtes et une note haute qui dure ; trois coups et une longue vibration quand l'exercice est terminé, pour le sentir sans regarder.
+ * fois ; un cran gagné (record battu) : deux vibrations courtes et une note haute qui dure ; une revanche prise : deux notes qui retombent puis une plus haute ; trois coups et une longue vibration quand l'exercice est terminé, pour le sentir sans regarder.
  * Avec des écouteurs Bluetooth, le son arrive environ 440 ms après l'appui (mesuré sur le S25) : c'est la vibration qui confirme tout de suite.
  */
 /** Les notes d'un exercice : chaque série validée sonne plus haut que la précédente (maquette écoutée par l'utilisateur, 11 nov. 2026). */
 const NOTES = [1175, 1319, 1568, 1760, 2093]
 const note = (rang: number) => NOTES[Math.max(0, Math.min(rang, NOTES.length - 1))]
 
-export function signalSerie(genre: 'normale' | 'mieux' | 'cran' | 'finExercice', son = true, /** Numéro de la série dans l'exercice (0 = première) : la note monte avec lui. */ rang = 0) {
+export function signalSerie(genre: 'normale' | 'mieux' | 'cran' | 'revanche' | 'finExercice', son = true, /** Numéro de la série dans l'exercice (0 = première) : la note monte avec lui. */ rang = 0) {
   try {
-    navigator.vibrate?.(genre === 'finExercice' ? [120, 80, 120, 80, 240] : genre === 'cran' ? [70, 90, 70] : genre === 'mieux' ? [40, 40, 80] : 40)
+    navigator.vibrate?.(genre === 'finExercice' ? [120, 80, 120, 80, 240] : genre === 'cran' ? [70, 90, 70] : genre === 'revanche' ? [40, 90, 40, 150, 140] : genre === 'mieux' ? [40, 40, 80] : 40)
   } catch {
     /* pas de vibration */
   }
@@ -74,10 +74,12 @@ export function signalSerie(genre: 'normale' | 'mieux' | 'cran' | 'finExercice',
   else if (genre === 'mieux') (fonte(0, note(rang), 0.2, 0.22), fonte(0.12, note(rang + 1), 0.3, 0.2))
   // Un record : la note de la série, plus une note bien au-dessus qui dure.
   else if (genre === 'cran') (fonte(0, note(rang), 0.22, 0.24), fonte(0.13, note(rang + 2), 0.55, 0.24))
+  // Une revanche prise : on retombe, puis on repasse devant (choisie à l'écoute par l'utilisateur, maquette seance-sons.html, 12 nov. 2026).
+  else if (genre === 'revanche') (fonte(0, 1319, 0.18, 0.22), fonte(0.13, 1175, 0.22, 0.22), fonte(0.36, 1760, 0.6, 0.24))
   else (fonte(0, 1000, 0.5), fonte(0.16, 1000, 0.5), fonte(0.32, 1500, 0.8))
 }
 
-/** Fin de séance, à l'enregistrement : l'accord complet, et une vibration qui clôt. */
+/** Séance faite : l'accord complet et une vibration qui clôt, quand l'affiche arrive (dernière série validée). À l'enregistrement seulement si la séance s'arrête avant la fin. */
 export function sonFinSeance(son = true) {
   try {
     navigator.vibrate?.([90, 70, 90, 70, 260])
