@@ -86,12 +86,8 @@
   --salle-valider: clamp(52px, 6.8dvh, 56px);
   --salle-secondaire: 40px;
   --salle-ecart: clamp(6px, 2dvh, 18px);
-  /* Le duel (séance en plein écran) : le chiffre du jour, celui de la dernière fois en contour, le chrono du repos, l'affiche de fin. */
-  --t-geant: clamp(72px, 15dvh, 112px);
-  --t-fantome: clamp(44px, 8.6dvh, 64px);
-  --t-chrono-geant: clamp(64px, 13.4dvh, 100px);
+  /* Le chiffre de l'affiche « Séance faite ». */
   --t-affiche: clamp(120px, 26dvh, 190px);
-  --arene: clamp(88px, 17.5dvh, 128px);
 
   /* Rayons : cartes, puis sous-cartes et boutons. Pastilles : 999px ; ronds : 50 %. */
   --rayon: 18px;
@@ -7472,71 +7468,9 @@ button.jour-pas {
   font-size: var(--t-page);
 }
 
-/* --- Le duel (maquette seance-parcours.html, 12 nov. 2026) : en plein écran, chaque série se joue contre la même série de la
-   dernière fois. Un tableau « la dernière fois / aujourd'hui » qui ne bouge pas de la saisie au repos, le chiffre du jour en
-   géant, le repos en chiffres géants. Orange et trame : un record ou une revanche seulement ; vert : mieux que la dernière fois. --- */
-.ecran-duel {
-  gap: var(--e2);
-}
-.duel-saisie,
-.editeur-duel {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--e2);
-}
-.duel-saisie > .pastille-echauffe {
-  align-self: flex-start;
-  min-height: 28px;
-}
-.duel-titre {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--e2);
-}
-.duel-titre h2 {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: var(--t-titre);
-  line-height: 1.15;
-}
-.duel-titre .lien-prochaine {
-  flex: none;
-  min-height: 24px;
-  margin-top: 1px;
-}
-.note-duel {
-  display: block;
-  width: 100%;
-  margin-top: -2px;
-  padding: 2px 0;
-  border: 0;
-  background: none;
-  color: var(--texte-salle);
-  font-size: var(--t-petit);
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.duel-superset {
-  display: flex;
-  align-items: center;
-  gap: var(--e2);
-  min-width: 0;
-}
-.duel-superset .badge-superset {
-  flex: none;
-}
-.duel-superset .ensuite-superset {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* --- Le duel (12 nov. 2026) : en séance, chaque série se joue contre la même série de la dernière fois. Après essai en salle,
+   l'écran d'avant est revenu (pastilles, cercle, effort à la saisie) ; restent la phrase penchée (« Bats 12. », « Record battu. »),
+   la ligne sous les nombres et l'affiche « Séance faite ». Vert : mieux que la dernière fois ; orange : record ou revanche. --- */
 .voix-duel {
   font-size: var(--t-page);
   font-style: italic;
@@ -7551,11 +7485,14 @@ button.jour-pas {
   font-style: normal;
   font-weight: 400;
 }
+.voix-duel .voix-note {
+  color: var(--texte-salle);
+  font-size: var(--t-petit);
+  font-style: normal;
+  font-weight: 500;
+}
 .voix-duel .icone-cran {
   vertical-align: -3px;
-}
-.ton-fin .voix-accent {
-  color: var(--finisseur);
 }
 .voix-cran.vient .icone-cran {
   animation: cran-arrive var(--duree-courte) var(--sortie) both;
@@ -7570,473 +7507,25 @@ button.jour-pas {
 .voix-cran.vient > small {
   animation: vient-monter var(--duree-longue) var(--sortie) calc(var(--duree-courte) + var(--duree)) both;
 }
-
-/* Le tableau */
-.focus-bloc.tab-carte {
-  padding: var(--e2);
-}
-.tab-duel {
-  display: grid;
-  grid-template-columns: 46px 1fr 1.25fr;
-  align-items: stretch;
-  row-gap: 3px;
-}
-.tab-tete {
-  padding: 2px 0;
-  color: var(--texte-3);
-  font-size: var(--t-legende);
-  text-align: center;
-  white-space: nowrap;
-}
-.tab-rang {
-  display: contents;
-}
-.tab-rang > * {
-  min-height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--t-titre);
-  font-weight: 700;
-}
-.tab-num {
-  justify-content: flex-start;
-  gap: var(--e1);
-  padding-left: var(--e3);
-  color: var(--texte-2);
-  font-size: var(--t-petit);
-  font-weight: 600;
-}
-.tab-hier {
-  color: var(--texte-3);
-  font-style: italic;
-}
-.tab-hier.barre {
-  text-decoration: line-through;
-  text-decoration-color: var(--texte-3);
-}
-.tab-auj {
-  gap: 6px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--texte);
-  font-family: inherit;
-  font-style: italic;
-}
-.tab-auj.vide {
-  color: var(--texte-3);
-  font-style: normal;
-}
-.tab-gain {
-  display: inline-flex;
-  align-items: center;
-  color: var(--texte-2);
-  font-size: var(--t-petit);
-  font-style: normal;
-  font-weight: 600;
-}
-.tab-gain.mieux {
-  color: var(--ok);
-}
-.tab-gain.cran {
-  color: var(--texte);
-}
-.tab-auj small {
-  color: var(--texte-2);
-  font-size: var(--t-legende);
-  font-style: normal;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.tab-rang.actif > * {
-  min-height: 58px;
-  background: var(--controle);
-}
-.tab-rang.actif > :first-child {
-  border-radius: var(--rayon-2) 0 0 var(--rayon-2);
-  color: var(--accent);
-}
-.tab-rang.actif > :last-child {
-  border-radius: 0 var(--rayon-2) var(--rayon-2) 0;
-}
-.ton-fin .tab-rang.actif > :first-child {
-  color: var(--finisseur);
-}
-.tab-vise {
-  color: var(--accent);
-  font-size: var(--t-chiffre);
-  font-weight: 800;
-  line-height: 1;
-}
-.tab-vise.neutre {
-  color: var(--texte);
-}
-.tab-vise.fin {
-  color: var(--finisseur);
-  font-size: var(--t-page);
-}
-.tab-duel.mixte .tab-rang > * {
-  font-size: var(--t-texte);
-}
-.tab-duel.mixte .tab-num {
-  font-size: var(--t-petit);
-}
-.tab-auj.vient-faite {
-  animation: vient-faite var(--duree-longue) var(--sortie);
-}
-.tab-auj.vient-cran {
-  animation: vient-faite var(--duree-longue) var(--sortie);
-}
-.tab-auj.vient-cran .icone-cran {
-  animation: cran-arrive var(--duree-courte) var(--sortie) both;
-}
-
-/* Saisie : la rangée en cours devient l'arène */
-.tab-rang.arene > * {
-  position: relative;
-  min-height: var(--arene);
-  overflow: hidden;
-}
-.tab-rang.arene .tab-hier {
-  color: transparent;
-  font-size: var(--t-fantome);
-  font-weight: 800;
-  -webkit-text-stroke: 1.5px var(--texte-3);
-}
-.tab-duel.mixte .tab-rang.arene .tab-hier {
-  color: var(--texte-3);
-  font-size: var(--t-titre);
-  -webkit-text-stroke: 0;
-}
-.arene-champ {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font-family: inherit;
-  font-size: var(--t-geant);
-  font-style: italic;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.arene-champ.long {
-  font-size: calc(var(--t-geant) * 0.62);
-}
-.arene-champ:focus {
-  outline: none;
-}
-.tab-rang.arene .tab-auj::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  background:
-    radial-gradient(circle, var(--trame-point) 1.3px, transparent 1.8px) 0 0 / 9px 9px,
-    repeating-linear-gradient(-18deg, var(--trame-trait) 0 2px, transparent 2px 13px);
-  transition: opacity var(--duree) var(--sortie);
-}
-.ton-gagne .tab-rang.arene .tab-auj::before {
-  opacity: 1;
-}
-.ton-gagne .arene-champ {
-  color: var(--accent);
-}
 .duel-verdict {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 22px;
+  min-height: 20px;
   color: var(--texte-salle);
-  font-size: var(--t-texte);
+  font-size: var(--t-petit);
   font-weight: 600;
   text-align: center;
 }
-.ton-mieux .duel-verdict {
+.duel-verdict.ton-mieux {
   color: var(--ok);
 }
-.ton-gagne .duel-verdict {
+.duel-verdict.ton-gagne {
   color: var(--texte);
 }
-.duel-consigne {
-  color: var(--texte-salle);
-  font-size: var(--t-petit);
-}
-.duel-pm {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--e3);
-}
-.duel-pm .btn {
-  min-height: clamp(48px, 8dvh, 58px);
-  font-size: var(--t-page);
-  font-weight: 500;
-}
-.duel-chrono-tenue {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--e1);
-}
-.duel-chrono-tenue .btn.grand {
-  width: 100%;
-  gap: var(--e2);
-}
-.duel-charge {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--e2);
-  min-height: var(--cible);
-}
-.duel-charge-nom {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--texte-salle);
-  font-family: inherit;
-  font-size: var(--t-petit);
-  text-align: left;
-}
-.duel-charge-nom small {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--e1);
-  color: var(--texte-3);
-  font-size: var(--t-legende);
-  text-decoration: underline dotted;
-  text-underline-offset: 3px;
-}
-.duel-charge-pm {
-  display: flex;
-  align-items: center;
-  gap: var(--e2);
-}
-.duel-charge-pm .btn,
-.duel-charge > .btn {
-  min-width: var(--cible);
-  min-height: 40px;
+.focus.serre .voix-duel {
   font-size: var(--t-titre);
-}
-.duel-charge > .btn {
-  font-size: var(--t-petit);
-}
-.duel-charge-valeur {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: var(--e1);
-  min-width: 84px;
-}
-.duel-charge-valeur input {
-  width: 3.4ch;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px dotted var(--texte-3);
-  background: none;
-  color: var(--texte);
-  font-family: inherit;
-  font-size: var(--t-titre);
-  font-weight: 700;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.duel-charge-valeur input:focus {
-  outline: none;
-}
-.duel-charge-valeur span {
-  color: var(--texte-salle);
-  font-size: var(--t-petit);
-  white-space: nowrap;
-}
-.editeur-duel > .zone-valider {
-  order: 10;
-  margin-top: auto;
-}
-.focus:not(.tient):not(.fixe) .editeur-duel > .zone-valider {
-  background: var(--bg);
-}
-.editeur-duel > .ligne-options {
-  order: 9;
-  min-height: 0;
-}
-.editeur-duel > .ligne-options .btn {
-  min-height: 32px;
-  padding: 0;
-  gap: var(--e1);
-}
-.editeur-duel > .ligne-disques:empty {
-  display: none;
-}
-.duel-demi {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--e1);
-}
-.duel-demi b {
-  color: var(--finisseur);
-  font-size: var(--t-affiche);
-  font-style: italic;
-  font-weight: 800;
-  line-height: 0.85;
-  letter-spacing: -0.03em;
-}
-.duel-demi span {
-  color: var(--texte-salle);
-  font-size: var(--t-legende);
-}
-.panneau-duel {
-  flex: 1;
-  justify-content: flex-end;
-}
-
-/* Le repos : le temps en chiffres géants, sa barre, +15 et −15 à côté, « Passer » seul en bas. */
-.repos-geant {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--e2);
-}
-.zone-chrono {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--e1);
-}
-.chrono-tete {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: var(--texte-salle);
-  font-size: var(--t-legende);
-}
-.lien-pause {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 0 0 0 var(--e3);
-  border: 0;
-  background: none;
-  color: var(--texte);
-  font-family: inherit;
-  font-size: var(--t-petit);
-  font-weight: 500;
-}
-.rangee-chrono {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--e2);
-}
-.chrono-geant {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--texte);
-  font-family: inherit;
-  font-size: var(--t-chrono-geant);
-  font-style: italic;
-  font-weight: 800;
-  line-height: 0.86;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  transition: color var(--duree-courte);
-}
-.chrono-cote {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.chrono-cote .btn {
-  min-width: 56px;
-  min-height: clamp(36px, 5.6dvh, 44px);
-  font-size: var(--t-petit);
-}
-.jauge-repos {
-  height: 5px;
-  border-radius: 3px;
-  background: var(--controle);
-  overflow: hidden;
-}
-.jauge-repos i {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  background: var(--accent);
-  transition:
-    width 0.3s linear,
-    background var(--duree-courte);
-}
-.jauge-repos i.saut {
-  transition: width var(--duree-courte) var(--sortie);
-}
-.repos-geant.decompte .chrono-geant {
-  color: var(--alerte);
-}
-.repos-geant.decompte .jauge-repos i {
-  background: var(--alerte);
-}
-.repos-geant.en-pause .chrono-geant {
-  color: var(--texte-3);
-}
-.repos-geant.en-pause .jauge-repos i {
-  background: var(--texte-3);
-}
-.repos-geant.ton-fin .jauge-repos i {
-  background: var(--finisseur);
-}
-.repos-geant.ton-fin.fini .chrono-geant {
-  color: var(--finisseur);
-}
-.chrono-passer {
-  min-height: 48px;
-  font-size: var(--t-texte);
-}
-.effort-repos {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.duel-ensuite {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--e3);
-}
-.duel-ensuite > div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.duel-ensuite strong {
-  font-size: var(--t-texte);
-  font-weight: 600;
-}
-.duel-abattre {
-  flex: none;
-  align-items: flex-end;
-  white-space: nowrap;
-}
-.duel-abattre b {
-  font-size: var(--t-titre);
-  font-style: italic;
-  font-weight: 800;
-}
-.duel-saisie.etape-chauffe .etape-passer {
-  margin-top: auto;
 }
 
 /* Séance faite : l'affiche */
@@ -8095,64 +7584,11 @@ button.jour-pas {
 .affiche-crans .icone-cran {
   vertical-align: -4px;
 }
-
-/* Écran qui ne tient pas (petit téléphone, 5 séries, superset) : les rangées et les écarts se resserrent. */
-.focus.serre.ecran-duel {
-  gap: 6px;
-}
-.focus.serre .duel-saisie,
-.focus.serre .editeur-duel,
-.focus.serre .repos-geant {
-  gap: 6px;
-}
-.focus.serre .tab-rang > * {
-  min-height: 30px;
-}
-.focus.serre .tab-rang.actif > * {
-  min-height: 46px;
-}
-.focus.serre .tab-rang.arene > * {
-  min-height: calc(var(--arene) * 0.66);
-}
-.focus.serre .tab-rang.arene .tab-hier {
-  font-size: calc(var(--t-fantome) * 0.8);
-}
-.focus.serre .tab-duel.mixte .tab-rang.arene .tab-hier {
-  font-size: var(--t-titre);
-}
-.focus.serre .arene-champ {
-  font-size: calc(var(--t-geant) * 0.7);
-}
-.focus.serre .arene-champ.long {
-  font-size: calc(var(--t-geant) * 0.48);
-}
-.focus.serre .duel-pm .btn {
-  min-height: var(--cible);
-}
-.focus.serre .editeur-duel .rpe button {
-  height: 40px;
-}
-.focus.serre .duel-verdict {
-  min-height: 20px;
-  font-size: var(--t-petit);
-}
-.focus.serre .chrono-geant {
-  font-size: calc(var(--t-chrono-geant) * 0.8);
-}
-.focus.serre .voix-duel {
-  font-size: var(--t-titre);
-}
-.focus.serre .note-duel {
-  display: none;
-}
 @media (prefers-reduced-motion: reduce) {
   .voix-cran.vient .icone-cran,
   .voix-cran.vient .cran-encoche,
   .voix-cran.vient > span,
-  .voix-cran.vient > small,
-  .tab-auj.vient-faite,
-  .tab-auj.vient-cran,
-  .tab-auj.vient-cran .icone-cran {
+  .voix-cran.vient > small {
     animation: none;
   }
 }

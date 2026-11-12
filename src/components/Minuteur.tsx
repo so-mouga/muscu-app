@@ -1,11 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Maximize2, Pause, Play } from 'lucide-react'
+import { Check, Maximize2, Pause, Play } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { db } from '../db'
 import { alarme, tic } from '../lib/appareil'
 import { chrono } from '../lib/calc'
 import { natif } from '../lib/natif'
 import Anneau from './Anneau'
+import { IconeCran } from './Disque'
 
 export interface EtatMinuteur {
   /** Horodatage de fin : le temps restant ne dépend jamais d'un décompte en mémoire. */
@@ -30,17 +31,23 @@ export const BIPS_DEFAUT = 5
 interface Props {
   etat: EtatMinuteur
   onChange: (e: EtatMinuteur | null) => void
-  /** `barre` : en bas de l'écran (vue liste) ; `bandeau` : en haut du plein écran, repos fini ; `geant` : le repos du plein écran, en chiffres géants. */
-  variante?: 'barre' | 'bandeau' | 'geant'
-  /** `geant` : ce qui s'affiche entre le chrono et « Passer » (l'effort de la série qu'on vient de faire). */
+  /** `barre` : en bas de l'écran ; `grand` : cercle du mode plein écran ; `bandeau` : en haut du mode plein écran ; `finisseur` : le repos avant un finisseur, en violet, avec un cercle qui bat. */
+  variante?: 'barre' | 'grand' | 'bandeau' | 'finisseur'
+  /** `finisseur` : ce qui s'affiche entre le cercle et les boutons (l'annonce, la consigne, les séries). */
   children?: ReactNode
-  /** `geant`, avant un finisseur : en violet, et le repos fini attend un appui (« Prêt », « J'y vais ») au lieu de laisser la place à la saisie. */
-  finisseur?: boolean
+  /** Cercle du plein écran : la série d'avant vient de prendre sa revanche. Le texte dit le détail (« 8 reps · tu en avais fait 6 »). */
+  revanche?: string
   /** Barre : appui sur le temps → mode plein écran. */
   onAgrandir?: () => void
+  /** Cercle du plein écran : mot sous le temps (« exercice fini »). */
+  legende?: string
+  /** Cercle du plein écran : la série d'avant vient de gagner un cran. Le texte dit pourquoi (« ton record était 10 »). */
+  cran?: string
+  /** Le cran vient d'être gagné à l'instant : le disque arrive et son encoche se taille. Faux en revenant de la liste : rien ne se rejoue. */
+  cranVient?: boolean
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, children, finisseur }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient, children, revanche }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -52,6 +59,12 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
     return () => clearInterval(t)
   }, [])
 
+  // Décidé une fois par repos, au moment où le cran apparaît (la série est écrite un instant après le début du repos) :
+  // le parent repasse à faux au bout de 1,5 s, l'animation ne doit ni se couper ni repartir.
+  const animation = useRef<{ debut?: number; oui: boolean | null }>({ debut: etat.debut, oui: null })
+  if (animation.current.debut !== etat.debut) animation.current = { debut: etat.debut, oui: null }
+  if (cran && animation.current.oui === null) animation.current.oui = !!cranVient
+  const anime = !!animation.current.oui
   const enPause = etat.pause !== undefined
   const reste = resteRepos(etat, maintenant)
   const fini = reste <= 0
@@ -89,9 +102,12 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
     <>
       {!fini && (
         <>
-          <button className="btn" onClick={basculerPause} aria-label={enPause ? 'Reprendre le repos' : 'Mettre en pause'}>
-            {enPause ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
-          </button>
+          {/* En plein écran, la pause est sur le cercle lui-même. */}
+          {variante !== 'grand' && (
+            <button className="btn" onClick={basculerPause} aria-label={enPause ? 'Reprendre le repos' : 'Mettre en pause'}>
+              {enPause ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
+            </button>
+          )}
           <button className="btn" onClick={() => decaler(-15000)}>
             −15
           </button>
@@ -111,44 +127,90 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
   const part = fini ? 0 : reste / Math.max(1, total)
   const decompteActif = !fini && !enPause && seconde > 0 && seconde <= (bips > 0 ? bips : 5)
 
-  // Plein écran : le temps en chiffres géants, sa barre dessous, +15 et −15 à côté (maquette `seance-parcours.html`, choix de
-  // l'utilisateur : pas de rangée de boutons du chrono au-dessus de ceux de l'effort). « Pause » est écrit, et un appui sur le
-  // temps fait pareil. Avant un finisseur, le repos fini ne part pas tout seul : « Prêt », puis « J'y vais ».
-  if (variante === 'geant') {
+  // Le repos avant un finisseur : le cercle bat lentement, plus vite les dix dernières secondes, puis se fige sur « Prêt ».
+  // Fini, il attend un appui (« J'y vais ») : l'annonce ne se rate plus, même si on ne regardait pas à la fin du repos.
+  if (variante === 'finisseur') {
     return (
-      <div className={'repos-geant' + (fini ? ' fini' : '') + (enPause ? ' en-pause' : '') + (decompteActif ? ' decompte' : '') + (finisseur ? ' ton-fin' : '')}>
-        <div className="zone-chrono">
-          <div className="chrono-tete">
-            <span>{fini ? 'repos fini' : enPause ? 'en pause' : `repos · prévu ${chrono(etat.duree)}`}</span>
-            {!fini && (
-              <button type="button" className="lien-pause" onClick={basculerPause}>
-                {enPause ? <Play size={12} fill="currentColor" /> : <Pause size={12} fill="currentColor" />} {enPause ? 'Reprendre' : 'Pause'}
-              </button>
-            )}
-          </div>
-          <div className="rangee-chrono">
-            <button type="button" className="chrono-geant" onClick={() => !fini && basculerPause()} aria-label={fini ? 'Repos terminé' : enPause ? `Repos en pause, ${temps}. Reprendre` : `Repos, ${temps}. Mettre en pause`}>
-              {fini ? 'Prêt' : temps}
+      <div className={'moment' + (fini ? ' fige' : enPause ? ' en-pause' : seconde <= 10 ? ' vite' : ' lent')}>
+        <button type="button" className="moment-anneau" onClick={() => !fini && basculerPause()} aria-label={fini ? 'Repos terminé' : enPause ? 'Reprendre le repos' : `Repos, ${temps}. Mettre en pause`}>
+          <i />
+          <i />
+          {(cran || revanche) && !fini && !enPause && (
+            <span className={'cran-signal' + (anime ? ' vient' : '')}>
+              {cran ? (
+                <>
+                  <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+                </>
+              ) : (
+                <span>Revanche prise.</span>
+              )}
+            </span>
+          )}
+          <span className="moment-temps">{fini ? 'Prêt' : temps}</span>
+          {enPause && <span className="moment-sous">en pause</span>}
+        </button>
+        {children}
+        <div className={'moment-bas' + (fini ? ' un' : '')}>
+          {fini ? (
+            <button type="button" className="btn finisseur grand" onClick={() => onChange(null)}>
+              J’y vais
             </button>
-            {!fini && (
-              <div className="chrono-cote">
-                <button type="button" className="btn" onClick={() => decaler(15000)}>
-                  +15
-                </button>
-                <button type="button" className="btn" onClick={() => decaler(-15000)}>
-                  −15
-                </button>
+          ) : (
+            <>
+              <button type="button" className="btn" onClick={() => decaler(-15000)}>
+                −15
+              </button>
+              <button type="button" className="btn" onClick={() => onChange(null)}>
+                Passer
+              </button>
+              <button type="button" className="btn" onClick={() => decaler(15000)}>
+                +15
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (variante === 'grand') {
+    return (
+      <div className={'minuteur grand' + (fini ? ' fini' : '') + (enPause ? ' en-pause' : '') + (decompteActif ? ' decompte' : '')}>
+        <button
+          type="button"
+          className={'cercle-pause' + (decompteActif ? ' pulsation' : '')}
+          onClick={() => !fini && basculerPause()}
+          aria-label={fini ? 'Repos terminé' : enPause ? 'Reprendre le repos' : 'Mettre le repos en pause'}
+        >
+          <Anneau
+            valeur={part}
+            taille={210}
+            epaisseur={10}
+            couleur={fini ? 'var(--ok)' : enPause ? 'var(--accent-attenu)' : decompteActif ? 'var(--alerte)' : 'var(--accent)'}
+            fluide={!enPause && !fini}
+            saut={saut}
+          >
+            {(cran || revanche) && !fini && !enPause ? (
+              <div className={'cran-signal' + (anime ? ' vient' : '')}>
+                {/* Un record passe devant une revanche : il est plus rare. */}
+                {cran ? (
+                  <>
+                    <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+                  </>
+                ) : (
+                  <span>Revanche prise.</span>
+                )}
+              </div>
+            ) : (
+              <div className={'etat-chrono' + (enPause ? ' en-pause' : '') + (fini ? ' fini' : '')}>
+                {fini ? <Check size={24} /> : enPause ? <Play size={22} fill="currentColor" /> : <Pause size={22} fill="currentColor" />}
               </div>
             )}
-          </div>
-          <div className="jauge-repos">
-            <i className={saut ? 'saut' : undefined} style={{ width: `${Math.min(100, Math.max(0, part * 100))}%` }} />
-          </div>
-        </div>
-        {children}
-        <button type="button" className={'btn chrono-passer' + (fini && finisseur ? ' finisseur' : '')} onClick={() => onChange(null)}>
-          {fini ? (finisseur ? 'J’y vais' : 'OK') : 'Passer'}
+            <div className="temps-grand">{temps}</div>
+            {legende ? <div className="legende-chrono">{legende}</div> : (cran || revanche) && !fini && <div className={'legende-chrono cran-pourquoi' + (anime ? ' vient' : '')}>{cran ?? revanche}</div>}
+          </Anneau>
         </button>
+        <div className="ligne boutons-grand">{boutons}</div>
       </div>
     )
   }
