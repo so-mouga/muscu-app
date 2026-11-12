@@ -1,8 +1,10 @@
 import { Flame, Frown, Smile } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import type { Catalogue } from '../catalogue'
+import { useCaps } from './Caps'
 import Disque, { IconeCran } from './Disque'
 import { dureeSeance } from './RecapSeance'
+import { capFranchiDans, dureeCap, texteCap } from '../lib/caps'
 import { duree, ecartQte, kg } from '../lib/calc'
 import { cransDeSeance, etatDisque, totalCrans } from '../lib/crans'
 import { gainsDeSeance, resumeSeance } from '../lib/motivation'
@@ -49,6 +51,10 @@ export default function Recompense({
   const disque = etatDisque(cransAvant + crans.length)
   const disquePlein = disque.pleins > etatDisque(cransAvant).pleins
   const cransMontres = disque.crans || (disque.total ? 12 : 0)
+  // Un cap qui tombe aujourd'hui passe devant le record : il arrive quelques fois par an.
+  const caps = useCaps()
+  const tombe = caps?.find((c) => capFranchiDans(c, seance, terminees))
+  const exoCap = tombe && catalogue.exo(tombe.exoId)
   // Toute première séance : rien à battre encore, on dit ce qui vient d'être posé.
   const premiereSeance = !seance.deload && n > 0 && !terminees.some((s) => s.id !== seance.id)
   const enSeche = phaseA(catalogue.objectifs, seance.date)?.phase === 'seche'
@@ -69,7 +75,7 @@ export default function Recompense({
     .sort((a, b) => rangs[a.ton] - rangs[b.ton] || a.ordre - b.ordre)
   const aMontrer = lignes.some((l) => l.texte) && !premiereSeance
   // Hauteurs mesurées dans le navigateur à 360 px de large : le record, le disque plein, la phrase seule ; 28 px par ligne.
-  const hautBloc = crans.length === 0 ? 100 : (disquePlein ? 300 : 205) + (cransAvant === 0 ? 64 : 0)
+  const hautBloc = crans.length === 0 ? (tombe ? 175 : 100) : (disquePlein && !tombe ? 300 : 205) + (cransAvant === 0 ? 64 : 0)
   const max = placeListe === undefined ? lignes.length : Math.max(2, Math.floor((placeListe - hautBloc) / 28))
   const visibles = lignes.length > max ? lignes.slice(0, Math.max(1, max - 1)) : lignes
   const cachees = lignes.length - visibles.length
@@ -86,9 +92,30 @@ export default function Recompense({
         )}
       </div>
 
-      {crans.length > 0 ? (
+      {crans.length > 0 || (tombe && exoCap) ? (
         <div className="carte fin-resume trame">
-          {disquePlein ? (
+          {tombe && exoCap ? (
+            // Le cap franchi : le chiffre visé en grand, d'où on partait et le temps mis, dit après coup.
+            <div className="fin-heros">
+              <div className="fin-heros-exo">{exoCap.nom}</div>
+              <div className="fin-heros-chiffre">
+                <b>{kg(tombe.cible)}</b>
+                <span>{tombe.genre === 'reps' ? 'reps' : exoCap.mode === 'par_main' ? 'kg/main' : 'kg'}</span>
+              </div>
+              <div className="fin-heros-titre">Cap franchi.</div>
+              <div className="fin-crans-titre">
+                Tu partais de {texteCap(exoCap, tombe, tombe.depart)}. {dureeCap(tombe.depuis, seance.date).replace(/^e/, 'E')}.
+              </div>
+              {crans.length > 0 && (
+                <div className="fin-heros-disque">
+                  <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={26} />
+                  <span>
+                    <strong>{disquePlein ? 'Disque plein' : `Record battu · ${disque.crans} cran${disque.crans > 1 ? 's' : ''} sur 12`}</strong>
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : disquePlein ? (
             // Le 12e cran : le seul moment qui a droit à une animation plus longue (une fois toutes les deux ou trois semaines).
             <div className="fin-disque-plein" style={{ '--apres': `${0.25 + Math.min(crans.length, 12) * 0.25}s` } as CSSProperties}>
               <Disque crans={12} nouveaux={Math.min(crans.length - disque.crans, 12)} taille={placeListe ? 104 : 132} chiffre plein />
@@ -129,7 +156,7 @@ export default function Recompense({
             </div>
           )}
           {/* La règle, une seule fois : le jour du tout premier cran. */}
-          {cransAvant === 0 && <div className="faible petit fin-crans-regle">Un cran = un record battu sur un exercice. Il ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.</div>}
+          {cransAvant === 0 && crans.length > 0 && <div className="faible petit fin-crans-regle">Un cran = un record battu sur un exercice. Il ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.</div>}
         </div>
       ) : (
         <div className="recompense-sobre">

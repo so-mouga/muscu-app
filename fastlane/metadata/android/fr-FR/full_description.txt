@@ -15,6 +15,7 @@ Cran est un carnet d'entraînement pensé pour la salle : tu suis ton programme,
 <b>Progresser sans se tromper</b>
 • En fin de séance, un conseil clair : une répétition de plus, ou monter la charge. C'est toi qui décides, rien ne change sans ton accord.
 • Un record battu = un cran : ton disque se remplit, 12 crans par disque.
+• Fixe-toi un cap sur un exercice (60 kg au développé couché) : l'appli te dit où tu en es, sans date ni pression.
 • Exercice qui stagne depuis 3 semaines ? L'appli te le signale, avec des pistes concrètes tirées de tes données (sommeil, alimentation, fatigue, déload).
 • Volume par muscle : une jauge simple te dit si chaque muscle travaille assez, ou trop.
 • Cycles avec semaine de déload, et rappel quand la fatigue s'accumule.

@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronRight, MoreHorizontal } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import BoutonRetour from '../components/BoutonRetour'
 import { confirmer } from '../components/Dialogues'
 import { db } from '../db'
@@ -42,6 +42,7 @@ export function Detail({
   enSeche,
   objectifs,
   pistes,
+  cap,
 }: {
   exo: Exercice
   seances: Seance[]
@@ -64,6 +65,8 @@ export function Detail({
   objectifs?: EtapeObjectifs[]
   /** Exercice bloqué : pistes chiffrées, jamais une cause. */
   pistes?: string[]
+  /** Le cap de l'exercice, ou de quoi en fixer un (`CapExo`). */
+  cap?: ReactNode
 }) {
   const [menu, setMenu] = useState(false)
   const [reglages, setReglages] = useState(false)
@@ -135,6 +138,7 @@ export function Detail({
             <div className="fiche-perf">{seriesEnClair(exo, seriesDe(derniere))}</div>
             <div className="faible">{[effortDe(seriesDe(derniere)), derniere.nom].filter(Boolean).join(' · ')}</div>
           </div>
+          {cap}
         </>
       ) : (
         <div className="carte">

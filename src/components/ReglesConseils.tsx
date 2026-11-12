@@ -39,6 +39,17 @@ const REGLES: [string, string[]][] = [
     ],
   ],
   [
+    'Les caps',
+    [
+      'Un cap = une charge à atteindre sur un exercice, plus loin que le conseil de la prochaine fois. Tu le fixes sur la fiche de l’exercice (Progrès → Exercices). Trois caps en cours au plus, un par exercice.',
+      'Un seul nombre à choisir. L’appli en propose un : environ quatre paliers au-dessus de ta charge, arrondi à un chiffre rond. Pas de date.',
+      'Franchi le jour où tu fais toutes les séries du programme à cette charge, au bas de ta fourchette ou plus (3 séries de 8 reps ou plus à 60 kg, par exemple). Au poids du corps, le cap est un nombre de reps sur toutes les séries.',
+      '« Tu es à… » : la charge la plus lourde où tu as déjà fait toutes ces séries. Les séances allégées, les séries à l’échec, dégressives ou en rest-pause ne comptent pas.',
+      'Sur l’accueil, « Va chercher les 60. » seulement le jour où les charges prévues pour la séance sont celles du cap.',
+      'Le cap ne change aucun conseil. Pas de cap sur un exercice assisté, en temps ou à l’élastique.',
+    ],
+  ],
+  [
     'En fin de séance',
     [
       'En tête : tes records battus et ton disque. Sans record, combien d’exercices ont été mieux que la dernière fois (charge plus lourde, ou rep de plus à une charge de la dernière fois).',

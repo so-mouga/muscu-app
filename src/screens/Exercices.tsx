@@ -19,6 +19,7 @@ import type { Exercice, Seance } from '../types'
 import { lectureExo } from '../lib/constat'
 import { Detail } from './Progression'
 import { confirmer } from '../components/Dialogues'
+import { CapExo, TesCaps } from '../components/Caps'
 
 type Filtre = 'tous' | Zone
 
@@ -156,6 +157,7 @@ export default function Exercices({ catalogue, seances, haut, initial, onRetourI
           equivalents={liste}
           enSeche={enSeche}
           objectifs={catalogue.objectifs}
+          cap={<CapExo exo={exo} seances={seances} catalogue={catalogue} />}
           pistes={diagnostic(exo, { seances, journal, pesees, phase, debutPhase: phaseEnCours?.debut, objectifs: catalogue.objectifs }, dateISO())?.pistes}
           suggestions={tous
             .filter((e) => e.muscle === exo.muscle && e.id !== exo.id && !e.supprime && !(eq[exo.id] ?? []).includes(e.id))
@@ -223,6 +225,7 @@ export default function Exercices({ catalogue, seances, haut, initial, onRetourI
   return (
     <div>
       {haut}
+      {!recherche.trim() && filtre === 'tous' && <TesCaps catalogue={catalogue} seances={seances} onOuvrir={setChoisi} />}
       <input placeholder="Rechercher un exercice" value={recherche} onChange={(e) => setRecherche(e.target.value)} style={{ marginBottom: 'var(--e2)' }} />
       {!recherche.trim() && (
         <div className="chips zones zones-defile" style={{ marginBottom: 'var(--e2)' }}>

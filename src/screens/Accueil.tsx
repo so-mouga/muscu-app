@@ -17,6 +17,7 @@ import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
 import Disque from '../components/Disque'
 import FenetreDisque from '../components/FenetreDisque'
 import { aPortee, CRANS_PAR_DISQUE, DEBUT_CRANS, etatDisque, totalCrans } from '../lib/crans'
+import { CLE_CAPS, capAPortee, etatCap, lireCaps, texteCap } from '../lib/caps'
 import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
@@ -497,6 +498,19 @@ export default function Accueil({
         return r ? [[p.exoId, { exo, ...r }] as const] : []
       })
     )
+  // Cap à ta portée : les charges prévues aujourd'hui sont celles d'un cap en cours (`capAPortee`). Il passe avant le record du jour.
+  const capsFixes = lireCaps(reglages.find((r) => r.cle === CLE_CAPS)?.valeur)
+  const capDuJour = (m: SeanceModele) => {
+    if (!recentes || !terminees) return undefined
+    for (const p of m.exercices) {
+      const cap = capsFixes.find((c) => c.exoId === p.exoId)
+      const etatDuCap = cap && etatCap(cap, terminees)
+      if (!cap || !etatDuCap || etatDuCap.franchi) continue
+      const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
+      if (capAPortee(cap, suggestionPour(exo, p, recentes), etatDuCap.niveau)) return { exo, cap }
+    }
+    return undefined
+  }
   /**
    * Chaque exercice avec un chiffre : le record à ta portée en blanc, l'objectif à battre en orange, sinon la meilleure série
    * de la dernière fois en gris. En semaine allégée, rien (les charges du jour sont plus légères).
@@ -680,9 +694,21 @@ export default function Accueil({
                     // « Va chercher le 11. » : le premier exercice de la séance avec un record à ta portée (conseil « Tu peux viser plus »).
                     const records = recordsAPortee(proposee.modele)
                     const premier = etat?.deload ? undefined : proposee.modele.exercices.map((p) => records.get(p.exoId)).find((r) => !!r)
+                    const cap = etat?.deload ? undefined : capDuJour(proposee.modele)
                     return (
                       <>
-                        {premier && (
+                        {cap && (
+                          <div className="seance-jour-defi">
+                            <div className="seance-jour-defi-nom">
+                              <span>{cap.exo.nom}</span>
+                              <span>ton cap : {texteCap(cap.exo, cap.cap, cap.cap.cible)}</span>
+                            </div>
+                            <div className="voix seance-jour-voix">
+                              Va chercher les <span className="voix-accent">{kg(cap.cap.cible)}</span>.
+                            </div>
+                          </div>
+                        )}
+                        {!cap && premier && (
                           <div className="seance-jour-defi">
                             <div className="seance-jour-defi-nom">
                               <span>{premier.exo.nom}</span>

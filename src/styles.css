@@ -7641,3 +7641,102 @@ button.jour-pas {
 .affiche-fin .fin-heros-disque {
   margin-top: var(--e2);
 }
+
+/* --- Les caps (12 nov. 2026) : une charge à atteindre sur un exercice. Une seule couleur sur du gris, jamais d'orange :
+   l'avancée est une information, pas une action. Le penché gras seulement pour le chiffre visé. */
+.cap-carte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  width: 100%;
+  text-align: left;
+  color: var(--texte);
+  font: inherit;
+}
+.cap-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--e2);
+}
+.cap-tete > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cap-but {
+  flex: none;
+  font-size: var(--t-titre);
+  font-style: italic;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.cap-piste {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--voile-fort);
+  overflow: hidden;
+}
+.cap-piste i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: var(--texte);
+}
+.cap-bouts {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e2);
+  color: var(--texte-2);
+  font-size: var(--t-legende);
+}
+.liste-btn.cap-fixer {
+  margin-bottom: var(--e2);
+}
+.liste-btn.cap-fixer:disabled {
+  opacity: 1;
+}
+.cap-reglage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e3);
+}
+.cap-reglage .btn {
+  flex: none;
+  width: 52px;
+  min-height: 52px;
+  padding: 0;
+}
+.cap-reglage strong {
+  font-size: var(--t-chiffre);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.cap-liste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  margin-bottom: var(--e3);
+}
+.cap-liste h3 {
+  margin: 0;
+}
+.cap-liste button {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--texte);
+  font: inherit;
+  text-align: left;
+}
+.cap-liste .cap-legende {
+  font-size: var(--t-legende);
+}
