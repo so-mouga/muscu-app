@@ -7794,3 +7794,82 @@ button.jour-pas {
 .cap-liste .cap-legende {
   font-size: var(--t-legende);
 }
+
+/* --- Corps revu (12 nov. 2026, maquette corps.html) : où en est ton poids, en chiffres, sans bravo ni reproche. --- */
+.ou-en-est {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--e3);
+  row-gap: var(--e1);
+}
+.ou-en-est .voix {
+  white-space: nowrap;
+}
+.corps-phase .cap-bouts {
+  margin-top: calc(-1 * var(--e1));
+}
+.corps-tete {
+  flex-wrap: nowrap;
+  align-items: baseline;
+}
+.corps-avant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  width: 100%;
+  min-height: var(--cible);
+  color: var(--texte);
+  text-align: left;
+}
+.corps-avant > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.objectif-reglages {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--e2);
+}
+.objectif-reglages button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e2);
+  min-height: var(--cible);
+  border: none;
+  border-top: 1px solid var(--voile);
+  background: none;
+  color: var(--texte);
+  font-size: var(--t-petit);
+  text-align: right;
+}
+.objectif-reglages button > span:first-child {
+  color: var(--texte-2);
+  text-align: left;
+}
+.objectif-suite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e2);
+}
+.objectif-suite button {
+  min-height: 36px;
+  padding: 0 var(--e3);
+  border: none;
+  border-radius: 999px;
+  background: var(--controle);
+  color: var(--texte);
+  font-size: var(--t-petit);
+}
+.recap-tete {
+  margin: var(--e2) 0 var(--e3);
+}
+.recap-tete .voix {
+  margin: 0;
+}
+.recap-photos {
+  margin-bottom: var(--e3);
+}

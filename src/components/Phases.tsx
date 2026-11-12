@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, ChevronRight, Pencil } from 'lucide-react'
+import { AlertTriangle, ChevronRight } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { dateCourte, dateISO, kg, milliers } from '../lib/calc'
@@ -14,12 +14,14 @@ import {
   dureePhase,
   dureeProlongee,
   ecartPhase,
+  ecartCourt,
   ecartTexte,
   finApres,
   finNouvellePhase,
   modifier,
   nomPhase,
   nomVise,
+  ouEnEst,
   periodes,
   phaseA,
   PHASES,
@@ -37,6 +39,7 @@ import { recapPoids } from '../lib/recap'
 import ChampNombre from './ChampNombre'
 import { confirmer } from './Dialogues'
 import Deplie from './Deplie'
+import OuEnEst from './OuEnEst'
 
 const JOUR = 86400000
 const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
@@ -134,8 +137,7 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
 
   // Métriques pour la phase en cours
   const totalEnCours = enCours?.finPrevue ? semainesEntre(enCours.debut, enCours.finPrevue) : undefined
-  const departEnCours = enCours ? poidsDepart(pesees, enCours.debut) : null
-  const viseEnCours = departEnCours !== null && enCours?.ecartVise ? Math.round((departEnCours + enCours.ecartVise) * 10) / 10 : null
+  const etatEnCours = enCours ? ouEnEst(enCours, pesees, aujourdhui) : null
   const avisEnCours = enCours?.ecartVise && totalEnCours ? avisRythme(enCours.phase, enCours.ecartVise, totalEnCours) : null
 
   return (
@@ -162,103 +164,47 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
         {enCours && (
           <div>
             {!editionEnCours ? (
-              /* Vue Dashboard compacte */
-              <div
-                style={{
-                  background: 'var(--sous-carte)',
-                  border: '1px solid var(--bord)',
-                  borderRadius: 'var(--rayon-2)',
-                  padding: '14px 16px',
-                  marginBottom: aVenir.length || peutAjouter ? 16 : 8,
-                }}
-              >
-                {/* Ligne 1 : Titre + Badge + Bouton Modifier */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className={`point-phase phase-${enCours.phase}`} style={{ width: 10, height: 10 }} />
-                    <span style={{ fontSize: 'var(--t-texte)', fontWeight: 600, color: 'var(--texte)' }}>
-                      {nomVise(enCours.phase)} <span className="mot-salle">{nomPhase(enCours.phase).toLowerCase()}</span>
+              /* Où en est ton poids, puis les réglages en lignes : chacune ouvre le formulaire. */
+              <div className="sous-carte" style={{ marginBottom: aVenir.length || peutAjouter ? 16 : 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="ligne entre" style={{ flexWrap: 'nowrap', alignItems: 'baseline' }}>
+                  <strong>
+                    {nomVise(enCours.phase)} <span className="mot-salle">{nomPhase(enCours.phase).toLowerCase()}</span>
+                  </strong>
+                  <span className="faible petit-texte" style={{ whiteSpace: 'nowrap' }}>
+                    {enCours.depassee ? 'fin dépassée' : `semaine ${enCours.semaine}${totalEnCours ? ` sur ${totalEnCours}` : ''}`}
+                  </span>
+                </div>
+                {etatEnCours && <OuEnEst etat={etatEnCours} debut={enCours.debut} finPrevue={enCours.finPrevue} />}
+                <div className="objectif-reglages">
+                  <button type="button" aria-label="Modifier la durée de l’objectif" onClick={() => setEditionEnCours(true)}>
+                    <span>Durée</span>
+                    <span>
+                      {totalEnCours ? `${totalEnCours} semaines, jusqu’au ${jour(plusJours(enCours.finPrevue!, -1))}` : 'sans fin prévue'} <ChevronRight size={15} strokeWidth={1.75} className="muted" style={{ verticalAlign: 'middle' }} />
                     </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span
-                      style={{
-                        fontSize: 'var(--t-legende)',
-                        fontWeight: 600,
-                        color: `var(--phase-${enCours.phase})`,
-                        background: 'var(--voile)',
-                        padding: '2px 8px',
-                        borderRadius: 'var(--rayon-2)',
-                        border: '1px solid var(--bord)',
-                      }}
-                    >
-                      Sem. {enCours.semaine}{totalEnCours && !enCours.depassee ? `/${totalEnCours}` : ''}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Modifier l’objectif en cours"
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        padding: '4px',
-                        color: 'var(--texte-2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        borderRadius: 'var(--rayon-2)',
-                      }}
-                      onClick={() => setEditionEnCours(true)}
-                    >
-                      <Pencil size={15} strokeWidth={1.75} />
+                  </button>
+                  {enCours.phase !== 'maintien' && (
+                    <button type="button" aria-label="Modifier le poids visé" onClick={() => setEditionEnCours(true)}>
+                      <span>{enCours.phase === 'prise' ? 'Poids à gagner' : 'Poids à perdre'}</span>
+                      <span>
+                        {enCours.ecartVise ? `${ecartCourt(enCours.ecartVise)} kg` : 'pas fixé'} <ChevronRight size={15} strokeWidth={1.75} className="muted" style={{ verticalAlign: 'middle' }} />
+                      </span>
                     </button>
-                  </div>
-                </div>
-
-                {/* Ligne 2 : Dates et Objectif de poids */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 8 }}>
-                  <div style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
-                    {jour(enCours.debut)} → {enCours.finPrevue ? jour(plusJours(enCours.finPrevue, -1)) : 'sans fin prévue'}
-                  </div>
-                  {enCours.ecartVise && departEnCours !== null && (
-                    <div style={{ fontSize: 'var(--t-petit)', color: 'var(--texte)', fontWeight: 500 }}>
-                      {kg(departEnCours)} kg → {viseEnCours !== null ? `${kg(viseEnCours)} kg` : ''} ({ecartTexte(enCours.ecartVise)})
-                      {totalEnCours && ` · ${ecartTexte(Math.round((enCours.ecartVise / totalEnCours) * 100) / 100)}/sem`}
-                    </div>
                   )}
+                  <button type="button" aria-label="Modifier les calories par jour" onClick={() => setEditionEnCours(true)}>
+                    <span>Calories par jour</span>
+                    <span>
+                      {enCours.calories ? `${milliers(enCours.calories)} kcal` : 'pas fixées'} <ChevronRight size={15} strokeWidth={1.75} className="muted" style={{ verticalAlign: 'middle' }} />
+                    </span>
+                  </button>
                 </div>
 
-                {/* Ligne 3 : Barre de progression horizontale fine */}
-                {totalEnCours && (
-                  <div
-                    style={{
-                      height: 6,
-                      background: 'var(--voile)',
-                      borderRadius: 3,
-                      overflow: 'hidden',
-                      marginTop: 12,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${Math.min(100, ((enCours.semaine ?? 0) / totalEnCours) * 100)}%`,
-                        height: '100%',
-                        background: `var(--phase-${enCours.phase})`,
-                        borderRadius: 3,
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Bannière d'alerte de rythme */}
+                {/* Le poids visé sort de la zone conseillée : un mot, en ambre (un réglage, pas ton corps). */}
                 {avisEnCours && (
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 6,
-                      marginTop: 10,
                       padding: '6px 10px',
                       borderRadius: 'var(--rayon-2)',
                       background: 'var(--alerte-voile)',
@@ -272,10 +218,6 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
                     <span>Rythme {avisEnCours}</span>
                   </div>
                 )}
-
-                <div style={{ marginTop: 12 }}>
-                  <ChampCalories p={enCours} frise={frise} aujourdhui={aujourdhui} enregistrer={enregistrer} />
-                </div>
               </div>
             ) : (
               /* Vue Édition de la phase en cours */
@@ -464,31 +406,20 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
               flexWrap: 'wrap',
             }}
           >
-            <span style={{ fontSize: 'var(--t-legende)', color: 'var(--texte-2)' }}>
-              + Planifier la suite :
+            <span className="faible petit-texte" style={{ width: '100%' }}>
+              Et après ?
             </span>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div className="objectif-suite">
               {PHASES.filter((x) => x.id !== derniere!.phase).map((x) => (
                 <button
                   key={x.id}
                   type="button"
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: 999,
-                    background: 'var(--surface-2)',
-                    border: '1px solid var(--bord)',
-                    color: 'var(--texte)',
-                    fontSize: 'var(--t-legende)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all var(--duree-appui) ease',
-                  }}
                   onClick={() => {
                     enregistrer(ajouterApres(frise, x.id, DUREE_DEFAUT[x.id], catalogue.ciblesPerso))
                     setOuverte(derniere!.finPrevue!)
                   }}
                 >
-                  + {x.court}
+                  + {x.vise}
                 </button>
               ))}
             </div>
@@ -861,7 +792,7 @@ function LignePassee({ p, pesees, onOuvrir }: { p: PeriodePhase; pesees: Pesees;
         </div>
       </div>
       <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--t-legende)', textAlign: 'right', color: 'var(--texte-2)' }}>
-        {poids ? `${kg(poids.depart)} → ${kg(poids.arrivee)} kg` : ''}
+        {poids ? <strong style={{ color: 'var(--texte)', fontSize: 'var(--t-petit)' }}>{ecartCourt(poids.ecart)} kg</strong> : ''}
         <ChevronRight size={16} strokeWidth={1.75} className="muted" style={{ flex: 'none' }} />
       </span>
     </button>

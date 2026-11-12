@@ -1,4 +1,4 @@
-import { finAffichee, phasesPassees, derniereSemainePhase, phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, type EtapeObjectifs } from './objectifs'
+import { finAffichee, phasesPassees, derniereSemainePhase, phaseDuMois, finNouvellePhase, ecartPesees, dureeProlongee, phaseA as phaseDuJour, ajouterApres, avancePoids, avisRythme, caloriesPhase, dureePhase, ecartPhase, finApres, lireFrise, modifier, nomCourtPhase, nomPhase, objectifsA, periodes, phaseA, phaseAffichee, poidsDepart, poidsSemaine, supprimerPhase, terminerPhase, textePhase, typePhase, ouEnEst, ecartCourt, type EtapeObjectifs } from './objectifs'
 
 describe('dernière semaine d’une phase', () => {
   it('les 7 derniers jours, pas avant, pas après', () => {
@@ -274,5 +274,42 @@ describe('calendrier : le dernier jour d’une phase est la veille de sa fin pr�
   it('fin dépassée : la phase court jusqu’à aujourd’hui', () => {
     const [p] = periodes([{ depuis: '2026-09-01', phase: 'seche', finPrevue: '2026-10-01', volume: {} }] as never)
     expect(finAffichee(p, '2026-11-11')).toBe('2026-11-11')
+  })
+})
+
+describe('où en est le poids d’un objectif', () => {
+  const jours = (debut: string, n: number, poids: (i: number) => number) => Array.from({ length: n }, (_, i) => ({ date: new Date(Date.parse(debut + 'T12:00:00') + i * 86400000).toISOString().slice(0, 10), poids: poids(i) }))
+  const prise = { phase: 'prise' as const, debut: '2026-10-19', ecartVise: 2.5, finPrevue: '2027-01-11' }
+
+  it('écart depuis le début, ce qu’il reste, la part du chemin et le rythme', () => {
+    const r = ouEnEst(prise, jours('2026-10-19', 25, (i) => 70 + i * 0.025), '2026-11-12')!
+    expect(r.depart).toBe(70.1)
+    expect(r.ecart).toBe(0.4)
+    expect(r).toMatchObject({ vise: 72.6, reste: 2.1, atteint: false, aRebours: false, prevu: 0.21 })
+    expect(r.part).toBeCloseTo(0.16)
+    expect(r.rythme).toBeCloseTo(0.12, 2)
+  })
+
+  it('le poids part dans l’autre sens : à rebours, jauge vide', () => {
+    const r = ouEnEst(prise, jours('2026-10-19', 25, (i) => 70 - i * 0.02), '2026-11-12')!
+    expect(r.aRebours).toBe(true)
+    expect(r.part).toBe(0)
+  })
+
+  it('atteint, sèche comprise', () => {
+    expect(ouEnEst(prise, jours('2026-10-19', 25, (i) => (i < 8 ? 70 : 72.7)), '2026-11-12')!.atteint).toBe(true)
+    const seche = ouEnEst({ phase: 'seche', debut: '2026-07-06', ecartVise: -4 }, jours('2026-07-06', 60, (i) => 74 - i * 0.05), '2026-09-03')!
+    expect(seche).toMatchObject({ atteint: false, aRebours: false })
+    expect(seche.ecart).toBeLessThan(-2)
+  })
+
+  it('sans poids visé ou en maintien : l’écart seul ; rien sans pesée depuis le début, pas de rythme avant 2 semaines', () => {
+    expect(ouEnEst({ phase: 'maintien', debut: '2026-10-19', ecartVise: 2 }, jours('2026-10-19', 10, () => 70), '2026-10-28')).toEqual({ depart: 70, actuel: 70, ecart: 0, rythme: null })
+    expect(ouEnEst(prise, jours('2026-10-01', 10, () => 70), '2026-10-25')).toBeNull()
+    expect(ouEnEst(prise, [{ date: '2026-10-19', poids: 70 }], '2026-10-20')).toBeNull()
+  })
+
+  it('écart court', () => {
+    expect([ecartCourt(0.4), ecartCourt(-2.6), ecartCourt(0.02)]).toEqual(['+0,4', '−2,6', '±0'])
   })
 })

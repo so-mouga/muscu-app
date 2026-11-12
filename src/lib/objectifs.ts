@@ -315,3 +315,58 @@ export function avisRythme(phase: Phase, ecart: number, semaines: number): strin
   }
   return null
 }
+
+const arrondi = (x: number, n = 1) => Math.round(x * 10 ** n) / 10 ** n
+
+/**
+ * Où en est le poids d'un objectif (carte du haut de Corps et page « Ton objectif ») : l'écart depuis son début,
+ * face au poids visé s'il y en a un. Des chiffres, sans verdict : le jugement du rythme reste au Bilan, une fois
+ * par semaine. Le poids du jour est la moyenne des 7 derniers jours (comme la carte Poids), sinon la dernière pesée.
+ * Rien avant une pesée faite depuis le début de l'objectif.
+ */
+export interface EtatPoids {
+  depart: number
+  actuel: number
+  ecart: number
+  /** kg par semaine depuis le début, après 2 semaines. */
+  rythme: number | null
+  /** Le reste, seulement avec un poids visé. */
+  vise?: number
+  /** Ce qu'il reste à faire, en kg, toujours positif. */
+  reste?: number
+  atteint?: boolean
+  /** Part du chemin faite (0 à 1), pour la jauge. */
+  part?: number
+  /** Le poids est parti dans l'autre sens (au moins 0,1 kg). */
+  aRebours?: boolean
+  /** Rythme prévu par l'objectif, en kg par semaine. */
+  prevu?: number | null
+}
+
+export function ouEnEst(p: { phase: Phase; debut: string; ecartVise?: number; finPrevue?: string }, pesees: PeseeSimple[], aujourdhui: string): EtatPoids | null {
+  const depart = poidsDepart(pesees, p.debut)
+  const depuis = [...pesees].filter((x) => x.date >= p.debut && x.date <= aujourdhui).sort((a, b) => a.date.localeCompare(b.date))
+  if (depart === null || !depuis.length || pesees.filter((x) => x.date <= aujourdhui).length < 2) return null
+  const actuel = poidsSemaine(pesees, aujourdhui) ?? depuis[depuis.length - 1].poids
+  const ecart = arrondi(actuel - depart)
+  const jours = joursEntre(p.debut, aujourdhui)
+  // Le rythme réel seulement après 2 semaines : avant, une pesée d'un matin suffit à le fausser.
+  const rythme = jours >= 14 ? arrondi(ecart / (jours / 7), 2) : null
+  const base = { depart, actuel, ecart, rythme }
+  if (!p.ecartVise || p.phase === 'maintien') return base
+  const vise = arrondi(depart + p.ecartVise)
+  const { reste, atteint } = avancePoids(p.phase, actuel, vise, aujourdhui)
+  const total = p.finPrevue ? Math.max(1, Math.round(joursEntre(p.debut, p.finPrevue) / 7)) : null
+  return {
+    ...base,
+    vise,
+    reste: Math.abs(reste),
+    atteint,
+    part: Math.min(1, Math.max(0, ecart / p.ecartVise)),
+    aRebours: Math.sign(ecart) === -Math.sign(p.ecartVise) && Math.abs(ecart) >= 0.1,
+    prevu: total ? arrondi(p.ecartVise / total, 2) : null,
+  }
+}
+
+/** « +0,4 », « −2,6 », « ±0 » : un écart de poids sans l'unité. */
+export const ecartCourt = (x: number) => (Math.abs(x) < 0.05 ? '±0' : `${x > 0 ? '+' : '−'}${virgule(Math.abs(Math.round(x * 10) / 10))}`)

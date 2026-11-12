@@ -2,17 +2,25 @@ import { useState } from 'react'
 import { premiereFois } from '../lib/animations'
 import { dateCourte } from '../lib/calc'
 
-/** Courbe d'évolution datée ; un appui sur un point affiche sa valeur. */
+type Point = { date: string; valeur: number }
+const jourDe = (iso: string) => Date.parse(iso + 'T12:00:00') / 86400000
+
+/**
+ * Courbe d'évolution datée ; un appui sur un point affiche sa valeur. Avec `cible` (poids visé d'un objectif), l'axe
+ * suit les dates jusqu'à la fin prévue et un pointillé gris trace le chemin du départ au poids visé.
+ */
 export default function Courbe({
   points,
   format,
   label = 'Évolution',
   sansEnTete = false,
+  cible,
 }: {
-  points: { date: string; valeur: number }[]
+  points: Point[]
   format: (v: number) => string
   label?: string
   sansEnTete?: boolean
+  cible?: { depart: Point; arrivee: Point }
 }) {
   const [actif, setActif] = useState(points.length - 1)
   const [trace] = useState(() => premiereFois('courbe:' + label + ':' + points.map((q) => q.date + q.valeur).join()))
@@ -20,7 +28,7 @@ export default function Courbe({
   const H = 145
   // Marge droite dédiée pour les labels Y, assez large pour « 83,6 cm » sans le couper
   const m = { g: 8, d: 48, h: 16, b: 24 }
-  const vals = points.map((p) => p.valeur)
+  const vals = [...points.map((p) => p.valeur), ...(cible ? [cible.depart.valeur, cible.arrivee.valeur] : [])]
   let min = Math.min(...vals)
   let max = Math.max(...vals)
   // Les graduations écrites restent les vraies valeurs, même quand l'échelle est élargie.
@@ -30,7 +38,9 @@ export default function Courbe({
     min -= 0.5
     max += 0.5
   }
-  const x = (i: number) => m.g + (points.length > 1 ? (i / (points.length - 1)) * (L - m.g - m.d) : (L - m.g - m.d) / 2)
+  const premier = cible ? Math.min(jourDe(points[0].date), jourDe(cible.depart.date)) : 0
+  const xDate = (iso: string) => m.g + ((jourDe(iso) - premier) / Math.max(1, jourDe(cible!.arrivee.date) - premier)) * (L - m.g - m.d)
+  const x = (i: number) => (cible ? xDate(points[i].date) : m.g + (points.length > 1 ? (i / (points.length - 1)) * (L - m.g - m.d) : (L - m.g - m.d) / 2))
   const y = (v: number) => m.h + (1 - (v - min) / (max - min)) * (H - m.h - m.b)
   const p = points[actif] ?? points[points.length - 1]
 
@@ -80,6 +90,13 @@ export default function Courbe({
           <text x={L - m.d + 6} y={y(plusBas) + 3} fill="var(--texte-2)" fontSize="10" fontWeight="500" textAnchor="start">
             {format(plusBas)}
           </text>
+        )}
+
+        {cible && (
+          <>
+            <line x1={xDate(cible.depart.date)} y1={y(cible.depart.valeur)} x2={xDate(cible.arrivee.date)} y2={y(cible.arrivee.valeur)} stroke="var(--texte-3)" strokeWidth="1.5" strokeDasharray="3 5" />
+            <circle cx={xDate(cible.arrivee.date)} cy={y(cible.arrivee.valeur)} r={4} fill="var(--bg)" stroke="var(--texte-2)" strokeWidth="1.5" />
+          </>
         )}
 
         {/* Aire dégradée sous la courbe */}
@@ -139,7 +156,7 @@ export default function Courbe({
           {dateCourte(points[0].date)}
         </text>
         <text x={L - m.d} y={H - 6} fill="var(--texte-2)" fontSize="10" textAnchor="end">
-          {dateCourte(points[points.length - 1].date)}
+          {dateCourte(cible ? cible.arrivee.date : points[points.length - 1].date)}
         </text>
       </svg>
     </div>

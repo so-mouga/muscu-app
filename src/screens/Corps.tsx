@@ -11,14 +11,15 @@ import { db } from '../db'
 import { dateCourte, dateISO, kg, milliers } from '../lib/calc'
 import { useRetour } from '../lib/nav'
 import { paireDepart, poseCommune } from '../lib/photos'
-import { ecartPesees, nomVise, phaseA, phaseAffichee, phasesPassees, poidsDepart, poidsSemaine } from '../lib/objectifs'
+import { ecartCourt, ecartPesees, ecartTexte, nomVise, ouEnEst, phaseA, phaseAffichee, phasesPassees, poidsSemaine } from '../lib/objectifs'
 import { objectifDuJour } from '../lib/nutrition'
 import type { Mesure, PhotoCorps } from '../types'
 import { confirmer } from '../components/Dialogues'
 import PhotoDatee from '../components/PhotoDatee'
 import RecapPhase from '../components/RecapPhase'
 import { voirPhasesPrecedentes } from '../components/Phases'
-import { repere, type Repere } from '../lib/recap'
+import { recapPoids, repere, type Repere } from '../lib/recap'
+import OuEnEst from '../components/OuEnEst'
 import Photos, { PriseGuidee } from './Photos'
 import Objectifs from './Objectifs'
 import type { Catalogue } from '../catalogue'
@@ -106,18 +107,18 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
   const journal = useLiveQuery(() => db.journal.get(aujourdhui), [aujourdhui])
   const phase = phaseAffichee(catalogue.objectifs, aujourdhui)
   const enCours = phase && !phase.aVenir ? phase : null
-  const nbPassees = phasesPassees(catalogue.objectifs, aujourdhui).length
+  const precedente = phasesPassees(catalogue.objectifs, aujourdhui)[0]
   // Photos : seulement celles du début de la phase et les dernières (elles sont lourdes).
   const photos = useLiveQuery(
     async () => {
       const dates = (await db.photos.orderBy('date').uniqueKeys()) as string[]
-      if (!dates.length) return { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
-      const { depart, derniere } = paireDepart(dates, enCours?.debut)
-      if (!derniere) return { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
-      return { depart, derniere, liste: await db.photos.where('date').anyOf([derniere, depart ?? derniere]).toArray() }
+      if (!dates.length) return { depart: undefined, derniere: undefined, duDebut: false, liste: [] as PhotoCorps[] }
+      const { depart, derniere, duDebut } = paireDepart(dates, enCours?.debut)
+      if (!derniere) return { depart: undefined, derniere: undefined, duDebut: false, liste: [] as PhotoCorps[] }
+      return { depart, derniere, duDebut: !!duDebut, liste: await db.photos.where('date').anyOf([derniere, depart ?? derniere]).toArray() }
     },
     [enCours?.debut],
-    { depart: undefined, derniere: undefined, liste: [] as PhotoCorps[] }
+    { depart: undefined, derniere: undefined, duDebut: false, liste: [] as PhotoCorps[] }
   )
   const [noter, setNoter] = useState(false)
   const [prise, setPrise] = useState<Repere | null>(null)
@@ -126,20 +127,25 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
   // Poids : moyenne sur 7 jours, courbe et écart sur la période choisie.
   const moyenne = poidsSemaine(pesees, aujourdhui)
   const dernierePesee = pesees[pesees.length - 1]
-  const peseesDepuis = (j: number) => pesees.filter((p) => !j || p.date >= dateISO(new Date(Date.now() - j * 86400000)))
+  // Période « Objectif » (-1) : depuis le début de l'objectif en cours, avec le chemin jusqu'au poids visé. Elle remplace « 1 mois ».
+  const OBJECTIF = -1
+  const peseesDepuis = (j: number) => (j === OBJECTIF ? (enCours ? pesees.filter((p) => p.date >= enCours.debut) : []) : pesees.filter((p) => !j || p.date >= dateISO(new Date(Date.now() - j * 86400000))))
+  const periodesPoids: [string, number][] = [[enCours ? 'Objectif' : '1 mois', enCours ? OBJECTIF : 30], ['3 mois', 91], ['6 mois', 182], ['Tout', 0]]
   // D'office, la plus courte période qui montre une courbe : plus de carte vide après un temps sans pesée.
-  const jours = joursChoisis ?? [30, 91, 182, 0].find((j) => peseesDepuis(j).length >= 2) ?? 30
+  const jours = (joursChoisis !== null && periodesPoids.some(([, j]) => j === joursChoisis) ? joursChoisis : null) ?? periodesPoids.map(([, j]) => j).find((j) => peseesDepuis(j).length >= 2) ?? periodesPoids[0][1]
   const surPeriode = peseesDepuis(jours)
   const points = surPeriode.map((p) => ({ date: p.date, valeur: p.poids }))
   const ecartPoids = ecartPesees(surPeriode)
 
-  // Phase : objectif de poids, sans jugement.
+  // Objectif : où en est le poids, en chiffres, sans jugement.
   const totalPhase = phase?.total
-  const depart = enCours ? poidsDepart(pesees, enCours.debut) : null
-  const vise = depart !== null && enCours?.ecartVise ? Math.round((depart + enCours.ecartVise) * 10) / 10 : null
+  const etat = enCours ? ouEnEst(enCours, pesees, aujourdhui) : null
+  const vise = etat?.vise !== undefined ? etat : null
   const kcal = objectifDuJour(catalogue.objectifs, aujourdhui)?.kcal
   const fin = (iso: string) => dateCourte(dateISO(new Date(Date.parse(iso + 'T12:00:00') - 86400000))).replace(/^\S+ /, '')
-  const avance = enCours && totalPhase ? Math.min(100, (enCours.semaine / totalPhase) * 100) : 0
+  const cible = vise && enCours?.finPrevue && jours === OBJECTIF ? { depart: { date: enCours.debut, valeur: vise.depart }, arrivee: { date: dateISO(new Date(Date.parse(enCours.finPrevue + 'T12:00:00') - 86400000)), valeur: vise.vise! } } : undefined
+  const poidsPrecedente = precedente ? recapPoids(pesees, precedente.debut, precedente.fin!) : null
+  const semainesPrecedente = precedente ? Math.max(1, Math.round((Date.parse(precedente.fin!) - Date.parse(precedente.debut)) / (7 * 86400000) + 1 / 7)) : 0
 
   // Mensurations : les principales, depuis le début de la phase (sinon depuis la première prise).
   const principales = PRINCIPALES.filter((c) => serie(mesures, c).length)
@@ -162,22 +168,15 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           <span className="ligne entre">
             <strong className="corps-titre">{nomVise(phase.phase)}</strong>
             <span className="corps-detail-droite">
-              {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : phase.depassee ? 'fin dépassée' : `sem. ${phase.semaine}${totalPhase ? `/${totalPhase}` : ''}`}
+              {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : phase.depassee ? 'fin dépassée' : `semaine ${phase.semaine}${totalPhase ? ` sur ${totalPhase}` : ''}`}
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
             </span>
           </span>
-          {(phase.finPrevue || kcal) && !phase.aVenir && (
-            <span className="faible petit-texte">{[phase.finPrevue && `${phase.depassee ? 'Prévue jusqu’au' : 'Jusqu’au'} ${fin(phase.finPrevue)}`, kcal && `${milliers(kcal)} kcal par jour`].filter(Boolean).join(' · ')}</span>
-          )}
-          {vise !== null && depart !== null && (
-            <span className="petit-texte">
-              {kg(depart)} → {kg(vise)} kg visés
-            </span>
-          )}
-          {totalPhase && !phase.aVenir && (
-            <span className="barre-phase corps-barre">
-              <span style={{ width: `${avance}%` }} />
-            </span>
+          {etat && enCours ? (
+            <OuEnEst etat={etat} debut={enCours.debut} finPrevue={enCours.finPrevue} />
+          ) : (
+            (phase.finPrevue || kcal) &&
+            !phase.aVenir && <span className="faible petit-texte">{[phase.finPrevue && `${phase.depassee ? 'Prévue jusqu’au' : 'Jusqu’au'} ${fin(phase.finPrevue)}`, kcal && `${milliers(kcal)} kcal par jour`].filter(Boolean).join(' · ')}</span>
           )}
         </button>
       ) : catalogue.sansObjectif ? (
@@ -199,50 +198,30 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           </button>
         </section>
       )}
-      {nbPassees > 0 && (
-        <button
-          type="button"
-          className="corps-phases-passees"
-          onClick={() => {
-            voirPhasesPrecedentes()
-            onPage('phases')
-          }}
-        >
-          <span>
-            Objectifs précédents <span className="faible">({nbPassees})</span>
-          </span>
-          <ChevronRight size={16} strokeWidth={1.75} className="muted" />
-        </button>
-      )}
-
       <section className="carte corps-carte">
-        <strong className="corps-titre">Poids</strong>
+        <div className="ligne entre corps-tete">
+          <strong className="corps-titre">Poids</strong>
+          {dernierePesee && <span className="faible petit-texte">{moyenne !== null ? 'moyenne sur 7 jours' : `dernière pesée, le ${dateCourte(dernierePesee.date).replace(/^\S+ /, '')}`}</span>}
+        </div>
         {dernierePesee && (
-          <div className="ligne entre">
+          <div className="ligne entre corps-tete">
             <span className="corps-chiffre">{kg(moyenne !== null ? Math.round(moyenne * 10) / 10 : dernierePesee.poids)} kg</span>
             <span className="faible petit-texte corps-droite">
-              {moyenne !== null ? 'moyenne sur 7 jours' : `dernière pesée, le ${dateCourte(dernierePesee.date).replace(/^\S+ /, '')}`}
-              {ecartPoids !== null && (
-                <>
-                  <br />
-                  {signe(ecartPoids)} kg sur la période
-                </>
-              )}
+              {jours === OBJECTIF && etat
+                ? etat.rythme !== null
+                  ? `${ecartTexte(etat.rythme)} par semaine${vise?.prevu ? ` · prévu ${ecartTexte(vise.prevu).replace(' kg', '')}` : ''}`
+                  : vise?.prevu
+                    ? `prévu ${ecartTexte(vise.prevu)} par semaine`
+                    : null
+                : ecartPoids !== null && `${signe(ecartPoids)} kg sur la période`}
             </span>
           </div>
         )}
         {pesees.length >= 2 ? (
           <>
-            {points.length >= 2 ? <Courbe key={jours} points={points} format={(v) => `${kg(v)} kg`} label="Évolution du poids" sansEnTete /> : <p className="faible petit-texte">Pas assez de pesées sur cette période.</p>}
+            {points.length >= 2 ? <Courbe key={jours} points={points} format={(v) => `${kg(v)} kg`} label="Évolution du poids" sansEnTete cible={cible} /> : <p className="faible petit-texte">Pas assez de pesées sur cette période.</p>}
             <div className="bilan-periodes">
-              {(
-                [
-                  ['1 mois', 30],
-                  ['3 mois', 91],
-                  ['6 mois', 182],
-                  ['Tout', 0],
-                ] as [string, number][]
-              ).map(([nom, j]) => (
+              {periodesPoids.map(([nom, j]) => (
                 <button key={nom} type="button" className={jours === j ? 'actif' : ''} aria-pressed={jours === j} onClick={() => setJours(j)}>
                   {nom}
                 </button>
@@ -269,7 +248,7 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           <>
             <div className="ligne entre">
               <strong className="corps-titre">Mensurations</strong>
-              {principalesTriees.some((c) => ecartRepere(serie(mesures, c), enCours?.debut) !== null) && <span className="faible petit-texte">{enCours ? 'depuis le début de l’objectif' : 'depuis la première prise'}</span>}
+              {principalesTriees.some((c) => ecartRepere(serie(mesures, c), enCours?.debut) !== null) && <span className="faible petit-texte">{enCours ? `depuis le ${dateCourte(enCours.debut).replace(/^\S+ /, '')}` : 'depuis la première prise'}</span>}
             </div>
             {principalesTriees.map((c) => {
               const s = serie(mesures, c)
@@ -304,7 +283,10 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
       </section>
 
       <section className="carte corps-carte">
-        <strong className="corps-titre">Photos</strong>
+        <div className="ligne entre corps-tete">
+          <strong className="corps-titre">Photos</strong>
+          {pDepart && photos.duDebut && <span className="faible petit-texte">depuis le début de l’objectif</span>}
+        </div>
         {pDerniere ? (
           <>
             <div className="corps-photos">
@@ -329,6 +311,30 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
           </>
         )}
       </section>
+
+      {precedente && (
+        <button
+          type="button"
+          className="carte corps-avant"
+          onClick={() => {
+            voirPhasesPrecedentes()
+            onPage('phases')
+          }}
+        >
+          <span>
+            <span className="faible petit-texte">Avant</span>
+            <span className="corps-avant-nom">
+              <strong>{nomVise(precedente.phase)}</strong>
+              <span className="faible petit-texte">
+                {' · '}
+                {poidsPrecedente ? `${ecartCourt(poidsPrecedente.ecart)} kg en ` : ''}
+                {semainesPrecedente} semaine{semainesPrecedente > 1 ? 's' : ''}
+              </span>
+            </span>
+          </span>
+          <ChevronRight size={16} strokeWidth={1.75} className="muted" />
+        </button>
+      )}
 
       {noter && <FenetreJour saisie="poids" date={aujourdhui} catalogue={catalogue} journal={journal} poidsDuJour={pesees.find((p) => p.date === aujourdhui)?.poids} poidsRepere={pesees[pesees.length - 1]?.poids} onFermer={() => setNoter(false)} />}
       {prise && <PriseCorps prise={prise} onFermer={() => setPrise(null)} />}

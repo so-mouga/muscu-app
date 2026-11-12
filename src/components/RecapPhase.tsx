@@ -6,7 +6,7 @@ import { clesDe, MESURES, nomCle, PRINCIPALES } from '../data/mesures'
 import { db } from '../db'
 import { dateISO, kg } from '../lib/calc'
 import { useRetour } from '../lib/nav'
-import { ecartTexte, nomVise, periodes, type PeriodePhase } from '../lib/objectifs'
+import { ecartCourt, nomVise, periodes, type PeriodePhase } from '../lib/objectifs'
 import { poseCommune } from '../lib/photos'
 import { datesPhotosPhase, finRecap, recapMesures, recapPoids } from '../lib/recap'
 import { PlanchePhotos } from '../screens/Photos'
@@ -70,9 +70,10 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
         <button type="button" className={'ligne-mesure' + (estOuverte ? ' active' : '')} aria-expanded={estOuverte} onClick={() => setOuverte(estOuverte ? null : l.cle)}>
           <span>{nomCle(l.cle)}</span>
           <span>
-            <strong>
+            <span className="faible">
               {kg(l.depart.valeur)} → {cm(l.arrivee.valeur)}
-            </strong>
+            </span>{' '}
+            <strong>{ecartCourt(l.arrivee.valeur - l.depart.valeur)}</strong>
             <ChevronRight size={16} strokeWidth={1.75} className={'muted depliable-chevron' + (estOuverte ? ' ouvert' : '')} />
           </span>
         </button>
@@ -83,34 +84,51 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
     )
   }
 
+  const poidsOuvert = ouverte === 'poids'
   return (
     <div>
       <div className="entete">
         <BoutonRetour onClick={onRetour} label="Retour à ton objectif" />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2>{nomVise(p.phase)}</h2>
-          <div className="faible">
-            {datesPhase(debut, dernierJour)} · {semaines} semaine{semaines > 1 ? 's' : ''}
-          </div>
-        </div>
+        <span className="faible">{datesPhase(debut, dernierJour)}</span>
       </div>
 
-      {poids && (
-        <section className="carte corps-carte">
-          <div className="ligne entre">
-            <strong className="corps-titre">Poids</strong>
-            <strong>
-              {kg(poids.depart)} → {kg(poids.arrivee)} kg
-            </strong>
-          </div>
-          <div className="faible petit-texte recap-droite">{ecartTexte(poids.ecart)}, en moyenne sur quelques jours</div>
-          {poids.points.length >= 2 && <Courbe points={poids.points} format={(v) => `${kg(v)} kg`} label={`Poids pendant l’objectif « ${nomVise(p.phase)} »`} sansEnTete />}
-        </section>
+      {/* Ce que tu as tenu d'abord, en phrase ; puis les photos, puis les chiffres. Toujours ni poids visé, ni couleur, ni bravo. */}
+      <div className="recap-tete">
+        <h2 className="voix">{nomVise(p.phase)}.</h2>
+        <p className="voix voix-gris">
+          {semaines} semaine{semaines > 1 ? 's' : ''}.{seances > 0 ? ` ${seances} séance${seances > 1 ? 's' : ''}.` : ''}
+        </p>
+      </div>
+
+      {paire.length === 2 && (
+        <button type="button" className="recap-paire corps-photos recap-photos" aria-label="Comparer ces deux photos en grand" onClick={() => setComparer(true)}>
+          <PhotoDatee photo={paire[0]} />
+          <PhotoDatee photo={paire[1]} />
+        </button>
       )}
 
-      {lignes.length > 0 && (
+      {(poids || lignes.length > 0) && (
         <section className="carte corps-carte">
-          <strong className="corps-titre">Mensurations</strong>
+          {poids && (
+            <div className="mesure-ligne">
+              <button type="button" className={'ligne-mesure' + (poidsOuvert ? ' active' : '')} aria-expanded={poidsOuvert} onClick={() => setOuverte(poidsOuvert ? null : 'poids')}>
+                <span>Poids</span>
+                <span>
+                  <span className="faible">
+                    {kg(poids.depart)} → {kg(poids.arrivee)} kg
+                  </span>{' '}
+                  <strong>{ecartCourt(poids.ecart)}</strong>
+                  <ChevronRight size={16} strokeWidth={1.75} className={'muted depliable-chevron' + (poidsOuvert ? ' ouvert' : '')} />
+                </span>
+              </button>
+              <Deplie ouvert={poidsOuvert}>
+                <div className="mesure-detail">
+                  <div className="faible petit-texte">En moyenne sur quelques jours, au début et à la fin.</div>
+                  {poids.points.length >= 2 && <Courbe points={poids.points} format={(v) => `${kg(v)} kg`} label={`Poids pendant l’objectif « ${nomVise(p.phase)} »`} sansEnTete />}
+                </div>
+              </Deplie>
+            </div>
+          )}
           {principales.map(ligneMesure)}
           {autres.length > 0 && principales.length > 0 && (
             <button type="button" className="groupe-repli" onClick={() => setVoirAutres(!voirAutres)} aria-expanded={voirAutres}>
@@ -121,35 +139,17 @@ export default function RecapPhase({ catalogue, debut, onRetour, onSuite }: { ca
           <Deplie ouvert={voirAutres || !principales.length}>{autres.map(ligneMesure)}</Deplie>
           {corps.debut && corps.fin && (
             <div className="faible petit-texte">
-              Prises le {jour(corps.debut)} et le {jour(corps.fin)}
+              Mensurations prises le {jour(corps.debut)} et le {jour(corps.fin)}
             </div>
           )}
         </section>
       )}
 
       {nbPhotos > 0 && (
-        <section className="carte corps-carte">
-          <strong className="corps-titre">Photos</strong>
-          {paire.length === 2 && (
-            <button type="button" className="recap-paire corps-photos" aria-label="Comparer ces deux photos en grand" onClick={() => setComparer(true)}>
-              <PhotoDatee photo={paire[0]} />
-              <PhotoDatee photo={paire[1]} />
-            </button>
-          )}
-          <button type="button" className="bilan-tous" onClick={() => setVoirPhotos(true)}>
-            <span>
-              Voir {nbPhotos > 1 ? `les ${nbPhotos} photos` : 'la photo'} de cet objectif
-            </span>
-            <ChevronRight size={16} strokeWidth={1.75} className="muted" />
-          </button>
-        </section>
-      )}
-
-      {seances > 0 && (
-        <section className="carte ligne entre recap-ligne">
-          <span>Séances pendant cet objectif</span>
-          <strong>{seances}</strong>
-        </section>
+        <button type="button" className="liste-btn recap-comparer" onClick={() => setVoirPhotos(true)}>
+          <span>Voir {nbPhotos > 1 ? `les ${nbPhotos} photos` : 'la photo'} de cet objectif</span>
+          <ChevronRight size={18} className="muted" />
+        </button>
       )}
 
       {rienANoter && <p className="faible petit-texte">Pas de pesée, de mensuration, de photo ni de séance sur ces dates.</p>}

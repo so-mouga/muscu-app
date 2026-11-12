@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Corps</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#191716;--carte-2:#24211f;--controle:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--accent-texte:#1a0d03;--ok:#22c55e;--piste:#2f2b28;--trait:rgba(255,255,255,.085);--point:rgba(255,255,255,.2);--neuf:#5a96f7}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+p{margin:0;line-height:1.35}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;justify-content:center;background:var(--bg);position:relative;overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 12px;gap:9px;position:relative}
+.tel.onglet{padding-bottom:0}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;text-align:center}
+.etiquette.osee{background:#3a2440;color:#e3b4f5}
+.note{color:#9cc0ff;font-size:12px;line-height:1.3;text-align:center;margin-top:-4px}
+.ligne{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.base{align-items:baseline}
+.g{color:var(--t2)}.g3{color:var(--t3)}.petit{font-size:14px}.legende{font-size:12px}.b{color:var(--texte)}
+.btn{background:var(--controle);border-radius:14px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500;padding:0 12px;font-size:14px}
+.voix{font-style:italic;font-weight:800;font-size:28px;line-height:1.05}
+.voix.grand{font-size:38px;line-height:1}
+.carte{background:var(--carte);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:7px}
+h1{font-size:26px;font-weight:700;margin:0}
+h2{font-size:20px;font-weight:600;margin:0}
+h3{font-size:16px;font-weight:600;margin:0}
+.neuf{outline:1.5px dashed var(--neuf);outline-offset:3px}
+.entete{display:flex;align-items:center;gap:10px}
+.retour{width:44px;height:44px;border-radius:14px;background:var(--controle);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.onglets{margin:auto -16px 0;height:58px;flex:none;display:flex;justify-content:space-around;align-items:center;background:#131211;font-size:12px;color:var(--t2)}
+.onglets .ici{color:var(--accent)}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chev{color:var(--t3)}
+
+.intro{gap:11px;justify-content:center}
+.intro ul{margin:0;padding-left:18px}
+.intro li{margin:0 0 7px;line-height:1.33;font-size:15px}
+.dir{background:var(--carte);border-radius:14px;padding:9px 12px;font-size:15px;line-height:1.3}
+.dir b{font-weight:600}
+
+/* Jauge : blanc sur gris, comme un cap */
+.piste{height:6px;border-radius:3px;background:var(--piste);position:relative}
+.piste i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--texte)}
+.piste-bouts{display:flex;justify-content:space-between;font-size:12px;color:var(--t3)}
+.verte i{background:var(--ok)}
+
+.chiffre{font-size:26px;font-weight:700;line-height:1}
+.periodes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.periodes span{text-align:center;padding:7px 0;border-radius:999px;font-size:13px;color:var(--t2);background:var(--controle)}
+.periodes .ici{background:rgba(255,255,255,.18);color:var(--texte)}
+.mesure{display:flex;justify-content:space-between;font-size:15px;min-height:26px;align-items:center}
+.mesure b{font-weight:600}
+.photos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.photo{border-radius:12px;background:#2a2725;position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.photo::before{content:"";position:absolute;left:50%;top:14%;width:22%;aspect-ratio:1;border-radius:50%;background:#4a4541;transform:translateX(-50%)}
+.photo::after{content:"";position:absolute;left:50%;top:36%;bottom:0;width:38%;border-radius:10px 10px 0 0;background:#4a4541;transform:translateX(-50%)}
+.photo span{position:relative;z-index:1;font-size:12px;background:rgba(0,0,0,.55);border-radius:999px;padding:2px 9px;margin-bottom:6px}
+.avant{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 4px;min-height:40px;font-size:14px}
+
+.puces{display:flex;gap:6px;flex-wrap:wrap}
+.puces span{background:var(--controle);border-radius:999px;padding:6px 11px;font-size:13px}
+.rang{display:flex;justify-content:space-between;align-items:center;min-height:40px;border-top:1px solid rgba(255,255,255,.06);font-size:15px}
+.pastille{border-radius:999px;font-size:12px;padding:3px 9px;background:rgba(34,197,94,.14);color:var(--ok);font-weight:600}
+.barre{background:#3a2a25;text-decoration:line-through;text-decoration-color:#f87171}
+
+.trame{position:relative;border-radius:18px;overflow:hidden}
+.trame::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-18deg,var(--trait) 0 2px,transparent 2px 13px)}
+.trame::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,var(--point) 1.3px,transparent 1.8px) 0 0/9px 9px;-webkit-mask:linear-gradient(to left,#000,transparent 55%);mask:linear-gradient(to left,#000,transparent 55%)}
+.trame>*{position:relative}
+.geant{font-style:italic;font-weight:800;font-size:84px;line-height:.86;letter-spacing:-.02em}
+.geant small{font-size:22px;color:var(--t2);font-weight:700;letter-spacing:0}
+</style>
+</head>
+<body>
+<div class="defile">
+
+<!-- 0 -->
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Corps · fais défiler vers le bas</span>
+  <p class="voix">Corps, revu.</p>
+  <p class="g petit">Aujourd'hui, la page donne quatre cartes de chiffres. Pour savoir où tu en es de ton objectif, il faut faire le calcul toi-même entre trois cartes.</p>
+  <div class="dir"><b>Version A, recommandée.</b> La page répond d'abord : « +0,4 kg. Encore 2,1. » Des chiffres, jamais de bravo ni de reproche. De petites touches, même structure.</div>
+  <div class="dir"><b>Version B, plus osée.</b> L'appli donne un verdict (« Dans le rythme. ») et la fin d'un objectif devient une affiche. Je ne la recommande pas, je dis pourquoi.</div>
+  <ul class="g">
+    <li>Le pointillé bleu entoure ce qui change.</li>
+    <li>Rien ne bouge dans la saisie des mensurations, la séance photo ni la comparaison de photos.</li>
+  </ul>
+</div></section>
+
+<!-- 1 Aujourd'hui -->
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">Aujourd'hui · pour comparer</span>
+  <h1>Corps</h1>
+  <div class="carte">
+    <div class="ligne"><h3>Prendre du muscle</h3><span class="g petit">sem. 4/12 <span class="chev">›</span></span></div>
+    <p class="g legende">Jusqu'au 10 janv. · 2 900 kcal par jour</p>
+    <p class="petit">70,1 → 72,6 kg visés</p>
+    <div class="piste verte"><i style="width:33%"></i></div>
+  </div>
+  <p class="note">La barre verte, c'est le temps écoulé. Juste sous « 72,6 kg visés », on la lit comme ton poids.</p>
+  <div class="avant"><span>Objectifs précédents <span class="g">(1)</span></span><span class="chev">›</span></div>
+  <div class="carte">
+    <h3>Poids</h3>
+    <div class="ligne"><span class="chiffre">70,5 kg</span><span class="g legende" style="text-align:right">moyenne sur 7 jours<br>+0,4 kg sur la période</span></div>
+    <svg viewBox="0 0 300 70" style="width:100%"><polyline fill="none" stroke="#f97316" stroke-width="2" points="0,52 14,44 28,56 42,40 56,50 70,36 84,48 98,32 112,44 126,30 140,42 154,26 168,38 182,24 196,36 210,22 224,32 238,18 252,30 266,16 280,26 296,14"/></svg>
+    <div class="periodes"><span class="ici">1 mois</span><span>3 mois</span><span>6 mois</span><span>Tout</span></div>
+    <div class="deux"><span class="btn">Noter mon poids</span><span class="btn">96 pesées ›</span></div>
+  </div>
+  <p class="note">« Sur la période » = 1 mois. Les mensurations, elles, comptent depuis le début de l'objectif. Et nulle part : « il te reste 2,1 kg ».</p>
+  <div class="onglets"><span>Accueil</span><span>Progrès</span><span class="ici">Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 2 A · haut -->
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">A · Corps, le haut de la page</span>
+  <h1>Corps</h1>
+  <div class="carte neuf">
+    <div class="ligne"><h3>Prendre du muscle</h3><span class="g petit">semaine 4 sur 12 <span class="chev">›</span></span></div>
+    <div class="ligne base" style="justify-content:flex-start;gap:10px"><span class="voix grand">+0,4 kg.</span><span class="g petit">Encore 2,1 pour tes 72,6.</span></div>
+    <div class="piste"><i style="width:16%"></i></div>
+    <div class="piste-bouts"><span>70,1 kg · 19 oct.</span><span>72,6 kg · 10 janv.</span></div>
+  </div>
+  <div class="carte">
+    <div class="ligne base"><h3>Poids</h3><span class="g legende">moyenne sur 7 jours</span></div>
+    <div class="ligne base"><span class="chiffre">70,5 kg</span><span class="g petit neuf">+0,13 kg par semaine · prévu +0,21</span></div>
+    <svg class="neuf" viewBox="0 0 300 96" style="width:100%">
+      <line x1="0" y1="80" x2="296" y2="10" stroke="#7d7670" stroke-width="1.5" stroke-dasharray="3 5"/>
+      <polyline fill="none" stroke="#f97316" stroke-width="2" points="0,80 8,77 16,82 24,76 32,80 40,74 48,79 56,73 64,77 72,72 80,76 88,71 96,70"/>
+      <circle cx="96" cy="70" r="3.5" fill="#f97316"/>
+      <circle cx="296" cy="10" r="3.5" fill="none" stroke="#a8a29e" stroke-width="1.5"/>
+      <text x="292" y="28" fill="#a8a29e" font-size="11" text-anchor="end" font-family="Barlow">72,6 kg</text>
+      <text x="104" y="86" fill="#f5f4f2" font-size="11" font-family="Barlow">aujourd'hui</text>
+    </svg>
+    <div class="periodes"><span class="ici neuf">Objectif</span><span>3 mois</span><span>6 mois</span><span>Tout</span></div>
+    <div class="deux"><span class="btn">Noter mon poids</span><span class="btn">96 pesées ›</span></div>
+  </div>
+  <p class="note">La jauge est blanche et parle de ton poids, plus du temps. La courbe s'ouvre sur ton objectif, avec en pointillé le chemin jusqu'au 10 janvier.</p>
+  <div class="onglets"><span>Accueil</span><span>Progrès</span><span class="ici">Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 3 A · bas -->
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">A · Corps, le bas de la page</span>
+  <div class="carte">
+    <div class="ligne base"><h3>Mensurations</h3><span class="g legende neuf">depuis le 19 oct.</span></div>
+    <div class="mesure"><span>Taille</span><span><b>81 cm</b> <span class="g">−0,5</span></span></div>
+    <div class="mesure"><span>Poitrine</span><span><b>99 cm</b> <span class="g">+1</span></span></div>
+    <div class="mesure"><span>Bras gauche</span><span><b>36 cm</b> <span class="g">+0,5</span></span></div>
+    <div class="deux"><span class="btn">Noter</span><span class="btn">Toutes ›</span></div>
+  </div>
+  <div class="carte">
+    <div class="ligne base"><h3>Photos</h3><span class="g legende neuf">depuis le début de l'objectif</span></div>
+    <div class="photos neuf"><div class="photo" style="height:112px"><span>18 oct.</span></div><div class="photo" style="height:112px"><span>8 nov.</span></div></div>
+    <div class="deux"><span class="btn">Séance photo</span><span class="btn">Comparer ›</span></div>
+  </div>
+  <div class="carte neuf" style="flex-direction:row;justify-content:space-between;align-items:center">
+    <span><span class="g legende">Avant</span><br><b style="font-weight:600">Perdre du gras</b> <span class="g petit">· −3,8 kg en 15 semaines</span></span><span class="chev">›</span>
+  </div>
+  <p class="note">Les photos restent en bas : on n'ouvre pas Corps à la salle sur ses photos. À gauche, celle du début de l'objectif (aujourd'hui : ta toute première). « Objectifs précédents (1) » dit enfin ce qu'il y a derrière.</p>
+  <div class="onglets"><span>Accueil</span><span>Progrès</span><span class="ici">Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 4 A · les autres cas -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">A · la même carte, dans les autres cas</span>
+  <p class="g legende">Perdre du gras, en route</p>
+  <div class="carte">
+    <div class="ligne"><h3>Perdre du gras</h3><span class="g petit">semaine 9 sur 15 ›</span></div>
+    <div class="ligne base" style="justify-content:flex-start;gap:10px"><span class="voix grand">−2,6 kg.</span><span class="g petit">Encore 1,4 pour tes 70.</span></div>
+    <div class="piste"><i style="width:65%"></i></div>
+  </div>
+  <p class="g legende">Le poids part dans l'autre sens : des chiffres, pas de reproche</p>
+  <div class="carte">
+    <div class="ligne"><h3>Prendre du muscle</h3><span class="g petit">semaine 4 sur 12 ›</span></div>
+    <div class="ligne base" style="justify-content:flex-start;gap:10px"><span class="voix grand">−0,3 kg.</span><span class="g petit">Tu vises +2,5.</span></div>
+    <div class="piste"><i style="width:0"></i></div>
+  </div>
+  <p class="g legende">Poids visé atteint</p>
+  <div class="carte">
+    <div class="ligne"><h3>Prendre du muscle</h3><span class="g petit">semaine 11 sur 12 ›</span></div>
+    <div class="ligne base" style="justify-content:flex-start;gap:10px"><span class="voix grand">+2,5 kg.</span><span class="g petit">Tu es à tes 72,6.</span></div>
+    <div class="piste"><i style="width:100%"></i></div>
+  </div>
+  <p class="g legende">Poids stable, ou objectif sans poids visé : pas de jauge</p>
+  <div class="carte">
+    <div class="ligne"><h3>Progresser, poids stable</h3><span class="g petit">semaine 6 ›</span></div>
+    <div class="ligne base" style="justify-content:flex-start;gap:10px"><span class="voix grand">70,4 kg.</span><span class="g petit">+0,2 depuis le 1<sup>er</sup> oct.</span></div>
+  </div>
+  <p class="note">Sans objectif : « Choisir mon objectif », comme aujourd'hui. Avant la 2<sup>e</sup> pesée : « Semaine 1 sur 12. » seulement.</p>
+</div></section>
+
+<!-- 5 A · Ton objectif -->
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">A · la page « Ton objectif »</span>
+  <div class="entete"><span class="retour">←</span><h2>Ton objectif</h2></div>
+  <div class="carte">
+    <div class="ligne"><h3>Prendre du muscle</h3><span class="g petit neuf">semaine 4 sur 12</span></div>
+    <div class="ligne base neuf" style="justify-content:flex-start;gap:10px"><span class="voix grand">+0,4 kg.</span><span class="g petit">Encore 2,1 pour tes 72,6.</span></div>
+    <div class="piste"><i style="width:16%"></i></div>
+    <div class="rang neuf"><span class="g">Durée</span><span>12 semaines, jusqu'au 10 janv. <span class="chev">›</span></span></div>
+    <div class="rang neuf"><span class="g">Poids à gagner</span><span>+2,5 kg <span class="chev">›</span></span></div>
+    <div class="rang neuf"><span class="g">Calories par jour</span><span>2 900 kcal <span class="chev">›</span></span></div>
+  </div>
+  <p class="note">Plus de crayon ni de pastille verte « Sem. 4/12 » : chaque ligne s'appuie et ouvre le formulaire d'aujourd'hui, inchangé.</p>
+  <p class="g petit" style="margin-top:2px">Et après ?</p>
+  <div class="puces neuf"><span>+ Perdre du gras</span><span>+ Poids stable</span></div>
+  <p class="note">Les mots du démarrage, à la place de « + Sèche », « + Maintien ».</p>
+  <p class="g petit" style="margin-top:2px">Objectifs précédents</p>
+  <div class="carte neuf" style="flex-direction:row;justify-content:space-between;align-items:center">
+    <span><b style="font-weight:600">Perdre du gras</b><br><span class="g petit">6 juil. → 18 oct. · 15 semaines</span></span><span><b style="font-weight:600">−3,8 kg</b> <span class="chev">›</span></span>
+  </div>
+  <div class="onglets"><span>Accueil</span><span>Progrès</span><span class="ici">Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 6 A · Récap -->
+<section class="ecran"><div class="tel onglet">
+  <span class="etiquette">A · le récap d'un objectif terminé</span>
+  <div class="entete"><span class="retour">←</span><span class="g petit">6 juil. → 18 oct. 2026</span></div>
+  <div class="neuf">
+    <p class="voix">Perdre du gras.</p>
+    <p class="voix" style="color:var(--t2)">15 semaines. 41 séances.</p>
+  </div>
+  <div class="photos neuf"><div class="photo" style="height:164px"><span>5 juil.</span></div><div class="photo" style="height:164px"><span>18 oct.</span></div></div>
+  <div class="carte">
+    <div class="mesure"><span>Poids</span><span><span class="g">73,9 → 70,1 kg</span> <b>−3,8</b></span></div>
+    <div class="mesure"><span>Taille</span><span><span class="g">86 → 81,5 cm</span> <b>−4,5</b></span></div>
+    <div class="mesure"><span>Poitrine</span><span><span class="g">99 → 98 cm</span> <b>−1</b></span></div>
+    <div class="mesure"><span>Bras gauche</span><span><span class="g">35 → 35,5 cm</span> <b>+0,5</b></span></div>
+  </div>
+  <div class="deux"><span class="btn">Courbe du poids</span><span class="btn">Les 6 photos ›</span></div>
+  <p class="note">Les mêmes faits qu'aujourd'hui, dans l'ordre où ils comptent : ce que tu as tenu, les photos, puis les chiffres. Toujours ni poids visé, ni couleur, ni bravo.</p>
+  <div class="onglets"><span>Accueil</span><span>Progrès</span><span class="ici">Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 7 B · verdict -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette osee">B, plus osée · l'appli donne un verdict</span>
+  <p class="g legende">Sur Corps, un mot à la place des chiffres</p>
+  <div class="carte">
+    <div class="ligne"><h3>Prendre du muscle</h3><span class="g petit">semaine 4 sur 12 ›</span></div>
+    <p class="voix grand">Dans le rythme.</p>
+    <p class="g petit">+0,4 kg en 3 semaines. Encore 2,1.</p>
+    <div class="piste"><i style="width:16%"></i></div>
+  </div>
+  <div class="carte">
+    <div class="ligne"><h3>Prendre du muscle</h3><span class="g petit">semaine 4 sur 12 ›</span></div>
+    <p class="voix grand">Trop lent.</p>
+    <p class="g petit">+0,1 kg en 3 semaines. Essaie 150 kcal de plus.</p>
+    <div class="piste"><i style="width:4%"></i></div>
+  </div>
+  <p class="g legende">Et la fin d'un objectif, en affiche</p>
+  <div class="carte trame" style="padding:14px">
+    <p class="g petit">Perdre du gras · 15 semaines</p>
+    <p class="geant">−3,8 <small>kg</small></p>
+    <p class="voix" style="margin-top:6px">Tu visais −4.</p>
+  </div>
+  <p class="note">Pourquoi je ne la prends pas : le poids bouge de 0,5 kg d'un matin à l'autre. « Trop lent. » un mardi, « Dans le rythme. » le jeudi : un verdict ouvert chaque jour devient du bruit, puis un reproche. Le Bilan le dit déjà, une fois par semaine, quand il a assez de pesées. Et un « −3,8 » géant fête un chiffre qui, en prise, voudrait dire l'inverse.</p>
+</div></section>
+
+<!-- 8 Choix -->
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">À toi</span>
+  <p class="voix">Quatre réponses.</p>
+  <div class="dir"><b>1.</b> La carte du haut : « +0,4 kg. Encore 2,1 pour tes 72,6. » et la jauge blanche. Oui ou non ?</div>
+  <div class="dir"><b>2.</b> La courbe ouverte sur ton objectif, avec le chemin en pointillé jusqu'au poids visé. Oui, ou la courbe d'aujourd'hui ?</div>
+  <div class="dir"><b>3.</b> Le récap : « 15 semaines. 41 séances. » puis les photos avant les chiffres. Oui ou non ?</div>
+  <div class="dir"><b>4.</b> Un morceau de B te tente ? Le verdict en un mot, ou l'affiche de fin.</div>
+  <p class="g petit">Mon conseil : oui aux trois premières, rien de B. Sur le corps, l'appli te dit où tu en es avec tes chiffres ; les records, les crans et les caps restent à l'entraînement, là où ton effort du jour décide.</p>
+</div></section>
+
+</div>
+</body>
+</html>

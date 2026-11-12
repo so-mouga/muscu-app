@@ -11,7 +11,7 @@ const REGLES: [string, string[]][] = [
     'La règle de base',
     [
       'Rien ne monte tout seul : la prochaine fois, l’objectif est de refaire pareil que la dernière fois. C’est toi qui décides de monter, en fin de séance ou plus tard sur la séance enregistrée.',
-      'L’appli ne commente jamais ton poids et ne compte pas de série de jours (le repos fait partie du programme).',
+      'L’appli ne commente jamais ton poids et ne compte pas de série de jours (le repos fait partie du programme). Sur Corps, elle te dit seulement où tu en es face au poids que tu vises (« +0,4 kg. Encore 2,1 pour tes 72,6. »), en chiffres, sans bravo ni reproche : le rythme se juge dans le Bilan, une fois par semaine.',
     ],
   ],
   [
