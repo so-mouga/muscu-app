@@ -452,10 +452,10 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
       const rv = i >= 0 && !seance.deload ? revanche(exos[i], plans[i], historiqueDe(terminees, s.exoId), k, suggestions[i].charges[k]) : null
       const prise = !!rv && revanchePrise(rv, plans[i], k, s)
       setRevancheFaite(prise ? { serie: s.id, detail: rv!.genre === 'reps' ? `${s.reps} reps · tu en avais fait ${rv!.avant}` : `${kg(s.charge)} kg · tu étais redescendu à ${kg(rv!.avant)}` } : null)
-      // Toute dernière série, rien de sauté : l'affiche « Séance faite » arrive, c'est elle qui sonne (l'accord). Sinon : la fin de
-      // l'exercice d'abord (le signal qu'on sent sans regarder), puis le record, la revanche, une série mieux que la dernière fois.
+      // Un seul son par série, le plus rare gagne (choix de l'utilisateur) : l'affiche « Séance faite » (toute dernière série, rien
+      // de sauté), puis le record, la revanche, la fin de l'exercice, une série mieux que la dernière fois.
       if (restantes <= 1 && !seance.passes?.length) sonFinSeance(sonValidation)
-      else signalSerie(fini ? 'finExercice' : gagneCran(s) ? 'cran' : prise ? 'revanche' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation, k)
+      else signalSerie(gagneCran(s) ? 'cran' : prise ? 'revanche' : fini ? 'finExercice' : avantSerie && ecartSerie(s, avantSerie, exos[i])?.sens === 'mieux' ? 'mieux' : 'normale', sonValidation, k)
       // Sans repos derrière (dernière série, enchaînement direct) : un message en haut.
       if (prise && !(focus && repos > 0 && restantes > 1)) setToast('Revanche prise.')
     }
