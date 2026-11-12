@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react'
 import { Check, ChevronRight, CloudUpload, Download, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
-import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, milliers, minutes } from '../lib/calc'
-import { moyenneSemaine } from '../lib/nutrition'
+import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
 import { sousTitrePerso, sousTitreSeance } from '../lib/programme'
-import { creneauxFaits, creneauxRates } from '../lib/historique'
+import { creneauxFaits, creneauxRates, meilleureSerie } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { derniereSemainePhase, nomCourtPhase, nomVise, periodes, phaseAffichee } from '../lib/objectifs'
 import { phaseFinie, reperesAPrendre, reperesDeFin, type Repere } from '../lib/recap'
@@ -17,7 +16,7 @@ import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
 import Disque from '../components/Disque'
 import FenetreDisque from '../components/FenetreDisque'
-import { aPortee, etatDisque, totalCrans } from '../lib/crans'
+import { aPortee, CRANS_PAR_DISQUE, DEBUT_CRANS, etatDisque, totalCrans } from '../lib/crans'
 import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
@@ -165,9 +164,6 @@ export default function Accueil({
     [debutSemaine],
     []
   )
-  // Jours finis de la semaine (lundi à hier) : la ligne « Moyenne » sous « Cette semaine ».
-  const joursFinis = useLiveQuery(() => db.journal.where('date').between(debutSemaine, dateISO()).toArray(), [debutSemaine], [])
-  const moyenne = moyenneSemaine(joursFinis)
   const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
@@ -363,6 +359,8 @@ export default function Accueil({
     )
   }
 
+  // Séance faite avec des records : le disque et sa phrase prennent la place d’un rappel (il revient demain).
+  const recordsFaitsAuj = !!faiteAuj && !faiteAuj.deload && faiteAuj.date >= DEBUT_CRANS && !!terminees && resumeSeance(faiteAuj, terminees, catalogue.exo).records > 0
   // Au plus deux rappels à la fois (un seul sur un écran peu haut), par ordre d'importance : « Démarrer » doit rester à l'écran.
   const rappels = [
     majAndroid && !masque('android') && (
@@ -467,7 +465,7 @@ export default function Accueil({
     ),
   ]
     .filter(Boolean)
-    .slice(0, window.innerHeight < 720 ? 1 : 2)
+    .slice(0, (window.innerHeight < 720 ? 1 : 2) - (recordsFaitsAuj ? 1 : 0))
 
   // 1re semaine : seuls les jours restants après avoir pris le programme comptent.
   const installeLe = (reglages.find((r) => r.cle === CLE_DEMARRAGE)?.valeur as EtatDemarrage | undefined)?.installeLe
@@ -496,13 +494,25 @@ export default function Accueil({
       (recentes ? m.exercices : []).flatMap((p) => {
         const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
         const r = aPortee(exo, p, historiqueDe(recentes!, p.exoId))
-        return r ? [[p.exoId, `record : ${chargeQte(exo, r.charge, r.reps)}`] as const] : []
+        return r ? [[p.exoId, { exo, ...r }] as const] : []
       })
     )
-  const lignesDe = (m: SeanceModele, avecGains: boolean): LigneExo[] => {
+  /**
+   * Chaque exercice avec un chiffre : le record à ta portée en blanc, l'objectif à battre en orange, sinon la meilleure série
+   * de la dernière fois en gris. En semaine allégée, rien (les charges du jour sont plus légères).
+   */
+  const lignesDe = (m: SeanceModele, avecGains: boolean, records: ReturnType<typeof recordsAPortee>): LigneExo[] => {
     const gains = avecGains ? new Map(aBattreDe(m).map((x) => [x.exo.id, x.plus])) : undefined
-    const records = avecGains ? recordsAPortee(m) : undefined
-    return m.exercices.map((p, i) => ({ id: `${p.exoId}-${i}`, nom: catalogue.exo(p.exoId).nom, gain: records?.get(p.exoId) ?? gains?.get(p.exoId) }))
+    return m.exercices.map((p, i) => {
+      const id = `${p.exoId}-${i}`
+      const exo = catalogue.exo(p.exoId)
+      const r = avecGains ? records.get(p.exoId) : undefined
+      if (r) return { id, nom: exo.nom, gain: chargeQte(r.exo, r.charge, r.reps), ton: 'record' }
+      const g = gains?.get(p.exoId)
+      if (g || !avecGains || !recentes) return { id, nom: exo.nom, gain: g }
+      const der = meilleureSerie(historiqueDe(recentes, p.exoId)[0] ?? [], exo.assistance)
+      return { id, nom: exo.nom, gain: der && chargeQte(exo, der.charge, der.reps), ton: 'terne' }
+    })
   }
   // Le disque : seulement à partir du premier cran gagné.
   const disque = etatDisque(terminees ? totalCrans(terminees, catalogue.exo) : 0)
@@ -580,34 +590,28 @@ export default function Accueil({
       <>
         <div className="accueil-tableau">
           <JournalMatin catalogue={catalogue} />
-          <button type="button" className="accueil-semaine" onClick={onJournal} aria-label="Cette semaine : ouvrir le Journal">
-            <strong>Cette semaine</strong>
-            {prevusSemaine.length > 0 && (
-              <span className="semaine-points" aria-hidden="true">
-                {prevusSemaine.map((_, i) => (
-                  <i key={i} className={i < nbFaites ? 'fait' : ''} />
-                ))}
-              </span>
-            )}
-            <span className={tenues >= 2 ? 'semaine-texte tenue' : 'semaine-texte'}>
-              {tenues >= 2 ? `${tenues}e semaine tenue` : prevusSemaine.length ? `${nbFaites} sur ${prevusSemaine.length}` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''}`} ›
-            </span>
-          </button>
-          {/* Pas et calories des jours finis : le sommeil n'y est pas, la case du haut le donne (choix de l'utilisateur). */}
-          {moyenne && (
-            <div className="accueil-moyenne">
-              Moyenne : {[moyenne.pas !== undefined && `${milliers(moyenne.pas)} pas`, moyenne.notes && `${moyenne.tenus} jour${moyenne.tenus! > 1 ? 's' : ''} tenu${moyenne.tenus! > 1 ? 's' : ''} sur ${moyenne.notes}`].filter(Boolean).join(' · ')}
-            </div>
-          )}
-          {disque.total > 0 && (
-            <button type="button" className="accueil-semaine accueil-disque" onClick={() => setVoirDisque(true)} aria-label="Ton disque : voir tes crans">
-              <strong>{disque.pleins > 0 ? `Ton ${disque.numero}e disque` : 'Ton disque'}</strong>
-              <Disque crans={disque.crans} taille={22} />
-              <span className="semaine-texte">
-                {disque.crans > 0 ? `${disque.crans} cran${disque.crans > 1 ? 's' : ''} · plus que ${disque.reste}` : `${disque.pleins} disque${disque.pleins > 1 ? 's' : ''} plein${disque.pleins > 1 ? 's' : ''}`} ›
+          {/* Une seule ligne : la semaine (vers le Journal) et le disque (depuis le premier cran). */}
+          <div className="accueil-semaine-ligne">
+            <button type="button" className="accueil-semaine" onClick={onJournal} aria-label="Cette semaine : ouvrir le Journal">
+              {prevusSemaine.length > 0 && (
+                <span className="semaine-points" aria-hidden="true">
+                  {prevusSemaine.map((_, i) => (
+                    <i key={i} className={i < nbFaites ? 'fait' : ''} />
+                  ))}
+                </span>
+              )}
+              <span className={tenues >= 2 ? 'semaine-texte tenue' : 'semaine-texte'}>
+                {tenues >= 2 ? `${tenues}e semaine tenue` : prevusSemaine.length ? `${nbFaites} sur ${prevusSemaine.length} cette semaine` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''} cette semaine`}
+                {disque.total === 0 && ' ›'}
               </span>
             </button>
-          )}
+            {disque.total > 0 && (
+              <button type="button" className="accueil-disque" onClick={() => setVoirDisque(true)} aria-label="Ton disque : voir tes crans">
+                <Disque crans={disque.crans} taille={20} />
+                {disque.crans > 0 ? `${disque.crans} cran${disque.crans > 1 ? 's' : ''}` : `${disque.pleins} disque${disque.pleins > 1 ? 's' : ''} plein${disque.pleins > 1 ? 's' : ''}`} ›
+              </button>
+            )}
+          </div>
           {progres && gainBloc && (
             <div className="accueil-progres">
               <span className="accueil-progres-nom">{progres.exo.nom}</span>
@@ -672,19 +676,28 @@ export default function Accueil({
               {joursSans !== null && joursSans >= 10 && <div className="faible seance-jour-retour">Première séance depuis {joursSans} jours : mêmes charges que la dernière fois, baisse un peu si c’est trop dur.</div>}
               {proposee.modele.exercices.length ? (
                 <>
-                  {!etat?.deload &&
-                    (() => {
-                      const n = recordsAPortee(proposee.modele).size
-                      return n ? (
-                        <div className="seance-jour-records">
-                          <strong>
-                            {n} record{n > 1 ? 's' : ''} à ta portée
-                          </strong>
-                          {disque.total === 0 && <span className="faible"> · un record battu = un cran</span>}
-                        </div>
-                      ) : null
-                    })()}
-                  <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload)} />
+                  {(() => {
+                    // « Va chercher le 11. » : le premier exercice de la séance avec un record à ta portée (conseil « Tu peux viser plus »).
+                    const records = recordsAPortee(proposee.modele)
+                    const premier = etat?.deload ? undefined : proposee.modele.exercices.map((p) => records.get(p.exoId)).find((r) => !!r)
+                    return (
+                      <>
+                        {premier && (
+                          <div className="seance-jour-defi">
+                            <div className="seance-jour-defi-nom">
+                              <span>{premier.exo.nom}</span>
+                              <span>record : {chargeQte(premier.exo, premier.charge, premier.reps)}</span>
+                            </div>
+                            <div className="voix seance-jour-voix">
+                              Va chercher le <span className="voix-accent">{premier.reps + 1}</span>.
+                            </div>
+                            {disque.total === 0 && <div className="faible seance-jour-cran">Un record battu = un cran.</div>}
+                          </div>
+                        )}
+                        <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload, records)} />
+                      </>
+                    )
+                  })()}
                   <div className="seance-jour-actions">
                     <button type="button" className="btn primaire" onClick={() => lancer(proposee.modele)}>
                       Démarrer
@@ -722,8 +735,19 @@ export default function Accueil({
               {/* Ce que tu viens de faire, pas la séance suivante : la durée, puis chaque exercice avec son gain. Un appui ouvre la séance. */}
               {faiteAuj ? (
                 <>
+                  {/* Des records aujourd'hui : le disque et la phrase, comme en fin de séance (« 3 records battus. Plus que 7 crans. »). */}
+                  {mieuxAuj && mieuxAuj.records > 0 && faiteAuj.date >= DEBUT_CRANS && (
+                    <button type="button" className="seance-jour-records-faits" onClick={() => setVoirDisque(true)} aria-label="Ton disque : voir tes crans">
+                      <Disque crans={disque.crans || CRANS_PAR_DISQUE} nouveaux={Math.min(mieuxAuj.records, disque.crans || CRANS_PAR_DISQUE)} taille={56} />
+                      <span className="voix">
+                        {mieuxAuj.records > 1 ? `${mieuxAuj.records} records battus.` : 'Record battu.'}
+                        <br />
+                        <span className="voix-gris">{disque.crans === 0 ? 'Disque plein.' : disque.reste === 1 ? 'Plus qu’un cran.' : `Plus que ${disque.reste} crans.`}</span>
+                      </span>
+                    </button>
+                  )}
                   <button type="button" className="seance-jour-stats" onClick={() => onVoirSeance(faiteAuj.id)}>
-                    {[duree(dureeSeanceEffective(faiteAuj)), `${faiteAuj.series.filter(estDure).length} séries dures`, mieuxAuj && mieuxAuj.records > 0 && `${mieuxAuj.records} record${mieuxAuj.records > 1 ? 's' : ''}`].filter(Boolean).join(' · ')} ›
+                    {[duree(dureeSeanceEffective(faiteAuj)), `${faiteAuj.series.filter(estDure).length} séries dures`].join(' · ')} ›
                   </button>
                   <ListeExosJour lignes={lignesAuj} fait onClick={() => onVoirSeance(faiteAuj.id)} />
                   {aChoisirAuj > 0 && (

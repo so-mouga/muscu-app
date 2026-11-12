@@ -4528,8 +4528,8 @@ html[data-sens='fondu']::view-transition-new(root) {
   padding-bottom: 2px;
 }
 .accueil-entete h1 {
-  font-weight: 700;
-  letter-spacing: -0.4px;
+  font-size: var(--t-texte);
+  font-weight: 600;
 }
 .accueil .btn-reglages {
   width: var(--cible);
@@ -6516,16 +6516,6 @@ button.jour-pas {
   font-size: var(--t-petit);
   font-weight: 500;
 }
-/* Sous « Cette semaine » : pas par jour et jours tenus, sur les jours finis. */
-.accueil-moyenne {
-  margin-top: calc(-1 * var(--e2));
-  padding-bottom: var(--e1);
-  color: var(--texte-2);
-  font-size: var(--t-legende);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 /* Question libre du bilan partagé, au-dessus de « Partager le texte complet ». */
 .partage-question {
   display: flex;
@@ -6646,29 +6636,95 @@ button.jour-pas {
 .fin-crans-gain {
   font-weight: 400;
 }
-/* Accueil : la ligne du disque (depuis le premier cran) et les records à portée de la séance du jour. */
-.accueil-disque .disque {
-  margin-left: auto;
-  flex: none;
+/* Accueil : la semaine et le disque sur une ligne ; la phrase du record à portée ; le disque d'une séance faite. */
+.accueil-semaine-ligne {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
 }
-.accueil-disque .semaine-texte {
+.accueil-semaine-ligne .accueil-semaine {
+  flex: 1;
+  min-width: 0;
+}
+.accueil-semaine-ligne .semaine-texte {
   margin-left: 0;
-}
-.accueil-semaine + .accueil-disque {
-  margin-top: calc(-1 * var(--e2));
-}
-.seance-jour-records {
-  margin-top: var(--e2);
-  font-size: var(--t-petit);
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.seance-jour-records strong {
-  font-weight: 600;
+.accueil-disque {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--cible);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+  cursor: pointer;
 }
-.seance-jour-records + .exos-jour {
-  margin-top: var(--e1);
+.accueil-disque .disque {
+  flex: none;
+}
+.seance-jour-defi {
+  margin-top: var(--e3);
+}
+.seance-jour-defi-nom {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e3);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  white-space: nowrap;
+}
+.seance-jour-defi-nom span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Une ligne, même avec une police plus large (« Va chercher le 11. » : environ 190 px sur 290). */
+.seance-jour-voix {
+  white-space: nowrap;
+}
+.seance-jour-cran {
+  font-size: var(--t-legende);
+}
+.seance-jour-defi + .exos-jour {
+  margin-top: var(--e2);
+}
+/* Sans orange : le record à ta portée est en blanc, la dernière fois en gris. */
+.exo-jour.record .exo-jour-gain {
+  color: var(--texte);
+}
+.exo-jour.terne .exo-jour-gain {
+  color: var(--texte-2);
+  font-weight: 400;
+}
+.seance-jour-records-faits {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+  margin-top: var(--e2);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--texte);
+  text-align: left;
+  cursor: pointer;
+}
+.seance-jour-records-faits .disque {
+  flex: none;
+}
+/* Avec le disque, la liste peut descendre à une ligne et « +n autres » : « Voir la séance » reste à l'écran avec deux rappels. */
+.seance-jour-records-faits ~ .exos-jour {
+  min-height: calc(2 * var(--ligne-exo));
+  margin-top: var(--e2);
+}
+/* Jamais d'animation sur l'Accueil : les crans du jour sont verts, posés d'avance. */
+.seance-jour-records-faits .disque-nouveau {
+  animation: none;
 }
 
 /* Démarrage : ce qu'est l'appli, au-dessus de la première question ; les exercices sous chaque séance proposée. */

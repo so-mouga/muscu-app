@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Accueil, le défi d'abord</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#191716;--controle:rgba(255,255,255,.08);--bord:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--accent-texte:#1a0d03;--ok:#22c55e;--info:#5a96f7}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;display:flex;justify-content:center;background:var(--bg)}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column}
+.page{flex:1;min-height:0;display:flex;flex-direction:column;padding:6px 16px 12px}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:2px 12px;font-size:12px;font-weight:600;text-align:center}
+.ligne{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.g{color:var(--t2)}.g3{color:var(--t3)}.petit{font-size:14px}.legende{font-size:12px}.v{color:var(--ok)}.o{color:var(--accent)}
+h1{font-size:26px;font-weight:700;margin:0}
+h2{font-size:20px;font-weight:600;margin:0}
+.entete{display:flex;justify-content:space-between;align-items:center;min-height:44px}
+.entete.calme h1{font-size:16px;font-weight:600}
+.reglages{width:20px;height:14px;border-top:2px solid var(--t2);border-bottom:2px solid var(--t2);position:relative}
+.reglages:after{content:"";position:absolute;left:0;right:0;top:4px;border-top:2px solid var(--t2)}
+.reperes{font-size:14px;color:var(--t2);display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.reperes b{color:var(--texte);font-weight:600}
+.point{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px}
+.carte{background:var(--carte);border-radius:18px;padding:14px 16px}
+/* Les trois cases du matin : inchangées */
+.cases{display:grid;grid-template-columns:repeat(3,1fr)}
+.cases>div{padding-left:12px;border-left:1px solid var(--bord)}
+.cases>div:first-child{padding-left:0;border-left:0}
+.cases b{font-size:16px;font-weight:700;display:block}
+.cases span{font-size:12px;color:var(--t2)}
+.sous{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--bord);margin-top:10px;padding-top:10px;font-size:14px}
+.points{display:inline-flex;gap:5px;margin-right:8px;vertical-align:middle}
+.points i{width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.14)}
+.points i.f{background:var(--ok)}
+.seance{flex:1;min-height:0;margin-top:10px;display:flex;flex-direction:column}
+/* La voix : deux phrases courtes, penchées, avec un de tes chiffres */
+.voix{font-style:italic;font-weight:800;font-size:25px;line-height:1.12;margin:2px 0 0}
+.voix .calme{color:var(--t2)}
+.duel{margin:12px 0 2px}
+.duel-nom{display:flex;justify-content:space-between;gap:10px;font-size:14px;color:var(--t2)}
+.duel-nom span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.duel-nom span:last-child{white-space:nowrap}
+.voix.une{white-space:nowrap;font-size:24px}
+.rappel{background:var(--carte);border-radius:14px;min-height:40px;display:flex;align-items:center;gap:10px;padding:0 14px;font-size:14px;margin-bottom:6px}
+.rappel i{width:14px;height:14px;border-radius:4px;background:rgba(90,150,247,.5);flex:none}
+.rappel span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bloc{display:flex;justify-content:space-between;gap:10px;font-size:14px;margin-top:8px;color:var(--t2)}
+.bloc b{color:var(--ok);font-weight:600;white-space:nowrap}
+.liste{margin-top:12px;display:flex;flex-direction:column;gap:7px;font-size:14px;min-height:0;overflow:hidden}
+.liste>div{display:flex;justify-content:space-between;gap:10px}
+.liste span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.liste span:last-child{white-space:nowrap;color:var(--t2)}
+.liste .rec span:last-child{color:var(--texte);font-weight:600}
+.actions{margin-top:auto;padding-top:12px;display:flex;gap:10px}
+.btn{background:var(--controle);border-radius:14px;min-height:52px;display:flex;align-items:center;justify-content:center;font-weight:500;padding:0 22px}
+.primaire{background:var(--accent);color:var(--accent-texte);border-radius:18px;flex:1;box-shadow:0 8px 24px rgba(249,115,22,.2)}
+.plein{flex:1}
+.ico{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;font-size:16px;font-weight:700}
+.ico.ok{background:rgba(34,197,94,.14);color:var(--ok)}
+.ico.info{background:rgba(59,130,246,.14);color:var(--info)}
+.onglets{height:63px;flex:none;border-top:1px solid var(--bord);display:grid;grid-template-columns:repeat(4,1fr);align-items:center;text-align:center;font-size:12px;font-weight:500;color:var(--t2)}
+.onglets b{color:var(--accent);font-weight:500}
+.disque-ligne{display:flex;align-items:center;gap:14px;margin-top:14px}
+.heros{display:flex;align-items:center;gap:16px;padding:6px 0 12px}
+</style>
+</head>
+<body>
+<div class="defile" id="d"></div>
+<script>
+var haut = function (cal, pts, crans) { return '<div class="carte"><div class="cases"><div><b>70,6 kg</b><span>Poids</span></div><div><b>6 h 54</b><span>Sommeil</span></div><div><b>' + cal + ' <span style="font-size:14px;font-weight:400">/ 2 900</span></b><span>Calories</span></div></div>' +
+  '<div class="sous"><span><span class="points">' + [0,1,2,3].map(function (i) { return '<i class="' + (i < pts ? 'f' : '') + '"></i>' }).join('') + '</span><span class="v">4e semaine tenue</span></span><span class="g" style="display:inline-flex;align-items:center;gap:6px"><svg class="dq" data-n="' + crans + '" width="20" height="20"></svg>' + crans + ' crans ›</span></div>' +
+  '<div class="bloc"><span>Développé incliné Smith</span><b>+1 rep sur ce bloc</b></div></div>' }
+var entete = '<div class="entete calme"><h1>Jeudi 12 nov.</h1><span class="reglages"></span></div><div class="reperes"><span><span class="point"></span><b>Prendre du muscle</b></span><span>Programme · sem. 4/6</span></div>'
+var rappels = '<div class="rappel"><i></i><span>Nouvelle version (2.8) : installer</span><span class="g3" style="flex:none">✕</span></div><div class="rappel"><i></i><span>Sauvegarder (Drive, mail…) · il y a 9 j</span><span class="g3" style="flex:none">✕</span></div>'
+var onglets = '<div class="onglets"><b>Accueil</b><span>Progrès</span><span>Corps</span><span>Programme</span></div>'
+var EXOS = [['Dips penchés en avant', 'PDC × 10', 1], ['Butterfly prise haute', '35 kg × 14', 1], ['Tirage vertical poignée en V', '60 kg × 12'], ['Oiseau machine', '8 kg × 15'], ['Extension au-dessus de la tête poulie', '25 kg × 12'], ['Curl marteau poulie', '45 kg × 12']]
+var liste = function (n, rec) { return '<div class="liste">' + EXOS.slice(0, n).map(function (e) { return '<div class="' + (e[2] && rec ? 'rec' : '') + '"><span>' + e[0] + '</span><span>' + e[1] + '</span></div>' }).join('') + (n < 6 ? '<div class="legende g3"><span>+' + (6 - n) + ' autres</span><span></span></div>' : '') + '</div>' }
+var jour = function (titre, phrase, avecRappels, n, nom) {
+  return '<section class="ecran"><div class="tel"><div class="page"><div class="etiquette">' + titre + '</div>' + entete + (avecRappels ? rappels : '') + haut('1 330', 3, 2) +
+    '<div class="carte seance"><div class="ligne petit g"><span>Séance du jour · ≈ 55 min</span><span>Autre séance ›</span></div><h2 style="margin-top:4px">Haut C</h2>' +
+    (phrase ? '<div class="duel"><div class="duel-nom"><span>' + (nom || 'Dips penchés en avant') + '</span><span>record : 10</span></div><div class="voix une">' + phrase + '</div></div>' : '') +
+    liste(n, !!phrase) + '<div class="actions"><div class="btn primaire">Démarrer</div><div class="btn">Voir</div></div></div></div>' + onglets + '</div></section>' }
+var o = function (x) { return '<span class="o">' + x + '</span>' }
+document.getElementById('d').innerHTML =
+  jour('Phrase 1 · avec deux rappels · glisse vers le haut', 'Vise ' + o(11) + '.', true, 3) +
+  jour('Phrase 2 · avec deux rappels', 'Va chercher le ' + o(11) + '.', true, 3, 'Extension au-dessus de la tête poulie') +
+  jour('Phrase 3 · sans rappel', 'Une de plus : ' + o(11) + '.', false, 6) +
+  jour('Pas de conseil « viser plus » : pas de phrase', '', false, 6) +
+  '<section class="ecran"><div class="tel"><div class="page"><div class="etiquette">Séance faite</div>' + entete + haut('2 410', 4, 5) +
+  '<div class="carte seance"><div class="ligne"><h2 style="display:flex;align-items:center"><span class="ico ok">✓</span>Haut C faite</h2><span class="petit g">Autre séance ›</span></div>' +
+  '<div class="disque-ligne"><svg class="dq" data-n="5" data-neufs="3" width="60" height="60"></svg><div class="voix une">3 records battus.<br><span class="calme">Plus que 7 crans.</span></div></div>' +
+  '<div class="petit g" style="margin-top:8px">53 min · 17 séries dures ›</div>' +
+  '<div class="liste"><div><span>Butterfly prise haute</span><span style="color:var(--ok);font-weight:600">+1 rep</span></div><div><span>Oiseau machine</span><span style="color:var(--ok);font-weight:600">+1 rep</span></div><div><span>Extension au-dessus de la tête poulie</span><span style="color:var(--ok);font-weight:600">+1 rep</span></div><div class="legende g3"><span>+3 autres</span><span></span></div></div>' +
+  '<div class="petit" style="margin-top:auto;padding-top:10px">Prochaine fois : 6 conseils à choisir ›</div><div class="petit g" style="margin-top:6px">Ensuite, lundi : <b style="color:var(--texte);font-weight:600">Haut A</b></div><div class="actions" style="margin-top:0"><div class="btn plein">Voir la séance</div></div></div></div>' + onglets + '</div></section>'
+// Le disque : 12 crans autour d'un trou, comme le logo. Blancs = gagnés, verts = gagnés aujourd'hui.
+document.querySelectorAll('svg.dq').forEach(function (s) {
+  var n = +s.dataset.n, neufs = +(s.dataset.neufs || 0), r = 38, c = 2 * Math.PI * r, seg = c / 12, vide = seg * 0.16
+  var h = ''
+  for (var i = 0; i < 12; i++) {
+    var coul = i < n - neufs ? '#f5f4f2' : i < n ? '#22c55e' : 'rgba(255,255,255,.13)'
+    h += '<circle cx="50" cy="50" r="' + r + '" fill="none" stroke="' + coul + '" stroke-width="17" stroke-dasharray="' + (seg - vide) + ' ' + (c - seg + vide) + '" transform="rotate(' + (-90 + i * 30 + 2.4) + ' 50 50)"/>'
+  }
+  s.setAttribute('viewBox', '0 0 100 100')
+  s.innerHTML = h
+})
+</script>
+</body>
+</html>
