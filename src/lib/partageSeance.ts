@@ -146,6 +146,10 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
   if (forme.length) l.push(`Forme : ${forme.join(' · ')}`)
   const repas = laVeille ? moyenneRepas([laVeille], d.objectifs) : null
   if (repas) l.push(`Repas de la veille : ${texteRepas(repas)}`)
+  // La note du jour écrite la veille (« resto, 3 verres de vin ») : ce que l'appli de repas ne dit pas. Pas celle du jour
+  // même : elle est souvent écrite le soir, après la séance.
+  const noteVeille = laVeille?.note?.trim()
+  if (noteVeille) l.push(`Note de la veille : ${noteVeille}`)
   l.push('Effort sur 10 : 8/10 = il reste environ 2 reps avant l’échec. Fourchette 8–12 : la charge monte quand toutes les séries atteignent le haut.')
 
   const faits = (seance.echauffement?.faits ?? []).map((id) => mouvement(id, d.mouvements ?? MOUVEMENTS)).filter((x) => !!x)

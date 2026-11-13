@@ -44,6 +44,17 @@ describe('texte d’une séance à partager', () => {
     expect(repas).toContain('Repas de la veille : 2 870 kcal pour 3 000 visées · protéines 148 g')
   })
 
+  it('la note de la veille, jamais celle du jour même', () => {
+    expect(texteSeance(jour, { ...donnees, journal: [{ date: '2026-11-08', note: ' resto, 3 verres de vin ' }] }, true)).toContain('Note de la veille : resto, 3 verres de vin')
+    expect(texteSeance(jour, { ...donnees, journal: [{ date: '2026-11-09', note: 'resto ce soir' }, { date: '2026-11-08', note: '  ' }] }, true)).not.toContain('Note de la veille')
+  })
+
+  it('la charge max de la machine sur la ligne de l’exercice, seulement si elle est réglée', () => {
+    const exoMax = (id: string) => ({ ...donnees.exo(id), ...(id === 'rowing_haltere' ? { chargeMax: 34 } : {}) })
+    expect(texteSeance(jour, { ...donnees, exo: exoMax }, true)).toContain('1. Rowing haltère · 3 × 8–12 · effort 8, 8, 8/10 · repos 2:00 après chaque série · charge max de la machine : 34 kg/main')
+    expect(t).not.toContain('charge max')
+  })
+
   it('chaque exercice : prévu, fait avec l’effort, la fois d’avant, la note', () => {
     expect(t).toContain('1. Rowing haltère · 3 × 8–12 · effort 8, 8, 8/10 · repos 2:00 après chaque série')
     expect(t).toContain('   aujourd’hui : 30 kg/main × 12, 12, 12 · effort 8, 8, 8/10')

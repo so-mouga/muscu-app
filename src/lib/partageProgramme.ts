@@ -48,10 +48,12 @@ export function reposPartage(p: ExoPlan, dernierExo = false): string {
   return `repos ${t}, puis ${chrono(dernier)} avant l’exercice suivant`
 }
 
-/** Ligne d'un exercice : séries, effort, repos ou superset, et ce qui le distingue. */
+/** Ligne d'un exercice : séries, effort, repos ou superset, ce qui le distingue, et la charge max de la machine si elle est réglée. */
 export function ligneExo(exo: Exercice, p: ExoPlan, i: number, dernierExo = false): string {
   const repos = p.enchaine ? `superset avec le ${i + 2}, ${p.repos > 0 ? `${chrono(p.repos)} pour changer de poste` : 'sans repos entre les deux'}` : reposPartage(p, dernierExo)
-  return [`${i + 1}. ${exo.nom}`, schemaPlan(exo, p), effort(p), repos, p.finisseur ? 'finisseur' : '', p.optionnel ? 'optionnel' : ''].filter(Boolean).join(' · ')
+  // La charge max de la machine, si elle est réglée : sans elle, une IA peut conseiller une charge qui n'existe pas.
+  const max = exo.chargeMax !== undefined && !exo.assistance ? `charge max de la machine : ${kg(exo.chargeMax)} ${exo.mode === 'par_main' ? 'kg/main' : 'kg'}` : ''
+  return [`${i + 1}. ${exo.nom}`, schemaPlan(exo, p), effort(p), repos, p.finisseur ? 'finisseur' : '', p.optionnel ? 'optionnel' : '', max].filter(Boolean).join(' · ')
 }
 
 /**
