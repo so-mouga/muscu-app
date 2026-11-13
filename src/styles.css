@@ -3117,6 +3117,10 @@ button.phase-accueil:active {
 .volume-exo-aide {
   color: var(--texte-3, var(--texte-2));
 }
+.ligne-volume-nom {
+  color: var(--texte);
+  font-weight: 600;
+}
 .volume-appuie {
   color: var(--texte);
   font-weight: 600;

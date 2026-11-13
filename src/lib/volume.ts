@@ -1,5 +1,4 @@
 import { MUSCLES } from '../data/exercices'
-import { kg } from './calc'
 import type { Muscle } from '../types'
 
 /**
@@ -76,17 +75,36 @@ export function phraseNiveau(m: Muscle, n: NiveauVolume, seances?: number) {
 /** Aujourd'hui et après : le niveau de chaque muscle ; les anciennes cibles en chiffres y sont ramenées. Muscle sans conseil général : rien. */
 export const ciblesEnVigueur = (v: Partial<Record<Muscle, number>>) => Object.fromEntries(MUSCLES.map((m) => [m.id, m.cible > 0 ? cibleDuNiveau(m.id, niveauDe(m.id, v[m.id])) : 0])) as Record<Muscle, number>
 
+/** Un morceau de la ligne : `fort` = un nom de muscle, écrit en blanc pour qu'on le voie d'un coup. */
+export interface Morceau {
+  t: string
+  fort?: boolean
+}
+
 /**
- * La ligne de la page Programme, en chiffres : le muscle en Priorité d'abord, avec ce qu'il vise, puis les plus travaillés.
- * Sans `conseils` (conseils masqués) : les séries seules.
+ * La ligne de la page Programme, sous « Ce que ton programme travaille » : une seule chose, la réponse (maquette du 13 nov. 2026).
+ * Le muscle en Priorité d'abord, puis les muscles légers, puis ceux au-dessus du conseil, sinon « tout va bien ».
+ * Sans `conseils` (conseils masqués) : rien à juger.
  */
-export function resumeMuscles(volume: Record<Muscle, number>, conseils?: { cibles: Record<Muscle, number>; perso: Record<Muscle, number>; seances: number }): string[] {
-  const texte = (m: (typeof MUSCLES)[number], avecMot = false) => `${m.nom} ${kg(volume[m.id])}${avecMot ? ` série${volume[m.id] >= 2 ? 's' : ''}` : ''}`
-  const tries = MUSCLES.filter((m) => m.cible > 0 && volume[m.id] > 0).sort((a, b) => volume[b.id] - volume[a.id])
-  const prio = conseils && MUSCLES.find((m) => conseils.cibles[m.id] > 0 && niveauDe(m.id, conseils.perso[m.id]) === 'priorite')
-  const z = prio && conseils ? zone(prio.id, conseils.cibles[prio.id], conseils.seances) : null
-  const autres = tries.filter((m) => m !== prio).slice(0, prio ? 3 : 2)
-  if (prio && z) return [`${texte(prio)}, en priorité : vise ${kg(z.bas)} à ${kg(z.haut)}`, autres.map((m) => texte(m)).join(' · ')].filter(Boolean)
-  const tete = tries.slice(0, 3)
-  return tete.length ? [tete.map((m, i) => texte(m, i === 0)).join(' · ')] : []
+export function ligneMuscles(volume: Record<Muscle, number>, conseils?: { cibles: Record<Muscle, number>; perso: Record<Muscle, number>; seances: number }): Morceau[] {
+  if (!conseils) return [{ t: 'Tes séries, muscle par muscle' }]
+  const { cibles, perso, seances } = conseils
+  const prio = MUSCLES.find((m) => cibles[m.id] > 0 && niveauDe(m.id, perso[m.id]) === 'priorite')
+  const z = prio && zone(prio.id, cibles[prio.id], seances)
+  if (prio && z) {
+    const manque = volume[prio.id] < z.bas ? Math.ceil(z.bas - volume[prio.id] - 1e-9) : 0
+    return [{ t: prio.nom, fort: true }, { t: ` en priorité : ${manque ? `il t’en manque ${manque}` : 'c’est atteint'}` }]
+  }
+  const avec = (etat: EtatVolume) => MUSCLES.filter((m) => etatVolume(m.id, volume[m.id], cibles[m.id], seances) === etat).sort((a, b) => volume[a.id] / cibles[a.id] - volume[b.id] / cibles[b.id])
+  const noms = (l: typeof MUSCLES, suite: string, suitePluriel: string): Morceau[] =>
+    l.length === 1
+      ? [{ t: l[0].nom, fort: true }, { t: suite }]
+      : l.length === 2
+        ? [{ t: l[0].nom, fort: true }, { t: ' et ' }, { t: l[1].nom.toLowerCase(), fort: true }, { t: suitePluriel }]
+        : [{ t: `${l.length} muscles${suitePluriel}` }]
+  const legers = avec('leger')
+  if (legers.length) return noms(legers, ' un peu léger', ' un peu légers')
+  const beaucoup = avec('beaucoup')
+  if (beaucoup.length) return noms(beaucoup, ' au-dessus du conseil', ' au-dessus du conseil')
+  return [{ t: 'Tous tes muscles sont dans le conseil' }]
 }

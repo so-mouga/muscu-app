@@ -15,7 +15,7 @@ import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
 import { confirmer, informer } from '../components/Dialogues'
 import { arretCycle, debutCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
-import { etatVolume, resumeMuscles } from '../lib/volume'
+import { ligneMuscles } from '../lib/volume'
 import { MODELES } from '../data/programme'
 import { db, setReglage, uid } from '../db'
 import { chargeTexte, dateISO, detailVolume, dureeEstimee, dureeHabituelle, dureeTexte, jourSemaine, kg, lundi, minutes, schemaPlan, semaineType, volumePrevu } from '../lib/calc'
@@ -302,10 +302,7 @@ function PageProgramme({
   }
 
   const volume = volumePrevu(semaineType(p).map((e) => catalogue.modele(e.modeleId)).filter((m) => !!m), catalogue.exercices)
-  const etats = MUSCLES.map((m) => etatVolume(m.id, volume[m.id], catalogue.cibles[m.id], catalogue.seancesParSemaine))
-  const legers = etats.filter((e) => e === 'leger').length
-  const beaucoup = etats.filter((e) => e === 'beaucoup').length
-  const resumeVolume = resumeMuscles(volume, catalogue.conseilsVolumeMasques ? undefined : { cibles: catalogue.cibles, perso: catalogue.ciblesPerso, seances: catalogue.seancesParSemaine })
+  const ligneVolume = ligneMuscles(volume, catalogue.conseilsVolumeMasques ? undefined : { cibles: catalogue.cibles, perso: catalogue.ciblesPerso, seances: catalogue.seancesParSemaine })
   const prochainDeload = cycle && etat ? cycle.deloads.find((d) => d >= etat.n) : undefined
   const suivi = cycle ? suiviCycle(cycle, terminees ?? [], dateISO(), prevusNotes) : undefined
   // Les repères de la semaine : ce qui est fait, et ce qui tombe aujourd'hui.
@@ -431,16 +428,9 @@ function PageProgramme({
         <button className="liste-btn" onClick={onVolume}>
           <span>
             {TITRE_VOLUME}
-            {resumeVolume.map((l) => (
-              <span key={l} className="faible prog-sous">
-                {l}
-              </span>
-            ))}
-            {!catalogue.conseilsVolumeMasques && (
-              <span className="faible prog-sous">
-                {legers || beaucoup ? [legers ? `${legers} muscle${legers > 1 ? 's' : ''} un peu léger${legers > 1 ? 's' : ''}` : '', beaucoup ? `${beaucoup} avec beaucoup` : ''].filter(Boolean).join(' · ') : 'Tous les muscles atteignent le conseil'}
-              </span>
-            )}
+            <span className="faible prog-sous">
+              {ligneVolume.map((x, i) => (x.fort ? <strong key={i} className="ligne-volume-nom">{x.t}</strong> : x.t))}
+            </span>
           </span>
           <ChevronRight size={20} className="muted" />
         </button>
@@ -945,7 +935,7 @@ function Editeur({
                 <span className="faible">Séries par muscle</span>
                 <Aide
                   titre="Séries par muscle"
-                  texte="Ne comptent que les séries qui font vraiment travailler : proches de l’échec, à 7/10 d’effort ou plus. Un muscle qui aide (comme le triceps sur un développé) compte pour une demi-série. Le total de la semaine est dans Programme, puis Volume par semaine."
+                  texte="Ne comptent que les séries qui font vraiment travailler : proches de l’échec, à 7/10 d’effort ou plus. Un muscle qui aide (comme le triceps sur un développé) compte pour une demi-série. Le total de la semaine est dans Programme, puis Ce que ton programme travaille."
                 />
               </div>
               <div className="seance-muscles">

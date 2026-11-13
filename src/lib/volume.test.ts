@@ -1,5 +1,5 @@
 import { MUSCLES } from '../data/exercices'
-import { cibleDuNiveau, cibleLue, ciblesEnVigueur, ciblesLues, etatVolume, niveauDe, phraseNiveau, resumeMuscles, zone } from './volume'
+import { cibleDuNiveau, cibleLue, ciblesEnVigueur, ciblesLues, etatVolume, niveauDe, phraseNiveau, ligneMuscles, zone } from './volume'
 
 describe('volume par muscle en jauge', () => {
   it('zone conseillée : léger, optimal, beaucoup', () => {
@@ -80,12 +80,23 @@ describe('volume par muscle en jauge', () => {
     expect(zone('quadriceps', 4, 2)).toEqual({ bas: 4, haut: 8 })
     expect(zone('biceps', 6, 1)).toEqual({ bas: 6, haut: 16 })
   })
-  it('ligne de la page Programme : le muscle en Priorité d’abord, puis les plus travaillés', () => {
-    const volume = { ...Object.fromEntries(MUSCLES.map((m) => [m.id, 0])), pecs: 10, dos: 7, quadriceps: 7, ischios: 5, abdos: 9 } as Record<(typeof MUSCLES)[number]['id'], number>
-    const perso = ciblesEnVigueur({ pecs: 16 })
-    expect(resumeMuscles(volume, { cibles: ciblesLues(perso, 2), perso, seances: 2 })).toEqual(['Pecs 10, en priorité : vise 12 à 14', 'Dos 7 · Quadriceps 7 · Ischios 5'])
+  it('ligne de la page Programme : une seule réponse, la Priorité d’abord, puis les légers, puis ceux au-dessus', () => {
+    const texte = (l: { t: string }[]) => l.map((x) => x.t).join('')
+    const base = Object.fromEntries(MUSCLES.map((m) => [m.id, 0])) as Record<(typeof MUSCLES)[number]['id'], number>
+    const dansLaZone = { ...base, pecs: 12, dos: 12, epaule_laterale: 10, epaule_arriere: 8, biceps: 8, triceps: 8, quadriceps: 12, ischios: 10, mollets: 8 }
     const normal = ciblesEnVigueur({})
-    expect(resumeMuscles(volume, { cibles: normal, perso: normal, seances: 2 })).toEqual(['Pecs 10 séries · Dos 7 · Quadriceps 7'])
-    expect(resumeMuscles(volume)).toEqual(['Pecs 10 séries · Dos 7 · Quadriceps 7'])
+    const avec = (v: typeof base, perso = normal) => texte(ligneMuscles(v, { cibles: ciblesLues(perso, 2), perso, seances: 2 }))
+    const prio = ciblesEnVigueur({ pecs: 16 })
+    expect(avec({ ...dansLaZone, pecs: 7 }, prio)).toBe('Pecs en priorité : il t’en manque 5')
+    expect(avec({ ...dansLaZone, pecs: 9.5 }, prio)).toBe('Pecs en priorité : il t’en manque 3')
+    expect(avec({ ...dansLaZone, pecs: 13, biceps: 2 }, prio)).toBe('Pecs en priorité : c’est atteint')
+    expect(avec({ ...dansLaZone, biceps: 3 })).toBe('Biceps un peu léger')
+    expect(avec({ ...dansLaZone, biceps: 3, mollets: 2 })).toBe('Mollets et biceps un peu légers')
+    expect(avec({ ...dansLaZone, biceps: 3, mollets: 2, dos: 4 })).toBe('3 muscles un peu légers')
+    expect(avec({ ...dansLaZone, triceps: 20 })).toBe('Triceps au-dessus du conseil')
+    expect(avec({ ...dansLaZone, triceps: 20, biceps: 3 })).toBe('Biceps un peu léger')
+    expect(avec(dansLaZone)).toBe('Tous tes muscles sont dans le conseil')
+    expect(texte(ligneMuscles(dansLaZone))).toBe('Tes séries, muscle par muscle')
+    expect(ligneMuscles({ ...dansLaZone, biceps: 3, mollets: 2 }, { cibles: normal, perso: normal, seances: 2 }).filter((x) => x.fort).map((x) => x.t)).toEqual(['Mollets', 'biceps'])
   })
 })
