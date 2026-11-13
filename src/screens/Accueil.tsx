@@ -5,7 +5,7 @@ import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
 import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
 import { sousTitrePerso, sousTitreSeance } from '../lib/programme'
-import { creneauxFaits, creneauxRates, meilleureSerie } from '../lib/historique'
+import { creneauxFaits, creneauxRates } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
 import { derniereSemainePhase, nomCourtPhase, nomVise, periodes, phaseAffichee } from '../lib/objectifs'
 import { phaseFinie, reperesAPrendre, reperesDeFin, type Repere } from '../lib/recap'
@@ -16,8 +16,7 @@ import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
 import Disque from '../components/Disque'
 import FenetreDisque from '../components/FenetreDisque'
-import { aPortee, CRANS_PAR_DISQUE, DEBUT_CRANS, etatDisque, totalCrans } from '../lib/crans'
-import { CLE_CAPS, capAPortee, etatCap, lireCaps, texteCap } from '../lib/caps'
+import { CRANS_PAR_DISQUE, DEBUT_CRANS, etatDisque, totalCrans } from '../lib/crans'
 import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
@@ -489,44 +488,13 @@ export default function Accueil({
     return progres.exo.mesure === 'temps' ? `+${dr} s` : `+${dr} rep${dr > 1 ? 's' : ''}`
   })()
 
-  // Records à ta portée : le conseil est « Tu peux viser plus » et une rep de plus bat le record (`aPortee`). Un record battu = un cran.
-  const recordsAPortee = (m: SeanceModele) =>
-    new Map(
-      (recentes ? m.exercices : []).flatMap((p) => {
-        const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
-        const r = aPortee(exo, p, historiqueDe(recentes!, p.exoId))
-        return r ? [[p.exoId, { exo, ...r }] as const] : []
-      })
-    )
-  // Cap à ta portée : les charges prévues aujourd'hui sont celles d'un cap en cours (`capAPortee`). Il passe avant le record du jour.
-  const capsFixes = lireCaps(reglages.find((r) => r.cle === CLE_CAPS)?.valeur)
-  const capDuJour = (m: SeanceModele) => {
-    if (!recentes || !terminees) return undefined
-    for (const p of m.exercices) {
-      const cap = capsFixes.find((c) => c.exoId === p.exoId)
-      const etatDuCap = cap && etatCap(cap, terminees)
-      if (!cap || !etatDuCap || etatDuCap.franchi) continue
-      const exo = exoAvecReglages(catalogue.exo(p.exoId), reglages)
-      if (capAPortee(cap, suggestionPour(exo, p, recentes), etatDuCap.niveau)) return { exo, cap }
-    }
-    return undefined
-  }
   /**
-   * Chaque exercice avec un chiffre : le record à ta portée en blanc, l'objectif à battre en orange, sinon la meilleure série
-   * de la dernière fois en gris. En semaine allégée, rien (les charges du jour sont plus légères).
+   * Les exercices de la séance, leur nom seul (13 nov. 2026, retour de l'utilisateur : l'accueil était trop chargé). La pastille
+   * « À battre » sur ceux où tu as choisi de viser plus haut que la dernière fois : la même que dans « Voir ». Rien en semaine allégée.
    */
-  const lignesDe = (m: SeanceModele, avecGains: boolean, records: ReturnType<typeof recordsAPortee>): LigneExo[] => {
-    const gains = avecGains ? new Map(aBattreDe(m).map((x) => [x.exo.id, x.plus])) : undefined
-    return m.exercices.map((p, i) => {
-      const id = `${p.exoId}-${i}`
-      const exo = catalogue.exo(p.exoId)
-      const r = avecGains ? records.get(p.exoId) : undefined
-      if (r) return { id, nom: exo.nom, gain: chargeQte(r.exo, r.charge, r.reps), ton: 'record' }
-      const g = gains?.get(p.exoId)
-      if (g || !avecGains || !recentes) return { id, nom: exo.nom, gain: g }
-      const der = meilleureSerie(historiqueDe(recentes, p.exoId)[0] ?? [], exo.assistance)
-      return { id, nom: exo.nom, gain: der && chargeQte(exo, der.charge, der.reps), ton: 'terne' }
-    })
+  const lignesDe = (m: SeanceModele, avecGains: boolean): LigneExo[] => {
+    const aBattre = avecGains ? new Set(aBattreDe(m).map((x) => x.exo.id)) : undefined
+    return m.exercices.map((p, i) => ({ id: `${p.exoId}-${i}`, nom: catalogue.exo(p.exoId).nom, aBattre: aBattre?.has(p.exoId) }))
   }
   // Le disque : seulement à partir du premier cran gagné.
   const disque = etatDisque(terminees ? totalCrans(terminees, catalogue.exo) : 0)
@@ -672,15 +640,13 @@ export default function Accueil({
             </>
           ) : aLancer ? (
             <>
-              <div className="seance-jour-haut">
-                <span className={etat?.deload ? 'seance-jour-etiquette deload' : 'seance-jour-etiquette'}>{etat?.deload ? 'Semaine allégée · charges −10 %' : 'Séance du jour'}</span>
+              {/* Le nom de la séance et « Autre séance » sur une ligne ; plus d'étiquette « Séance du jour » (13 nov. 2026). */}
+              {etat?.deload && <span className="seance-jour-etiquette deload">Semaine allégée · charges −10 %</span>}
+              <div className="seance-jour-titre seance-jour-titre-ligne">
+                <h2>{proposee.modele.nom}</h2>
                 <button type="button" className="seance-jour-lien" onClick={() => setChoix(true)}>
                   Autre séance ›
                 </button>
-              </div>
-              <div className="seance-jour-titre">
-                <h2>{proposee.modele.nom}</h2>
-                <span className="seance-jour-duree">{dureeDe(proposee.modele)}</span>
               </div>
               {variante && (
                 <button type="button" className="seance-jour-lien pas-de-salle" onClick={() => voir(variante)}>
@@ -690,40 +656,8 @@ export default function Accueil({
               {joursSans !== null && joursSans >= 10 && <div className="faible seance-jour-retour">Première séance depuis {joursSans} jours : mêmes charges que la dernière fois, baisse un peu si c’est trop dur.</div>}
               {proposee.modele.exercices.length ? (
                 <>
-                  {(() => {
-                    // « Va chercher le 11. » : le premier exercice de la séance avec un record à ta portée (conseil « Tu peux viser plus »).
-                    const records = recordsAPortee(proposee.modele)
-                    const premier = etat?.deload ? undefined : proposee.modele.exercices.map((p) => records.get(p.exoId)).find((r) => !!r)
-                    const cap = etat?.deload ? undefined : capDuJour(proposee.modele)
-                    return (
-                      <>
-                        {cap && (
-                          <div className="seance-jour-defi">
-                            <div className="seance-jour-defi-nom">
-                              <span>{cap.exo.nom}</span>
-                              <span>ton cap : {texteCap(cap.exo, cap.cap, cap.cap.cible)}</span>
-                            </div>
-                            <div className="voix seance-jour-voix">
-                              Va chercher les <span className="voix-accent">{kg(cap.cap.cible)}</span>.
-                            </div>
-                          </div>
-                        )}
-                        {!cap && premier && (
-                          <div className="seance-jour-defi">
-                            <div className="seance-jour-defi-nom">
-                              <span>{premier.exo.nom}</span>
-                              <span>record : {chargeQte(premier.exo, premier.charge, premier.reps)}</span>
-                            </div>
-                            <div className="voix seance-jour-voix">
-                              Va chercher le <span className="voix-accent">{premier.reps + 1}</span>.
-                            </div>
-                            {disque.total === 0 && <div className="faible seance-jour-cran">Un record battu = un cran.</div>}
-                          </div>
-                        )}
-                        <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload, records)} />
-                      </>
-                    )
-                  })()}
+                  <ListeExosJour lignes={lignesDe(proposee.modele, !etat?.deload)} />
+                  <div className="seance-jour-duree-bas">{dureeDe(proposee.modele)}</div>
                   <div className="seance-jour-actions">
                     <button type="button" className="btn primaire" onClick={() => lancer(proposee.modele)}>
                       Démarrer

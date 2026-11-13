@@ -1,16 +1,17 @@
+import { Flame } from 'lucide-react'
 import { useLayoutEffect, useRef, useState } from 'react'
 
 /** Hauteur d'une ligne, la même que `.exos-jour > div` dans styles.css. */
 const HAUT_LIGNE = 26
 
 /**
- * `ton` (séance du jour) : `record` = un record à ta portée, le chiffre en blanc ; `terne` = la dernière fois, en gris.
- * Sans `ton`, le gain est en orange (objectif à battre) ou en vert (séance faite).
+ * Séance du jour : le nom seul, et la pastille « À battre » (`aBattre`) quand un objectif plus haut que la dernière fois a été choisi.
+ * Séance faite (`fait`) : le gain face à la fois d'avant, en vert.
  */
-export type LigneExo = { id: string; nom: string; gain?: string; ton?: 'record' | 'terne' }
+export type LigneExo = { id: string; nom: string; gain?: string; aBattre?: boolean }
 
-/** Un vrai gain d'abord (« +2 kg »), puis « = », puis le reste : ce qu'on garde quand tout ne tient pas. */
-const rang = (l: LigneExo) => (l.ton === 'terne' ? 2 : l.gain && l.gain !== '=' ? 0 : l.gain ? 1 : 2)
+/** À battre ou un vrai gain d'abord (« +2 kg »), puis « = », puis le reste : ce qu'on garde quand tout ne tient pas. */
+const rang = (l: LigneExo) => (l.aBattre || (l.gain && l.gain !== '=') ? 0 : l.gain ? 1 : 2)
 
 /**
  * Exercices d'une séance sur l'accueil : autant de lignes que la place en laisse, le reste en « +n autres ».
@@ -35,9 +36,14 @@ export default function ListeExosJour({ lignes, fait, onClick }: { lignes: Ligne
     <div ref={zone} className={'exos-jour' + (fait ? ' fait' : '')} onClick={onClick} role={onClick ? 'button' : undefined}>
       <div className="exos-jour-lignes">
         {montrees.map((l) => (
-          <div key={l.id} className={'exo-jour' + ((fait && rang(l) > 0) || l.ton === 'terne' ? ' terne' : '') + (l.ton === 'record' ? ' record' : '')}>
+          <div key={l.id} className={'exo-jour' + (fait && rang(l) > 0 ? ' terne' : '') + (!fait && !l.aBattre ? ' simple' : '')}>
             <span className="exo-jour-nom">{l.nom}</span>
             {l.gain && <span className="exo-jour-gain">{l.gain}</span>}
+            {l.aBattre && (
+              <span className="badge-hausse exo-jour-battre">
+                <Flame size={12} className="ico-texte" /> À battre
+              </span>
+            )}
           </div>
         ))}
         {!tout && <div className="exos-jour-autres">+{lignes.length - montrees.length} autres</div>}

@@ -6779,39 +6779,27 @@ button.jour-pas {
 .accueil-disque .disque {
   flex: none;
 }
-.seance-jour-defi {
-  margin-top: var(--e3);
+/* Séance du jour (13 nov. 2026) : le nom de la séance et « Autre séance » sur une ligne, les exercices en gris, ceux à battre en blanc
+   avec la pastille de « Voir », la durée en petit sous la liste. */
+.seance-jour-titre-ligne {
+  flex-wrap: nowrap;
+  margin-top: 0;
 }
-.seance-jour-defi-nom {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--e3);
+.exo-jour.simple {
   color: var(--texte-2);
-  font-size: var(--t-petit);
-  white-space: nowrap;
 }
-.seance-jour-defi-nom span:first-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.exo-jour {
+  align-items: center;
 }
-/* Une ligne, même avec une police plus large (« Va chercher le 11. » : environ 190 px sur 290). */
-.seance-jour-voix {
-  white-space: nowrap;
+.exo-jour-battre {
+  flex: none;
+  margin-left: 0;
+  line-height: 1.5;
 }
-.seance-jour-cran {
+.seance-jour-duree-bas {
+  margin-top: var(--e1);
+  color: var(--texte-2);
   font-size: var(--t-legende);
-}
-.seance-jour-defi + .exos-jour {
-  margin-top: var(--e2);
-}
-/* Sans orange : le record à ta portée est en blanc, la dernière fois en gris. */
-.exo-jour.record .exo-jour-gain {
-  color: var(--texte);
-}
-.exo-jour.terne .exo-jour-gain {
-  color: var(--texte-2);
-  font-weight: 400;
 }
 .seance-jour-records-faits {
   display: flex;
