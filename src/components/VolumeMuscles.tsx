@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CLE_CONSEILS_VOLUME_MASQUES, type Catalogue } from '../catalogue'
 import { setReglage } from '../db'
 import Interrupteur from './Interrupteur'
-import { ChevronRight, Info } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { MUSCLES } from '../data/exercices'
 import { LigneAide } from './Aide'
 import InfosExo, { aDesInfos } from './InfosExo'
@@ -32,11 +32,10 @@ interface Props {
   seances: SeanceVolume[]
 }
 
-/** Une séance de la semaine : son nom (celui des lignes de volume), son jour en court et sa durée (« ≈ 55 min »). */
+/** Une séance de la semaine : son nom (celui des lignes de volume) et son jour en toutes lettres (« Lundi »), vide sans jour. */
 export interface SeanceVolume {
   nom: string
   jour: string
-  duree: string
 }
 
 /** « zone 10 à 16 » : 10 est le bas de la zone, pas un objectif à ne pas dépasser. */
@@ -73,7 +72,8 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
   const [choisi, setChoisi] = useState<Muscle | null>(null)
   const rang = { leger: 0, beaucoup: 1, optimal: 2, suivi: 3 }
   const jauges = MUSCLES.filter((m) => cibles[m.id] > 0).sort((a, b) => rang[etatVolume(a.id, volume[a.id], cibles[a.id], n)] - rang[etatVolume(b.id, volume[b.id], cibles[b.id], n)])
-  const suivis = MUSCLES.filter((m) => (masque ? cibleConseillee(m.id) : cibles[m.id]) <= 0)
+  // Sans conseil : seulement ceux qui ont des séries, un « 0 » n'apprend rien et peut inquiéter.
+  const suivis = MUSCLES.filter((m) => (masque ? cibleConseillee(m.id) : cibles[m.id]) <= 0 && volume[m.id] > 0)
   const sansBarre = masque ? MUSCLES.filter((m) => cibleConseillee(m.id) > 0) : []
 
   return (
@@ -116,7 +116,7 @@ export default function VolumeMuscles({ volume, detail, avecJours, exo, cibles, 
       ))}
       {suivis.length > 0 && (
         <div className="volume-suivis">
-          <div className="faible">Aussi suivis, sans conseil</div>
+          <div className="faible">Travaillés avec les autres exercices, sans conseil à part</div>
           <div className="chips">
             {suivis.map((m) => (
               <button key={m.id} type="button" onClick={() => setChoisi(m.id)}>
@@ -161,60 +161,72 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
   const cible = c === depart ? enVigueur : cibleLue(muscle, c, n)
   const etat = etatVolume(muscle, volume, cible, n)
   const z = zone(muscle, cible, n)
-  // Ce qu'il manque pour atteindre le bas du conseil, arrondi à la demi-série.
-  const manque = z && volume < z.bas ? Math.ceil((z.bas - volume) * 2) / 2 : 0
+  // Ce qu'il manque pour atteindre le bas du conseil, arrondi à la série entière au-dessus : une demi-série ne parle à personne.
+  const manque = z && volume < z.bas ? Math.ceil(z.bas - volume - 1e-9) : 0
   // Les exercices rangés par séance, dans l'ordre de la semaine : on voit où il reste de la place.
-  const groupes = [...seances.map((x) => x.nom), ...lignes.map((l) => l.seance)].filter((nom, i, t) => t.indexOf(nom) === i).map((nom) => ({ nom, info: seances.find((x) => x.nom === nom), lignes: lignes.filter((l) => l.seance === nom) })).filter((g) => g.lignes.length)
+  const groupes = [...seances.map((x) => x.nom), ...lignes.map((l) => l.seance)]
+    .filter((nom, i, t) => t.indexOf(nom) === i)
+    .map((nom) => ({ nom, jour: seances.find((x) => x.nom === nom)?.jour, lignes: lignes.filter((l) => l.seance === nom) }))
+    .filter((g) => g.lignes.length)
+  const series = (v: number) => `${kg(v)} série${v >= 2 ? 's' : ''}`
   return (
     <div className="modal-fond" onClick={() => onFin(c)}>
       <div className="modal modal-colonne volume-fenetre" onClick={(e) => e.stopPropagation()}>
+        {/* La réponse d'abord : le total, la barre, et ce qu'elle en dit. */}
         <div className="modal-tete">
           <h2>{def.nom}</h2>
-          <div className="faible">
-            <strong className="volume-total">
-              {kg(volume)} série{volume >= 2 ? 's' : ''} par semaine
-            </strong>
-            {etat !== 'suivi' && (
-              <>
-                {' '}
-                · {texteZone(muscle, cible, n)} <span className={`etat-volume ${etat}`}>· {LIBELLE_VOLUME[etat]}</span>
-              </>
-            )}
+          <div className="volume-grand">
+            {kg(volume)} <span>série{volume >= 2 ? 's' : ''} par semaine</span>
           </div>
+          {z && (
+            <>
+              <span className="jauge volume-jauge">
+                <NiveauJauge muscle={muscle} etat={etat} valeur={volume} max={z.bas} />
+              </span>
+              <div className="volume-reponse">
+                {manque > 0 ? (
+                  <>
+                    <strong>Il t’en manque {manque}.</strong> Le conseil est de {kg(z.bas)} à {kg(z.haut)}.
+                  </>
+                ) : (
+                  <>
+                    <span className={`etat-volume ${etat}`}>{LIBELLE_VOLUME[etat]}</span> · le conseil est de {kg(z.bas)} à {kg(z.haut)}.
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
         <div className="modal-defile pile">
           <div className="volume-exos">
             {groupes.map((g) => (
-              <div key={g.nom} className="volume-groupe">
-                <div className="volume-groupe-tete">
-                  <span>{[g.info?.jour, g.nom, g.info?.duree].filter(Boolean).join(' · ')}</span>
-                  <span>
-                    {kg(g.lignes.reduce((a, l) => a + l.series, 0))} série{g.lignes.reduce((a, l) => a + l.series, 0) >= 2 ? 's' : ''}
-                  </span>
+              <div key={g.nom} className="volume-seance">
+                <div className="volume-seance-tete">
+                  <span>{[g.jour, g.nom].filter(Boolean).join(' · ')}</span>
+                  <span>{kg(g.lignes.reduce((a, l) => a + l.series, 0))}</span>
                 </div>
                 {g.lignes.map((l) => {
-              const avecInfos = aDesInfos(exo(l.exoId))
-              const contenu = (
-                <>
-                  <span className="volume-exo-nom">
-                    {l.nom}
-                    {avecInfos && <Info size={16} className="ico-texte volume-exo-info" />}
-                    {l.aide && <span className="faible prog-sous">aide</span>}
-                  </span>
-                  <span className="volume-exo-series">{kg(l.series)}</span>
-                </>
-              )
-              const classe = `volume-exo${l.aide ? ' aide' : ''}`
-              return avecInfos ? (
-                <button key={`${l.exoId}:${l.seance}`} type="button" className={classe} aria-label={`Comment faire : ${l.nom}`} onClick={() => setInfos(l.exoId)}>
-                  {contenu}
-                </button>
-              ) : (
-                <div key={`${l.exoId}:${l.seance}`} className={classe}>
-                  {contenu}
-                </div>
-              )
-            })}
+                  const contenu = (
+                    <>
+                      <span className="volume-exo-nom">
+                        {l.nom}
+                        {l.aide && <span className="volume-exo-aide"> · aide</span>}
+                      </span>
+                      <span className="volume-exo-series">{kg(l.series)}</span>
+                    </>
+                  )
+                  const classe = `volume-exo${l.aide ? ' aide' : ''}`
+                  // La ligne entière s'appuie quand l'exercice a quelque chose à montrer ; plus de ⓘ sur chaque ligne (maquette du 13 nov. 2026).
+                  return aDesInfos(exo(l.exoId)) ? (
+                    <button key={l.exoId} type="button" className={classe} aria-label={`${l.nom}, ${series(l.series)}${l.aide ? ', aide' : ''} : comment le faire`} onClick={() => setInfos(l.exoId)}>
+                      {contenu}
+                    </button>
+                  ) : (
+                    <div key={l.exoId} className={classe}>
+                      {contenu}
+                    </div>
+                  )
+                })}
               </div>
             ))}
             {lignes.length === 0 && <p className="faible petit-texte">Aucun exercice de ce programme ne le travaille pour l'instant.</p>}
@@ -233,16 +245,8 @@ function FenetreCible({ muscle, volume, lignes, avecJours, exo, enVigueur, depar
                     </button>
                   ))}
                 </div>
-                <p className="faible petit-texte volume-sans-conseil">
-                  {manque > 0 && (
-                    <>
-                      <strong className="volume-manque">
-                        Il t’en manque {kg(manque)}.
-                      </strong>{' '}
-                    </>
-                  )}
-                  {phraseNiveau(muscle, niveau, n)}
-                </p>
+                {/* Normal : le conseil est déjà dit en haut. */}
+                {niveau !== 'normal' && <p className="faible petit-texte volume-sans-conseil">{phraseNiveau(muscle, niveau, n)}</p>}
               </div>
             )
           )}

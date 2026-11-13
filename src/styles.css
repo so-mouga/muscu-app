@@ -3072,25 +3072,54 @@ button.phase-accueil:active {
   padding-bottom: var(--e3);
   border-bottom: 1px solid var(--bord);
 }
-.volume-groupe {
-  display: flex;
-  flex-direction: column;
-  gap: var(--e2);
+.volume-grand {
+  font-size: var(--t-page);
+  font-weight: 700;
+  line-height: 1.1;
+  margin-top: var(--e1);
+  font-variant-numeric: tabular-nums;
 }
-.volume-groupe-tete {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--e3);
+.volume-grand span {
+  font-size: var(--t-texte);
+  font-weight: 500;
+  color: var(--texte-2);
+}
+.volume-jauge {
+  display: block;
+  margin: var(--e2) 0 var(--e1);
+}
+.volume-reponse {
   font-size: var(--t-petit);
   color: var(--texte-2);
 }
-.volume-groupe-tete span:last-child {
-  flex-shrink: 0;
+.volume-reponse strong {
   color: var(--texte);
+}
+/* Une sous-carte par séance : son nom et son total en blanc, ses exercices dedans, leur chiffre en gris. */
+.volume-seance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+  padding: var(--e3);
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+}
+.volume-seance-tete {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--e3);
   font-weight: 600;
 }
-.volume-manque {
+.volume-seance-tete span:last-child {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.volume-exo-aide {
+  color: var(--texte-3, var(--texte-2));
+}
+.volume-appuie {
   color: var(--texte);
+  font-weight: 600;
 }
 .volume-exo {
   display: flex;
@@ -3111,11 +3140,15 @@ button.phase-accueil:active {
   min-width: 0;
 }
 .volume-exo-series {
-  font-weight: 600;
+  flex-shrink: 0;
+  color: var(--texte-2);
   font-variant-numeric: tabular-nums;
 }
-.volume-exo.aide .volume-exo-series {
-  font-weight: 400;
+.volume-exo {
+  font-size: var(--t-petit);
+  min-height: 24px;
+}
+.volume-exo.aide {
   color: var(--texte-2);
 }
 .volume-exos .petit-texte {

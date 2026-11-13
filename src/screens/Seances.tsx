@@ -599,14 +599,14 @@ function PageVolume({ catalogue, p, onFermer }: { catalogue: Catalogue; p: Progr
         <h2 style={{ flex: 1 }}>{TITRE_VOLUME}</h2>
       </div>
       <div className="faible volume-intro">
-        {masque ? `Séries par semaine dans ${p.nom}.` : `Séries par semaine dans ${p.nom}, face au conseil. Barre pleine : conseil atteint.`}{' '}
+        {masque ? `Séries par semaine dans ${p.nom}.` : `Séries par semaine dans ${p.nom}, face au conseil.`} <strong className="volume-appuie">Appuie sur un muscle pour voir les exercices qui le travaillent.</strong>{' '}
         <Aide
           titre="Le volume par semaine"
           texte={`Le volume d’un muscle, c’est le nombre de séries dures qu’il reçoit dans la semaine. Une série dure est proche de l’échec : 7/10 d’effort ou plus.${p.seances.some((e) => e.jour) ? ' Seules les séances avec un jour comptent.' : ''}${masque ? ' Un appui sur un muscle pour voir ses exercices.' : ' Pour changer tes séries, modifie les exercices de tes séances. Un appui sur un muscle pour voir ses exercices, et choisir Entretien, Normal ou Priorité.'}`}
         />
       </div>
       <div className="carte">
-        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} masque={masque} seances={semaine.map((e) => ({ nom: catalogue.modele(e.modeleId)!.nom, jour: jourCourt(e.jour) ? jourCourt(e.jour) + '.' : '', duree: `≈ ${minutes(dureeEstimee(catalogue.modele(e.modeleId)!))}` }))} />
+        <VolumeMuscles volume={volume} detail={detailVolume(modeles, catalogue.exercices)} avecJours={p.seances.some((e) => e.jour)} exo={catalogue.exo} cibles={catalogue.cibles} perso={perso} onCibles={(v) => void changerObjectifs(catalogue, { volume: v })} masque={masque} seances={semaine.map((e) => ({ nom: catalogue.modele(e.modeleId)!.nom, jour: e.jour ? JOURS[e.jour][0].toUpperCase() + JOURS[e.jour].slice(1) : '' }))} />
       </div>
       <div className="carte">
         <MasquerConseilsVolume catalogue={catalogue} />
