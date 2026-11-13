@@ -7627,7 +7627,8 @@ button.jour-pas {
 
 /* Séance faite : la récompense en plein écran, puis les boutons */
 .affiche-fin {
-  flex: 1 0 auto;
+  flex: 1 1 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--e3);
@@ -7705,6 +7706,48 @@ button.jour-pas {
 .chasse-egal .chasse-gain {
   font-weight: 400;
 }
+.chasse-nouveau {
+  color: var(--texte-2);
+}
+.chasse-nouveau .chasse-gain {
+  color: var(--texte-3, var(--texte-2));
+  font-weight: 400;
+}
+/* « Face à la dernière fois : 1 record · 1 mieux · 4 sans progrès » : la réponse avant la liste. */
+.chasse > .chasse-compte {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0;
+  margin-bottom: var(--e1);
+  color: var(--texte-2);
+}
+.chasse-compte small {
+  font-size: var(--t-legende);
+}
+.chasse-compte > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 6px;
+}
+.chasse-compte b {
+  color: var(--texte);
+  font-weight: 600;
+}
+.chasse-compte b.ok-texte {
+  color: var(--ok);
+}
+.chasse-point {
+  opacity: 0.6;
+}
+/* Plusieurs records : leur nombre en grand, « records battus. » à côté. */
+.fin-heros-suite {
+  color: var(--texte) !important;
+  font-size: var(--t-titre) !important;
+  font-style: italic;
+  font-weight: 800 !important;
+}
 .affiche-suite {
   display: flex;
   flex-direction: column;
@@ -7721,6 +7764,17 @@ button.jour-pas {
 }
 .fin-groupe h3 {
   margin: 0;
+}
+/* En plein écran, rien ne défile : la récompense prend la hauteur qui reste, la liste la place libre (le composant compte
+   les lignes qui y tiennent), « Comment c'était ? » reste en bas. */
+.affiche-fin .recompense {
+  flex: 1 1 0;
+  min-height: 0;
+}
+.chasse.chasse-pleine {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
 }
 /* En plein écran, où rien ne défile : le record un peu moins haut, pour laisser la liste et les boutons à l'écran. */
 .affiche-fin .fin-resume {

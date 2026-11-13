@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · séance faite, lisible</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#191716;--controle:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--accent-texte:#1a0d03;--ok:#22c55e;--piste:#2a2725;--trait:rgba(255,255,255,.085);--point:rgba(255,255,255,.2)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;border:0;cursor:pointer;text-align:inherit}
+p{margin:0;line-height:1.4}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;justify-content:center;background:var(--bg);position:relative;overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 10px;gap:10px}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;text-align:center}
+.ligne{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.g{color:var(--t2)}.g3{color:var(--t3)}.petit{font-size:14px}.legende{font-size:12px}.v{color:var(--ok)}.b{color:var(--texte)}
+.btn{background:var(--controle);border-radius:14px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500;padding:0 12px;font-size:15px}
+.primaire{background:var(--accent);color:var(--accent-texte);border-radius:18px;min-height:52px;font-size:17px;box-shadow:0 6px 18px rgba(249,115,22,.18)}
+.lien{background:none;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;font-size:16px}
+.bas{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.pen{font-style:italic;font-weight:800}
+.voix{font-style:italic;font-weight:800;font-size:36px;line-height:.98}
+
+/* Intro */
+.intro{gap:14px;justify-content:center}
+.intro h1{font-size:26px;font-weight:700;margin:0}
+.intro li{margin:0 0 9px;line-height:1.35}
+.intro ul{margin:0;padding-left:18px}
+.intro .dir{background:var(--carte);border-radius:14px;padding:10px 12px;line-height:1.35}
+.intro .dir b{font-weight:600}
+
+/* Trame, derrière le record */
+.trame{position:relative;border-radius:18px;overflow:hidden;background:var(--carte)}
+.trame::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(-18deg,var(--trait) 0 2px,transparent 2px 13px);-webkit-mask:linear-gradient(to left,#000,transparent 70%);mask:linear-gradient(to left,#000,transparent 70%)}
+.trame::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,var(--point) 1.3px,transparent 1.8px) 0 0/9px 9px;-webkit-mask:linear-gradient(to left,#000,transparent 55%);mask:linear-gradient(to left,#000,transparent 55%)}
+.trame>*{position:relative}
+
+.heros{padding:12px 16px 14px;display:flex;flex-direction:column}
+.heros .exo{color:var(--t2);font-size:16px;font-weight:600}
+.heros .chiffre{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.heros .chiffre b{font-style:italic;font-weight:800;font-size:84px;line-height:.86;letter-spacing:-.02em}
+.heros .chiffre span{font-size:22px;font-weight:700;color:var(--t2);font-style:italic}
+.heros .titre{font-style:italic;font-weight:800;font-size:28px;line-height:1.05;margin-top:10px}
+.heros .detail{color:var(--ok);font-size:18px;font-weight:500;margin-top:4px}
+.cran-ligne{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:17px}
+.regle{color:var(--t2);font-size:15px;line-height:1.4;margin-top:8px}
+
+/* La liste */
+.resume{font-size:15px;color:var(--t2);display:flex;flex-wrap:wrap;gap:0 6px;align-items:center}
+.resume b{color:var(--texte);font-weight:600}.resume b.v{color:var(--ok)}
+.resume .pt{color:var(--t3)}
+.chasse{display:flex;flex-direction:column}
+.chasse>div{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:29px;font-size:16px}
+.chasse>div>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chasse .gain{white-space:nowrap;font-weight:600;display:flex;align-items:center;gap:5px}
+.chasse .terne>span:first-child{color:var(--t2)}
+.chasse .egal{color:var(--t2);font-weight:400}
+.chasse .vide{color:var(--t3);font-weight:400}
+.chasse .plus{color:var(--t2);min-height:26px}
+.ico-cran{width:18px;height:18px;flex:none}
+.sous-titre{font-size:13px;color:var(--t3);margin-bottom:2px}
+
+.trois{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.trois .btn{min-height:48px}
+.titre-cet{font-size:16px;color:var(--t2)}
+.note{background:#1d2a44;color:#c4d8ff;border-radius:10px;padding:6px 10px;font-size:12px;line-height:1.35}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="cran" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2.14A10 10 0 1 0 13.7 2.14L13.2 6.4h-2.4zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></symbol>
+</defs></svg>
+
+<div class="defile">
+
+<!-- 0 · Intro -->
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Séance faite · glisse vers le bas</span>
+  <h1>« Seule l'extension a un record ? »</h1>
+  <ul class="g">
+    <li><b class="b">La liste n'a pas de titre.</b> Rien ne dit qu'elle compare à la dernière fois, ni que le petit disque veut dire record et le vert, mieux.</li>
+    <li><b class="b">L'extension est écrite deux fois</b>, avec deux chiffres : « charge jamais faite · 15 reps » en haut, « +6 kg » en bas.</li>
+    <li><b class="b">« +4 autres » ne dit pas ce qu'ils ont fait.</b> Ce sont juste ceux qui ne tenaient pas.</li>
+    <li><b class="b">L'explication du premier cran</b> prend 3 lignes et chasse la liste.</li>
+  </ul>
+  <div class="dir"><b>A · Le compte d'abord.</b> <span class="g">Une ligne qui répond (« 1 record · 1 mieux · 4 sans progrès »), puis seulement ce qui a progressé.</span></div>
+  <div class="dir"><b>B · Tout le monde à l'écran.</b> <span class="g">La même ligne, puis chaque exercice, ceux sans progrès en gris.</span></div>
+  <p class="legende g3">Les 4 autres exercices sont des exemples : la vraie séance n'est pas sur l'ordinateur.</p>
+</div></section>
+
+<!-- Avant -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Aujourd'hui, ce que tu as vu</span>
+  <div class="ligne"><span class="voix">Séance<br>faite.</span><span class="g" style="padding-top:12px">1 h 03 · 17 séries</span></div>
+  <div class="heros trame">
+    <span class="exo">Extension au-dessus de la tête poulie</span>
+    <div class="chiffre"><b>35</b><span>kg</span></div>
+    <span class="titre">Record battu.</span>
+    <span class="detail">charge jamais faite · 15 reps</span>
+    <div class="cran-ligne"><span class="disque" data-crans="1" data-nouveaux="1" data-taille="24"></span><span><b style="font-weight:600">1 cran sur 12</b> <span class="g">· plus que 11</span></span></div>
+    <p class="regle">Un cran = un record battu sur un exercice. Il ne se perd jamais. Au 12e, ton disque est plein et tu en commences un autre.</p>
+  </div>
+  <div class="chasse">
+    <div><span>Extension au-dessus de la tête poulie</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+6 kg</span></div>
+    <div><span>Curl marteau poulie</span><span class="gain v">+11 reps</span></div>
+    <div class="plus"><span>+4 autres</span></div>
+  </div>
+  <div class="bas">
+    <span class="titre-cet">Comment c'était ?</span>
+    <div class="trois"><button class="btn">Difficile</button><button class="btn">Bien</button><button class="btn">Au top</button></div>
+    <button class="btn primaire">La prochaine fois ›</button>
+    <button class="lien">＋ Ajouter un exercice</button>
+  </div>
+</div></section>
+
+<!-- A -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">A · Le compte d'abord</span>
+  <div class="ligne"><span class="voix">Séance<br>faite.</span><span class="g" style="padding-top:12px">1 h 03 · 17 séries</span></div>
+  <div class="heros trame">
+    <span class="exo">Extension au-dessus de la tête poulie</span>
+    <div class="chiffre"><b>35</b><span>kg</span></div>
+    <span class="titre">Record battu.</span>
+    <span class="detail">+6 kg sur ton record · 15 reps</span>
+    <div class="cran-ligne"><span class="disque" data-crans="1" data-nouveaux="1" data-taille="24"></span><span><b style="font-weight:600">1 cran sur 12</b> <span class="g">· un record = un cran</span></span></div>
+  </div>
+  <div>
+    <div class="sous-titre">Face à la dernière fois</div><div class="resume"><b>1 record</b><span class="pt">·</span><b class="v">1 mieux</b><span class="pt">·</span><span>4 sans progrès</span></div>
+    <div class="chasse">
+      <div><span>Curl marteau poulie</span><span class="gain v">+11 reps</span></div>
+    </div>
+  </div>
+  <div class="bas">
+    <span class="titre-cet">Comment c'était ?</span>
+    <div class="trois"><button class="btn">Difficile</button><button class="btn">Bien</button><button class="btn">Au top</button></div>
+    <button class="btn primaire">La prochaine fois ›</button>
+    <button class="lien">＋ Ajouter un exercice</button>
+  </div>
+</div></section>
+
+<!-- B -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">B · Tout le monde à l'écran</span>
+  <div class="ligne"><span class="voix">Séance<br>faite.</span><span class="g" style="padding-top:12px">1 h 03 · 17 séries</span></div>
+  <div class="heros trame">
+    <span class="exo">Extension au-dessus de la tête poulie</span>
+    <div class="chiffre"><b>35</b><span>kg</span></div>
+    <span class="titre">Record battu.</span>
+    <span class="detail">+6 kg sur ton record · 15 reps</span>
+    <div class="cran-ligne"><span class="disque" data-crans="1" data-nouveaux="1" data-taille="24"></span><span><b style="font-weight:600">1 cran sur 12</b> <span class="g">· un record = un cran</span></span></div>
+  </div>
+  <div>
+    <div class="sous-titre">Face à la dernière fois</div><div class="resume"><b>1 record</b><span class="pt">·</span><b class="v">1 mieux</b><span class="pt">·</span><span>4 sans progrès</span></div>
+    <div class="chasse">
+      <div><span>Curl marteau poulie</span><span class="gain v">+11 reps</span></div>
+      <div class="terne"><span>Développé incliné haltères</span><span class="gain egal">=</span></div>
+      <div class="terne"><span>Tirage vertical</span><span class="gain egal">=</span></div>
+      <div class="terne"><span>Élévations latérales poulie</span><span class="gain vide"></span></div>
+      <div class="terne"><span>Pec deck</span><span class="gain vide"></span></div>
+    </div>
+  </div>
+  <div class="bas">
+    <span class="titre-cet">Comment c'était ?</span>
+    <div class="trois"><button class="btn">Difficile</button><button class="btn">Bien</button><button class="btn">Au top</button></div>
+    <button class="btn primaire">La prochaine fois ›</button>
+    <button class="lien">＋ Ajouter un exercice</button>
+  </div>
+</div></section>
+
+<!-- 3 records, aujourd'hui -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">3 records · aujourd'hui dans l'appli</span>
+  <div class="ligne"><span class="voix">Séance<br>faite.</span><span class="g" style="padding-top:12px">1 h 03 · 17 séries</span></div>
+  <div class="heros trame">
+    <span class="exo">Extension au-dessus de la tête poulie</span>
+    <div class="chiffre"><b>35</b><span>kg</span></div>
+    <span class="titre">3 records battus.</span>
+    <span class="detail">charge jamais faite · 15 reps</span>
+    <div class="cran-ligne"><span class="disque" data-crans="4" data-nouveaux="3" data-taille="24"></span><span><b style="font-weight:600">4 crans sur 12</b> <span class="g">· plus que 8</span></span></div>
+  </div>
+  <div class="chasse">
+    <div><span>Extension au-dessus de la tête poulie</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+6 kg</span></div>
+    <div><span>Curl marteau poulie</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+2 reps</span></div>
+    <div><span>Développé incliné haltères</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+2 kg</span></div>
+    <div class="plus"><span>+3 autres</span></div>
+  </div>
+  <div class="bas">
+    <span class="titre-cet">Comment c'était ?</span>
+    <div class="trois"><button class="btn">Difficile</button><button class="btn">Bien</button><button class="btn">Au top</button></div>
+    <button class="btn primaire">La prochaine fois ›</button>
+    <button class="lien">＋ Ajouter un exercice</button>
+  </div>
+</div></section>
+
+<!-- 3 records, proposé -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">3 records · proposé</span>
+  <div class="ligne"><span class="voix">Séance<br>faite.</span><span class="g" style="padding-top:12px">1 h 03 · 17 séries</span></div>
+  <div class="heros trame">
+    <div class="chiffre" style="margin-top:0"><b>3</b><span>records battus.</span></div>
+    <div class="cran-ligne"><span class="disque" data-crans="4" data-nouveaux="3" data-taille="24"></span><span><b style="font-weight:600">4 crans sur 12</b> <span class="g">· plus que 8</span></span></div>
+  </div>
+  <div>
+    <div class="sous-titre">Face à la dernière fois</div><div class="resume"><b>3 records</b><span class="pt">·</span><b class="v">1 mieux</b><span class="pt">·</span><span>2 sans progrès</span></div>
+    <div class="chasse">
+      <div><span>Extension au-dessus de la tête poulie</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+6 kg</span></div>
+      <div><span>Curl marteau poulie</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+2 reps</span></div>
+      <div><span>Développé incliné haltères</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+2 kg</span></div>
+      <div><span>Tirage vertical</span><span class="gain v">+1 rep</span></div>
+      <div class="terne"><span>Élévations latérales poulie</span><span class="gain egal">=</span></div>
+      <div class="terne"><span>Pec deck</span><span class="gain vide"></span></div>
+    </div>
+  </div>
+  <div class="bas">
+    <span class="titre-cet">Comment c'était ?</span>
+    <div class="trois"><button class="btn">Difficile</button><button class="btn">Bien</button><button class="btn">Au top</button></div>
+    <button class="btn primaire">La prochaine fois ›</button>
+    <button class="lien">＋ Ajouter un exercice</button>
+  </div>
+</div></section>
+
+</div>
+
+<script>
+// Le disque : 12 segments, les crans gagnés en blanc, ceux du jour en vert.
+function disque(crans, nouveaux, taille) {
+  const r = 10, c = 12, seg = []
+  for (let i = 0; i < 12; i++) {
+    const a0 = (i * 30 + 4 - 90) * Math.PI / 180, a1 = ((i + 1) * 30 - 4 - 90) * Math.PI / 180
+    const coul = i >= crans ? 'var(--piste)' : i >= crans - nouveaux ? 'var(--ok)' : 'var(--texte)'
+    seg.push(`<path d="M${c + r * Math.cos(a0)} ${c + r * Math.sin(a0)}A${r} ${r} 0 0 1 ${c + r * Math.cos(a1)} ${c + r * Math.sin(a1)}" stroke="${coul}" stroke-width="3" fill="none" stroke-linecap="round"/>`)
+  }
+  return `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" style="flex:none;display:block">${seg.join('')}</svg>`
+}
+document.querySelectorAll('.disque').forEach((d) => (d.innerHTML = disque(+d.dataset.crans, +d.dataset.nouveaux, +d.dataset.taille)))
+</script>
+</body>
+</html>

@@ -996,7 +996,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
             titre="Séance faite."
             forme={seance.energie ?? seance.ressenti ?? undefined}
             onForme={(v) => void db.seances.update(seance.id, { ressenti: v, energie: v })}
-            placeListe={window.innerHeight - 410}
+            plein
           />
           <div className="affiche-suite">{suite}</div>
         </div>

@@ -202,13 +202,13 @@ describe('accueil, séance faite : le gain de chaque exercice', () => {
   ])
   const g = gainsDeSeance(jour, [avant], exo)
 
-  it('dans l’ordre fait : le gain en charge ou en reps, « = » si pareil, rien si moins bien ou première fois', () => {
+  it('dans l’ordre fait : le gain en charge ou en reps, « = » si pareil, rien si moins bien, « premiere » la toute première fois', () => {
     expect(g).toEqual([
       { exoId: 'curl_barre', gain: '=' },
       { exoId: 'dev_couche_barre', gain: '+2,5 kg' },
       { exoId: 'rowing_haltere', gain: '+1 rep' },
       { exoId: 'dev_militaire' },
-      { exoId: 'elevation_laterale_halteres' },
+      { exoId: 'elevation_laterale_halteres', premiere: true },
     ])
   })
 

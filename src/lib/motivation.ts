@@ -141,12 +141,13 @@ export function resumeSeance(seance: Seance, avant: Seance[], exo: (id: string) 
  * (`mieuxParSeance`) : son gain (« +2 kg », « +1 rep »), « = » si les séries sont les mêmes, rien sinon (moins bien,
  * première fois, séance allégée : pas de reproche). Dans l'ordre où ils ont été faits. Pour l'Accueil, une fois la séance faite.
  */
-export function gainsDeSeance(seance: Seance, avant: Seance[], exo: (id: string) => Exercice): { exoId: string; gain?: string }[] {
+export function gainsDeSeance(seance: Seance, avant: Seance[], exo: (id: string) => Exercice): { exoId: string; gain?: string; premiere?: true }[] {
   const precedentes = avant.filter((s) => s.id !== seance.id && !s.enCours && !s.deload && s.debut < seance.debut).sort((a, b) => b.debut - a.debut)
   const comptees = (s: Seance, id: string) => s.series.filter((x) => x.exoId === id && serieComptee(x))
   return [...new Set(seance.series.map((x) => x.exoId))].map((id) => {
     const jour = comptees(seance, id)
     const prec = precedentes.map((s) => comptees(s, id)).find((l) => l.length)
+    if (!seance.deload && jour.length && !prec) return { exoId: id, premiere: true }
     if (seance.deload || !jour.length || !prec) return { exoId: id }
     const e = exo(id)
     const suivi = suiviProgres(e)
