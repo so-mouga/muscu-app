@@ -4929,6 +4929,12 @@ html[data-sens='fondu']::view-transition-new(root) {
 .exos-jour.fait .exo-jour-gain {
   color: var(--ok);
 }
+.exos-jour.fait .exo-jour.record .exo-jour-gain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--texte);
+}
 .exos-jour.fait .exo-jour.terne,
 .exos-jour.fait .exo-jour.terne .exo-jour-gain {
   color: var(--texte-2);
@@ -6801,31 +6807,6 @@ button.jour-pas {
   color: var(--texte-2);
   font-size: var(--t-legende);
 }
-.seance-jour-records-faits {
-  display: flex;
-  align-items: center;
-  gap: var(--e4);
-  margin-top: var(--e2);
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--texte);
-  text-align: left;
-  cursor: pointer;
-}
-.seance-jour-records-faits .disque {
-  flex: none;
-}
-/* Avec le disque, la liste peut descendre à une ligne et « +n autres » : « Voir la séance » reste à l'écran avec deux rappels. */
-.seance-jour-records-faits ~ .exos-jour {
-  min-height: calc(2 * var(--ligne-exo));
-  margin-top: var(--e2);
-}
-/* Jamais d'animation sur l'Accueil : les crans du jour sont verts, posés d'avance. */
-.seance-jour-records-faits .disque-nouveau {
-  animation: none;
-}
-
 /* Démarrage : ce qu'est l'appli, au-dessus de la première question ; les exercices sous chaque séance proposée. */
 .demarrage-cran {
   display: flex;

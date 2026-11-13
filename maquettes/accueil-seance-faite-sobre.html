@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Accueil après la séance</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#1a1817;--controle:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--ok:#22c55e;--piste:#2a2725}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;border:0;cursor:pointer;text-align:inherit}
+p{margin:0;line-height:1.4}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;justify-content:center;background:var(--bg);position:relative;overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 0;gap:10px}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;text-align:center}
+.g{color:var(--t2)}.g3{color:var(--t3)}.v{color:var(--ok)}.petit{font-size:14px}
+.date{display:flex;justify-content:space-between;align-items:center;font-size:20px;font-weight:600}
+.phase{display:flex;gap:10px;align-items:center;font-size:16px}
+.phase .pt{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.tableau{background:var(--carte);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.cases{display:grid;grid-template-columns:1fr 1fr 1.25fr}
+.cases>div{display:flex;flex-direction:column;gap:2px;padding-right:8px}
+.cases>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
+.cases b{font-size:18px;font-weight:700}
+.cases span{font-size:13px;color:var(--t2)}
+.semaine{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:15px}
+.points{display:flex;gap:4px;align-items:center}
+.points i{width:11px;height:11px;border-radius:50%;background:var(--ok);display:inline-block}
+.carte{background:var(--carte);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;margin-bottom:6px}
+.tete{display:flex;justify-content:space-between;align-items:center}
+.tete h2{margin:0;font-size:22px;font-weight:600;display:flex;align-items:center;gap:10px}
+.coche{width:30px;height:30px;border-radius:50%;background:rgba(34,197,94,.16);color:var(--ok);display:flex;align-items:center;justify-content:center;font-size:16px}
+.voix{font-style:italic;font-weight:800;font-size:28px;line-height:1.05}
+.liste{display:flex;flex-direction:column}
+.liste>div{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:28px;font-size:16px}
+.liste>div>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gain{white-space:nowrap;font-weight:600;display:flex;align-items:center;gap:5px}
+.terne>span:first-child{color:var(--t2)}
+.egal{color:var(--t2);font-weight:400}
+.plus{color:var(--t2)}
+.ico-cran{width:16px;height:16px;flex:none}
+.resume{font-size:16px;color:var(--t2)}
+.resume b{color:var(--texte);font-weight:600}
+.bas{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.btn{background:var(--controle);border-radius:14px;min-height:50px;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:17px}
+.barre{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.08);padding:8px 0 10px;text-align:center;font-size:13px;color:var(--t2)}
+.barre .actif{color:var(--accent)}
+.intro{gap:14px;justify-content:center;padding-bottom:14px}
+.intro h1{font-size:26px;font-weight:700;margin:0}
+.intro li{margin:0 0 9px;line-height:1.35}
+.intro ul{margin:0;padding-left:18px}
+.rappel{background:var(--carte);border-radius:14px;padding:10px 12px;font-size:15px;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="cran" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2.14A10 10 0 1 0 13.7 2.14L13.2 6.4h-2.4zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></symbol>
+</defs></svg>
+
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Accueil après la séance · glisse vers le bas</span>
+  <h1>Voir ce que tu as fait</h1>
+  <ul class="g">
+    <li><b style="color:var(--texte)">« Record battu. Plus que 11 crans. »</b> en très gros prend la moitié de la carte, sur un écran que tu revois toute la soirée.</li>
+    <li><b style="color:var(--texte)">On ne sait pas quel exercice a fait le record</b> : l'extension a « +6 kg » en vert, comme le curl.</li>
+    <li><b style="color:var(--texte)">« +3 autres »</b> ne dit pas ce qu'ils ont fait.</li>
+  </ul>
+  <p class="g">Proposé : une ligne simple, le record marqué dans la liste avec le petit disque, tous les exercices visibles. Le grand « Record battu » reste sur l'écran « Séance faite ».</p>
+</div></section>
+
+<!-- Avant -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Aujourd'hui (ta capture)</span>
+  <div class="date">Vendredi 13 nov. <span class="g">☰</span></div>
+  <div class="phase"><span class="pt"></span><b style="font-weight:600">Prendre du muscle</b><span class="g">Programme · sem. 1/7</span></div>
+  <div class="tableau">
+    <div class="cases"><div><b>69,7 kg</b><span>Poids</span></div><div><b>7 h 52</b><span>Sommeil</span></div><div><b>1 108 <span style="font-size:15px;font-weight:500">/ 2 354</span></b><span>Calories</span></div></div>
+    <div class="semaine"><span class="points"><i></i><i></i><i></i><i></i> <span class="v" style="margin-left:6px">2e semaine tenue</span></span><span class="g"><span class="disque" data-crans="1" data-nouveaux="0" data-taille="18" style="display:inline-block;vertical-align:-3px"></span> 1 cran ›</span></div>
+  </div>
+  <div class="carte">
+    <div class="tete"><h2><span class="coche">✓</span>Haut C faite</h2><span class="g">Autre séance ›</span></div>
+    <div style="display:flex;gap:14px;align-items:center"><span class="disque" data-crans="1" data-nouveaux="1" data-taille="64"></span><span class="voix">Record battu.<br><span class="g">Plus que 11 crans.</span></span></div>
+    <div class="resume">57 min · 17 séries dures ›</div>
+    <div class="liste">
+      <div><span>Extension au-dessus de la tête poulie</span><span class="gain v">+6 kg</span></div>
+      <div><span>Curl marteau poulie</span><span class="gain v">+11 reps</span></div>
+      <div class="terne"><span>Développé incliné Smith 15–20°</span></div>
+      <div class="plus"><span>+3 autres</span></div>
+    </div>
+    <div class="bas">
+      <span class="g">Ensuite, lundi : <b style="color:var(--texte);font-weight:600">Haut 1</b></span>
+      <button class="btn">Voir la séance</button>
+    </div>
+  </div>
+  <div class="barre"><span class="actif">Accueil</span><span>Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- Proposé -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Proposé</span>
+  <div class="date">Vendredi 13 nov. <span class="g">☰</span></div>
+  <div class="phase"><span class="pt"></span><b style="font-weight:600">Prendre du muscle</b><span class="g">Programme · sem. 1/7</span></div>
+  <div class="tableau">
+    <div class="cases"><div><b>69,7 kg</b><span>Poids</span></div><div><b>7 h 52</b><span>Sommeil</span></div><div><b>1 108 <span style="font-size:15px;font-weight:500">/ 2 354</span></b><span>Calories</span></div></div>
+    <div class="semaine"><span class="points"><i></i><i></i><i></i><i></i> <span class="v" style="margin-left:6px">2e semaine tenue</span></span><span class="g"><span class="disque" data-crans="1" data-nouveaux="0" data-taille="18" style="display:inline-block;vertical-align:-3px"></span> 1 cran ›</span></div>
+  </div>
+  <div class="carte">
+    <div class="tete"><h2><span class="coche">✓</span>Haut C faite</h2><span class="g">Autre séance ›</span></div>
+    <div class="resume">57 min · 17 séries dures · <b>1 record</b> ›</div>
+    <div class="liste">
+      <div><span>Extension au-dessus de la tête poulie</span><span class="gain"><svg class="ico-cran"><use href="#cran"/></svg>+6 kg</span></div>
+      <div><span>Curl marteau poulie</span><span class="gain v">+11 reps</span></div>
+      <div class="terne"><span>Développé incliné Smith 15–20°</span><span class="gain egal">=</span></div>
+      <div class="terne"><span>Tirage vertical</span><span class="gain egal">=</span></div>
+      <div class="terne"><span>Élévations latérales poulie</span></div>
+      <div class="terne"><span>Pec deck</span></div>
+    </div>
+    <div class="bas">
+      <span class="g">Ensuite, lundi : <b style="color:var(--texte);font-weight:600">Haut 1</b></span>
+      <button class="btn">Voir la séance</button>
+    </div>
+  </div>
+  <div class="barre"><span class="actif">Accueil</span><span>Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+</div>
+
+<script>
+function disque(crans, nouveaux, taille) {
+  const r = 10, c = 12, seg = []
+  for (let i = 0; i < 12; i++) {
+    const a0 = (i * 30 + 4 - 90) * Math.PI / 180, a1 = ((i + 1) * 30 - 4 - 90) * Math.PI / 180
+    const coul = i >= crans ? 'var(--piste)' : i >= crans - nouveaux ? 'var(--ok)' : 'var(--texte)'
+    seg.push(`<path d="M${c + r * Math.cos(a0)} ${c + r * Math.sin(a0)}A${r} ${r} 0 0 1 ${c + r * Math.cos(a1)} ${c + r * Math.sin(a1)}" stroke="${coul}" stroke-width="3" fill="none" stroke-linecap="round"/>`)
+  }
+  return `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" style="flex:none;display:block">${seg.join('')}</svg>`
+}
+document.querySelectorAll('.disque').forEach((d) => (d.innerHTML = disque(+d.dataset.crans, +d.dataset.nouveaux, +d.dataset.taille)))
+</script>
+</body>
+</html>

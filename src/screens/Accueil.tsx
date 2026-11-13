@@ -16,14 +16,14 @@ import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
 import Disque from '../components/Disque'
 import FenetreDisque from '../components/FenetreDisque'
-import { CRANS_PAR_DISQUE, DEBUT_CRANS, etatDisque, totalCrans } from '../lib/crans'
+import { cransDeSeance, etatDisque, totalCrans } from '../lib/crans'
 import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import { conseilsAChoisir } from '../lib/prochaineFois'
-import { depuisDebut, faitesSurPrevues, gainsDeSeance, joursSansSeance, resumeSeance, semainesTenues } from '../lib/motivation'
+import { depuisDebut, faitesSurPrevues, gainsDeSeance, joursSansSeance, semainesTenues } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { CLE_DEMARRAGE, NOMS_JOURS, type EtatDemarrage } from '../lib/demarrage'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
@@ -359,8 +359,6 @@ export default function Accueil({
     )
   }
 
-  // Séance faite avec des records : le disque et sa phrase prennent la place d’un rappel (il revient demain).
-  const recordsFaitsAuj = !!faiteAuj && !faiteAuj.deload && faiteAuj.date >= DEBUT_CRANS && !!terminees && resumeSeance(faiteAuj, terminees, catalogue.exo).records > 0
   // Au plus deux rappels à la fois (un seul sur un écran peu haut), par ordre d'importance : « Démarrer » doit rester à l'écran.
   const rappels = [
     majAndroid && !masque('android') && (
@@ -465,7 +463,7 @@ export default function Accueil({
     ),
   ]
     .filter(Boolean)
-    .slice(0, (window.innerHeight < 720 ? 1 : 2) - (recordsFaitsAuj ? 1 : 0))
+    .slice(0, window.innerHeight < 720 ? 1 : 2)
 
   // 1re semaine : seuls les jours restants après avoir pris le programme comptent.
   const installeLe = (reglages.find((r) => r.cle === CLE_DEMARRAGE)?.valeur as EtatDemarrage | undefined)?.installeLe
@@ -502,7 +500,6 @@ export default function Accueil({
   const joursSans = terminees ? joursSansSeance(terminees, dateISO()) : null
 
   const aLancer = proposee && duJour && proposee === duJour && !faite(duJour)
-  const mieuxAuj = faiteAuj && !faiteAuj.deload && terminees ? resumeSeance(faiteAuj, terminees, catalogue.exo) : null
   const aChoisirAuj = faiteAuj && terminees ? conseilsAChoisir(faiteAuj, terminees, (id) => exoAvecReglages(catalogue.exo(id), reglages)) : 0
 
   /**
@@ -522,7 +519,11 @@ export default function Accueil({
     </>
   )
   /** Séance faite aujourd'hui : chaque exercice, avec son gain face à la fois d'avant (« = » si pareil, rien si moins bien). */
-  const lignesAuj: LigneExo[] = faiteAuj && terminees ? gainsDeSeance(faiteAuj, terminees, catalogue.exo).map((g) => ({ id: g.exoId, nom: catalogue.exo(g.exoId).nom, gain: g.gain })) : []
+  // Les records du jour (un record = un cran, la même mesure que l'écran « Séance faite ») : marqués dans la liste, comptés dans la ligne du haut.
+  const recordsAuj = new Set(faiteAuj && terminees ? cransDeSeance(faiteAuj, terminees, catalogue.exo).map((c) => c.exo.id) : [])
+  const lignesAuj: LigneExo[] = faiteAuj && terminees
+    ? gainsDeSeance(faiteAuj, terminees, catalogue.exo).map((g) => ({ id: g.exoId, nom: catalogue.exo(g.exoId).nom, gain: recordsAuj.has(g.exoId) && (!g.gain || g.gain === '=') ? 'record' : g.gain, record: recordsAuj.has(g.exoId) }))
+    : []
 
   return (
     <div className="accueil">
@@ -695,19 +696,18 @@ export default function Accueil({
               {/* Ce que tu viens de faire, pas la séance suivante : la durée, puis chaque exercice avec son gain. Un appui ouvre la séance. */}
               {faiteAuj ? (
                 <>
-                  {/* Des records aujourd'hui : le disque et la phrase, comme en fin de séance (« 3 records battus. Plus que 7 crans. »). */}
-                  {mieuxAuj && mieuxAuj.records > 0 && faiteAuj.date >= DEBUT_CRANS && (
-                    <button type="button" className="seance-jour-records-faits" onClick={() => setVoirDisque(true)} aria-label="Ton disque : voir tes crans">
-                      <Disque crans={disque.crans || CRANS_PAR_DISQUE} nouveaux={Math.min(mieuxAuj.records, disque.crans || CRANS_PAR_DISQUE)} taille={56} />
-                      <span className="voix">
-                        {mieuxAuj.records > 1 ? `${mieuxAuj.records} records battus.` : 'Record battu.'}
-                        <br />
-                        <span className="voix-gris">{disque.crans === 0 ? 'Disque plein.' : disque.reste === 1 ? 'Plus qu’un cran.' : `Plus que ${disque.reste} crans.`}</span>
-                      </span>
-                    </button>
-                  )}
                   <button type="button" className="seance-jour-stats" onClick={() => onVoirSeance(faiteAuj.id)}>
-                    {[duree(dureeSeanceEffective(faiteAuj)), `${faiteAuj.series.filter(estDure).length} séries dures`].join(' · ')} ›
+                    {/* Ce que tu as fait, sans fête : le grand « Record battu » est sur l'écran « Séance faite », pas sur celui qu'on revoit toute la soirée. */}
+                    {[duree(dureeSeanceEffective(faiteAuj)), `${faiteAuj.series.filter(estDure).length} séries dures`].join(' · ')}
+                    {recordsAuj.size > 0 && (
+                      <>
+                        {' · '}
+                        <strong>
+                          {recordsAuj.size} record{recordsAuj.size > 1 ? 's' : ''}
+                        </strong>
+                      </>
+                    )}{' '}
+                    ›
                   </button>
                   <ListeExosJour lignes={lignesAuj} fait onClick={() => onVoirSeance(faiteAuj.id)} />
                   {aChoisirAuj > 0 && (
