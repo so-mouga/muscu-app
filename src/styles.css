@@ -7873,6 +7873,18 @@ button.jour-pas {
   flex-direction: column;
   gap: 2px;
 }
+.objectif-crayon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: none;
+  border-radius: var(--rayon-2);
+  background: var(--controle);
+  color: var(--texte-2);
+}
 .objectif-reglages {
   display: flex;
   flex-direction: column;

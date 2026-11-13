@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, ChevronRight } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Pencil } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
 import { dateCourte, dateISO, kg, milliers } from '../lib/calc'
@@ -40,6 +40,7 @@ import ChampNombre from './ChampNombre'
 import { confirmer } from './Dialogues'
 import Deplie from './Deplie'
 import OuEnEst from './OuEnEst'
+import { useRetour } from '../lib/nav'
 
 const JOUR = 86400000
 const jour = (iso: string) => dateCourte(iso).replace(/^\S+ /, '')
@@ -119,6 +120,9 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
     return e
   })
   const [ouverte, setOuverte] = useState<string | null>(null)
+  // Le retour Android referme le formulaire ouvert et laisse sur la page « Ton objectif ».
+  useRetour(editionEnCours, () => setEditionEnCours(false))
+  useRetour(!!ouverte, () => setOuverte(null))
 
   const enregistrer = (f: EtapeObjectifs[]) => void setReglage(CLE_OBJECTIFS, f)
   const toutes = periodes(frise)
@@ -164,39 +168,26 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
         {enCours && (
           <div>
             {!editionEnCours ? (
-              /* Où en est ton poids, puis les réglages en lignes : chacune ouvre le formulaire. */
+              /* Où en est ton poids, puis la carte d'avant : dates et poids visé en texte, calories sur la page, le crayon pour le reste. */
               <div className="sous-carte" style={{ marginBottom: aVenir.length || peutAjouter ? 16 : 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div className="ligne entre" style={{ flexWrap: 'nowrap', alignItems: 'baseline' }}>
+                <div className="ligne entre" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
                   <strong>
                     {nomVise(enCours.phase)} <span className="mot-salle">{nomPhase(enCours.phase).toLowerCase()}</span>
                   </strong>
-                  <span className="faible petit-texte" style={{ whiteSpace: 'nowrap' }}>
-                    {enCours.depassee ? 'fin dépassée' : `semaine ${enCours.semaine}${totalEnCours ? ` sur ${totalEnCours}` : ''}`}
-                  </span>
+                  <button type="button" className="objectif-crayon" aria-label="Modifier l’objectif en cours" onClick={() => setEditionEnCours(true)}>
+                    <Pencil size={16} strokeWidth={1.75} />
+                  </button>
                 </div>
                 {etatEnCours && <OuEnEst etat={etatEnCours} debut={enCours.debut} finPrevue={enCours.finPrevue} />}
-                <div className="objectif-reglages">
-                  <button type="button" aria-label="Modifier la durée de l’objectif" onClick={() => setEditionEnCours(true)}>
-                    <span>Durée</span>
-                    <span>
-                      {totalEnCours ? `${totalEnCours} semaines, jusqu’au ${jour(plusJours(enCours.finPrevue!, -1))}` : 'sans fin prévue'} <ChevronRight size={15} strokeWidth={1.75} className="muted" style={{ verticalAlign: 'middle' }} />
-                    </span>
-                  </button>
-                  {enCours.phase !== 'maintien' && (
-                    <button type="button" aria-label="Modifier le poids visé" onClick={() => setEditionEnCours(true)}>
-                      <span>{enCours.phase === 'prise' ? 'Poids à gagner' : 'Poids à perdre'}</span>
-                      <span>
-                        {enCours.ecartVise ? `${ecartCourt(enCours.ecartVise)} kg` : 'pas fixé'} <ChevronRight size={15} strokeWidth={1.75} className="muted" style={{ verticalAlign: 'middle' }} />
-                      </span>
-                    </button>
-                  )}
-                  <button type="button" aria-label="Modifier les calories par jour" onClick={() => setEditionEnCours(true)}>
-                    <span>Calories par jour</span>
-                    <span>
-                      {enCours.calories ? `${milliers(enCours.calories)} kcal` : 'pas fixées'} <ChevronRight size={15} strokeWidth={1.75} className="muted" style={{ verticalAlign: 'middle' }} />
-                    </span>
-                  </button>
+                <div className="faible petit-texte">
+                  {enCours.depassee ? 'Fin dépassée' : `Semaine ${enCours.semaine}${totalEnCours ? ` sur ${totalEnCours}` : ''}`} · {enCours.finPrevue ? `du ${jour(enCours.debut)} au ${jour(plusJours(enCours.finPrevue, -1))}` : `depuis le ${jour(enCours.debut)}, sans fin prévue`}
                 </div>
+                {enCours.ecartVise && (
+                  <div className="faible petit-texte">
+                    {ecartTexte(enCours.ecartVise)} visés{totalEnCours ? ` · ${ecartTexte(Math.round((enCours.ecartVise / totalEnCours) * 100) / 100)} par semaine` : ''}
+                  </div>
+                )}
+                <ChampCalories p={enCours} frise={frise} aujourdhui={aujourdhui} enregistrer={enregistrer} />
 
                 {/* Le poids visé sort de la zone conseillée : un mot, en ambre (un réglage, pas ton corps). */}
                 {avisEnCours && (
