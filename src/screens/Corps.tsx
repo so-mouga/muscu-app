@@ -166,14 +166,17 @@ function AccueilCorps({ catalogue, onPage }: { catalogue: Catalogue; onPage: (p:
       {phase ? (
         <button type="button" className="carte corps-carte corps-phase" onClick={() => onPage('phases')}>
           <span className="ligne entre">
-            <strong className="corps-titre">{nomVise(phase.phase)}</strong>
+            <span className="ligne" style={{ justifyContent: 'flex-start', gap: 8, flexWrap: 'nowrap', alignItems: 'center' }}>
+              <span className={`point-phase phase-${phase.phase}`} style={{ width: 10, height: 10, flex: 'none' }} />
+              <strong className="corps-titre">{nomVise(phase.phase)}</strong>
+            </span>
             <span className="corps-detail-droite">
-              {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : phase.depassee ? 'fin dépassée' : `semaine ${phase.semaine}${totalPhase ? ` sur ${totalPhase}` : ''}`}
+              {phase.aVenir ? `dès le ${dateCourte(phase.debut).replace(/^\S+ /, '')}` : <span className={`pastille-phase phase-${phase.phase}`}>{phase.depassee ? 'Fin dépassée' : `Sem. ${phase.semaine}${totalPhase ? `/${totalPhase}` : ''}`}</span>}
               <ChevronRight size={16} strokeWidth={1.75} className="muted" />
             </span>
           </span>
           {etat && enCours ? (
-            <OuEnEst etat={etat} debut={enCours.debut} finPrevue={enCours.finPrevue} />
+            <OuEnEst etat={etat} debut={enCours.debut} finPrevue={enCours.finPrevue} phase={enCours.phase} />
           ) : (
             (phase.finPrevue || kcal) &&
             !phase.aVenir && <span className="faible petit-texte">{[phase.finPrevue && `${phase.depassee ? 'Prévue jusqu’au' : 'Jusqu’au'} ${fin(phase.finPrevue)}`, kcal && `${milliers(kcal)} kcal par jour`].filter(Boolean).join(' · ')}</span>

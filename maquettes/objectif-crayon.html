@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Ton objectif, le crayon</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#191716;--sous:#211f1d;--feuille:#24211f;--controle:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--accent-texte:#1a0d03;--ok:#22c55e;--piste:#2f2b28;--neuf:#5a96f7}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+p{margin:0;line-height:1.35}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;justify-content:center;background:var(--bg);position:relative;overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 0;gap:9px;position:relative}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;text-align:center;position:relative;z-index:3}
+.note{color:#9cc0ff;font-size:12px;line-height:1.3;text-align:center;position:relative;z-index:3}
+.ligne{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.base{align-items:baseline}
+.g{color:var(--t2)}.g3{color:var(--t3)}.petit{font-size:14px}.legende{font-size:12px}.v{color:var(--ok)}
+.voix{font-style:italic;font-weight:800;font-size:28px;line-height:1.05}
+.voix.grand{font-size:36px;line-height:1}
+.carte{background:var(--carte);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:7px}
+h2{font-size:20px;font-weight:600;margin:0}
+h3{font-size:16px;font-weight:600;margin:0}
+.neuf{outline:1.5px dashed var(--neuf);outline-offset:3px}
+.entete{display:flex;align-items:center;gap:10px}
+.retour{width:44px;height:44px;border-radius:14px;background:var(--controle);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.onglets{margin:auto -16px 0;height:58px;flex:none;display:flex;justify-content:space-around;align-items:center;background:#131211;font-size:12px;color:var(--t2)}
+.onglets .ici{color:var(--accent)}
+.mot{white-space:nowrap;display:inline-block;font-size:12px;color:var(--t2);background:var(--controle);border-radius:999px;padding:2px 8px;font-weight:500}
+.piste{height:6px;border-radius:3px;background:var(--piste);position:relative}
+.piste i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--texte)}
+.bouts{display:flex;justify-content:space-between;font-size:12px;color:var(--t3)}
+.rang{display:flex;justify-content:space-between;align-items:center;min-height:44px;border-top:1px solid rgba(255,255,255,.06);font-size:14px}
+.rang .chev{color:var(--t3);margin-left:6px}
+.rang.discret{color:var(--t2)}
+.appui{background:rgba(255,255,255,.07);border-radius:10px;margin:0 -8px;padding:0 8px}
+.puces{display:flex;gap:6px;flex-wrap:wrap}
+.puces span{background:var(--controle);border-radius:999px;padding:6px 11px;font-size:14px}
+.puces .ici{background:rgba(255,255,255,.2);font-weight:600}
+.prec{display:flex;justify-content:space-between;align-items:center;background:var(--sous);border-radius:14px;padding:9px 12px}
+
+/* Fenêtre du bas */
+.voile{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:1}
+.feuille{position:absolute;left:0;right:0;bottom:0;background:var(--feuille);border-radius:22px 22px 0 0;padding:10px 16px 18px;display:flex;flex-direction:column;gap:12px;z-index:2}
+.poignee{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.25);align-self:center}
+.reglage{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.reglage .val{flex:1;text-align:center;font-weight:800;font-size:36px;line-height:1}
+.reglage .val small{font-size:16px;font-weight:500;color:var(--t2)}
+.rond{width:48px;height:48px;border-radius:14px;background:var(--controle);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
+.btn{background:var(--controle);border-radius:14px;min-height:44px;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:14px}
+.danger{color:#f87171}
+.champ{background:var(--controle);border-radius:12px;padding:8px 12px;font-size:15px}
+
+.intro{gap:11px;justify-content:center;padding-bottom:16px}
+.intro ul{margin:0;padding-left:18px}
+.intro li{margin:0 0 7px;line-height:1.33;font-size:15px}
+.dir{background:var(--carte);border-radius:14px;padding:9px 12px;font-size:15px;line-height:1.3}
+.dir b{font-weight:600}
+</style>
+<style>
+.crayon{width:36px;height:36px;border-radius:12px;background:var(--controle);display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.kcal{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.06);padding-top:8px}
+.kcal .case{background:var(--controle);border-radius:12px;min-width:84px;height:44px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px}
+.form{background:var(--sous);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:9px}
+.form .puces span{font-size:13px;padding:6px 9px}
+.form .case{background:var(--controle);border-radius:12px;min-width:64px;height:40px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.lien{display:flex;justify-content:space-between;padding-top:6px;font-size:14px}
+.orange{color:var(--accent)}
+.pt{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.pastille{font-size:12px;font-weight:600;background:rgba(255,255,255,.08);border-radius:10px;padding:3px 9px;white-space:nowrap}
+.tete{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tete .nom{display:flex;align-items:center;gap:8px}
+.droite{display:flex;align-items:center;gap:8px}
+.prise{--c:#22c55e}.seche{--c:#5a96f7}.maintien{--c:#a8a29e}
+.pt{background:var(--c)}.pastille{color:var(--c)}.coul i{background:var(--c)}
+.crayon{cursor:pointer}
+.voile2{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity 220ms ease;z-index:4}
+.feuille2{position:absolute;left:0;right:0;bottom:0;background:var(--feuille);border-radius:22px 22px 0 0;padding:10px 16px 18px;display:flex;flex-direction:column;gap:10px;transform:translateY(100%);transition:transform 300ms cubic-bezier(.2,.8,.2,1);z-index:5;touch-action:none}
+.ouvert .voile2{opacity:1;pointer-events:auto}
+.ouvert .feuille2{transform:none}
+.zone{position:relative;flex:1;display:flex;flex-direction:column;gap:9px}
+.vue,.edit{transition:opacity 180ms ease}
+.edit{display:none}
+.place .vue{display:none}.place .edit{display:flex;flex-direction:column;gap:9px;animation:fondu 180ms ease}
+@keyframes fondu{from{opacity:0}to{opacity:1}}
+.fermer{align-self:flex-end;cursor:pointer}
+.feuille2 .case{background:var(--controle);border-radius:12px;min-width:64px;height:40px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.feuille2 .puces span{font-size:13px;padding:6px 9px}
+.essaie{position:absolute;left:16px;right:16px;bottom:70px;text-align:center;color:#9cc0ff;font-size:13px;z-index:3}
+</style>
+</head>
+<body>
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Le crayon · fais défiler vers le bas</span>
+  <p class="voix">Touche le crayon.</p>
+  <div class="dir"><b>A, mon conseil :</b> une fenêtre monte du bas avec le formulaire. La page reste derrière, assombrie. Pour fermer : glisse vers le bas, touche à côté, ou « Fermer ».</div>
+  <div class="dir"><b>B :</b> la carte s'efface et le formulaire apparaît à sa place, en fondu court.</div>
+  <p class="g petit">Les deux écrans suivants se touchent vraiment : essaie-les.</p>
+</div></section>
+
+<section class="ecran"><div class="tel" id="a">
+  <span class="etiquette">A · une fenêtre du bas</span>
+  <div class="entete"><span class="retour">←</span><h2>Ton objectif</h2></div>
+  <div class="carte prise">
+    <div class="tete"><span class="nom"><span class="pt"></span><h3>Prendre du muscle <span class="mot">prise de muscle</span></h3></span><span class="droite"><span class="pastille">Sem. 4/12</span><span class="crayon" data-ouvre>✎</span></span></div>
+    <div class="ligne base" style="justify-content:flex-start;gap:10px"><span class="voix grand">+0,4 kg.</span><span class="g petit">Encore 2,1 pour tes 72,6.</span></div>
+    <div class="piste coul"><i style="width:16%"></i></div>
+    <div class="bouts"><span>70,1 kg · 19 oct.</span><span>72,6 kg · 10 janv.</span></div>
+    <p class="petit g">Du 19 oct. au 10 janv.</p>
+    <p class="petit g">+2,5 kg visés · +0,21 kg par semaine</p>
+    <p class="petit g">2 900 kcal par jour</p>
+  </div>
+  <p class="g petit">Et après ?</p>
+  <div class="puces"><span>+ Perdre du gras</span><span>+ Progresser, poids stable</span></div>
+  <p class="essaie">Touche ✎</p>
+  <div class="onglets"><span>Accueil</span><span>Progrès</span><span class="ici">Corps</span><span>Programme</span></div>
+  <div class="voile2" data-ferme></div>
+  <div class="feuille2">
+    <span class="poignee"></span>
+    <h3>Modifier « Prendre du muscle »</h3>
+      <span class="legende g">Durée</span>
+      <div class="puces"><span>4 sem.</span><span>8 sem.</span><span class="ici">12 sem.</span><span>16 sem.</span><span>Sans fin</span></div>
+      <div class="ligne"><span class="petit">Date de début</span><span class="champ">19/10/2026</span></div>
+      <div class="ligne"><span class="petit">Poids à gagner</span><span style="display:flex;align-items:center;gap:6px"><span class="case">2,5</span> <span class="g petit">kg</span></span></div>
+      <p class="legende g">70,1 → 72,6 kg · +0,21 kg par semaine : <span class="v">bon rythme</span></p>
+      <div class="ligne"><span class="petit">Calories par jour<br><span class="legende g">Facultatif</span></span><span style="display:flex;align-items:center;gap:6px"><span class="case">2 900</span> <span class="g petit">kcal</span></span></div>
+    <div class="lien"><span class="orange">Terminer cet objectif</span><span class="fermer" data-ferme>Fermer</span></div>
+  </div>
+</div></section>
+
+<section class="ecran"><div class="tel" id="b">
+  <span class="etiquette">B · sur place, en fondu</span>
+  <div class="entete"><span class="retour">←</span><h2>Ton objectif</h2></div>
+  <div class="vue">
+  <div class="carte prise">
+    <div class="tete"><span class="nom"><span class="pt"></span><h3>Prendre du muscle <span class="mot">prise de muscle</span></h3></span><span class="droite"><span class="pastille">Sem. 4/12</span><span class="crayon" data-ouvre>✎</span></span></div>
+    <div class="ligne base" style="justify-content:flex-start;gap:10px"><span class="voix grand">+0,4 kg.</span><span class="g petit">Encore 2,1 pour tes 72,6.</span></div>
+    <div class="piste coul"><i style="width:16%"></i></div>
+    <div class="bouts"><span>70,1 kg · 19 oct.</span><span>72,6 kg · 10 janv.</span></div>
+    <p class="petit g">Du 19 oct. au 10 janv.</p>
+    <p class="petit g">+2,5 kg visés · +0,21 kg par semaine</p>
+    <p class="petit g">2 900 kcal par jour</p>
+  </div>
+  </div>
+  <div class="edit carte">
+    <h3>Modifier « Prendre du muscle »</h3>
+    <div class="form">
+      <span class="legende g">Durée</span>
+      <div class="puces"><span>4 sem.</span><span>8 sem.</span><span class="ici">12 sem.</span><span>16 sem.</span><span>Sans fin</span></div>
+      <div class="ligne"><span class="petit">Date de début</span><span class="champ">19/10/2026</span></div>
+      <div class="ligne"><span class="petit">Poids à gagner</span><span style="display:flex;align-items:center;gap:6px"><span class="case">2,5</span> <span class="g petit">kg</span></span></div>
+      <p class="legende g">70,1 → 72,6 kg · +0,21 kg par semaine : <span class="v">bon rythme</span></p>
+      <div class="ligne"><span class="petit">Calories par jour<br><span class="legende g">Facultatif</span></span><span style="display:flex;align-items:center;gap:6px"><span class="case">2 900</span> <span class="g petit">kcal</span></span></div>
+      <div class="lien"><span class="orange">Terminer cet objectif</span><span class="fermer" data-ferme>Fermer</span></div>
+    </div>
+  </div>
+  <p class="g petit">Et après ?</p>
+  <div class="puces"><span>+ Perdre du gras</span><span>+ Progresser, poids stable</span></div>
+  <p class="essaie">Touche ✎</p>
+  <div class="onglets"><span>Accueil</span><span>Progrès</span><span class="ici">Corps</span><span>Programme</span></div>
+</div></section>
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">À toi</span>
+  <p class="voix">A ou B ?</p>
+  <div class="dir">Dans les deux, le retour Android referme le formulaire et ce que tu as changé est gardé.</div>
+  <p class="g petit">Mon conseil : A. C'est comme noter ton poids sur l'Accueil ou régler un exercice : on voit qu'on n'a pas quitté la page.</p>
+</div></section>
+
+</div>
+<script>
+const a=document.getElementById('a'), b=document.getElementById('b')
+a.querySelector('[data-ouvre]').onclick=()=>a.classList.add('ouvert')
+a.querySelectorAll('[data-ferme]').forEach(e=>e.onclick=()=>a.classList.remove('ouvert'))
+b.querySelector('[data-ouvre]').onclick=()=>b.classList.add('place')
+b.querySelectorAll('[data-ferme]').forEach(e=>e.onclick=()=>b.classList.remove('place'))
+// glisser la fenêtre vers le bas
+const f=a.querySelector('.feuille2'); let y0=null, dy=0
+f.addEventListener('pointerdown',e=>{y0=e.clientY;dy=0;f.style.transition='none';f.setPointerCapture(e.pointerId)})
+f.addEventListener('pointermove',e=>{if(y0===null)return;dy=Math.max(0,e.clientY-y0);f.style.transform=`translateY(${dy}px)`})
+f.addEventListener('pointerup',()=>{f.style.transition='';f.style.transform='';if(dy>80)a.classList.remove('ouvert');y0=null})
+</script>
+</body>
+</html>

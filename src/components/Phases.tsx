@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertTriangle, ChevronRight, Pencil } from 'lucide-react'
 import type { Catalogue } from '../catalogue'
 import { db, setReglage } from '../db'
@@ -167,27 +168,30 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
         {/* --- PHASE EN COURS --- */}
         {enCours && (
           <div>
-            {!editionEnCours ? (
-              /* Où en est ton poids, puis la carte d'avant : dates et poids visé en texte, calories sur la page, le crayon pour le reste. */
+              {/* Où en est ton poids, puis la carte d'avant : dates, poids visé et calories en texte ; le crayon ouvre le formulaire dans une fenêtre du bas. */}
               <div className="sous-carte" style={{ marginBottom: aVenir.length || peutAjouter ? 16 : 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div className="ligne entre" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-                  <strong>
-                    {nomVise(enCours.phase)} <span className="mot-salle">{nomPhase(enCours.phase).toLowerCase()}</span>
-                  </strong>
-                  <button type="button" className="objectif-crayon" aria-label="Modifier l’objectif en cours" onClick={() => setEditionEnCours(true)}>
-                    <Pencil size={16} strokeWidth={1.75} />
-                  </button>
+                  <span className="ligne" style={{ justifyContent: 'flex-start', gap: 8, flexWrap: 'nowrap', alignItems: 'baseline' }}>
+                    <span className={`point-phase phase-${enCours.phase}`} style={{ width: 10, height: 10, flex: 'none' }} />
+                    <strong>
+                      {nomVise(enCours.phase)} <span className="mot-salle">{nomPhase(enCours.phase).toLowerCase()}</span>
+                    </strong>
+                  </span>
+                  <span className="ligne" style={{ gap: 8, flexWrap: 'nowrap', flex: 'none' }}>
+                    <span className={`pastille-phase phase-${enCours.phase}`}>{enCours.depassee ? 'Fin dépassée' : `Sem. ${enCours.semaine}${totalEnCours ? `/${totalEnCours}` : ''}`}</span>
+                    <button type="button" className="objectif-crayon" aria-label="Modifier l’objectif en cours" onClick={() => setEditionEnCours(true)}>
+                      <Pencil size={16} strokeWidth={1.75} />
+                    </button>
+                  </span>
                 </div>
-                {etatEnCours && <OuEnEst etat={etatEnCours} debut={enCours.debut} finPrevue={enCours.finPrevue} />}
-                <div className="faible petit-texte">
-                  {enCours.depassee ? 'Fin dépassée' : `Semaine ${enCours.semaine}${totalEnCours ? ` sur ${totalEnCours}` : ''}`} · {enCours.finPrevue ? `du ${jour(enCours.debut)} au ${jour(plusJours(enCours.finPrevue, -1))}` : `depuis le ${jour(enCours.debut)}, sans fin prévue`}
-                </div>
+                {etatEnCours && <OuEnEst etat={etatEnCours} debut={enCours.debut} finPrevue={enCours.finPrevue} phase={enCours.phase} />}
+                <div className="faible petit-texte">{enCours.finPrevue ? `Du ${jour(enCours.debut)} au ${jour(plusJours(enCours.finPrevue, -1))}` : `Depuis le ${jour(enCours.debut)}, sans fin prévue`}</div>
                 {enCours.ecartVise && (
                   <div className="faible petit-texte">
                     {ecartTexte(enCours.ecartVise)} visés{totalEnCours ? ` · ${ecartTexte(Math.round((enCours.ecartVise / totalEnCours) * 100) / 100)} par semaine` : ''}
                   </div>
                 )}
-                <ChampCalories p={enCours} frise={frise} aujourdhui={aujourdhui} enregistrer={enregistrer} />
+                <div className="faible petit-texte">{enCours.calories ? `${milliers(enCours.calories)} kcal par jour` : 'Pas d’objectif de calories'}</div>
 
                 {/* Le poids visé sort de la zone conseillée : un mot, en ambre (un réglage, pas ton corps). */}
                 {avisEnCours && (
@@ -210,38 +214,33 @@ export default function Phases({ catalogue, onRecap }: { catalogue: Catalogue; /
                   </div>
                 )}
               </div>
-            ) : (
-              /* Vue Édition de la phase en cours */
-              <div
-                style={{
-                  background: 'var(--sous-carte)',
-                  border: '1px solid var(--voile-fort)',
-                  borderRadius: 'var(--rayon-2)',
-                  padding: '14px 16px',
-                  marginBottom: 16,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span className={`point-phase phase-${enCours.phase}`} />
-                  <strong style={{ fontSize: 'var(--t-texte)', color: 'var(--texte)' }}>Modifier « {nomVise(enCours.phase)} »</strong>
-                </div>
-
-                <EditeurPhase
-                  p={enCours}
-                  enCours={true}
-                  premier={true}
-                  voisins={[undefined, aVenir[0]?.phase]}
-                  suivante={aVenir.length > 0}
-                  pesees={pesees}
-                  frise={frise}
-                  aujourdhui={aujourdhui}
-                  enregistrer={(f) => {
-                    enregistrer(f)
-                  }}
-                  onFermer={() => setEditionEnCours(false)}
-                />
-              </div>
-            )}
+            {/* Le formulaire monte du bas, la page reste derrière : un appui à côté, le glissement ou le retour le ferment et gardent ce qui est saisi. */}
+            {editionEnCours &&
+              createPortal(
+                <div className="modal-fond" onClick={() => setEditionEnCours(false)}>
+                  <div className="modal modal-colonne" onClick={(e) => e.stopPropagation()}>
+                    <h2 className="ligne" style={{ justifyContent: 'flex-start', gap: 8, flexWrap: 'nowrap' }}>
+                      <span className={`point-phase phase-${enCours.phase}`} />
+                      Modifier « {nomVise(enCours.phase)} »
+                    </h2>
+                    <div className="modal-defile">
+                      <EditeurPhase
+                        p={enCours}
+                        enCours={true}
+                        premier={true}
+                        voisins={[undefined, aVenir[0]?.phase]}
+                        suivante={aVenir.length > 0}
+                        pesees={pesees}
+                        frise={frise}
+                        aujourdhui={aujourdhui}
+                        enregistrer={enregistrer}
+                        onFermer={() => setEditionEnCours(false)}
+                      />
+                    </div>
+                  </div>
+                </div>,
+                document.body
+              )}
           </div>
         )}
 

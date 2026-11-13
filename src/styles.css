@@ -7908,6 +7908,18 @@ button.jour-pas {
   flex-direction: column;
   gap: 2px;
 }
+.pastille-phase {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--voile);
+  color: var(--phase);
+  font-size: var(--t-legende);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cap-piste.piste-phase i {
+  background: var(--phase);
+}
 .objectif-crayon {
   display: flex;
   align-items: center;
