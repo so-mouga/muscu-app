@@ -39,7 +39,7 @@ describe('bilan à partager', () => {
   it('contient vue d’ensemble, volume par muscle, exercices, corps et autres sports', () => {
     const t = genererBilan(donnees([seance('s1', '2026-10-20', [50, 50, 50], { ressenti: 4, notes: { smith_incline: 'Siège cran 4' } }), seance('s2', '2026-10-27', [52.5, 52.5, 52.5])]), '2026-10-19', '2026-10-29')
     expect(t).toContain('2 séances')
-    expect(t).toContain('Pecs : 3/sem. (objectif 10) · effort moyen 8/10 · par semaine : 3 / 3')
+    expect(t).toContain('Pecs : 3/sem. (zone Normal 10–16) · effort moyen 8/10 · par semaine : 3 / 3')
     expect(t).toContain('Développé incliné Smith (pecs)')
     expect(t).toContain('Développé incliné Smith (pecs) · 1re (20 oct. : 50 kg × 10, 10, 10 · effort 8, 8, 8/10) · dernière (27 oct. : 52,5 kg × 10, 10, 10 · effort 8, 8, 8/10)')
     expect(t).not.toContain('@8')
@@ -137,6 +137,19 @@ describe('texte du bilan et séance allégée pour un seul jour', () => {
     expect(genererBilan(d, '2026-10-19', '2026-10-29')).not.toContain('Ma question')
   })
 
+  it('poids : moyenne des 7 derniers jours et dernière pesée', () => {
+    const d = { ...donnees([seance('s1', '2026-10-27', [50])]), pesees: [{ date: '2026-10-20', poids: 74 }, { date: '2026-10-24', poids: 73.6 }, { date: '2026-10-27', poids: 73.4 }] }
+    expect(genererBilan(d, '2026-10-19', '2026-10-29')).toMatch(/Poids moyen 7 jours : 73,5 kg \(2\/7 pesées\) · dernière pesée : 73,4 kg \(le 27 oct\.?\)/)
+    expect(genererBilan({ ...d, pesees: [{ date: '2026-10-10', poids: 74 }] }, '2026-10-19', '2026-10-29')).toMatch(/Dernière pesée : 74 kg \(le 10 oct\.?\)/)
+    expect(genererBilan(d, '2026-10-19', '2026-10-27')).toContain('dernière pesée : 73,4 kg\n')
+  })
+  it('volume : la zone du niveau de chaque muscle', () => {
+    const base = donnees([seance('s1', '2026-10-20', [50])])
+    expect(genererBilan({ ...base, cibles: { ...base.cibles, pecs: 4 } }, '2026-10-19', '2026-10-29')).toContain('(zone Entretien 4–8)')
+    expect(genererBilan({ ...base, cibles: { ...base.cibles, pecs: 12 }, seancesParSemaine: 2 }, '2026-10-19', '2026-10-29')).toContain('(zone Priorité 12–14)')
+    expect(genererBilan({ ...base, cibles: { ...base.cibles, pecs: 0 } }, '2026-10-19', '2026-10-29')).toMatch(/Pecs : [\d,]+\/sem\. \(sans conseil\)/)
+    expect(genererBilan({ ...base, conseilsMasques: true }, '2026-10-19', '2026-10-29')).toMatch(/Pecs : [\d,]+\/sem\. · effort/)
+  })
   it('rythme visé par la phase quand elle a un poids visé et une fin', () => {
     const d = { ...donnees([seance('s0', '2026-10-20', [50]), seance('s1', '2026-10-27', [50])]), objectifs: [{ depuis: '2026-10-05', phase: 'prise' as const, volume: {}, ecartVise: 3, finPrevue: '2026-12-28' }] }
     expect(genererBilan(d, '2026-10-19', '2026-10-29')).toContain('visé par ton objectif : +3 kg en 12 semaines, soit +0,25 kg/semaine')
@@ -148,7 +161,10 @@ describe('texte du bilan et séance allégée pour un seul jour', () => {
     expect(t).toContain('== Records battus (1) ==')
     expect(t).toMatch(/- Développé incliné Smith : 52,5 kg × 10 \(10 nov\.?\)/)
     expect(t).toContain('== Mes caps (une charge que je vise, sans date) ==')
-    expect(t).toMatch(/60 kg sur mes 3 séries, à 8 reps ou plus\. J'en suis à 52,5 kg, parti de 50 kg le 20 oct/)
+    expect(t).toMatch(/60 kg sur mes 3 séries, à 8 reps ou plus\. J'en suis à 52,5 kg\. Cap fixé le 20 oct\.?, j'étais alors à 50 kg\./)
+    // Exercice commencé avant le jour où le cap est fixé : les deux dates.
+    const d2 = { ...d, caps: [{ ...d.caps[0], depuis: '2026-11-03' }] }
+    expect(genererBilan(d2, '2026-10-26', '2026-11-15')).toMatch(/Cap fixé le 3 nov\.?, j'étais alors à 50 kg \(exercice commencé le 27 oct\.?\)/)
     expect(t).not.toContain('cran')
   })
 })

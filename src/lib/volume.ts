@@ -42,6 +42,17 @@ export function etatVolume(m: Muscle, v: number, cible: number, seances?: number
 
 export type NiveauVolume = 'entretien' | 'normal' | 'priorite' | 'sans'
 
+/**
+ * Le niveau d'une cible déjà lue (`cibleLue`, priorités de cycle comprises) : une Priorité ramenée au nombre de séances
+ * (12 avec 2 séances) n'est pas « Normal ». Pour le texte partagé : « zone Priorité 12–14 ».
+ */
+export function niveauLu(m: Muscle, cible: number, seances?: number): NiveauVolume {
+  if (cible <= 0) return 'sans'
+  if (prioriteReduite(m, cible, seances)) return 'priorite'
+  return niveauDe(m, cible)
+}
+
+
 const CIBLE_ENTRETIEN = 4
 const HAUT_ENTRETIEN = 8
 const CIBLE_PRIORITE = 16

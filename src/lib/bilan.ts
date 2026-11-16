@@ -12,6 +12,7 @@ import { diagnostic, texteBlocage } from './blocages'
 import { recordsDePeriode } from './analyse'
 import { etatCap, texteCap, type Cap } from './caps'
 import { DEBUT_CRANS } from './crans'
+import { niveauLu, zone } from './volume'
 
 
 /** « 12 400 » : espace des milliers, comme à l'écran. */
@@ -37,7 +38,13 @@ export interface DonneesBilan {
   cycles?: Cycle[]
   /** Les caps fixés (une charge visée sur un exercice). */
   caps?: Cap[]
+  /** Séances par semaine du programme en service : la zone d'un muscle en Priorité en dépend. */
+  seancesParSemaine?: number
+  /** Conseils de volume masqués : les séries sans zone. */
+  conseilsMasques?: boolean
 }
+
+const NOMS_NIVEAU = { entretien: 'Entretien', normal: 'Normal', priorite: 'Priorité' } as const
 
 const SEMAINE = 7 * 86400000
 const arrondi = (x: number, d = 1) => Math.round(x * 10 ** d) / 10 ** d
@@ -82,8 +89,17 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     const autres = periodes(d.objectifs).filter((p) => p.fin && p.fin >= depart && p.fin < fin)
     for (const p of autres) lignes.push(`Objectif précédent pendant la période : ${p.phase === 'seche' ? 'sèche' : p.phase === 'prise' ? 'prise de muscle' : 'maintien'} du ${jour(p.debut)} au ${jour(p.fin!)}`)
   }
-  const dernierPoids = [...d.pesees].filter((p) => p.date <= fin).sort((a, b) => b.date.localeCompare(a.date))[0]
-  if (dernierPoids) lignes.push(`Poids actuel : ${kg(dernierPoids.poids)} kg`)
+  // Le poids : la moyenne des 7 derniers jours (celle de Corps), avec le nombre de jours pesés, puis la dernière pesée,
+  // datée si ce n'est pas le dernier jour (demande de l'IA de l'utilisateur : une pesée seule bouge trop d'un matin à l'autre).
+  const peseesFin = [...d.pesees].filter((p) => p.date <= fin).sort((a, b) => b.date.localeCompare(a.date))
+  const dernierPoids = peseesFin[0]
+  if (dernierPoids) {
+    const septJours = dateISO(new Date(Date.parse(fin + 'T12:00:00') - 6 * 86400000))
+    const parJour = new Map<string, number>()
+    for (const p of peseesFin) if (p.date >= septJours && !parJour.has(p.date)) parJour.set(p.date, p.poids)
+    const derniere = `${kg(dernierPoids.poids)} kg${dernierPoids.date === fin ? '' : ` (le ${jour(dernierPoids.date)})`}`
+    lignes.push(parJour.size ? `Poids moyen 7 jours : ${kg(arrondi(moyenne([...parJour.values()])!))} kg (${parJour.size}/7 pesées) · dernière pesée : ${derniere}` : `Dernière pesée : ${derniere}`)
+  }
   lignes.push('Effort sur 10 : 10 = échec, 8/10 = il reste environ 2 reps. Séries dures = effort 7/10 ou plus (ou échec). Fourchette 8–12 : la charge monte quand toutes les séries atteignent le haut.')
 
   if (retenir.length) {
@@ -124,7 +140,11 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     for (const { c, e, exo } of caps) {
       const vise = c.genre === 'charge' ? `${texteCap(exo, c, c.cible)} sur ${c.series > 1 ? `mes ${c.series} séries` : 'ma série'}, à ${c.reps} reps ou plus` : `${c.series > 1 ? `${c.series} séries` : 'une série'} de ${c.cible} reps`
       const ou = (v: number) => (c.genre === 'charge' ? texteCap(exo, c, v) : `${v} reps`)
-      lignes.push(e.franchi ? `- ${exo.nom} : ${vise}. Franchi le ${jour(e.franchi.date)} (parti de ${ou(c.depart)} le ${jour(c.depuis)}).` : `- ${exo.nom} : ${vise}. J'en suis à ${ou(e.niveau)}, parti de ${ou(c.depart)} le ${jour(c.depuis)}.`)
+      // Le jour où le cap a été fixé n'est pas celui où l'exercice a commencé : les deux dates, chacune avec son sens
+      // (retour de l'IA de l'utilisateur, 15 nov. 2026 : « parti de 50 kg le 12 nov. » se lisait comme un exercice commencé le 12).
+      const premiere = d.seances.filter((s) => s.series.some((x) => x.exoId === c.exoId)).map((s) => s.date).sort()[0]
+      const fixe = `Cap fixé le ${jour(c.depuis)}, j'étais alors à ${ou(c.depart)}${premiere && premiere < c.depuis ? ` (exercice commencé le ${jour(premiere)})` : ''}.`
+      lignes.push(e.franchi ? `- ${exo.nom} : ${vise}. Franchi le ${jour(e.franchi.date)}. ${fixe}` : `- ${exo.nom} : ${vise}. J'en suis à ${ou(e.niveau)}. ${fixe}`)
     }
   }
 
@@ -154,6 +174,14 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   const parSemaine = semainesVolume.map((l) => volumeParMuscle(periode.filter((s) => !seanceSemaineAllegee(s) && semaineDe(s.date) === l), d.exercices))
   // Moyenne sur les semaines de la période, sauf celles de déload (une semaine sans séance compte pour 0).
   const semainesTravail = semainesVolume.filter((l) => !periode.some((s) => semaineDe(s.date) === l && seanceSemaineAllegee(s)) && !(d.cycles?.some((c) => c.pauses.includes(l)) && !periode.some((s) => semaineDe(s.date) === l)))
+  // La zone du niveau choisi, pas son seul bas : « (objectif 4) » se lisait comme un but à atteindre (retour de l'IA de l'utilisateur, 15 nov. 2026).
+  const zoneTexte = (id: Muscle) => {
+    if (d.conseilsMasques) return ''
+    const c = d.cibles[id] ?? 0
+    const z = zone(id, c, d.seancesParSemaine)
+    const n = niveauLu(id, c, d.seancesParSemaine)
+    return z && n !== 'sans' ? ` (zone ${NOMS_NIVEAU[n]} ${kg(z.bas)}–${kg(z.haut)})` : ' (sans conseil)'
+  }
   for (const m of MUSCLES) {
     const valeurs = semainesVolume.map((_, k) => parSemaine[k][m.id])
     const total = valeurs.reduce((a, b) => a + b, 0)
@@ -163,7 +191,7 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     const rpe = moyenne(rpes)
     lignes.push(
       `${m.nom} : ${kg(arrondi(moy))}/sem.` +
-        (d.cibles[m.id] ? ` (objectif ${kg(d.cibles[m.id])})` : '') +
+        zoneTexte(m.id) +
         (rpe !== null ? ` · effort moyen ${kg(arrondi(rpe))}/10` : '') +
         ` · par semaine : ${valeurs.map((v) => kg(arrondi(v))).join(' / ')}`
     )
