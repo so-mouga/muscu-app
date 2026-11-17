@@ -93,7 +93,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   useRetour(choixCycle, () => setChoixCycle(false))
   // La page du cycle a son propre retour.
   useRetour(sous === 'exercices', fermerSous)
-  const seances = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
+  const seances = useLiveQuery(() => db.seances.toArray().then((t) => t.filter((s) => !s.enCours)), [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])

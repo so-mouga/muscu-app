@@ -47,10 +47,10 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
     return () => document.body.classList.remove('sans-onglets')
   }, [])
   // Les déloads ne servent pas de référence pour la progression.
-  const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours && !s.deload).toArray(), [])
+  const terminees = useLiveQuery(() => db.seances.orderBy('debut').toArray().then((t) => t.reverse().filter((s) => !s.enCours && !s.deload)), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   // Pour expliquer un blocage : déloads, sommeil, calories et poids.
-  const deloads = useLiveQuery(() => db.seances.filter((s) => !s.enCours && !!s.deload).toArray(), [], [])
+  const deloads = useLiveQuery(() => db.seances.toArray().then((t) => t.filter((s) => !s.enCours && !!s.deload)), [], [])
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const aujourdhui = dateISO()

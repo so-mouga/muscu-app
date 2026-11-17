@@ -195,15 +195,10 @@ export async function lancerCycle(c: Catalogue, p: Programme, o: { debut: string
     await db.cycles.put(cycle)
     await setReglage('programmeActif', p.id)
     // Cycle lancé cette semaine : les séances déjà faites cette semaine en font partie (semaine 1).
-    if (cycle.debut === lundi())
-      await db.seances
-        .where('date')
-        .aboveOrEqual(cycle.debut)
-        .filter((s) => !s.cycleId)
-        .modify((s) => {
-          s.cycleId = cycle.id
-          s.semaine = 1
-        })
+    if (cycle.debut === lundi()) {
+      const sansCycle = (await db.seances.where('date').aboveOrEqual(cycle.debut).toArray()).filter((s) => !s.cycleId)
+      if (sansCycle.length) await db.seances.bulkPut(sansCycle.map((s) => ({ ...s, cycleId: cycle.id, semaine: 1 })))
+    }
   })
   return cycle
 }

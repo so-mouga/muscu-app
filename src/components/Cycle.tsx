@@ -223,7 +223,7 @@ export function VueCycle({ catalogue, cycle, onFermer, onBilan, onSeance }: { ca
   const [menu, setMenu] = useState(false)
   useRetour(!modifier, onFermer)
   useRetour(menu, () => setMenu(false))
-  const seances = useLiveQuery(() => db.seances.filter((s) => s.cycleId === cycle.id && !s.enCours).toArray(), [cycle.id], [])
+  const seances = useLiveQuery(() => db.seances.toArray().then((t) => t.filter((s) => s.cycleId === cycle.id && !s.enCours)), [cycle.id], [])
   const etat = etatCycle(cycle)
   // Chaque séance va dans la semaine de sa date réelle (une semaine mise en pause après coup garde les siennes).
   const semaineDe = (date: string) => {

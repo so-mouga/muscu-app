@@ -196,7 +196,7 @@ function chronoSeance(ms: number) {
 
 export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; catalogue: Catalogue }) {
   // Référence pour la progression : séances terminées, hors déloads (allégées, elles fausseraient la suite).
-  const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours && !s.deload).toArray(), [])
+  const terminees = useLiveQuery(() => db.seances.orderBy('debut').toArray().then((t) => t.reverse().filter((s) => !s.enCours && !s.deload)), [])
   const reglages = useLiveQuery(() => db.reglages.toArray(), [])
   const [idxBrut, setIdxEtat] = useState<number>(() => stocke(`idx:${seance.id}`, 0))
   const [minuteur, setMinuteurEtat] = useState<EtatMinuteur | null>(() => {
@@ -712,6 +712,7 @@ export default function SeanceEnCours({ seance, catalogue }: { seance: Seance; c
           onAnnuler={() => void annulerSeance(seance.id)}
           onEnregistrer={() => {
             // Heure de la dernière série : la nuit ne compte pas dans la durée. « Comme aujourd'hui » pour la prochaine fois.
+            range('retourSeance', null)
             void db.seances.update(seance.id, { enCours: false, fin: Math.max(...seance.series.map((x) => x.heure)) })
             oublierEtatLocal(seance.id)
           }}
@@ -1730,6 +1731,8 @@ function FinSeance({
     }
     const heures = seance.series.map((x) => x.heure).filter((h): h is number => typeof h === 'number' && h > 0)
     const fin = Date.now() - seance.debut > 4 * 3600000 && heures.length ? Math.max(...heures) : Date.now()
+    // Avant l'écriture : dès qu'elle est faite, l'Accueil s'affiche et relit `retourSeance` ; lu trop tôt, il rouvrait « Voir ».
+    range('retourSeance', null)
     await db.seances.update(seance.id, { enCours: false, fin, ressenti, energie, modeleId, objectifs })
     oublierEtatLocal(seance.id)
   })

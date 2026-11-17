@@ -113,7 +113,7 @@ export function exoAvecReglages(exo: Exercice, reglages: Reglage[]): Exercice {
 }
 
 export async function dernierPoids(): Promise<number | undefined> {
-  const p = await db.pesees.orderBy('date').last()
+  const p = await db.pesees.orderBy('date').toArray().then((t) => t.at(-1))
   return p?.poids
 }
 

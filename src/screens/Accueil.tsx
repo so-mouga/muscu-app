@@ -74,7 +74,7 @@ async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycl
   const poidsCorps = await dernierPoids()
   // Une seule séance en cours : un double appui sur « Démarrer » n'en crée pas une seconde, qui reviendrait plus tard.
   await db.transaction('rw', db.seances, async () => {
-    if (await db.seances.filter((s) => s.enCours).first()) return
+    if (await db.seances.toArray().then((t) => t.find((s) => s.enCours))) return
     await db.seances.add({
       ...(cycle && { cycleId: cycle.cycleId, semaine: cycle.semaine }),
       ...(deload && { deload: true }),
@@ -151,9 +151,9 @@ export default function Accueil({
       return null
     }
   })
-  const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').last(), [])
+  const derniereMesure = useLiveQuery(() => db.mesures.orderBy('date').toArray().then((t) => t.at(-1)), [])
   // Dernière mesure et dernière photo ; null pendant le chargement, pour ne pas demander des repères déjà pris.
-  const dernieresPrises = useLiveQuery(async () => ({ mesure: (await db.mesures.orderBy('date').last())?.date, photo: ((await db.photos.orderBy('date').uniqueKeys()) as string[]).at(-1) }), [], null)
+  const dernieresPrises = useLiveQuery(async () => ({ mesure: (await db.mesures.orderBy('date').toArray().then((t) => t.at(-1)))?.date, photo: ((await db.photos.orderBy('date').uniqueKeys().catch(() => [])) as string[]).at(-1) }), [], null)
   // Rappels masqués par l'utilisateur : réapparaissent au bout d'une semaine.
   const [masques, setMasques] = useState<Record<string, number>>(() => {
     try {
@@ -183,14 +183,14 @@ export default function Accueil({
   }
   const debutSemaine = lundi()
   const semaine = useLiveQuery(
-    () => db.seances.where('date').aboveOrEqual(debutSemaine).filter((s) => !s.enCours).toArray(),
+    () => db.seances.where('date').aboveOrEqual(debutSemaine).toArray().then((t) => t.filter((s) => !s.enCours)),
     [debutSemaine],
     []
   )
   const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   const dernierExport = useLiveQuery(() => db.reglages.get('dernierExport'), [])
   const nbSeances = useLiveQuery(() => db.seances.count(), [], 0)
-  const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
+  const terminees = useLiveQuery(() => db.seances.toArray().then((t) => t.filter((s) => !s.enCours)), [])
   // Appli Android : un APK plus récent publié ? (le site, lui, se met à jour tout seul)
   const [majAndroid, setMajAndroid] = useState<{ version: string; url: string } | null>(null)
   useEffect(() => void nouvelleVersionAndroid().then(setMajAndroid), [])

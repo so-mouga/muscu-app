@@ -57,7 +57,7 @@ export default function App() {
       /* stockage indisponible */
     }
   }
-  const enCours = useLiveQuery(() => db.seances.filter((s) => s.enCours).first(), [], null)
+  const enCours = useLiveQuery(() => db.seances.toArray().then((t) => t.find((s) => s.enCours)), [], null)
   const catalogue = useCatalogue()
   const demarrage = useLiveQuery(() => db.reglages.get(CLE_DEMARRAGE), [], null)
   /** Démarrage rouvert depuis l'accueil ou l'onglet Programme. */

@@ -32,7 +32,15 @@ let derniereValidation = -Infinity
 export { cibleSerie }
 
 export function majSeance(id: string, fn: (s: Seance) => void) {
-  return db.seances.where('id').equals(id).modify(fn)
+  // Lire puis réécrire, sans curseur : sur iPhone, Safari fait parfois échouer l'ouverture d'un curseur (17 nov. 2026),
+  // et une série validée ne doit jamais se perdre.
+  return db.transaction('rw', db.seances, async () => {
+    const s = await db.seances.get(id)
+    if (!s) return 0
+    fn(s)
+    await db.seances.put(s)
+    return 1
+  })
 }
 
 export function Photo({ src, titre, onFermer }: { src: string; titre: string; onFermer: () => void }) {

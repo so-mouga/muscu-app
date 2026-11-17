@@ -67,7 +67,7 @@ async function verifierMiseAJour() {
     const html = await (await fetch('./index.html', { cache: 'no-store' })).text()
     const script = document.querySelector('script[type="module"][src]')?.getAttribute('src')
     if (!script || html.includes(script)) return
-    if (await db.seances.filter((s) => s.enCours).count()) return
+    if (await db.seances.toArray().then((t) => t.filter((s) => s.enCours).length)) return
     location.reload()
   } catch {
     /* hors ligne */

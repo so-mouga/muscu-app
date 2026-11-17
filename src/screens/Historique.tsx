@@ -69,7 +69,7 @@ interface Props {
 }
 
 export default function Historique({ catalogue, detail, onDetail, vue, onVue, onExo, exoInitial, onRetourExo, onCorps, onProgramme }: Props) {
-  const terminees = useLiveQuery(() => db.seances.orderBy('debut').reverse().filter((s) => !s.enCours).toArray(), [])
+  const terminees = useLiveQuery(() => db.seances.orderBy('debut').toArray().then((t) => t.reverse().filter((s) => !s.enCours)), [])
   const [fonduVue, setFonduVue] = useState(false)
   const reglages = useLiveQuery(() => db.reglages.toArray(), [], [])
   /** Jour choisi dans le calendrier (aujourd'hui par défaut). */

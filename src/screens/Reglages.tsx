@@ -70,7 +70,7 @@ function PagePrincipale({ onPage, message, onMessage }: { onPage: (p: PageReglag
   const dernierPhotos = useLiveQuery(() => db.reglages.get('dernierExportPhotos'), [])
   const nbPhotos = useLiveQuery(() => db.photos.count(), [], 0)
   const contenu = useLiveQuery(
-    async () => ({ programmes: await db.programmes.count(), seances: await db.seances.filter((s) => !s.enCours).count(), pesees: await db.pesees.count(), mesures: await db.mesures.count(), exercices: await db.exercices.count(), photos: nbPhotos }),
+    async () => ({ programmes: await db.programmes.count(), seances: await db.seances.toArray().then((t) => t.filter((s) => !s.enCours).length), pesees: await db.pesees.count(), mesures: await db.mesures.count(), exercices: await db.exercices.count(), photos: nbPhotos }),
     [nbPhotos]
   )
   const bipsReglage = useLiveQuery(() => db.reglages.get('bipsRepos'), [])
@@ -195,7 +195,7 @@ function PageSauvegarde({ catalogue, message, onMessage }: { catalogue: Catalogu
   }
 
   const exporterCSV = async () => {
-    const seances = await db.seances.orderBy('debut').filter((s) => !s.enCours).toArray()
+    const seances = await db.seances.orderBy('debut').toArray().then((t) => t.filter((s) => !s.enCours))
     const lignes = [['date', 'seance', 'exercice', 'serie', 'type', 'charge', 'reps', 'rpe', 'demi_reps', 'zone'].join(';')]
     for (const s of seances) {
       const compte: Record<string, number> = {}

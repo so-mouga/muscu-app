@@ -361,7 +361,7 @@ export function PriseCorps({ prise, onFermer }: { prise: Repere; onFermer: () =>
 
 /** Toutes les pesées, un appui pour corriger ou supprimer. */
 function ListePesees({ catalogue }: { catalogue: Catalogue }) {
-  const pesees = useLiveQuery(() => db.pesees.orderBy('date').reverse().toArray(), [], [])
+  const pesees = useLiveQuery(() => db.pesees.orderBy('date').toArray().then((t) => t.reverse()), [], [])
   const [date, setDate] = useState<string | null>(null)
   const [voirTout, setVoirTout] = useState(false)
   const affichees = voirTout ? pesees : pesees.slice(0, 30)

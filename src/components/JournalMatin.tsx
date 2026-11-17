@@ -89,9 +89,8 @@ export function FenetreJour({
     const arr = lirePoids(valPoids)
     if (arr === null) return informer('Entre 30 et 250 kg, avec au plus 2 chiffres après la virgule : par exemple 72,3.', 'Poids non reconnu')
     await db.pesees.put({ date, poids: arr })
-    await db.seances.filter((s) => !s.poidsCorps && (s.date === date || (date === aujourdhui && s.enCours))).modify((s) => {
-      s.poidsCorps = arr
-    })
+    const sansPoids = (await db.seances.toArray()).filter((s) => !s.poidsCorps && (s.date === date || (date === aujourdhui && s.enCours)))
+    if (sansPoids.length) await db.seances.bulkPut(sansPoids.map((s) => ({ ...s, poidsCorps: arr })))
     onFermer()
   }
 
@@ -218,7 +217,7 @@ export function FenetreJour({
 export default function JournalMatin({ catalogue }: { catalogue: Catalogue }) {
   const aujourdhui = dateISO()
   const hier = dateISO(new Date(Date.now() - JOUR))
-  const dernierePesee = useLiveQuery(() => db.pesees.orderBy('date').last(), [])
+  const dernierePesee = useLiveQuery(() => db.pesees.orderBy('date').toArray().then((t) => t.at(-1)), [])
   const peseeDuJour = useLiveQuery(() => db.pesees.get(aujourdhui), [aujourdhui])
   const duJour = useLiveQuery(() => db.journal.get(aujourdhui), [aujourdhui])
   const dHier = useLiveQuery(() => db.journal.get(hier), [hier])

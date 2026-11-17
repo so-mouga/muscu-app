@@ -90,7 +90,7 @@ export default function Seances({ catalogue, onChoisirProgramme, creer, onCreerO
     retourCycle = false
     return r ? [{ type: 'cycle' }] : []
   })
-  const terminees = useLiveQuery(() => db.seances.filter((s) => !s.enCours).toArray(), [])
+  const terminees = useLiveQuery(() => db.seances.toArray().then((t) => t.filter((s) => !s.enCours)), [])
   const vue = pile[pile.length - 1]
   /** Message de confirmation, en haut de la page Programme. */
   const [annonce, setAnnonce] = useState('')
@@ -743,7 +743,7 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
 
 /** Ce qui reste de la Bibliothèque : les séances, y compris celles qui ne sont dans aucun programme. */
 function PageAutresSeances({ catalogue, terminees, onFermer, onOuvrir }: { catalogue: Catalogue; terminees: Seance[] | undefined; onFermer: () => void; onOuvrir: (m: SeanceModele, nouvelle: boolean) => void }) {
-  const masquees = useLiveQuery(() => db.modeles.filter((m) => !!m.supprime).toArray(), [], [])
+  const masquees = useLiveQuery(() => db.modeles.toArray().then((t) => t.filter((m) => !!m.supprime)), [], [])
   const utilisations = (m: SeanceModele) => catalogue.programmes.filter((p) => p.seances.some((e) => e.modeleId === m.id)).map((p) => p.nom)
   return (
     <div>
