@@ -87,7 +87,6 @@ Plusieurs IA (Claude Code, Gemini/Antigravity) travaillent sur ce dépôt **à t
   - Ambre & tendances : `--alerte` (`#f5c04a`), `--alerte-voile`, `--alerte-bord`, `--tendance-1` à `--tendance-4`.
   - Voiles sombres & ombres : `--silhouette-bord`, `--ombre-legere`, `--ombre-forte`, `--fond-masque`, `--bulle-fond-88`, `--bulle-fond-97`, `--banniere-fond-fin`, `--minuteur-fini`, `--aide-texte`.
 - Couleurs uniquement via les variables CSS de `:root` (`--bg`, `--surface`, `--accent`, `--texte-2`…). Thème sombre.
-- Pas d'illustrations copiées d'autres applis : icônes et pictogrammes maison en SVG.
 
 ## Fiche Play Store
 
