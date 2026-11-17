@@ -1,6 +1,6 @@
 import type { Exercice, Muscle } from '../types'
 
-/** Dessin livré avec l'appli (`public/dessins`), pour les exercices de la séance « Force et circuits ». */
+/** Dessin livré avec l'appli (`public/dessins/<nom>.jpg`, nom = identifiant de l'exercice pour les nouveaux). */
 const dessin = (nom: string) => `${import.meta.env.BASE_URL}dessins/${nom}.jpg`
 
 const sec = (...m: [Muscle, number][]) => m.map(([muscle, coef]) => ({ muscle, coef }))
@@ -18,11 +18,11 @@ const exo = (e: Def): Exercice => ({ pas: e.mode === 'par_main' ? 2 : e.mode ===
 
 const liste: Exercice[] = [
   // --- Séances de départ (identifiants conservés : ils sont dans l'historique) ---
-  { id: 'smith_incline', nom: 'Développé incliné Smith', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', barre: 10, pas: 2.5, suivreE1rm: true },
+  { id: 'smith_incline', image: dessin('smith_incline'), nom: 'Développé incliné Smith', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', barre: 10, pas: 2.5, suivreE1rm: true },
   { id: 'tirage_large', image: dessin('tirage'), nom: 'Tirage vertical prise large', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true },
-  { id: 'butterfly', nom: 'Butterfly', muscle: 'pecs', type: 'isolation', mode: 'machine', pas: 5, suivreE1rm: false },
-  { id: 'tirage_horizontal', image: dessin('rowing'), nom: 'Tirage horizontal prise neutre', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true },
-  { id: 'elevation_poulie', nom: 'Élévation latérale poulie', muscle: 'epaule_laterale', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
+  { id: 'butterfly', image: dessin('butterfly'), nom: 'Butterfly', muscle: 'pecs', type: 'isolation', mode: 'machine', pas: 5, suivreE1rm: false },
+  { id: 'tirage_horizontal', image: dessin('tirage_horizontal'), nom: 'Tirage horizontal prise neutre', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true },
+  { id: 'elevation_poulie', image: dessin('elevation_poulie'), nom: 'Élévation latérale poulie', muscle: 'epaule_laterale', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'triceps_un_bras', nom: 'Extension triceps poulie un bras', muscle: 'triceps', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'presse', image: dessin('presse'), nom: 'Presse à cuisses', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
   { id: 'rdl', nom: 'Soulevé de terre roumain barre', muscle: 'ischios', secondaires: chainePost, type: 'compose', mode: 'machine', barre: 20, pas: 2.5, suivreE1rm: true },
