@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "preview", "--port", "4173", "--strictPort"],
       "port": 4173
+    },
+    {
+      "name": "maquettes",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4175"],
+      "port": 4175
     }
   ]
 }

@@ -8,6 +8,7 @@ import { dateISO, lundi, semaineType } from './lib/calc'
 import { ciblesEnVigueur, ciblesLues } from './lib/volume'
 import { avecPriorites, cibles, DUREE_DEFAUT, sourceCibles, ecartCycle, etatCycle, finReelle, nouveauCycle, type EcartCycle } from './lib/cycle'
 import { CLE_DEMARRAGE, estSansProgramme } from './lib/demarrage'
+import { imageDeCopie } from './lib/dessins'
 import { CLE_OBJECTIFS, CLE_PHASES, CLE_SANS_OBJECTIF, CLE_VOLUME, lireFrise, modifier, objectifsA, type EtapeObjectifs } from './lib/objectifs'
 import type { Cycle, Exercice, Muscle, Programme, SeanceModele } from './types'
 
@@ -77,10 +78,12 @@ export function construireCatalogue(
   const exercices: Record<string, Exercice> = { ...EXERCICES }
   // Une version modifiée d'un exercice de base garde son sens : une assistance reste une assistance.
   // Elle suit aussi le nouveau nom si elle a encore l'ancien. Sans exercice de base (retiré de la liste) : elle appartient à la personne.
+  // Image : la photo prise par la personne (data URL) reste la sienne ; sinon, le dessin livré avec l'exercice de base,
+  // même si la copie a été enregistrée avant qu'il existe, ou avec un dessin livré depuis remplacé.
   for (const e of exercicesDb) {
     const base = EXERCICES[e.id]
     exercices[e.id] = base
-      ? { ...e, nom: ANCIENS_NOMS[e.id]?.includes(e.nom) ? base.nom : e.nom, ...(base.assistance ? { assistance: true } : {}) }
+      ? { ...e, nom: ANCIENS_NOMS[e.id]?.includes(e.nom) ? base.nom : e.nom, image: imageDeCopie(e.image, base.image), ...(base.assistance ? { assistance: true } : {}) }
       : { ...e, perso: true }
   }
 

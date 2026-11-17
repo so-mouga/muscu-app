@@ -2,6 +2,7 @@ import { Camera, Images } from 'lucide-react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { modifierExercice } from '../db'
+import { estPhotoPerso } from '../lib/dessins'
 import { useRetour } from '../lib/nav'
 import { PhotoZoomable } from '../screens/Photos'
 import type { Exercice } from '../types'
@@ -91,9 +92,11 @@ export function BandeauPhoto({ exo }: { exo: Exercice }) {
             </div>
             <div className="photo-exo-actions">
               <BoutonsPhoto exo={exo} appareil="Reprendre" />
-              <button className="btn" style={{ color: 'var(--danger)' }} onClick={() => void retirer()}>
-                Retirer
-              </button>
+              {estPhotoPerso(exo.image) && (
+                <button className="btn" style={{ color: 'var(--danger)' }} onClick={() => void retirer()}>
+                  Retirer
+                </button>
+              )}
             </div>
           </div>,
           document.body

@@ -7,6 +7,7 @@ import { db } from '../db'
 import { nomMuscle } from '../components/ChoixExo'
 import InfosExo, { Consignes } from '../components/InfosExo'
 import { BandeauPhoto, CasePhoto } from '../components/PhotoExo'
+import { estPhotoPerso } from '../lib/dessins'
 import { ContenuReglages, titreReglages } from '../components/ReglagesMachine'
 import { consigne } from '../data/consignes'
 import { EXERCICES } from '../data/exercices'
@@ -79,7 +80,7 @@ export function Detail({
   const revenirOriginal = async () => {
     setMenu(false)
     if (
-      await confirmer(`Nom, muscles, matériel, palier et consignes reprennent les valeurs de l’appli${exo.image ? ', et ta photo est retirée' : ''}. Ton historique ne change pas.`, {
+      await confirmer(`Nom, muscles, matériel, palier et consignes reprennent les valeurs de l’appli${estPhotoPerso(exo.image) ? ', et ta photo est retirée' : ''}. Ton historique ne change pas.`, {
         titre: 'Revenir à l’original ?',
         oui: 'Revenir à l’original',
       })

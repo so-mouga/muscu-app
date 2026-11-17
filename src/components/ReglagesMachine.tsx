@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { modifierExercice } from '../db'
 import { kg } from '../lib/calc'
+import { estPhotoPerso } from '../lib/dessins'
 import { photoReduite } from '../lib/image'
 import { useRetour } from '../lib/nav'
 import type { Exercice } from '../types'
@@ -127,9 +128,12 @@ export function ContenuReglages({ exo }: { exo: Exercice }) {
         {image && (
           <div className="reglage-photo">
             <img src={image} alt={exo.nom} />
-            <button type="button" className="btn discret petit" onClick={retirerPhoto}>
-              Retirer
-            </button>
+            {/* Un dessin livré avec l'appli ne se retire pas : retirer sa photo fait revenir le dessin. */}
+            {estPhotoPerso(image) && (
+              <button type="button" className="btn discret petit" onClick={retirerPhoto}>
+                Retirer
+              </button>
+            )}
           </div>
         )}
         {/* Android peut fermer l'appli pendant la prise de vue : ce qui est saisi part dans la base avant. */}
