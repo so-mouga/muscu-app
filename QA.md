@@ -131,6 +131,18 @@ Depuis le 11 nov. 2026, cet écran n'a plus de menu « Avancé » : si un point 
 - Tout s'enregistre sans bouton : ferme par « Terminer », un appui à côté ou le retour, rouvre, tout est là. Ouvrir puis fermer sans rien changer ne doit rien modifier (pas de carte de cycle qui apparaît).
 - En séance, à la saisie : « Effort » avec la même étiquette « RPE », et tout tient toujours sans défiler.
 
+### 4 ter. Circuits et dessins (programme tout prêt « Force et circuits »)
+
+- Programme → Changer de programme → Tout prêts : « Force et circuits » en dernier, un seul bouton « Prendre ce programme » (pas de cycle lancé, pas de « Sur 6 semaines »). Au démarrage, il n'est jamais proposé d'office ; on le trouve par « J'ai déjà mon programme ».
+- « Voir » : après les exercices, une carte par circuit (nom, « 12 min · 3 mouvements » ou « minute par minute · 3 fois 4 min », chaque mouvement avec son dessin).
+- En séance : l'échauffement montre un dessin sur quatre mouvements ; sur un exercice de cette séance, le dessin est en grand avant la première série, puis en petit à côté du nom ; un appui l'agrandit. « Valider » reste à l'écran sans défiler.
+- Après la dernière série : pas de repos, pas de « Séance faite. », l'en-tête dit « Reste 3 circuits » et l'écran « Circuit 1 » propose « Lancer les 12 min » et « Passer ce circuit ».
+- Circuit sur une durée : décompte de 5, puis le temps qui descend, « Tour fini » ajoute un tour, « Retirer un tour » en retire un. Fermer et rouvrir l'appli : le temps a continué. À la fin : « Circuit 1 fini. 4 tours en 12 min. », − et + corrigent encore, « Continuer ». La fois suivante : « Bats 4. » avant de lancer, puis « +1 sur la dernière fois » si c'est mieux.
+- Circuit minute par minute : rien à toucher, le mouvement de la minute en grand, un bip à chaque minute, « Ensuite : … », « Arrêter le circuit » demande confirmation.
+- Après le dernier circuit : « Séance faite. » avec une ligne « Circuit 1 : 4 tours · … ». Un circuit passé ou arrêté : « Plus rien à faire ». Le détail de la séance dans le Journal a un bloc « Circuits ».
+- Programme → la séance : « + Ajouter un circuit » ouvre son réglage (type, durée ou nombre de passages, mouvements, photo) ; fermer garde ce qui est saisi ; un circuit sans mouvement n'est pas gardé.
+- Une séance sans circuit (tous les autres programmes) ne doit montrer aucune de ces lignes, et se dérouler exactement comme avant.
+
 ### 5. Exercices (dans Progrès, plus d'onglet)
 - Barre du bas à 4 onglets. Progrès → Exercices : tes exercices d'abord avec leur dernière performance et « ça monte », « stable » ou « bloqué » ; les autres par la recherche, les filtres ou « Voir les n autres ». « Voir tous les exercices » du Bilan y mène, en haut de la liste ; retour d'une fiche à la même position. Fiche ouverte depuis le Bilan, appui sur Progrès dans la barre du bas, ou sur un autre onglet puis retour sur Progrès : on retrouve le Bilan, même période et même position. En changeant de partie (Bilan, Journal, Exercices), le titre et les boutons ne bougent pas et les deux contenus ne se superposent jamais ; en arrivant sur Exercices, jamais de longue liste de « jamais fait » si tu as déjà des séances.
 - Créer un exercice : nom, muscle, matériel, palier, le reste dans « Plus d'options », dont « Machine assistée » (moins de kg = plus dur). Le modifier (⋯ de la fiche) : pas de bouton Enregistrer, tout est gardé, y compris par le retour. Le supprimer.

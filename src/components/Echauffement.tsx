@@ -1,3 +1,4 @@
+import Dessin from './Dessin'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ChevronRight } from 'lucide-react'
 import { useState } from 'react'
@@ -67,7 +68,7 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
             <div key={id} className={'mouvement' + (fait ? ' fait' : '')}>
               <button className="mouvement-ligne" onClick={() => cocher(id)} aria-pressed={fait}>
                 <span className="case">{fait ? '✓' : ''}</span>
-                <PictoEchauffement id={id} taille={44} />
+                {m.image ? <Dessin image={m.image} taille={44} /> : <PictoEchauffement id={id} taille={44} />}
                 <span className="mouvement-texte">
                   <strong>{m.nom}</strong>
                   {m.quantite && <span className="faible">{m.quantite}</span>}
@@ -80,7 +81,7 @@ export default function Echauffement({ seance, onPasser }: { seance: Seance; onP
               )}
               <Deplie ouvert={ouvert === id} className="mouvement-deplie">
                 <div className="mouvement-detail">
-                  <PictoEchauffement id={id} taille={120} />
+                  {m.image ? <Dessin image={m.image} taille={120} /> : <PictoEchauffement id={id} taille={120} />}
                   <ul className="consignes">
                     {m.consignes.map((c) => (
                       <li key={c}>{c}</li>

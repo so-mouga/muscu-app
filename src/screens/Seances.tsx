@@ -11,7 +11,9 @@ import VolumeMuscles, { MasquerConseilsVolume } from '../components/VolumeMuscle
 import { Aide, AIDE_CYCLE, AvisCycle, FriseCycle, LancerCycle, VueCycle } from '../components/Cycle'
 import { suiviCycle } from '../lib/motivation'
 import { usePrevus } from '../lib/usePrevus'
-import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
+import { Check, ChevronRight, MoreHorizontal, Timer } from 'lucide-react'
+import EditeurCircuit from '../components/EditeurCircuit'
+import { nomCircuitLibre, resumeCircuit } from '../lib/circuits'
 import { confirmer, informer } from '../components/Dialogues'
 import { arretCycle, debutCycle, etatCycle, lundiDe, nomCycle, reprendreSemaine } from '../lib/cycle'
 import { MUSCLES } from '../data/exercices'
@@ -701,7 +703,15 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
           t.id,
           t.nom,
           t.pour,
-          t.seances.map((m) => ({ jour: m.jour, nom: m.nom, exos: m.exercices.map((p) => catalogue.exo(p.exoId).nom) })),
+          t.seances.map((m) => ({ jour: m.jour, nom: m.nom, exos: [...m.exercices.map((p) => catalogue.exo(p.exoId).nom), ...(m.circuits ?? []).map((c) => c.nom)] })),
+          t.sansCycle ? (
+            <>
+              <div className="faible">Le jour, les exercices et les circuits se modifient ensuite.</div>
+              <button className="btn primaire plein" disabled={occupe} onClick={() => void prendre(t, false)}>
+                Prendre ce programme
+              </button>
+            </>
+          ) : (
           <>
             <div className="faible">Sur 6 semaines, la dernière allégée pour récupérer{debutCycle(t.seances.flatMap((m) => m.jour ?? [])) === lundi() ? '' : ', à partir de la semaine prochaine'}. Tout se modifie ensuite.</div>
             <button className="btn primaire plein" disabled={occupe} onClick={() => void prendre(t, true)}>
@@ -711,6 +721,7 @@ function PageChanger({ catalogue, onFermer, onOuvrir, onPris, onCreer, onAutresS
               Le prendre sans lancer de cycle
             </button>
           </>
+          )
         )
       )}
       <div style={{ height: 'var(--e3)' }} />
@@ -799,6 +810,7 @@ function Editeur({
   const habituelle = terminees && dureeHabituelle(m.id, terminees)
   const [choix, setChoix] = useState(choisirExos)
   const [editIdx, setEditIdx] = useState<number | null>(null)
+  const [circuitIdx, setCircuitIdx] = useState<number | null>(null)
   /** Arrivé sur ce réglage par ‹ ou › : la fenêtre reste en place, seul l'exercice change. */
   const [parFleche, setParFleche] = useState(false)
   const [infos, setInfos] = useState<Exercice | null>(null)
@@ -919,7 +931,7 @@ function Editeur({
         </label>
       )}
 
-      {m.exercices.length > 0 && (
+      {(m.exercices.length > 0 || !!m.circuits?.length) && (
         <div className="carte seance-resume">
           <div>
             <strong className="seance-resume-duree">≈ {minutes(dureeEstimee(m))}</strong>
@@ -927,6 +939,7 @@ function Editeur({
               {habituelle ? ` prévues · ${minutes(habituelle)} d’habitude` : ''}
               {habituelle ? <br /> : ' · '}
               {m.exercices.length} exercice{m.exercices.length > 1 ? 's' : ''} · {nbSeries} série{nbSeries > 1 ? 's' : ''}
+              {m.circuits?.length ? ` · ${m.circuits.length} circuit${m.circuits.length > 1 ? 's' : ''}` : ''}
             </span>
           </div>
           {travailles.length > 0 && (
@@ -991,8 +1004,32 @@ function Editeur({
           )
         })}
       </div>
-      <button className={'btn plein' + (m.exercices.length ? '' : ' primaire')} style={{ margin: 'var(--e3) 0 var(--e4)' }} onClick={() => setChoix(true)}>
+      <button className={'btn plein' + (m.exercices.length || m.circuits?.length ? '' : ' primaire')} style={{ margin: 'var(--e3) 0 var(--e4)' }} onClick={() => setChoix(true)}>
         + Ajouter un exercice
+      </button>
+      {/* Les circuits se font après les exercices : des mouvements enchaînés sur une durée, ou un par minute. */}
+      {(m.circuits ?? []).map((c, k) => (
+        <div key={c.id} className="exo-ligne">
+          <span className="vignette vide" style={{ width: 36, height: 36, borderRadius: 9, flex: '0 0 auto' }}>
+            <Timer size={18} />
+          </span>
+          <button className="texte" onClick={() => setCircuitIdx(k)}>
+            <strong>{c.nom}</strong>
+            <div className="faible">{resumeCircuit(c)}</div>
+          </button>
+          <ChevronRight size={20} className="muted" />
+        </div>
+      ))}
+      <button
+        className="btn plein"
+        style={{ margin: 'var(--e3) 0 var(--e4)' }}
+        onClick={() => {
+          const liste = m.circuits ?? []
+          maj((x) => void (x.circuits = [...(x.circuits ?? []), { id: 'c_' + uid(), nom: nomCircuitLibre(liste), type: 'duree', minutes: 10, tours: 3, mouvements: [{ nom: '' }] }]))
+          setCircuitIdx(liste.length)
+        }}
+      >
+        + Ajouter un circuit
       </button>
       {finisseurs > 2 && (
         <div className="faible" style={{ color: 'var(--alerte)', marginBottom: 'var(--e3)' }}>
@@ -1098,6 +1135,28 @@ function Editeur({
           onChoixMultiple={(ids, crees) => {
             setChoix(false)
             maj((x) => x.exercices.push(...ids.map((id) => planParDefaut(crees.find((e) => e.id === id) ?? catalogue.exo(id)))))
+          }}
+        />
+      )}
+      {circuitIdx !== null && m.circuits?.[circuitIdx] && (
+        <EditeurCircuit
+          key={m.circuits[circuitIdx].id}
+          circuit={m.circuits[circuitIdx]}
+          onChange={(c) => maj((x) => void (x.circuits![circuitIdx] = c))}
+          onSupprimer={() => {
+            setCircuitIdx(null)
+            maj((x) => {
+              x.circuits!.splice(circuitIdx, 1)
+              if (!x.circuits!.length) delete x.circuits
+            })
+          }}
+          onFermer={() => {
+            setCircuitIdx(null)
+            // Un circuit laissé sans mouvement n'est pas gardé.
+            maj((x) => {
+              x.circuits = (x.circuits ?? []).map((c) => ({ ...c, mouvements: c.mouvements.filter((v) => v.nom.trim()) })).filter((c) => c.mouvements.length)
+              if (!x.circuits.length) delete x.circuits
+            })
           }}
         />
       )}

@@ -7977,3 +7977,193 @@ button.jour-pas {
 .recap-photos {
   margin-bottom: var(--e3);
 }
+
+/* --- Circuit (17 nov. 2026, maquette seance-coach.html) : après les exercices, des mouvements enchaînés sur une durée,
+   ou un mouvement par minute. Son écran est à part (EcranCircuit.tsx). --- */
+.focus-bloc.circuit {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+  overflow: hidden;
+}
+.focus-bloc.circuit.centre {
+  align-items: center;
+  text-align: center;
+}
+.focus-bloc.circuit.centre > .btn {
+  align-self: stretch;
+}
+.circuit-pousse {
+  flex: 1;
+}
+.circuit-liste {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+.circuit-mouv {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+  padding: var(--e2) 0;
+}
+.circuit-mouv + .circuit-mouv {
+  border-top: 1px solid var(--surface-2);
+}
+.circuit-mouv > div {
+  flex: 1;
+  min-width: 0;
+}
+.circuit-min {
+  white-space: nowrap;
+}
+.circuit-tete {
+  display: flex;
+  align-items: center;
+  gap: var(--e5);
+}
+.circuit-temps {
+  font-size: var(--t-chiffre);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.circuit-tours {
+  font-size: var(--t-chrono);
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+}
+.circuit-decompte {
+  font-size: 120px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.circuit-points {
+  display: flex;
+  gap: var(--e2);
+}
+.circuit-points i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--controle);
+}
+.circuit-points i.fait {
+  background: var(--ok);
+}
+.circuit-points i.cours {
+  background: var(--info);
+}
+.circuit-corrige {
+  display: flex;
+  align-items: center;
+  gap: var(--e4);
+}
+.circuit-corrige .btn {
+  width: var(--cible);
+  min-height: var(--cible);
+  padding: 0;
+}
+.circuit-bas {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Dessin d'un mouvement ou d'un exercice : fait pour un fond clair, donc posé sur du blanc. */
+.dessin {
+  flex: none;
+  display: block;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: var(--blanc);
+  overflow: hidden;
+}
+.dessin img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.dessin.vide {
+  background: var(--controle);
+}
+.dessin.large {
+  width: 100%;
+  height: 120px;
+  border-radius: var(--rayon-2);
+}
+.circuit-nom {
+  width: 100%;
+  font-size: var(--t-titre);
+  font-weight: 600;
+}
+.circuit-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--e3);
+}
+.circuit-photo {
+  flex: none;
+  cursor: pointer;
+}
+.circuit-sans-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  color: var(--texte-3);
+}
+.circuit-champs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e1);
+}
+.circuit-champs input {
+  width: 100%;
+}
+.circuit-champs .circuit-detail {
+  font-size: var(--t-petit);
+  color: var(--texte-2);
+}
+.circuits-court b {
+  color: var(--texte);
+  font-weight: 600;
+}
+.circuits-faits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+.apercu-circuit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e3);
+}
+.apercu-circuit-mouv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e2);
+}
+.apercu-circuit-mouv .ligne {
+  gap: var(--e3);
+}
+/* Petit écran : le dessin d'avant la première série prend moins de place, la saisie reste à l'écran. */
+@media (max-height: 700px) {
+  .saisie-focus .dessin.large {
+    height: 76px;
+  }
+}
+/* Saisie serrée (note, superset, police plus large) : le dessin cède sa place avant que « Valider » ne sorte de l'écran. */
+.focus.serre .saisie-focus .dessin.large {
+  height: 76px;
+}

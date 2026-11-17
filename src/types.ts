@@ -77,6 +77,39 @@ export interface ExoPlan {
   enchaine?: boolean
 }
 
+/** Un mouvement d'un circuit : un nom (« 12 thrusters »), une précision et un dessin, sans historique de charges. */
+export interface MouvCircuit {
+  nom: string
+  /** « haltères », « kettlebell »… */
+  detail?: string
+  /** Dessin livré avec l'appli (`dessins/…`) ou photo (data URL). */
+  image?: string
+}
+
+/**
+ * Circuit, fait après les exercices de la séance. `duree` : on enchaîne les mouvements pendant `minutes`
+ * et on compte ses tours. `minute` : un mouvement par minute, la liste répétée `tours` fois.
+ */
+export interface CircuitPlan {
+  id: string
+  nom: string
+  type: 'duree' | 'minute'
+  /** Durée en minutes (`duree`). */
+  minutes: number
+  /** Nombre de passages de la liste (`minute`). */
+  tours: number
+  mouvements: MouvCircuit[]
+}
+
+/** Ce qui a été fait d'un circuit. `passe` : sauté ou arrêté avant la fin. */
+export interface CircuitFait {
+  debut: number
+  fin: number
+  /** Tours comptés (`duree`). */
+  tours?: number
+  passe?: boolean
+}
+
 export interface SeanceModele {
   id: string
   nom: string
@@ -89,6 +122,8 @@ export interface SeanceModele {
   supprime?: boolean
   /** Échauffement avant la séance : absent = proposé d'après les muscles, liste = choisi, `aucun`. */
   echauffement?: 'aucun' | string[]
+  /** Circuits faits après les exercices (absent : aucun). */
+  circuits?: CircuitPlan[]
 }
 
 /** Un programme regroupe des séances (de la bibliothèque) et leur planning. */
@@ -165,6 +200,12 @@ export interface Seance {
   echauffement?: { ids: string[]; faits: string[]; fini?: boolean }
   /** Séance de déload : allégée, et ignorée pour la progression (objectifs, records, « dernière fois »). */
   deload?: boolean
+  /** Circuits du jour, copiés du modèle au démarrage. */
+  circuits?: CircuitPlan[]
+  /** Circuits finis ou sautés, par id. */
+  circuitsFaits?: Record<string, CircuitFait>
+  /** Circuit lancé : `depart` est l'heure du top (après le décompte), `tours` ceux déjà comptés. */
+  circuitEnCours?: { id: string; depart: number; tours: number }
   /** Allégée pour ce jour seulement (« En allégé »), avec `deload` : ce n'est ni une semaine allégée, ni une vraie récupération. */
   allegeeSeule?: boolean
 }

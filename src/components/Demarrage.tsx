@@ -79,7 +79,7 @@ export default function Demarrage({ catalogue, mode, initial, onFermer, onCreer,
   const prendre = async (t: ProgrammeType, jours: number[]) => {
     await setReglage(CLE_DEMARRAGE, { ...etat, quitte: true, installeLe: dateISO() })
     const p = await installerProgramme(t, catalogue, jours)
-    await lancerCycle(catalogue, p, { debut: debutCycle(jours) })
+    if (!t.sansCycle) await lancerCycle(catalogue, p, { debut: debutCycle(jours) })
     onInstalle()
   }
   const creer = (
@@ -251,9 +251,13 @@ function Proposition({ etat, idPropose, nomExo, onPrendre, onAutres }: { etat: E
         <p className="faible">
           Pour une salle : {barres ? 'barres, ' : ''}machines, poulies et haltères. Environ {minutes(moyenne)} par séance. Le premier jour, commence léger : tu notes la charge qui te convient.
         </p>
-        <p>
-          <strong>Par blocs de 6 semaines</strong> : la dernière est plus légère, pour récupérer. Tout se modifie ensuite{etat.jours.length ? '' : ', jours compris'}.
-        </p>
+        {t.sansCycle ? (
+          <p>Tout se modifie ensuite : le jour, les exercices, les circuits.</p>
+        ) : (
+          <p>
+            <strong>Par blocs de 6 semaines</strong> : la dernière est plus légère, pour récupérer. Tout se modifie ensuite{etat.jours.length ? '' : ', jours compris'}.
+          </p>
+        )}
       </div>
       <div className="demarrage-bas">
         <button

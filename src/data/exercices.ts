@@ -1,5 +1,8 @@
 import type { Exercice, Muscle } from '../types'
 
+/** Dessin livré avec l'appli (`public/dessins`), pour les exercices de la séance « Force et circuits ». */
+const dessin = (nom: string) => `${import.meta.env.BASE_URL}dessins/${nom}.jpg`
+
 const sec = (...m: [Muscle, number][]) => m.map(([muscle, coef]) => ({ muscle, coef }))
 const pousseeHaut = sec(['triceps', 0.5], ['epaule_avant', 0.5])
 const chainePost = sec(['fessiers', 0.5], ['lombaires', 0.5])
@@ -16,15 +19,15 @@ const exo = (e: Def): Exercice => ({ pas: e.mode === 'par_main' ? 2 : e.mode ===
 const liste: Exercice[] = [
   // --- Séances de départ (identifiants conservés : ils sont dans l'historique) ---
   { id: 'smith_incline', nom: 'Développé incliné Smith', muscle: 'pecs', secondaires: pousseeHaut, type: 'compose', mode: 'machine', barre: 10, pas: 2.5, suivreE1rm: true },
-  { id: 'tirage_large', nom: 'Tirage vertical prise large', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true },
+  { id: 'tirage_large', image: dessin('tirage'), nom: 'Tirage vertical prise large', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true },
   { id: 'butterfly', nom: 'Butterfly', muscle: 'pecs', type: 'isolation', mode: 'machine', pas: 5, suivreE1rm: false },
-  { id: 'tirage_horizontal', nom: 'Tirage horizontal prise neutre', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true },
+  { id: 'tirage_horizontal', image: dessin('rowing'), nom: 'Tirage horizontal prise neutre', muscle: 'dos', type: 'compose', mode: 'machine', pas: 5, suivreE1rm: true },
   { id: 'elevation_poulie', nom: 'Élévation latérale poulie', muscle: 'epaule_laterale', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'triceps_un_bras', nom: 'Extension triceps poulie un bras', muscle: 'triceps', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
-  { id: 'presse', nom: 'Presse à cuisses', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
+  { id: 'presse', image: dessin('presse'), nom: 'Presse à cuisses', muscle: 'quadriceps', secondaires: sec(['fessiers', 0.5]), type: 'compose', mode: 'machine', pas: 2.5, suivreE1rm: true },
   { id: 'rdl', nom: 'Soulevé de terre roumain barre', muscle: 'ischios', secondaires: chainePost, type: 'compose', mode: 'machine', barre: 20, pas: 2.5, suivreE1rm: true },
   { id: 'curl_jambe_assis', nom: 'Curl jambe assis', muscle: 'ischios', type: 'isolation', mode: 'machine', pas: 5, suivreE1rm: false },
-  { id: 'extension_jambes', nom: 'Extension de jambes', muscle: 'quadriceps', type: 'isolation', mode: 'machine', pas: 5, suivreE1rm: false },
+  { id: 'extension_jambes', image: dessin('quadri'), nom: 'Extension de jambes', muscle: 'quadriceps', type: 'isolation', mode: 'machine', pas: 5, suivreE1rm: false },
   { id: 'mollets_machine', nom: 'Mollets debout', muscle: 'mollets', type: 'isolation', mode: 'machine', pas: 2.5, suivreE1rm: false },
   { id: 'releve_genoux', nom: 'Relevé de genoux', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', pas: 2.5, suivreE1rm: false },
   { id: 'tractions', nom: 'Tractions', muscle: 'dos', type: 'compose', mode: 'poids_corps', pas: 2.5, suivreE1rm: true },
@@ -80,7 +83,7 @@ const liste: Exercice[] = [
   exo({ id: 'dev_epaules_machine', nom: 'Développé épaules machine', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'machine', pas: 5 }),
   exo({ id: 'dev_epaules_smith', nom: 'Développé épaules Smith', muscle: 'epaule_avant', secondaires: sec(['epaule_laterale', 0.5], ['triceps', 0.5]), type: 'compose', mode: 'machine', barre: 10 }),
   exo({ id: 'elevation_frontale_halteres', nom: 'Élévation frontale haltères', muscle: 'epaule_avant', type: 'isolation', mode: 'par_main' }),
-  exo({ id: 'elevation_laterale_halteres', nom: 'Élévation latérale haltères', muscle: 'epaule_laterale', type: 'isolation', mode: 'par_main' }),
+  exo({ id: 'elevation_laterale_halteres', image: dessin('elevations'), nom: 'Élévation latérale haltères', muscle: 'epaule_laterale', type: 'isolation', mode: 'par_main' }),
   exo({ id: 'oiseau_halteres', nom: 'Oiseau haltères', muscle: 'epaule_arriere', type: 'isolation', mode: 'par_main' }),
 
   // --- Biceps ---
@@ -94,7 +97,7 @@ const liste: Exercice[] = [
 
   // --- Triceps ---
   exo({ id: 'barre_front', nom: 'Barre au front', muscle: 'triceps', type: 'isolation', mode: 'machine' }),
-  exo({ id: 'extension_corde', nom: 'Extension triceps poulie corde', muscle: 'triceps', type: 'isolation', mode: 'machine' }),
+  exo({ id: 'extension_corde', image: dessin('triceps'), nom: 'Extension triceps poulie corde', muscle: 'triceps', type: 'isolation', mode: 'machine' }),
   exo({ id: 'extension_barre_poulie', nom: 'Extension triceps poulie barre', muscle: 'triceps', type: 'isolation', mode: 'machine' }),
   exo({ id: 'extension_haltere_tete', nom: 'Extension au-dessus de la tête haltère', muscle: 'triceps', type: 'isolation', mode: 'par_main' }),
   exo({ id: 'dev_couche_serre', nom: 'Développé couché prise serrée', muscle: 'triceps', secondaires: sec(['pecs', 0.5]), type: 'compose', mode: 'machine', barre: 20 }),
@@ -131,7 +134,7 @@ const liste: Exercice[] = [
   exo({ id: 'crunch', nom: 'Crunch', muscle: 'abdos', type: 'isolation', mode: 'poids_corps' }),
   exo({ id: 'crunch_poulie', nom: 'Crunch poulie', muscle: 'abdos', type: 'isolation', mode: 'machine' }),
   exo({ id: 'crunch_machine', nom: 'Crunch machine', muscle: 'abdos', type: 'isolation', mode: 'machine', pas: 5 }),
-  exo({ id: 'gainage', nom: 'Gainage', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
+  exo({ id: 'gainage', image: dessin('planche'), nom: 'Gainage', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
   exo({ id: 'gainage_lateral', nom: 'Gainage latéral', muscle: 'abdos', type: 'isolation', mode: 'poids_corps', mesure: 'temps' }),
 ]
 

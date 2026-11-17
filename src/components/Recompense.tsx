@@ -1,4 +1,5 @@
 import { Flame, Frown, Smile } from 'lucide-react'
+import CircuitsFaits from './CircuitsFaits'
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import type { Catalogue } from '../catalogue'
 import { useCaps } from './Caps'
@@ -115,6 +116,7 @@ export default function Recompense({
           </span>
         )}
       </div>
+      <CircuitsFaits seance={seance} avant={terminees} court />
 
       {crans.length > 0 || (tombe && exoCap) ? (
         <div className="carte fin-resume trame">

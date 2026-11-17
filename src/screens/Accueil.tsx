@@ -68,6 +68,7 @@ async function creerSeance(modele: SeanceModele | undefined, cycle: ContexteCycl
       sousTitre: modele ? sousTitrePerso(modele) : 'exercices au choix',
       // Déload : plan allégé (moitié des séries, RPE 6-7, sans finisseur).
       exercices: structuredClone(modele?.exercices ?? []).map((p) => (deload ? planDeload(p) : p)),
+      ...(modele?.circuits?.length && { circuits: structuredClone(modele.circuits) }),
       debut: Date.now(),
       enCours: true,
       poidsCorps,

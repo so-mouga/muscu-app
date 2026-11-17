@@ -10,6 +10,8 @@ export interface MouvementEchauffement {
   duree: number
   zone: 'general' | 'haut' | 'bas'
   consignes: string[]
+  /** Dessin livré avec l'appli (`dessins/…`), montré à la place du pictogramme. */
+  image?: string
   /** Ajouté par l'utilisateur (réglage `echauffementsPerso`). */
   perso?: boolean
 }
@@ -22,13 +24,17 @@ export const MOUVEMENTS: MouvementEchauffement[] = [
   { id: 'ecartes_elastique', nom: 'Écartés à l’élastique', quantite: '15', duree: 40, zone: 'haut', consignes: ['Bras tendus devant toi à hauteur d’épaules.', 'Écarte jusqu’à toucher la poitrine avec l’élastique, en serrant les omoplates.'] },
   { id: 'rotations_externes', nom: 'Rotations externes à l’élastique', quantite: '12 par bras', duree: 60, zone: 'haut', consignes: ['Coude collé au corps, plié à 90°.', 'Tourne l’avant-bras vers l’extérieur sans décoller le coude.', 'Léger : c’est pour réveiller l’épaule.'] },
   { id: 'thoracique', nom: 'Rotations du haut du dos', quantite: '8 par côté', duree: 60, zone: 'haut', consignes: ['À quatre pattes, une main derrière la tête.', 'Ouvre le coude vers le plafond en suivant du regard, puis referme.'] },
-  { id: 'chat_vache', nom: 'Chat-vache', quantite: '8 lents', duree: 40, zone: 'haut', consignes: ['À quatre pattes : arrondis le dos en rentrant le menton.', 'Puis creuse le dos en regardant devant toi.'] },
+  { id: 'chat_vache', nom: 'Chat-vache', quantite: '8 lents', duree: 40, zone: 'haut', image: 'dessins/chat.jpg', consignes: ['À quatre pattes : arrondis le dos en rentrant le menton.', 'Puis creuse le dos en regardant devant toi.'] },
   { id: 'pompes_scapulaires', nom: 'Pompes scapulaires', quantite: '10', duree: 30, zone: 'haut', consignes: ['En planche bras tendus, sans plier les coudes.', 'Rapproche puis écarte les omoplates : le corps monte et descend de quelques centimètres.'] },
   { id: 'balances_jambes', nom: 'Balancés de jambes', quantite: '10 par jambe', duree: 60, zone: 'bas', consignes: ['Une main sur un appui, balance la jambe d’avant en arrière.', 'Puis de gauche à droite devant toi.', 'Amplitude progressive, sans forcer.'] },
   { id: 'squat_tenu', nom: 'Squat profond tenu', quantite: '30 s', duree: 30, zone: 'bas', consignes: ['Descends le plus bas possible, talons au sol.', 'Pousse les genoux vers l’extérieur avec les coudes.', 'Garde le buste droit et respire.'] },
   { id: 'fentes_rotation', nom: 'Fentes avec rotation', quantite: '6 par jambe', duree: 60, zone: 'bas', consignes: ['Grand pas en avant, descends en fente.', 'Tourne le buste du côté de la jambe avant, puis reviens.'] },
   { id: 'pont_fessier', nom: 'Pont fessier', quantite: '15', duree: 40, zone: 'bas', consignes: ['Allongé, pieds à plat, genoux pliés.', 'Monte le bassin en serrant les fessiers, marque 1 s en haut.'] },
   { id: 'chevilles', nom: 'Genou au mur (chevilles)', quantite: '10 par jambe', duree: 60, zone: 'bas', consignes: ['Pied à une main du mur, talon au sol.', 'Avance le genou vers le mur sans décoller le talon, puis reviens.'] },
+  { id: 'mobilite_generale', nom: 'Mobilité générale', quantite: '2 min', duree: 120, zone: 'general', consignes: ['Fais tourner doucement chaque articulation : chevilles, genoux, hanches, épaules, poignets, nuque.', 'Sans forcer : le but est de se délier.'] },
+  { id: 'bras_jambe', nom: 'Bras et jambe opposés', quantite: '8 par côté', duree: 60, zone: 'general', image: 'dessins/brasjambe.jpg', consignes: ['À quatre pattes, dos plat.', 'Tends un bras devant toi et la jambe opposée derrière, tiens 2 secondes, puis change de côté.', 'Le bassin ne tourne pas.'] },
+  { id: 'chevilles_cercles', nom: 'Cercles de chevilles', quantite: '10 par sens', duree: 60, zone: 'bas', image: 'dessins/chevilles.jpg', consignes: ['Pied décollé du sol, dessine de grands cercles avec la pointe.', 'Dans un sens, puis dans l’autre, puis l’autre pied.'] },
+  { id: 'hanches_fente', nom: 'Ouverture de hanches en fente', quantite: '6 par côté', duree: 60, zone: 'bas', image: 'dessins/hanches.jpg', consignes: ['Un genou au sol, l’autre pied devant, buste droit.', 'Avance doucement le bassin, tiens 2 secondes, reviens.'] },
   { id: 'hanches_9090', nom: '90/90 des hanches', quantite: '6 par côté', duree: 60, zone: 'bas', consignes: ['Assis, une jambe devant et une sur le côté, genoux pliés à 90°.', 'Bascule les deux genoux de l’autre côté, buste droit.'] },
 ]
 

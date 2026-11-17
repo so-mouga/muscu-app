@@ -16,6 +16,7 @@ import './styles.css'
 import Dialogues from './components/Dialogues'
 import { installerFenetres } from './lib/fenetres'
 import { appliPrete } from './lib/natif'
+import { prechargerDessins } from './lib/dessins'
 
 declare global {
   interface Window {
@@ -81,3 +82,4 @@ if (import.meta.env.PROD) {
 const racine = document.getElementById('root')!
 const attendreContenu = () => (racine.children.length ? requestAnimationFrame(appliPrete) : requestAnimationFrame(attendreContenu))
 attendreContenu()
+prechargerDessins()

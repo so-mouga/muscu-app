@@ -1,3 +1,4 @@
+import { texteCircuit } from './circuits'
 import { MUSCLES } from '../data/exercices'
 import { mouvement, MOUVEMENTS, echauffementDe, type MouvementEchauffement } from '../data/echauffements'
 import type { Cycle, Exercice, ExoPlan, Muscle, Programme, Seance, SeanceModele } from '../types'
@@ -100,7 +101,7 @@ export function texteProgramme(p: Programme, d: DonneesProgramme, avecCharges: b
       .filter((x) => !!x)
       .map((x) => `${x.nom.toLowerCase()} ${x.quantite}`)
     if (general.length) l.push(`Échauffement : ${general.join(', ')}`)
-    if (!m!.exercices.length) l.push('Pas encore d’exercices')
+    if (!m!.exercices.length && !m!.circuits?.length) l.push('Pas encore d’exercices')
     m!.exercices.forEach((x, i) => {
       const exo = d.exo(x.exoId)
       l.push(ligneExo(exo, x, i, i === m!.exercices.length - 1))
@@ -108,6 +109,7 @@ export function texteProgramme(p: Programme, d: DonneesProgramme, avecCharges: b
       if (x.note) l.push(`   note : ${x.note}`)
       if (avecCharges) l.push(`   ${derniere(x.exoId)}`)
     })
+    for (const c of m!.circuits ?? []) l.push(`Puis ${texteCircuit(c)}`)
   }
 
   const modeles = semaine.map((e) => d.modele(e.modeleId)).filter((m) => !!m)

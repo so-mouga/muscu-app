@@ -1,3 +1,4 @@
+import { circuitsFaitsDe, texteCircuit } from './circuits'
 import { mouvement, MOUVEMENTS, type MouvementEchauffement } from '../data/echauffements'
 import type { Cycle, Exercice, ExoPlan, JourJournal, Seance, Serie, TypeSerie } from '../types'
 import { chargeQte, cibleTexte, dateCourte, dateISO, duree, dureeSeanceEffective, heuresMinutes, kg, sensationSeance } from './calc'
@@ -194,6 +195,11 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
     if (note) l.push(`   note : ${note}`)
   })
   if (pasFaits.length) l.push('', `Pas fait aujourd’hui : ${pasFaits.join(', ')}`)
+  const circuits = circuitsFaitsDe(seance, avant)
+  if (circuits.length) {
+    l.push('', 'Circuits (après les exercices) :')
+    for (const c of circuits) l.push(`- ${texteCircuit(c.circuit)} → ${c.fait || 'pas fait'}${c.ecart ? ` (${c.ecart > 0 ? '+' : ''}${c.ecart} sur la dernière fois)` : ''}`)
+  }
   l.push('', 'Fait avec Cran')
   // En tête, la question : sans elle, l'IA décrit la séance au lieu de répondre.
   l.unshift(conseils ? QUESTION_CONSEIL : QUESTION_SANS_CONSEIL, '')

@@ -37,7 +37,7 @@ const versLigne = (c: string): LigneChauffe => {
 const depuisLigne = (l: LigneChauffe) =>
   'texte' in l ? l.texte.trim() : 'pct' in l ? (l.pct.trim() ? `${l.pct.trim()}%×${l.reps}` : '') : l.charge.trim() ? `${l.charge.trim()}×${l.reps}` : ''
 
-function MiniStepper({ valeur, min = 0, max = 99, pas = 1, onChange }: { valeur: number; min?: number; max?: number; pas?: number; onChange: (v: number) => void }) {
+export function MiniStepper({ valeur, min = 0, max = 99, pas = 1, onChange }: { valeur: number; min?: number; max?: number; pas?: number; onChange: (v: number) => void }) {
   return (
     <span className="mini-stepper">
       <button type="button" onClick={() => onChange(Math.max(min, valeur - pas))}>

@@ -13,6 +13,8 @@ export interface ProgrammeType {
   pour: string
   description: string
   seances: SeanceModele[]
+  /** Pris sans cycle de 6 semaines (donc sans semaine allégée), et jamais proposé d'office au démarrage. */
+  sansCycle?: boolean
 }
 
 const s = (n: number, repsMin: number, repsMax: number, rpe = 8): SeriePlan[] => Array.from({ length: n }, () => ({ repsMin, repsMax, rpe }))
@@ -107,6 +109,68 @@ export const PROGRAMMES_TYPES: ProgrammeType[] = [
         exo('mollets_assis', 90, s(3, 12, 15)),
         exo('releve_genoux', 90, s(3, 10, 15)),
       ]),
+    ],
+  },
+  // Le programme d'une personne (la femme de l'auteur, fiche de son coach, 17 nov. 2026), livré tant que l'appli reste
+  // dans la famille : à retirer ou à refaire avant le Play Store, comme Recompo. Jamais proposé d'office.
+  {
+    id: 'force_circuits',
+    nom: 'Force et circuits',
+    pour: '1 séance par semaine · force, puis circuits',
+    description: 'Six exercices de force en 3 × 12, puis trois circuits chronométrés. Le téléphone donne la suite.',
+    sansCycle: true,
+    seances: [
+      {
+        ...seance('fc_a', 'Force et circuits', '', 3, [
+          { ...exo('gainage', 15, s(4, 8, 8)), reposApres: 60 },
+          exo('tirage_large', 60, s(3, 12, 12)),
+          exo('tirage_horizontal', 60, s(3, 12, 12)),
+          exo('extension_jambes', 60, s(3, 12, 12)),
+          exo('presse', 60, s(3, 12, 12)),
+          exo('extension_corde', 60, s(3, 12, 12)),
+          exo('elevation_laterale_halteres', 60, s(3, 12, 12)),
+        ]),
+        echauffement: ['mobilite_generale', 'chat_vache', 'bras_jambe', 'chevilles_cercles', 'hanches_fente'],
+        circuits: [
+          {
+            id: 'fc_c1',
+            nom: 'Circuit 1',
+            type: 'duree',
+            minutes: 12,
+            tours: 1,
+            mouvements: [
+              { nom: '12 thrusters', detail: 'haltères', image: 'dessins/thrusters.jpg' },
+              { nom: '12 soulevés de terre + curl', detail: 'haltères', image: 'dessins/souleve.jpg' },
+              { nom: '12 sit-ups', image: 'dessins/situps.jpg' },
+            ],
+          },
+          {
+            id: 'fc_c2',
+            nom: 'Circuit 2',
+            type: 'duree',
+            minutes: 12,
+            tours: 1,
+            mouvements: [
+              { nom: '12 kettlebell swings', image: 'dessins/swings.jpg' },
+              { nom: '12 squats + tirage menton', detail: 'kettlebell', image: 'dessins/menton.jpg' },
+              { nom: '12 montées de genoux', image: 'dessins/genoux.jpg' },
+            ],
+          },
+          {
+            id: 'fc_c3',
+            nom: 'Circuit 3',
+            type: 'minute',
+            minutes: 0,
+            tours: 3,
+            mouvements: [
+              { nom: 'Machine : 8 à 10 kcal', detail: 'rameur, vélo ou skierg' },
+              { nom: '12 sit-ups', image: 'dessins/situps.jpg' },
+              { nom: 'Machine : 8 à 10 kcal', detail: 'rameur, vélo ou skierg' },
+              { nom: '10 montées de genoux', image: 'dessins/genoux.jpg' },
+            ],
+          },
+        ],
+      },
     ],
   },
 ]

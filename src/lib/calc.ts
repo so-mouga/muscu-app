@@ -1,5 +1,6 @@
 import { dureeEchauffement, echauffementDe } from '../data/echauffements'
 import { EXERCICES, MUSCLES } from '../data/exercices'
+import { dureeCircuits } from './circuits'
 import type { Exercice, ExoPlan, Muscle, Programme, Seance, SeanceModele, Serie } from '../types'
 
 export const RIR: Record<number, string> = {
@@ -263,15 +264,16 @@ export function dureePrevueExo(plans: ExoPlan[], i: number): number {
 }
 
 export function dureeEstimee(m: SeanceModele): number {
-  if (!m.exercices.length) return 0
-  const s = m.exercices.reduce((a, _, i) => a + dureePrevueExo(m.exercices, i), dureeEchauffement(echauffementDe(m)))
+  if (!m.exercices.length && !m.circuits?.length) return 0
+  const s = m.exercices.reduce((a, _, i) => a + dureePrevueExo(m.exercices, i), dureeEchauffement(echauffementDe(m)) + dureeCircuits(m))
   return Math.max(5, Math.round(s / 300) * 5)
 }
 
 /** Durée effective d'une séance : de la 1re à la dernière série si possible, sinon fin - début ; toujours plafonnée à 4 h (séance oubliée ouverte). */
 export function dureeSeanceEffective(s: Seance): number {
   const MAX = 4 * 3600000
-  const heures = s.series.map((x) => x.heure).filter((h): h is number => typeof h === 'number' && h > 0)
+  // Les circuits comptent aussi : faits après les séries, ils seraient sinon hors de la durée.
+  const heures = [...s.series.map((x) => x.heure), ...Object.values(s.circuitsFaits ?? {}).flatMap((c) => (c.passe && !c.tours ? [] : [c.debut, c.fin]))].filter((h): h is number => typeof h === 'number' && h > 0)
   if (heures.length >= 2) {
     const diff = Math.max(...heures) - Math.min(...heures)
     if (diff > 0) return Math.min(diff, MAX)
@@ -306,14 +308,14 @@ export function dureeHabituelle(modeleId: string, terminees: Seance[]): number |
 export const minutes = (n: number) => (n < 60 ? `${n} min` : `${Math.floor(n / 60)} h ${String(n % 60).padStart(2, '0')}`)
 
 /** Quatre heures après le début et plus rien depuis 2 h : la séance a été oubliée, pas juste longue. */
-export function seanceOubliee(s: Pick<Seance, 'debut' | 'series'>, maintenant: number): boolean {
-  const derniere = Math.max(s.debut, ...s.series.map((x) => x.heure).filter((h) => h > 0))
+export function seanceOubliee(s: Pick<Seance, 'debut' | 'series' | 'circuitsFaits' | 'circuitEnCours'>, maintenant: number): boolean {
+  const derniere = Math.max(s.debut, s.circuitEnCours?.depart ?? 0, ...Object.values(s.circuitsFaits ?? {}).map((c) => c.fin), ...s.series.map((x) => x.heure).filter((h) => h > 0))
   return maintenant - s.debut > 4 * 3600000 && maintenant - derniere > 2 * 3600000
 }
 
 /** Durée affichée sur une séance : la durée réelle habituelle, dite comme telle, sinon l'estimation du plan. Rien pour une séance vide. */
 export function dureeTexte(m: SeanceModele, terminees: Seance[] | undefined): string {
-  if (!m.exercices.length) return ''
+  if (!m.exercices.length && !m.circuits?.length) return ''
   const h = terminees && dureeHabituelle(m.id, terminees)
   return h ? `≈ ${minutes(h)} d’habitude` : `≈ ${minutes(dureeEstimee(m))}`
 }

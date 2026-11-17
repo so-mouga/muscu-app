@@ -8,6 +8,7 @@ import { Editeur } from '../components/CarteExo'
 import RecapExos, { ResumeSeance } from '../components/RecapSeance'
 import PartageSeance from '../components/PartageSeance'
 import ProchaineFois from '../components/ProchaineFois'
+import CircuitsFaits from '../components/CircuitsFaits'
 import { db, exoAvecReglages } from '../db'
 import { dateISO, duree, estDure, kg, sensationSeance, milliers } from '../lib/calc'
 import { dureeReelle, mieuxParSeance, recordsParSeance } from '../lib/historique'
@@ -779,6 +780,15 @@ function DetailSeance({
         <button type="button" className="ligne-refaits faible petit" onClick={() => onOuvrir(plusRecente.id)}>
           {refaits.length === faits.length ? 'Tu as refait ces exercices depuis' : `Refait depuis : ${refaits.map((id) => catalogue.exo(id).nom).join(', ')}`}. La prochaine fois se décide sur ta dernière séance, {plusRecente.nom} du {jourCourt(plusRecente.date)}. <span className="lien-texte">Ouvrir ›</span>
         </button>
+      )}
+
+      {!!seance.circuits?.length && (
+        <>
+          <h3 style={{ margin: '18px 0 8px' }}>Circuits</h3>
+          <div className="carte">
+            <CircuitsFaits seance={seance} avant={avant} />
+          </div>
+        </>
       )}
 
       <h3 style={{ margin: '18px 0 4px' }}>Récap par exercice</h3>

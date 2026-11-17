@@ -2,6 +2,7 @@ Cran est un carnet d'entraînement pensé pour la salle : tu suis ton programme,
 
 <b>Démarrer en une minute</b>
 • Choisis un programme tout prêt (Full body 2 ou 3 jours, Haut / Bas 4 jours, pour une salle) ou crée le tien.
+• Ajoute des circuits à la fin d’une séance : sur une durée, en comptant tes tours, ou minute par minute.
 • 90 exercices, avec les consignes d'exécution et les muscles travaillés.
 • Ajoute tes propres exercices, modifie ou masque ceux de base.
 

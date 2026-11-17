@@ -1,3 +1,5 @@
+import Dessin from '../components/Dessin'
+import { resumeCircuit } from '../lib/circuits'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Flame, Info, Link2, Pause, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -204,10 +206,30 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
         />
       )}
 
+      {(modele.circuits ?? []).map((c) => (
+        <div key={c.id} className="carte apercu-circuit">
+          <div className="ligne entre">
+            <strong>{c.nom}</strong>
+            <span className="faible">{resumeCircuit(c)}</span>
+          </div>
+          <div className="apercu-circuit-mouv">
+            {c.mouvements.map((v, k) => (
+              <div key={k} className="ligne">
+                <Dessin image={v.image} taille={40} />
+                <span>
+                  {v.nom}
+                  {v.detail && <span className="faible"> · {v.detail}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
       <BoutonLexique />
 
       <div className="barre-demarrer">
-        {modele.exercices.length || !onAjouter ? (
+        {modele.exercices.length || modele.circuits?.length || !onAjouter ? (
           <button className="btn primaire grand" onClick={() => onDemarrer(enAllege)}>
             Démarrer
           </button>
