@@ -8167,3 +8167,34 @@ button.jour-pas {
 .focus.serre .saisie-focus .dessin.large {
   height: 76px;
 }
+
+/* « Programmes tout prêts » en bas de « Choisir une séance » (maquette autre-seance-tout-prets.html, 17 nov. 2026). */
+.choix-prets {
+  margin-top: var(--e2);
+  padding-top: var(--e2);
+  border-top: 1px solid var(--surface-2);
+}
+.choix-prets-aide {
+  padding: 0 var(--e1) var(--e2);
+  font-size: var(--t-petit);
+}
+.choix-pret {
+  margin-left: var(--e2);
+  padding-left: var(--e3);
+  border-left: 2px solid var(--surface-2);
+}
+.choix-pret .choix-groupe-nom {
+  display: flex;
+  flex-direction: column;
+}
+.apercu-essai {
+  padding: var(--e3) var(--e4);
+  border-radius: var(--rayon-2);
+  background: var(--surface);
+  color: var(--texte-2);
+  font-size: var(--t-petit);
+  margin-bottom: var(--e3);
+}
+.apercu-essai strong {
+  color: var(--texte);
+}

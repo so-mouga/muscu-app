@@ -30,6 +30,25 @@ import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
 import { CATEGORIES_COURANTES, sauvegarder } from '../lib/sauvegarde'
 import { echauffementDe } from '../data/echauffements'
 import Deplie from '../components/Deplie'
+import { PROGRAMMES_TYPES } from '../data/programmesTypes'
+
+/** Séance d'un programme tout prêt lancée sans prendre le programme : sa copie, rangée hors programme. */
+const ID_ESSAI = 'essai_'
+/**
+ * Un accordéon qui s'ouvre pendant qu'un autre se referme au-dessus : la ligne touchée reste sous le doigt.
+ * La fenêtre défile de ce que la ligne a bougé, le temps de l'animation.
+ */
+function garderEnPlace(el: HTMLElement) {
+  const fenetre = el.closest('.modal')
+  if (!fenetre) return
+  const haut = el.getBoundingClientRect().top
+  const debut = performance.now()
+  const suivre = () => {
+    fenetre.scrollTop += el.getBoundingClientRect().top - haut
+    if (performance.now() - debut < 450) requestAnimationFrame(suivre)
+  }
+  requestAnimationFrame(suivre)
+}
 
 const CLE_RAPPELS_FAITS = 'rappelsFaits'
 
@@ -118,6 +137,9 @@ export default function Accueil({
   const [choix, setChoix] = useState(false)
   const [voirDisque, setVoirDisque] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
+  /** « Programmes tout prêts », en bas de « Choisir une séance » : replié d'office, un seul programme ouvert à la fois. */
+  const [pretsOuverts, setPretsOuverts] = useState(false)
+  const [pretOuvert, setPretOuvert] = useState('')
   // Retour d'une séance annulée ou supprimée qu'on avait lancée depuis « Voir » : on y revient.
   const [apercu, setApercuEtat] = useState<SeanceModele | null>(() => {
     try {
@@ -252,6 +274,15 @@ export default function Accueil({
     }
     return demarrer(m && catalogue.pourDemarrer(m), contexte, m ? echauffementDe(m) : [], allegee)
   }
+  // Séance d'essai (programme tout prêt pas pris) : sa copie est écrite au premier « Démarrer », hors programme ;
+  // la fois suivante, c'est elle qu'on rouvre. Le programme en service et le planning ne changent pas.
+  const essaiDe = (m: SeanceModele): SeanceModele => catalogue.modele(ID_ESSAI + m.id) ?? { ...structuredClone(m), id: ID_ESSAI + m.id, jour: undefined }
+  const essaiNeuf = !!apercu && apercu.id.startsWith(ID_ESSAI) && !catalogue.modele(apercu.id)
+  const lancerApercu = async (allegee: boolean) => {
+    if (!apercu) return
+    if (essaiNeuf) await db.modeles.put(apercu)
+    return lancer(apercu, true, allegee)
+  }
 
   // Échauffement activé depuis « Voir » : enregistré sur la séance (comme dans Programmes) et pris en compte tout de suite.
   const changerEchauffement = (v: SeanceModele['echauffement']) => {
@@ -269,7 +300,7 @@ export default function Accueil({
     if (c?.modeles.some((m) => m.id === apercu.id)) void db.cycles.update(c.id, { modeles: c.modeles.map((m) => (m.id === apercu.id ? avec(m) : m)) })
     setApercuEtat(avec(apercu))
   }
-  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} deload={!!etat?.deload} onDemarrer={(allegee) => lancer(apercu, true, allegee)} onEchauffement={changerEchauffement} onAjouter={() => onAjouterExercices(apercu.id)} onFermer={() => voir(null)} />
+  if (apercu) return <Apercu modele={apercu} catalogue={catalogue} essai={essaiNeuf} deload={!!etat?.deload} onDemarrer={(allegee) => void lancerApercu(allegee)} onEchauffement={changerEchauffement} onAjouter={() => onAjouterExercices(apercu.id)} onFermer={() => voir(null)} />
 
   // Rappel des mensurations : seulement après 3 semaines sans en prendre.
   const joursMesure = derniereMesure ? Math.floor((Date.now() - Date.parse(derniereMesure.date + 'T12:00:00')) / 86400000) : null
@@ -841,6 +872,69 @@ export default function Accueil({
               </span>
               <ChevronRight size={20} className="muted" />
             </button>
+
+            {(() => {
+              // Un tout prêt déjà pris est dans la liste du haut : on ne le propose pas deux fois.
+              const pris = new Set(programmes.map((p) => p.nom))
+              const prets = PROGRAMMES_TYPES.filter((t) => !pris.has(t.nom))
+              if (!prets.length) return null
+              return (
+                <section className="choix-groupe choix-prets">
+                  <button
+                    type="button"
+                    className="choix-groupe-tete"
+                    aria-expanded={pretsOuverts}
+                    onClick={(e) => {
+                      garderEnPlace(e.currentTarget)
+                      // Les séances du haut se replient : la liste reste courte.
+                      if (!pretsOuverts) setOuvert('')
+                      setPretsOuverts(!pretsOuverts)
+                    }}
+                  >
+                    <span className="choix-groupe-nom">
+                      <strong>Programmes tout prêts</strong>
+                    </span>
+                    <span className="faible">{prets.length} programme{prets.length > 1 ? 's' : ''}</span>
+                    <ChevronRight size={18} className={'muted depliable-chevron' + (pretsOuverts ? ' ouvert' : '')} />
+                  </button>
+                  <Deplie ouvert={pretsOuverts}>
+                    <div className="faible choix-prets-aide">Pour essayer une séance sans changer de programme.</div>
+                    {prets.map((t) => {
+                      const o = pretOuvert === t.id
+                      return (
+                        <div key={t.id} className="choix-pret">
+                          <button type="button" className="choix-groupe-tete" aria-expanded={o} onClick={(e) => (garderEnPlace(e.currentTarget), setPretOuvert(o ? '' : t.id))}>
+                            <span className="choix-groupe-nom">
+                              <strong>{t.nom}</strong>
+                              <span className="faible choix-seance-sous">{t.pour}</span>
+                            </span>
+                            <span className="faible">{t.seances.length} séance{t.seances.length > 1 ? 's' : ''}</span>
+                            <ChevronRight size={18} className={'muted depliable-chevron' + (o ? ' ouvert' : '')} />
+                          </button>
+                          <Deplie ouvert={o}>
+                            <div className="choix-seances">
+                              {t.seances.map((m) => (
+                                <button key={m.id} type="button" className="choix-seance" onClick={() => voir(essaiDe(m))}>
+                                  <span className="choix-seance-corps">
+                                    <span className="choix-seance-nom">{m.nom}</span>
+                                    {sousTitreSeance(m, (id) => catalogue.exo(id).nom) && <span className="faible choix-seance-sous">{sousTitreSeance(m, (id) => catalogue.exo(id).nom)}</span>}
+                                    <span className="faible choix-seance-sous">
+                                      ≈ {minutes(dureeEstimee(m))}
+                                      {m.circuits?.length ? ` · ${m.circuits.length} circuit${m.circuits.length > 1 ? 's' : ''}` : ''}
+                                    </span>
+                                  </span>
+                                  <ChevronRight size={20} className="muted" />
+                                </button>
+                              ))}
+                            </div>
+                          </Deplie>
+                        </div>
+                      )
+                    })}
+                  </Deplie>
+                </section>
+              )
+            })()}
 
             <button className="btn discret plein" style={{ marginTop: 10 }} onClick={() => setChoix(false)}>
               Annuler

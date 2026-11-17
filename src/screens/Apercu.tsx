@@ -33,9 +33,11 @@ interface Props {
   onFermer: () => void
   /** Semaine de déload : la séance sera allégée au démarrage. */
   deload?: boolean
+  /** Séance d'un programme tout prêt, pas encore pris : on l'essaie sans changer de programme. */
+  essai?: boolean
 }
 
-export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEchauffement, onFermer, deload: semaineAllegee = false }: Props) {
+export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEchauffement, onFermer, essai, deload: semaineAllegee = false }: Props) {
   // « En allégé » : pour cette séance seulement, avec les règles de la semaine allégée.
   const [enAllege, setEnAllege] = useState(false)
   const deload = semaineAllegee || enAllege
@@ -112,6 +114,11 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
       )}
       {semaineAllegee && <div className="bandeau-deload">Semaine allégée : moitié des séries, charges −10 %, effort 6-7/10, sans échec. Récupère, et garde tes repas et tes pas comme d’habitude.</div>}
 
+      {essai && (
+        <div className="apercu-essai">
+          <strong>Séance d’essai.</strong> Ton programme et ton planning ne changent pas. Elle sera rangée dans « Hors programme ».
+        </div>
+      )}
       {premierPassage && <div className="faible">{premierPassage}</div>}
 
       {modele.exercices.map((p0, i) => {
