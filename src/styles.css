@@ -4741,24 +4741,6 @@ html[data-sens='fondu']::view-transition-new(root) {
 .semaine-texte.tenue {
   color: var(--ok);
 }
-.accueil-progres {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--e2);
-  padding-bottom: var(--e1);
-  color: var(--texte-2);
-  font-size: var(--t-petit);
-  white-space: nowrap;
-}
-.accueil-progres-nom {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.accueil-progres-gain {
-  flex-shrink: 0;
-  color: var(--ok);
-  font-weight: 600;
-}
 .seance-jour {
   flex: 1;
   display: flex;

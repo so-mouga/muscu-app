@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Check, ChevronRight, CloudUpload, Download, Info, Moon, RefreshCw, Ruler, SlidersHorizontal, Target, X, Zap } from 'lucide-react'
 import type { Catalogue, EntreePlanning } from '../catalogue'
 import { db, dernierPoids, exoAvecReglages, historiqueDe, setReglage, uid } from '../db'
-import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, kg, lundi, minutes } from '../lib/calc'
+import { chargeQte, dateISO, duree, dureeEstimee, dureeSeanceEffective, dureeTexte, estDure, jourSemaine, lundi, minutes } from '../lib/calc'
 import { sousTitrePerso, sousTitreSeance } from '../lib/programme'
 import { creneauxFaits, creneauxRates } from '../lib/historique'
 import { hausse, suggestionPour } from '../lib/progression'
@@ -21,7 +21,7 @@ import Apercu from './Apercu'
 import type { Programme, SeanceModele } from '../types'
 import { informer } from '../components/Dialogues'
 import { conseilsAChoisir } from '../lib/prochaineFois'
-import { depuisDebut, faitesSurPrevues, gainsDeSeance, joursSansSeance, semainesTenues } from '../lib/motivation'
+import { faitesSurPrevues, gainsDeSeance, joursSansSeance, semainesTenues } from '../lib/motivation'
 import { CLE_PREVUS, prevuDeSemaine, type EtapePrevu } from '../lib/prevu'
 import { CLE_DEMARRAGE, NOMS_JOURS, type EtatDemarrage } from '../lib/demarrage'
 import { nouvelleVersionAndroid, seanceDuJourNatif } from '../lib/natif'
@@ -502,18 +502,6 @@ export default function Accueil({
   const nbFaites = faitesSurPrevues(semaine.length, prevusSemaine.length)
   // Semaines tenues (les trois quarts des séances prévues) : affichées à partir de 2, déloads et pauses ne cassent rien.
   const tenues = terminees ? semainesTenues(terminees, prevuDeSemaine((reglages.find((r) => r.cle === CLE_PREVUS)?.valeur as EtapePrevu[] | undefined) ?? [], cycles, terminees, planning.length), cycles, dateISO()) : 0
-  // Un seul vrai progrès, depuis le début du cycle en cours, sinon de la phase, sinon en 4 semaines.
-  const blocEnCours = cycle && etat && etat.n >= 1 && !etat.fini ? cycle.debut : phase && !phase.aVenir ? phase.debut : undefined
-  const progres = terminees ? depuisDebut(terminees, catalogue.exo, blocEnCours ?? dateISO(new Date(Date.now() - 28 * 86400000)), 1)[0] : undefined
-  const gainBloc = (() => {
-    if (!progres) return ''
-    const dc = Math.round((progres.apres.charge - progres.avant.charge) * 100) / 100
-    const dr = progres.apres.reps - progres.avant.reps
-    if (progres.exo.assistance && dc < 0) return `−${kg(-dc)} kg d’assistance`
-    if (dc > 0) return `+${kg(dc)} kg`
-    if (dr <= 0) return ''
-    return progres.exo.mesure === 'temps' ? `+${dr} s` : `+${dr} rep${dr > 1 ? 's' : ''}`
-  })()
 
   /**
    * Les exercices de la séance, leur nom seul (13 nov. 2026, retour de l'utilisateur : l'accueil était trop chargé). La pastille
@@ -616,14 +604,6 @@ export default function Accueil({
               </span>
             </button>
           </div>
-          {progres && gainBloc && (
-            <div className="accueil-progres">
-              <span className="accueil-progres-nom">{progres.exo.nom}</span>
-              <span className="accueil-progres-gain">
-                {gainBloc} {blocEnCours ? 'sur ce bloc' : 'en 4 semaines'}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* La séance d'abord : elle prend la place qui reste, « Démarrer » reste au même endroit. */}
