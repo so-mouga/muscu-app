@@ -141,20 +141,22 @@ export function resumeSeance(seance: Seance, avant: Seance[], exo: (id: string) 
  * (`mieuxParSeance`) : son gain (« +2 kg », « +1 rep »), « = » si les séries sont les mêmes, rien sinon (moins bien,
  * première fois, séance allégée : pas de reproche). Dans l'ordre où ils ont été faits. Pour l'Accueil, une fois la séance faite.
  */
-export function gainsDeSeance(seance: Seance, avant: Seance[], exo: (id: string) => Exercice): { exoId: string; gain?: string; premiere?: true }[] {
+export function gainsDeSeance(seance: Seance, avant: Seance[], exo: (id: string) => Exercice): { exoId: string; gain?: string; premiere?: true; jour?: Serie; avant?: Serie }[] {
   const precedentes = avant.filter((s) => s.id !== seance.id && !s.enCours && !s.deload && s.debut < seance.debut).sort((a, b) => b.debut - a.debut)
   const comptees = (s: Seance, id: string) => s.series.filter((x) => x.exoId === id && serieComptee(x))
   return [...new Set(seance.series.map((x) => x.exoId))].map((id) => {
+    const e = exo(id)
     const jour = comptees(seance, id)
     const prec = precedentes.map((s) => comptees(s, id)).find((l) => l.length)
-    if (!seance.deload && jour.length && !prec) return { exoId: id, premiere: true }
-    if (seance.deload || !jour.length || !prec) return { exoId: id }
-    const e = exo(id)
+    // Les meilleures séries du jour et de la fois d'avant (la plus lourde, puis le plus de reps) : la perf qu'on affiche.
+    const perf = { jour: meilleureSerie(jour, e.assistance), avant: prec && meilleureSerie(prec, e.assistance) }
+    if (!seance.deload && jour.length && !prec) return { exoId: id, premiere: true, ...perf }
+    if (seance.deload || !jour.length || !prec) return { exoId: id, ...perf }
     const suivi = suiviProgres(e)
     suivi.juger(prec)
-    if (suivi.progres(jour) && sensPerf(e, meilleureSerie(prec, e.assistance)!, meilleureSerie(jour, e.assistance)!) >= 0) return { exoId: id, gain: gain(e, prec, jour)?.court ?? '↑' }
+    if (suivi.progres(jour) && sensPerf(e, perf.avant!, perf.jour!) >= 0) return { exoId: id, gain: gain(e, prec, jour)?.court ?? '↑', ...perf }
     const pareil = jour.length === prec.length && jour.every((x, k) => x.charge === prec[k].charge && x.reps === prec[k].reps)
-    return pareil ? { exoId: id, gain: '=' } : { exoId: id }
+    return pareil ? { exoId: id, gain: '=', ...perf } : { exoId: id, ...perf }
   })
 }
 

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Fin de séance, repartir de zéro</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#1e1c1a;--controle:#262422;--texte:#f5f4f2;--t2:#a8a29e;--t3:#6f6964;--accent:#f97316;--ok:#4ade80}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;display:flex;justify-content:center;background:var(--bg);overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 12px;gap:12px}
+.etiquette{align-self:center;background:#16341f;color:#8fe3a8;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600}
+.etiquette.avant{background:#1d2a44;color:#9cc0ff}
+.entete{display:flex;align-items:center;gap:10px}
+.anneau{width:46px;height:46px;border-radius:50%;border:4px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+.entete b{font-size:18px;font-weight:600;display:block}.entete span{font-size:13px;color:var(--t2)}
+.boutons{display:flex;gap:8px}.boutons div{flex:1;background:var(--controle);border-radius:14px;min-height:38px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500}
+.tete h1{margin:0;font-size:34px;line-height:1.05;font-style:italic;font-weight:800}
+.tete h1 .rec{display:inline-flex;align-items:center;gap:8px}
+.tete .infos{font-size:13px;color:var(--t2);margin-top:4px}
+.sous{font-size:12px;color:var(--t2)}
+.liste{display:flex;flex-direction:column;gap:2px}
+.ligne{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:46px;padding:4px 0}
+.ligne .nom{font-size:15px;font-weight:500;line-height:1.2}
+.ligne .gain{font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;margin-top:2px}
+.ligne .perf{font-size:15px;font-weight:700;white-space:nowrap;text-align:right}
+.ligne .avant{font-size:12px;color:var(--t3);font-weight:500;text-align:right}
+.ligne.record .gain{color:var(--texte)}
+.ligne.mieux .gain{color:var(--ok)}
+.ligne.terne .nom,.ligne.terne .perf{color:var(--t2)}
+.ligne.terne .gain{color:var(--t3);font-weight:500}
+.disque{display:inline-block;width:14px;height:14px;border-radius:50%;background:currentColor;position:relative;flex:none;-webkit-mask:radial-gradient(circle at 50% 50%,transparent 2.5px,#000 3px)}
+.disque::after{content:"";position:absolute;left:5px;top:-1px;width:4px;height:4.5px;background:var(--bg)}
+.tete .disque{width:26px;height:26px;-webkit-mask:radial-gradient(circle at 50% 50%,transparent 4px,#000 4.5px)}
+.tete .disque::after{left:10px;width:6px;height:7px}
+.bas{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.q{font-size:13px;color:var(--t2)}
+.sens{display:flex;gap:8px}.sens div{flex:1;background:var(--controle);border-radius:14px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.primaire{background:var(--accent);color:#1a0d02;border-radius:18px;min-height:52px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500}
+.heros{border-radius:18px;padding:18px 16px;background:var(--carte) repeating-linear-gradient(-20deg,transparent 0 14px,rgba(255,255,255,.035) 14px 15px);display:flex;align-items:flex-end;gap:12px;min-height:150px}
+.heros .chiffre{font-size:96px;line-height:.8;font-style:italic;font-weight:800}
+.heros .mots{font-size:20px;font-style:italic;font-weight:800;padding-bottom:4px}
+.compte{font-size:16px;color:var(--t2)}.compte b{color:var(--texte)}
+.l0{display:flex;justify-content:space-between;min-height:28px;font-size:15px;align-items:center}.l0 b{display:flex;gap:6px;align-items:center}.l0.t{color:var(--t3)}
+.v2 .tete h1{font-size:34px}
+.v2 .tete h1 .fait{display:block;font-size:20px;color:var(--t2);font-weight:700}
+.v2 .bloc{background:var(--carte);border-radius:18px;padding:12px 14px 6px}
+.v2 .bloc .sous{margin-bottom:4px}
+.v2 .ligne{border-top:1px solid rgba(255,255,255,.06)}
+.v2 .ligne:first-of-type{border-top:0}
+.v2 .ligne .nom{color:#d6d3d1;font-weight:500}
+.v2 .ligne.terne .nom{color:#d6d3d1}
+.v2 .ligne.terne .perf{color:var(--texte)}
+.v2 .ligne.terne .gain{color:var(--t2)}
+.intro{justify-content:center;gap:12px}
+.intro h1{margin:0;font-size:26px}
+.intro ul{margin:0;padding-left:18px;color:var(--t2)}.intro li{margin-bottom:8px;line-height:1.35}.intro b{color:var(--texte)}
+</style>
+</head>
+<body>
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Fin de séance, repartie de zéro · glisse vers le bas</span>
+  <h1>Tes perfs, pas un compte</h1>
+  <ul>
+    <li><b>À quoi sert cet écran</b> : savoir tout de suite ce que tu as battu, exercice par exercice. Le nombre de records est un résumé, pas le sujet.</li>
+    <li><b>Plus de grande carte</b> : « 4 records. » devient le titre, en penché, à côté de « Séance faite. ». Une ligne, quel que soit le nombre de records.</li>
+    <li><b>Chaque ligne dit ta perf</b> : ta meilleure série du jour à droite (« 40 kg × 10 »), celle de la dernière fois dessous en petit, et sous le nom ce que tu as gagné.</li>
+    <li>Records en blanc avec le petit disque, « mieux » en vert, le reste en gris. Même ordre qu'aujourd'hui.</li>
+    <li>La grande carte sur la trame reste pour <b>un cap franchi</b> : un chiffre que tu as choisi, c'est rare.</li>
+  </ul>
+</div></section>
+
+<section class="ecran v2"><div class="tel">
+  <span class="etiquette">Version 2 · 4 records</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 55:11 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="tete"><h1><span class="fait">Séance faite.</span><span class="rec"><i class="disque"></i>4 records.</span></h1><div class="infos">55 min · 19 séries</div></div>
+  <div class="bloc"><div class="sous">Face à la dernière fois</div><div class="liste"><div class="ligne record"><div><div class="nom">Soulevé de terre roumain haltères</div><div class="gain"><i class="disque"></i>+1 rep</div></div><div><div class="perf">20 kg × 11</div><div class="avant">avant 20 × 10</div></div></div><div class="ligne record"><div><div class="nom">Développé incliné machine</div><div class="gain"><i class="disque"></i>+1 rep</div></div><div><div class="perf">40 kg × 11</div><div class="avant">avant 40 × 10</div></div></div><div class="ligne record"><div><div class="nom">Rowing machine</div><div class="gain"><i class="disque"></i>+2 reps</div></div><div><div class="perf">45 kg × 12</div><div class="avant">avant 45 × 10</div></div></div><div class="ligne record"><div><div class="nom">Extension de jambes</div><div class="gain"><i class="disque"></i>+5 kg</div></div><div><div class="perf">40 kg × 10</div><div class="avant">avant 35 × 10</div></div></div><div class="ligne terne"><div><div class="nom">Élévation latérale poulie</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">7,5 kg × 10</div></div></div><div class="ligne terne"><div><div class="nom">Curl haltères</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">10 kg × 10</div></div></div></div></div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran v2"><div class="tel">
+  <span class="etiquette">Version 2 · aucun record</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 55:11 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="tete"><h1><span class="fait">Séance faite.</span>2 exercices mieux.</h1><div class="infos">55 min · 19 séries</div></div>
+  <div class="bloc"><div class="sous">Face à la dernière fois</div><div class="liste"><div class="ligne mieux"><div><div class="nom">Rowing machine</div><div class="gain">+1 rep</div></div><div><div class="perf">45 kg × 11</div><div class="avant">avant 45 × 10</div></div></div><div class="ligne mieux"><div><div class="nom">Développé incliné machine</div><div class="gain">+1 rep</div></div><div><div class="perf">40 kg × 11</div><div class="avant">avant 40 × 10</div></div></div><div class="ligne terne"><div><div class="nom">Soulevé de terre roumain haltères</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">20 kg × 10</div></div></div><div class="ligne terne"><div><div class="nom">Extension de jambes</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">35 kg × 10</div></div></div><div class="ligne terne"><div><div class="nom">Élévation latérale poulie</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">7,5 kg × 10</div></div></div><div class="ligne terne"><div><div class="nom">Curl haltères</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">10 kg × 10</div></div></div></div></div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette avant">Aujourd'hui</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 55:11 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="tete"><h1>Séance faite.</h1></div>
+  <div class="heros"><span class="chiffre">4</span><span class="mots">records battus.</span></div>
+  <div><div class="sous">Face à la dernière fois</div><div class="compte"><b>4 records</b> · 2 sans progrès</div></div>
+  <div>
+    <div class="l0"><span>Soulevé de terre roumain haltères</span><b><i class="disque"></i>+1 rep</b></div>
+    <div class="l0"><span>Développé incliné machine</span><b><i class="disque"></i>+1 rep</b></div>
+    <div class="l0"><span>Rowing machine</span><b><i class="disque"></i>+2 reps</b></div>
+    <div class="l0"><span>Extension de jambes</span><b><i class="disque"></i>+5 kg</b></div>
+    <div class="l0 t"><span>Élévation latérale poulie</span><span>=</span></div>
+    <div class="l0 t"><span>Curl haltères</span><span>=</span></div>
+  </div>
+  <div class="bas"><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Repartie de zéro · 4 records</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 55:11 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="tete"><h1>Séance faite.<br><span class="rec"><i class="disque"></i>4 records.</span></h1><div class="infos">55 min · 19 séries · face à la dernière fois</div></div>
+  <div class="liste">
+    <div class="ligne record"><div><div class="nom">Soulevé de terre roumain haltères</div><div class="gain"><i class="disque"></i>+1 rep</div></div><div><div class="perf">20 kg × 11</div><div class="avant">avant 20 × 10</div></div></div>
+    <div class="ligne record"><div><div class="nom">Développé incliné machine</div><div class="gain"><i class="disque"></i>+1 rep</div></div><div><div class="perf">40 kg × 11</div><div class="avant">avant 40 × 10</div></div></div>
+    <div class="ligne record"><div><div class="nom">Rowing machine</div><div class="gain"><i class="disque"></i>+2 reps</div></div><div><div class="perf">45 kg × 12</div><div class="avant">avant 45 × 10</div></div></div>
+    <div class="ligne record"><div><div class="nom">Extension de jambes</div><div class="gain"><i class="disque"></i>+5 kg</div></div><div><div class="perf">40 kg × 10</div><div class="avant">avant 35 × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Élévation latérale poulie</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">7,5 kg × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Curl haltères</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">10 kg × 10</div></div></div>
+  </div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Repartie de zéro · 1 record</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 52:40 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="tete"><h1>Séance faite.<br><span class="rec"><i class="disque"></i>1 record.</span></h1><div class="infos">52 min · 19 séries · face à la dernière fois</div></div>
+  <div class="liste">
+    <div class="ligne record"><div><div class="nom">Extension de jambes</div><div class="gain"><i class="disque"></i>+5 kg</div></div><div><div class="perf">40 kg × 10</div><div class="avant">avant 35 × 10</div></div></div>
+    <div class="ligne mieux"><div><div class="nom">Rowing machine</div><div class="gain">+1 rep</div></div><div><div class="perf">45 kg × 11</div><div class="avant">avant 45 × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Soulevé de terre roumain haltères</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">20 kg × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Développé incliné machine</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">40 kg × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Élévation latérale poulie</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">7,5 kg × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Curl haltères</div><div class="gain">moins que la dernière fois</div></div><div><div class="perf">10 kg × 9</div></div></div>
+  </div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Repartie de zéro · aucun record</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 54:02 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="tete"><h1>Séance faite.<br><span style="color:var(--t2)">2 exercices mieux.</span></h1><div class="infos">54 min · 19 séries · face à la dernière fois</div></div>
+  <div class="liste">
+    <div class="ligne mieux"><div><div class="nom">Rowing machine</div><div class="gain">+1 rep</div></div><div><div class="perf">45 kg × 11</div><div class="avant">avant 45 × 10</div></div></div>
+    <div class="ligne mieux"><div><div class="nom">Développé incliné machine</div><div class="gain">+1 rep</div></div><div><div class="perf">40 kg × 11</div><div class="avant">avant 40 × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Soulevé de terre roumain haltères</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">20 kg × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Extension de jambes</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">35 kg × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Élévation latérale poulie</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">7,5 kg × 10</div></div></div>
+    <div class="ligne terne"><div><div class="nom">Curl haltères</div><div class="gain">comme la dernière fois</div></div><div><div class="perf">10 kg × 10</div></div></div>
+  </div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+</div>
+</body>
+</html>

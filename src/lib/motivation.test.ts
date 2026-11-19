@@ -203,13 +203,19 @@ describe('accueil, séance faite : le gain de chaque exercice', () => {
   const g = gainsDeSeance(jour, [avant], exo)
 
   it('dans l’ordre fait : le gain en charge ou en reps, « = » si pareil, rien si moins bien, « premiere » la toute première fois', () => {
-    expect(g).toEqual([
+    expect(g.map(({ jour: _j, avant: _a, ...x }) => x)).toEqual([
       { exoId: 'curl_barre', gain: '=' },
       { exoId: 'dev_couche_barre', gain: '+2,5 kg' },
       { exoId: 'rowing_haltere', gain: '+1 rep' },
       { exoId: 'dev_militaire' },
       { exoId: 'elevation_laterale_halteres', premiere: true },
     ])
+  })
+
+  it('avec la meilleure série du jour et celle de la fois d’avant, pour afficher la perf', () => {
+    const d = g.find((x) => x.exoId === 'dev_couche_barre')!
+    expect(d.jour!.charge - d.avant!.charge).toBe(2.5)
+    expect(g.find((x) => x.premiere)!.avant).toBeUndefined()
   })
 
   it('autant de gains que « n exercices mieux que la dernière fois »', () => {

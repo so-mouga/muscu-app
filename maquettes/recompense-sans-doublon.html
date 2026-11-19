@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Fin de séance sans doublon</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#1e1c1a;--controle:#262422;--texte:#f5f4f2;--t2:#a8a29e;--t3:#6f6964;--accent:#f97316;--ok:#4ade80}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;display:flex;justify-content:center;background:var(--bg);overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 12px;gap:10px}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600}
+.etiquette.apres{background:#16341f;color:#8fe3a8}
+.entete{display:flex;align-items:center;gap:10px}
+.anneau{width:46px;height:46px;border-radius:50%;border:4px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+.entete b{font-size:18px;font-weight:600;display:block}
+.entete span{font-size:13px;color:var(--t2)}
+.boutons{display:flex;gap:8px}
+.boutons div{flex:1;background:var(--controle);border-radius:14px;min-height:38px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500}
+.titre{display:flex;align-items:baseline;justify-content:space-between}
+.titre h1{margin:0;font-size:30px;font-style:italic;font-weight:800}
+.titre span{font-size:13px;color:var(--t2)}
+.heros{border-radius:18px;padding:18px 16px;background:var(--carte) repeating-linear-gradient(-20deg,transparent 0 14px,rgba(255,255,255,.035) 14px 15px);display:flex;align-items:flex-end;gap:12px;min-height:150px}
+.heros .chiffre{font-size:96px;line-height:.8;font-style:italic;font-weight:800}
+.heros .mots{font-size:20px;font-style:italic;font-weight:800;padding-bottom:4px;display:flex;align-items:center;gap:6px}
+.heros.un{flex-direction:column;align-items:flex-start;gap:6px}
+.heros.un .exo{font-size:15px;color:var(--t2);font-weight:600}
+.heros.un .chiffre{font-size:64px}
+.heros.un .detail{font-size:14px;color:var(--ok);font-weight:600}
+.disque{display:inline-block;width:16px;height:16px;border-radius:50%;background:currentColor;position:relative;flex:none;-webkit-mask:radial-gradient(circle at 50% 50%,transparent 3px,#000 3.5px),linear-gradient(#000,#000);-webkit-mask-composite:source-in}
+.disque::after{content:"";position:absolute;left:6px;top:-1px;width:4px;height:5px;background:var(--bg)}
+.heros .mots .disque{width:20px;height:20px}
+.heros .mots .disque::after{left:7.5px;width:5px;height:6px;background:#1f1d1b}
+.sous{font-size:12px;color:var(--t2);margin-top:4px}
+.compte{font-size:16px;color:var(--t2)}.compte b{color:var(--texte);font-weight:700}
+.liste{display:flex;flex-direction:column}
+.ligne{display:flex;justify-content:space-between;align-items:center;min-height:28px;font-size:15px}
+.ligne .g{display:flex;align-items:center;gap:6px;font-weight:700}
+.ligne.terne{color:var(--t3)}
+.ligne .vert{color:var(--ok);font-weight:700}
+.bas{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+.q{font-size:13px;color:var(--t2)}
+.sens{display:flex;gap:8px}.sens div{flex:1;background:var(--controle);border-radius:14px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.primaire{background:var(--accent);color:#1a0d02;border-radius:18px;min-height:52px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500}
+.barre{outline:2px dashed #ef4444;outline-offset:2px;border-radius:6px}
+.note{font-size:12px;color:#fca5a5}
+.intro{justify-content:center;gap:12px}
+.intro h1{margin:0;font-size:26px}
+.intro ul{margin:0;padding-left:18px;color:var(--t2)}.intro li{margin-bottom:8px;line-height:1.35}.intro b{color:var(--texte)}
+</style>
+</head>
+<body>
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Fin de séance · glisse vers le bas</span>
+  <h1>Un seul « 4 records »</h1>
+  <ul>
+    <li><b>Aujourd'hui</b> : « 4 records battus » en grand, puis « 4 records · 2 sans progrès » juste dessous. Le même chiffre deux fois : on se demande si c'est la même chose.</li>
+    <li><b>Proposé</b> : la ligne de compte disparaît. La carte garde le chiffre, avec le petit disque à côté de « records battus ». Ce disque est celui des lignes de la liste : l'œil fait le lien.</li>
+    <li>Les exercices sans progrès restent en gris avec « = », en bas de la liste.</li>
+    <li>Trois écrans proposés : 4 records, 1 seul record, aucun record.</li>
+  </ul>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Aujourd'hui</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 55:11 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="titre"><h1>Séance faite.</h1><span>55 min · 19 séries</span></div>
+  <div class="heros"><span class="chiffre">4</span><span class="mots">records battus.</span></div>
+  <div><div class="sous">Face à la dernière fois</div><div class="compte barre"><b>4 records</b> · 2 sans progrès</div><div class="note">↑ le même 4 une deuxième fois</div></div>
+  <div class="liste">
+    <div class="ligne"><span>Soulevé de terre roumain haltères</span><span class="g"><i class="disque"></i>+1 rep</span></div>
+    <div class="ligne"><span>Développé incliné machine</span><span class="g"><i class="disque"></i>+1 rep</span></div>
+    <div class="ligne"><span>Rowing machine</span><span class="g"><i class="disque"></i>+2 reps</span></div>
+    <div class="ligne"><span>Extension de jambes</span><span class="g"><i class="disque"></i>+5 kg</span></div>
+    <div class="ligne terne"><span>Élévation latérale poulie</span><span>=</span></div>
+    <div class="ligne terne"><span>Curl haltères</span><span>=</span></div>
+  </div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">Proposé · 4 records</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 55:11 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="titre"><h1>Séance faite.</h1><span>55 min · 19 séries</span></div>
+  <div class="heros"><span class="chiffre">4</span><span class="mots"><i class="disque"></i>records battus.</span></div>
+  <div class="sous">Face à la dernière fois</div>
+  <div class="liste">
+    <div class="ligne"><span>Soulevé de terre roumain haltères</span><span class="g"><i class="disque"></i>+1 rep</span></div>
+    <div class="ligne"><span>Développé incliné machine</span><span class="g"><i class="disque"></i>+1 rep</span></div>
+    <div class="ligne"><span>Rowing machine</span><span class="g"><i class="disque"></i>+2 reps</span></div>
+    <div class="ligne"><span>Extension de jambes</span><span class="g"><i class="disque"></i>+5 kg</span></div>
+    <div class="ligne terne"><span>Élévation latérale poulie</span><span>=</span></div>
+    <div class="ligne terne"><span>Curl haltères</span><span>=</span></div>
+  </div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">Proposé · 1 seul record</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 52:40 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="titre"><h1>Séance faite.</h1><span>52 min · 19 séries</span></div>
+  <div class="heros un"><span class="exo">Extension de jambes</span><span class="chiffre">40 kg × 10</span><span class="mots"><i class="disque"></i>Record battu.</span><span class="detail">+5 kg sur ton record · 10 reps</span></div>
+  <div class="sous">Face à la dernière fois</div>
+  <div class="liste">
+    <div class="ligne"><span>Rowing machine</span><span class="vert">+1 rep</span></div>
+    <div class="ligne terne"><span>Soulevé de terre roumain haltères</span><span>=</span></div>
+    <div class="ligne terne"><span>Développé incliné machine</span><span>=</span></div>
+    <div class="ligne terne"><span>Élévation latérale poulie</span><span>=</span></div>
+    <div class="ligne terne"><span>Curl haltères</span><span>=</span></div>
+  </div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">Proposé · aucun record</span>
+  <div class="entete"><div class="anneau">100%</div><div><b>Tout est fait</b><span>⏱ 54:02 de séance</span></div></div>
+  <div class="boutons"><div>Voir la séance</div><div>Fin de séance</div></div>
+  <div class="titre"><h1>Séance faite.</h1><span>54 min · 19 séries</span></div>
+  <div class="heros" style="flex-direction:column;align-items:flex-start;justify-content:flex-end;min-height:110px"><span class="mots" style="font-size:26px">2 exercices mieux.</span><span class="mots" style="font-size:18px;color:var(--t2)">Pas de record. Pas loin.</span></div>
+  <div class="sous">Face à la dernière fois</div>
+  <div class="liste">
+    <div class="ligne"><span>Rowing machine</span><span class="vert">+1 rep</span></div>
+    <div class="ligne"><span>Développé incliné machine</span><span class="vert">+1 rep</span></div>
+    <div class="ligne terne"><span>Soulevé de terre roumain haltères</span><span>=</span></div>
+    <div class="ligne terne"><span>Extension de jambes</span><span>=</span></div>
+    <div class="ligne terne"><span>Élévation latérale poulie</span><span>=</span></div>
+    <div class="ligne terne"><span>Curl haltères</span><span>=</span></div>
+  </div>
+  <div class="bas"><div class="q">Comment c'était ?</div><div class="sens"><div>Difficile</div><div>Bien</div><div>Au top</div></div><div class="primaire">La prochaine fois ›</div></div>
+</div></section>
+
+</div>
+</body>
+</html>

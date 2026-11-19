@@ -60,7 +60,7 @@ const REGLES: [string, string[]][] = [
   [
     'En fin de séance',
     [
-      'En tête : tes records battus et ton disque. Sans record, combien d’exercices ont été mieux que la dernière fois (charge plus lourde, ou rep de plus à une charge de la dernière fois).',
+      'En tête : le nombre de records battus. Dessous, chaque exercice avec ta meilleure série du jour et celle de la dernière fois. Sans record, combien d’exercices ont été mieux que la dernière fois (charge plus lourde, ou rep de plus à une charge de la dernière fois).',
       'Une série à l’échec, dégressive ou en rest-pause compte comme une série faite : elle ne fait plus dire « Tu as fait 2 séries sur 3 ».',
       'Chaque exercice a une fourchette de reps, écrite pendant la saisie : 8–12 d’office s’il fait travailler plusieurs articulations, 12–15 sinon. Avec le même nombre des deux côtés, pas de conseil pour monter. Chaque série est jugée sur sa propre fourchette. Tu l’appliques ou non.',
       'Une rep de plus, même charge : sur deux séries si toutes étaient faciles (effort 7/10 ou moins, 3 reps en réserve), sinon sur une seule ; celles qui sont le plus loin du haut de leur fourchette.',

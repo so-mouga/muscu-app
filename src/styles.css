@@ -7511,75 +7511,99 @@ button.jour-pas {
 .recompense .fin-sensations {
   margin-top: auto;
 }
-/* Chaque exercice et son gain face à la fois d'avant : record en blanc, mieux en vert, le reste en gris, sans reproche. */
+/* « Séance faite. » en petit et gris : le résumé en dessous est la seule chose en grand. */
+.recompense-fait {
+  font-size: var(--t-titre);
+  font-style: italic;
+  font-weight: 700;
+  color: var(--texte-2);
+}
+.recompense-tete:has(> .recompense-fait) {
+  margin-bottom: calc(-1 * var(--e3));
+}
+.recompense-tete:has(> .recompense-fait) + .recompense-sobre,
+.recompense-tete:has(> .recompense-fait) + * + .recompense-sobre {
+  padding-top: 0;
+  gap: var(--e1);
+}
+.recompense-records {
+  display: flex;
+  align-items: center;
+  gap: var(--e2);
+}
+/* Chaque exercice dans une carte : sa meilleure série du jour à droite, celle d'avant dessous, et sous le nom ce qu'il a
+   gagné (record en blanc avec le petit disque, mieux en vert, pareil en gris). Les lignes gardent toutes la même couleur :
+   un exercice sans progrès a quand même été fait, il ne doit pas avoir l'air désactivé. */
 .chasse {
   display: flex;
   flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--rayon);
+  padding: var(--e3) var(--e4) var(--e2);
 }
-.chasse > div {
+.chasse-titre {
+  font-size: var(--t-legende);
+  color: var(--texte-2);
+  margin-bottom: var(--e1);
+}
+.chasse-ligne {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--e3);
-  min-height: 28px;
+  min-height: 46px;
+  padding: var(--e1) 0;
 }
-.chasse > div > span:first-child {
+.chasse-ligne + .chasse-ligne {
+  border-top: 1px solid var(--voile);
+}
+.chasse-gauche,
+.chasse-droite {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+}
+.chasse-droite {
+  flex: none;
+  align-items: flex-end;
+}
+.chasse-nom {
+  font-size: var(--t-petit);
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .chasse-gain {
-  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  font-size: var(--t-legende);
   font-weight: 600;
 }
 .chasse-mieux .chasse-gain {
   color: var(--ok);
 }
-.chasse-egal,
-.chasse-terne {
-  color: var(--texte-2);
-}
-.chasse-egal .chasse-gain {
-  font-weight: 400;
-}
-.chasse-nouveau {
-  color: var(--texte-2);
-}
+.chasse-egal .chasse-gain,
 .chasse-nouveau .chasse-gain {
-  color: var(--texte-3, var(--texte-2));
+  color: var(--texte-2);
   font-weight: 400;
 }
-/* « Face à la dernière fois : 1 record · 1 mieux · 4 sans progrès » : la réponse avant la liste. */
-.chasse > .chasse-compte {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 0;
-  margin-bottom: var(--e1);
-  color: var(--texte-2);
+.chasse-perf {
+  font-size: var(--t-petit);
+  font-weight: 700;
+  white-space: nowrap;
 }
-.chasse-compte small {
+.chasse-avant {
   font-size: var(--t-legende);
+  color: var(--texte-2);
+  white-space: nowrap;
 }
-.chasse-compte > span {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 6px;
-}
-.chasse-compte b {
-  color: var(--texte);
-  font-weight: 600;
-}
-.chasse-compte b.ok-texte {
-  color: var(--ok);
-}
-.chasse-point {
-  opacity: 0.6;
+.chasse-plus {
+  font-size: var(--t-legende);
+  color: var(--texte-2);
+  padding: var(--e1) 0;
+  border-top: 1px solid var(--voile);
 }
 /* Plusieurs records : leur nombre en grand, « records battus. » à côté. */
 .fin-heros-suite {
@@ -7611,7 +7635,7 @@ button.jour-pas {
   flex: 1 1 0;
   min-height: 0;
 }
-.chasse.chasse-pleine {
+.chasse-zone.chasse-pleine {
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;

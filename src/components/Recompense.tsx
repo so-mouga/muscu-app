@@ -6,8 +6,8 @@ import { useCaps } from './Caps'
 import { IconeCran } from './IconeCran'
 import { dureeSeance } from './RecapSeance'
 import { capFranchiDans, dureeCap, texteCap } from '../lib/caps'
-import { duree, ecartQte, kg } from '../lib/calc'
-import { recordsDeSeance, type RecordGagne } from '../lib/records'
+import { chargeQte, duree, ecartQte, kg } from '../lib/calc'
+import { recordsDeSeance } from '../lib/records'
 import { gainsDeSeance, resumeSeance } from '../lib/motivation'
 import { phaseA } from '../lib/objectifs'
 import type { Seance } from '../types'
@@ -19,10 +19,11 @@ export const OPTIONS_FORME = [
 ] as const
 
 /**
- * La récompense d'une séance, sur un seul écran (direction « deux temps », choisie sur maquette le 12 nov. 2026) : le record du
- * jour en grand (sinon ce qui a été mieux, sinon « Séance tenue. »), chaque exercice avec son gain face à la fois
- * d'avant, et « Comment c'était ? ». Les choix pour la prochaine fois sont sur l'écran suivant. Un seul chiffre en grand, et
- * toujours un chiffre dont on est fier : jamais « 1 série sur 17 ».
+ * La récompense d'une séance, sur un seul écran (refaite le 19 nov. 2026 sur maquette `maquettes/fin-seance-zero.html`,
+ * version 2) : le résumé en titre (« 4 records. », sinon ce qui a été mieux, sinon « Séance tenue. »), puis une carte avec
+ * chaque exercice, sa meilleure série du jour et celle d'avant, et ce qu'il a gagné ; puis « Comment c'était ? ». Les choix
+ * pour la prochaine fois sont sur l'écran suivant. Le nombre de records n'est écrit qu'une fois, et seul un cap franchi garde
+ * la grande carte sur la trame.
  */
 export default function Recompense({
   seance,
@@ -67,100 +68,89 @@ export default function Recompense({
       const gain = g.gain && g.gain !== '=' ? g.gain : undefined
       const ton: keyof typeof rangs = c ? 'record' : gain ? 'mieux' : g.gain === '=' ? 'egal' : g.premiere ? 'nouveau' : 'terne'
       const texte = c ? (gain ?? (c.genre === 'reps' ? ecartQte(c.exo, c.serie.reps - c.ancien) : 'record')) : g.premiere ? '1re fois' : g.gain
-      return { id: g.exoId, nom: catalogue.exo(g.exoId).nom, ton, texte, ordre }
+      const e = catalogue.exo(g.exoId)
+      const perf = g.jour && chargeQte(e, g.jour.charge, g.jour.reps)
+      // La fois d'avant, seulement si elle diffère : sinon « comme la dernière fois » le dit déjà.
+      const avant = g.avant && g.jour && (g.avant.charge !== g.jour.charge || g.avant.reps !== g.jour.reps) ? chargeQte(e, g.avant.charge, g.avant.reps) : undefined
+      return { id: g.exoId, nom: e.nom, ton, texte: ton === 'egal' ? 'comme la dernière fois' : texte, perf, avant, ordre }
     })
     .sort((a, b) => rangs[a.ton] - rangs[b.ton] || a.ordre - b.ordre)
-  // Le compte, en une ligne au-dessus de la liste (retour de l'utilisateur, 13 nov. 2026 : « seule l'extension a un record ? »).
-  const compte = { mieux: 0, sans: 0, nouveaux: 0 }
-  for (const l of toutes) {
-    if (l.ton === 'mieux') compte.mieux++
-    else if (l.ton === 'egal' || l.ton === 'terne') compte.sans++
-    else if (l.ton === 'nouveau') compte.nouveaux++
-  }
-  const nbParties = [records.length, compte.mieux, compte.sans, compte.nouveaux].filter(Boolean).length
   const aMontrer = toutes.some((l) => l.texte) && !premiereSeance
-  // Un seul record : il est en grand dans la carte, la liste ne le répète pas.
-  const seulRecord = records.length === 1 && !tombe
-  const lignes = seulRecord ? toutes.filter((l) => l.id !== records[0].exo.id) : toutes
-  // En plein écran, rien ne défile : la liste prend la place libre (CSS), et on compte les lignes de 28 px qui y tiennent.
+  const lignes = toutes
+  // En plein écran, rien ne défile : la zone de la liste prend la place libre (CSS), et on compte les lignes qui y tiennent.
   const racine = useRef<HTMLDivElement>(null)
   const [max, setMax] = useState(Infinity)
   useLayoutEffect(() => {
-    const liste = plein ? racine.current?.querySelector<HTMLElement>('.chasse') : null
-    if (!liste) return
+    const zone = plein ? racine.current?.querySelector<HTMLElement>('.chasse-zone') : null
+    if (!zone) return
+    // Hauteur d'une ligne : la plus haute vue (un record et sa fois d'avant), 50 px avant le premier affichage.
+    let haut = 50
     const mesurer = () => {
-      const compte = liste.querySelector<HTMLElement>('.chasse-compte')
-      const haut = compte ? compte.offsetHeight + parseFloat(getComputedStyle(compte).marginBottom) : 0
-      setMax(Math.max(0, Math.floor((liste.clientHeight - haut) / 28)))
+      const carte = zone.querySelector<HTMLElement>('.chasse')
+      if (!carte) return
+      for (const x of carte.querySelectorAll<HTMLElement>('.chasse-ligne')) haut = Math.max(haut, x.offsetHeight)
+      // Ce que la carte prend en plus de ses lignes : son titre et ses marges.
+      const titre = carte.querySelector<HTMLElement>('.chasse-titre')
+      const px = (x: string) => parseFloat(x) || 0
+      const st = getComputedStyle(carte)
+      const autour = (titre ? titre.offsetHeight + px(getComputedStyle(titre).marginBottom) : 0) + px(st.paddingTop) + px(st.paddingBottom)
+      setMax(Math.max(1, Math.floor((zone.clientHeight - autour) / haut)))
     }
     mesurer()
     const suivi = new ResizeObserver(mesurer)
-    suivi.observe(liste)
+    suivi.observe(zone)
     return () => suivi.disconnect()
   }, [plein, aMontrer])
   const visibles = lignes.length > max ? lignes.slice(0, Math.max(0, max - 1)) : lignes
   const cachees = lignes.length - visibles.length
 
+  // Le résumé en titre, une seule fois : les records, sinon ce qui a été mieux, sinon une phrase.
+  const infos = n > 0 && (
+    <span className="faible petit">
+      {ms >= 60000 && `${duree(ms)} · `}
+      {n} série{n > 1 ? 's' : ''}
+    </span>
+  )
+
   return (
     <div ref={racine} className="recompense">
       <div className="recompense-tete">
-        {titre ? <span className="voix grand">{titre}</span> : <span className="recompense-nom">{seance.nom}</span>}
-        {n > 0 && (
-          <span className="faible petit">
-            {ms >= 60000 && `${duree(ms)} · `}
-            {n} série{n > 1 ? 's' : ''}
-          </span>
-        )}
+        {titre ? <span className="recompense-fait">{titre}</span> : <span className="recompense-nom">{seance.nom}</span>}
+        {!titre && infos}
       </div>
       <CircuitsFaits seance={seance} avant={terminees} court />
 
-      {records.length > 0 || (tombe && exoCap) ? (
+      {tombe && exoCap ? (
         <div className="carte fin-resume trame">
-          {tombe && exoCap ? (
-            // Le cap franchi : le chiffre visé en grand, d'où on partait et le temps mis, dit après coup.
-            <div className="fin-heros">
-              <div className="fin-heros-exo">{exoCap.nom}</div>
-              <div className="fin-heros-chiffre">
-                <b>{kg(tombe.cible)}</b>
-                <span>{tombe.genre === 'reps' ? 'reps' : exoCap.mode === 'par_main' ? 'kg/main' : 'kg'}</span>
-              </div>
-              <div className="fin-heros-titre">Cap franchi.</div>
-              <div className="fin-crans-titre">
-                Tu partais de {texteCap(exoCap, tombe, tombe.depart)}. {dureeCap(tombe.depuis, seance.date).replace(/^e/, 'E')}.
-              </div>
-              {records.length > 0 && (
-                <div className="fin-heros-disque">
-                  <IconeCran taille={20} />
-                  <strong>
-                    {records.length} record{records.length > 1 ? 's' : ''} battu{records.length > 1 ? 's' : ''}
-                  </strong>
-                </div>
-              )}
+          {/* Le cap franchi : le chiffre visé en grand, d'où on partait et le temps mis, dit après coup. */}
+          <div className="fin-heros">
+            <div className="fin-heros-exo">{exoCap.nom}</div>
+            <div className="fin-heros-chiffre">
+              <b>{kg(tombe.cible)}</b>
+              <span>{tombe.genre === 'reps' ? 'reps' : exoCap.mode === 'par_main' ? 'kg/main' : 'kg'}</span>
             </div>
-          ) : seulRecord ? (
-            // Un record : l'exercice et son chiffre en grand. Plusieurs : leur nombre en grand, chacun dans la liste dessous, à
-            // égalité (avant, le premier de la séance prenait la carte, et on lisait « 35 kg, 3 records battus »).
-            <div className="fin-heros">
-              <div className="fin-heros-exo">{records[0].exo.nom}</div>
-              <div className="fin-heros-chiffre">
-                <b>{records[0].genre === 'charge' ? kg(records[0].serie.charge) : records[0].serie.reps}</b>
-                <span>{records[0].genre === 'charge' ? (records[0].exo.mode === 'elastique' ? 'niveau' : 'kg') : records[0].exo.mesure === 'temps' ? 's' : 'reps'}</span>
-              </div>
-              <div className="fin-heros-titre">Record battu.</div>
-              <div className="fin-crans-titre">{detailRecord(records[0])}</div>
+            <div className="fin-heros-titre">Cap franchi.</div>
+            <div className="fin-crans-titre">
+              Tu partais de {texteCap(exoCap, tombe, tombe.depart)}. {dureeCap(tombe.depuis, seance.date).replace(/^e/, 'E')}.
             </div>
-          ) : (
-            <div className="fin-heros">
-              <div className="fin-heros-chiffre">
-                <b>{records.length}</b>
-                <span className="fin-heros-suite">records battus.</span>
+            {records.length > 0 && (
+              <div className="fin-heros-disque">
+                <IconeCran taille={20} />
+                <strong>
+                  {records.length} record{records.length > 1 ? 's' : ''} battu{records.length > 1 ? 's' : ''}
+                </strong>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ) : (
         <div className="recompense-sobre">
-          {premiereSeance ? (
+          {records.length > 0 ? (
+            <div className="voix grand recompense-records">
+              <IconeCran taille={26} />
+              {records.length} record{records.length > 1 ? 's' : ''}.
+            </div>
+          ) : premiereSeance ? (
             <>
               <div className="voix grand">
                 Tes repères sont posés.
@@ -180,51 +170,44 @@ export default function Recompense({
           ) : resume && resume.mieux > 0 ? (
             <div className="voix grand">
               {resume.mieux} exercice{resume.mieux > 1 ? 's' : ''} <span className="ok-texte">mieux.</span>
-              <br />
-              <span className="voix-gris voix-suite">Pas de record. Pas loin.</span>
             </div>
           ) : (
             <div className="voix grand">Séance tenue.</div>
           )}
-          {enSeche && !seance.deload && !premiereSeance && n > 0 && <div className="faible petit">En sèche, on vise à tenir : garder tes charges, c’est réussi.</div>}
+          {titre && infos}
+          {enSeche && !seance.deload && !premiereSeance && n > 0 && !records.length && <div className="faible petit">En sèche, on vise à tenir : garder tes charges, c’est réussi.</div>}
         </div>
       )}
 
       {aMontrer && (
-        <div className={'chasse' + (plein ? ' chasse-pleine' : '')}>
-          {nbParties > 1 && (
-            <div className="chasse-compte">
-              <small>Face à la dernière fois</small>
-              <span>
-                {[
-                  records.length > 0 && <b key="r">{records.length} record{records.length > 1 ? 's' : ''}</b>,
-                  compte.mieux > 0 && <b key="m" className="ok-texte">{compte.mieux} mieux</b>,
-                  compte.sans > 0 && <span key="s">{compte.sans} sans progrès</span>,
-                  compte.nouveaux > 0 && <span key="n">{compte.nouveaux} première{compte.nouveaux > 1 ? 's' : ''} fois</span>,
-                ]
-                  .filter(Boolean)
-                  .flatMap((x, k) => (k ? [<span key={'p' + k} className="chasse-point">·</span>, x] : [x]))}
-              </span>
-            </div>
-          )}
-          {visibles.map((l) => (
-            <div key={l.id} className={'chasse-' + l.ton}>
-              <span>{l.nom}</span>
-              {l.texte && (
-                <span className="chasse-gain">
-                  {l.ton === 'record' && <IconeCran taille={16} />}
-                  {l.texte}
-                </span>
-              )}
-            </div>
-          ))}
-          {cachees > 0 && visibles.length > 0 && (
-            <div className="chasse-terne">
-              <span>
+        <div className={'chasse-zone' + (plein ? ' chasse-pleine' : '')}>
+          <div className="chasse">
+            <small className="chasse-titre">Face à la dernière fois</small>
+            {visibles.map((l) => (
+              <div key={l.id} className={'chasse-ligne chasse-' + l.ton}>
+                <div className="chasse-gauche">
+                  <span className="chasse-nom">{l.nom}</span>
+                  {l.texte && (
+                    <span className="chasse-gain">
+                      {l.ton === 'record' && <IconeCran taille={14} />}
+                      {l.texte}
+                    </span>
+                  )}
+                </div>
+                {l.perf && (
+                  <div className="chasse-droite">
+                    <span className="chasse-perf">{l.perf}</span>
+                    {l.avant && <span className="chasse-avant">avant {l.avant}</span>}
+                  </div>
+                )}
+              </div>
+            ))}
+            {cachees > 0 && visibles.length > 0 && (
+              <div className="chasse-plus">
                 +{cachees} {lignes.slice(visibles.length).every((l) => l.ton === 'egal' || l.ton === 'terne') ? 'sans progrès' : cachees > 1 ? 'autres' : 'autre'}
-              </span>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -244,12 +227,4 @@ export default function Recompense({
       )}
     </div>
   )
-}
-
-/** Sous le record en grand : de combien il bat l'ancien, et la série. « +6 kg sur ton record · 15 reps ». */
-function detailRecord(c: RecordGagne): string {
-  if (c.genre === 'reps') return `${ecartQte(c.exo, c.serie.reps - c.ancien)} · ton record était ${c.ancien}`
-  const d = Math.round((c.serie.charge - c.ancien) * 100) / 100
-  if (c.exo.assistance || c.exo.mode === 'elastique' || d <= 0) return `${c.exo.assistance ? 'jamais fait avec si peu d’aide' : 'charge jamais faite'} · ${c.serie.reps} reps`
-  return `+${kg(d)} kg sur ton record · ${c.serie.reps} reps`
 }
