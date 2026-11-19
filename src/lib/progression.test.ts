@@ -1,10 +1,10 @@
 import { EXERCICES } from '../data/exercices'
 import { MODELES } from '../data/programme'
 import type { Serie, TypeSerie } from '../types'
-import { chargeDecalee, ecartSerie, kgSouleves } from './calc'
+import { chargeDecalee, cibleTexte, ecartSerie, kgSouleves } from './calc'
 import { suggestionDeload } from './cycle'
 import { scoreSerie } from './historique'
-import { aBattre, chargeProposee, cibleSerie, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
+import { aBattre, chargeProposee, cibleMorceaux, cibleSerie, conseil, hausse, monterMaintenant, pareil, raisonPareil, suggere, suggestionPour } from './progression'
 
 // Exemples du cahier des charges (5.6) : butterfly au palier de 2,5 kg (celui de la base est maintenant 5 kg).
 const BUTTERFLY = { ...EXERCICES.butterfly, pas: 2.5 }
@@ -172,6 +172,16 @@ describe('objectif à battre', () => {
   })
   it('reps en hausse à charge égale', () => {
     expect(hausse(BUTTERFLY, sugg([30, 30], [12, 13]), derniere, 1)).toBe('+1 rep')
+  })
+  it('la cible en morceaux : ce qui monte est marqué, et le texte reste celui de cibleTexte', () => {
+    const texte = (m: { t: string }[]) => m.map((x) => x.t).join('')
+    const reps = cibleMorceaux(BUTTERFLY, sugg([30, 30], [12, 13]), derniere)
+    expect(texte(reps)).toBe(cibleTexte(BUTTERFLY, [30, 30], [12, 13]))
+    expect(reps.filter((x) => x.monte).map((x) => x.t)).toEqual(['13'])
+    const charge = cibleMorceaux(BUTTERFLY, sugg([32.5, 32.5], [10, 10]), derniere)
+    expect(texte(charge)).toBe(cibleTexte(BUTTERFLY, [32.5, 32.5], [10, 10]))
+    expect(charge.filter((x) => x.monte).map((x) => x.t)).toEqual(['32,5 kg'])
+    expect(cibleMorceaux(BUTTERFLY, sugg([30, 30], [12, 12]), derniere).some((x) => x.monte)).toBe(false)
   })
   it('refaire pareil : rien à battre', () => {
     expect(aBattre(BUTTERFLY, sugg([30, 30], [12, 12]), derniere)).toBe(false)

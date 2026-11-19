@@ -4407,6 +4407,14 @@ html[data-sens='fondu']::view-transition-new(root) {
 .apercu-plan {
   font-size: var(--t-legende);
 }
+/* « Voir » : le chiffre à battre en orange dans la cible, et la dernière fois juste dessous pour comparer. */
+.a-battre-chiffre {
+  color: var(--accent);
+  font-weight: 800;
+}
+.apercu-avant {
+  font-size: var(--t-legende);
+}
 .texte-finisseur {
   color: var(--finisseur);
 }

@@ -1,5 +1,5 @@
 import type { Exercice, ExoPlan, Seance, Serie } from '../types'
-import { chargeQte, enTemps, kg } from './calc'
+import { chargeQte, chargesTexte, enTemps, kg } from './calc'
 
 export type Decision = 'augmenter' | 'plus_une_rep' | 'consolider' | 'baisser' | 'calibrer' | 'depart' | 'manuel' | 'pareil'
 
@@ -396,6 +396,26 @@ export function hausse(exo: Exercice, sugg: Suggestion, derniere: Serie[] | unde
   if (dc > EPS) return `+${nombre(dc)}${exo.mode === 'elastique' ? ' niv.' : ' kg'}`
   if (Math.abs(dc) <= EPS && dr > 0) return exo.mesure === 'temps' ? `+${dr} s` : `+${dr} rep${dr > 1 ? 's' : ''}`
   return null
+}
+
+/**
+ * La cible de « Voir » en morceaux, pour mettre en orange ce qui monte face à la dernière fois (les mêmes séries que
+ * `hausse`) : la charge si elle monte sur une série, sinon chaque nombre de reps qui monte à charge égale. Mis bout à bout,
+ * les morceaux donnent exactement `cibleTexte`.
+ */
+export function cibleMorceaux(exo: Exercice, sugg: Suggestion, derniere: Serie[] | undefined): { t: string; monte?: boolean }[] {
+  const { charges, reps } = sugg
+  const monte = charges.map((_, i) => hausse(exo, sugg, derniere, i))
+  const parCharge = (h: string | null) => !!h && /kg|niv\./.test(h)
+  const m: { t: string; monte?: boolean }[] = []
+  const varie = charges.some((c) => c !== charges[0])
+  if (varie || !(enTemps(exo) && exo.mode === 'poids_corps' && charges[0] === 0)) m.push({ t: chargesTexte(exo, charges), monte: monte.some(parCharge) }, { t: ' × ' })
+  reps.forEach((r, i) => {
+    if (i) m.push({ t: '/' })
+    m.push({ t: `${r}`, monte: !!monte[i] && !parCharge(monte[i]) })
+  })
+  if (enTemps(exo)) m.push({ t: ' s' })
+  return m
 }
 
 /** L'objectif dépasse la dernière fois sur au moins une série : « à battre ». */

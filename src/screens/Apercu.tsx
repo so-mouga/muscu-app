@@ -13,7 +13,7 @@ import { cibleTexte, dateISO, dureeEstimee, dureeHabituelle, kg, minutes, reposT
 import { sousTitrePerso } from '../lib/programme'
 import { useRetour } from '../lib/nav'
 import { planDeload, suggestionDeload } from '../lib/cycle'
-import { hausse, suggestionPour } from '../lib/progression'
+import { cibleMorceaux, hausse, suggestionPour } from '../lib/progression'
 import { diagnostic, texteBlocage } from '../lib/blocages'
 import { phaseA } from '../lib/objectifs'
 import type { SeanceModele } from '../types'
@@ -161,7 +161,8 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
                 )}
                 {sugg && (
                   <div className="apercu-cible">
-                    {cibleTexte(exo, sugg.charges, sugg.reps)}
+                    {/* Le chiffre à battre en orange (retour de l'utilisateur, 19 nov. 2026 : la flamme seule ne disait pas quoi battre). */}
+                    {battre ? cibleMorceaux(exo, sugg, derniere || undefined).map((m, k) => (m.monte ? <span key={k} className="a-battre-chiffre">{m.t}</span> : m.t)) : cibleTexte(exo, sugg.charges, sugg.reps)}
                     {battre && (
                       <span className="badge-hausse">
                         <Flame size={12} className="ico-texte" /> À battre
@@ -169,6 +170,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
                     )}
                   </div>
                 )}
+                {battre && derniere && <div className="faible apercu-avant">dernière fois {cibleTexte(exo, derniere.map((x) => x.charge), derniere.map((x) => x.reps))}</div>}
                 <div className="faible apercu-plan">
                   {schemaPlan(exo, p)}
                   {/* Effort seulement s'il s'écarte du réglage par défaut (8) */}
@@ -176,13 +178,7 @@ export default function Apercu({ modele, catalogue, onDemarrer, onAjouter, onEch
                   {p.finisseur && <span className="texte-finisseur"> · finisseur</span>}
                 </div>
                 {sugg &&
-                  (battre ? (
-                    <div className="faible apercu-plan">
-                      {/* Une même hausse partout se dit une fois ; sinon, série par série. */}
-                      {hausses.every((h) => h && h === hausses[0]) ? `${hausses[0]} sur chaque série` : hausses.map((h, n) => (h ? `S${n + 1} ${h}` : null)).filter(Boolean).join(' · ')}
-                      {derniere && <> · dernière fois {cibleTexte(exo, derniere.map((x) => x.charge), derniere.map((x) => x.reps))}</>}
-                    </div>
-                  ) : bloque ? (
+                  (battre ? null : bloque ? (
                     <div className="faible apercu-plan">
                       <Pause size={14} fill="currentColor" className="ico-texte" /> {texteBlocage(bloque)}
                     </div>

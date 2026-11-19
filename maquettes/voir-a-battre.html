@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Voir, quoi battre</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#1e1c1a;--controle:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--ok:#22c55e}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;display:flex;justify-content:center;background:var(--bg);overflow:hidden;position:relative}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 0;gap:10px}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600}
+.etiquette.apres{background:#16341f;color:#8fe3a8}
+.g{color:var(--t2)}
+.entete{display:flex;align-items:center;gap:14px;font-size:20px;font-weight:600}
+.retour{width:44px;height:44px;border-radius:14px;background:var(--controle);display:flex;align-items:center;justify-content:center}
+.carte{background:var(--carte);border-radius:18px;padding:12px 12px 12px 10px;display:flex;gap:10px;align-items:flex-start}
+.vign{width:36px;height:36px;border-radius:8px;background:#e9e7e4;flex:none;margin-top:2px}
+.corps{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nom{font-weight:600;font-size:17px;line-height:1.2}
+.cible{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.plan{font-size:12px;color:var(--t2)}
+.crayon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--t2);flex:none}
+.badge{display:inline-flex;align-items:center;gap:3px;background:rgba(249,115,22,.16);color:#fdba74;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600}
+.o{color:var(--accent);font-weight:800}
+.avant-l{font-size:13px;color:var(--t2)}
+.demarrer{margin-top:auto;margin-bottom:12px;background:var(--accent);color:#1a0d02;border-radius:18px;min-height:52px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500}
+.intro{justify-content:center;gap:12px;padding-bottom:16px}
+.intro h1{margin:0;font-size:26px}
+.intro ul{margin:0;padding-left:18px}.intro li{margin-bottom:8px;line-height:1.35}
+.intro b{color:var(--texte)}
+</style>
+</head>
+<body>
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">« Voir » : quoi battre · glisse vers le bas</span>
+  <h1>Le chiffre à battre, en orange</h1>
+  <ul class="g">
+    <li><b>Aujourd'hui</b> : « 40 kg × 11/10/10 » et la pastille « À battre ». On ne voit pas lequel des trois nombres monte : il faut lire la petite ligne grise « S1 +1 rep · dernière fois 40 kg × 10/10/10 ».</li>
+    <li><b>Proposé</b> : le nombre à battre en orange dans la cible, et juste dessous la dernière fois, alignée. On compare d'un coup d'œil, sans rien lire.</li>
+    <li><b>Même nombre de lignes</b> : la ligne grise devient « dernière fois », rien ne s'ajoute, autant d'exercices à l'écran.</li>
+    <li>Rien ne change sur un exercice sans objectif choisi : on refait pareil, et la saisie dit « Bats 10. ».</li>
+  </ul>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">Aujourd'hui</span>
+  <div class="entete"><span class="retour">←</span>Full body A</div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">1. Soulevé de terre roumain haltères ⓘ</span>
+    <span class="cible">20 kg/main × 11/10/10</span>
+    <span class="plan">3 × 8–12 · effort 7/10 · repos 2:30</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">2. Développé incliné machine ⓘ</span>
+    <span class="cible">40 kg × 11/10/10 <span class="badge">🔥 À battre</span></span>
+    <span class="plan">3 × 8–12 · effort 7/10 · repos 2:30</span>
+    <span class="plan">S1 +1 rep · dernière fois 40 kg × 10/10/10</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">3. Rowing machine ⓘ</span>
+    <span class="cible">45 kg × 12/12/11 <span class="badge">🔥 À battre</span></span>
+    <span class="plan">3 × 10–12 · effort 7/10 · repos 2:30</span>
+    <span class="plan">S3 +1 rep · dernière fois 45 kg × 12/12/10</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">4. Extension de jambes ⓘ</span>
+    <span class="cible">40 kg × 10/10/10/10 <span class="badge">🔥 À battre</span></span>
+    <span class="plan">4 × 10–15 · repos 1:30</span>
+    <span class="plan">+5 kg sur chaque série · dernière fois 35 kg × 15/15/15/15</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="demarrer">Démarrer</div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">Proposé</span>
+  <div class="entete"><span class="retour">←</span>Full body A</div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">1. Soulevé de terre roumain haltères ⓘ</span>
+    <span class="cible">20 kg/main × 11/10/10</span>
+    <span class="plan">3 × 8–12 · effort 7/10 · repos 2:30</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">2. Développé incliné machine ⓘ</span>
+    <span class="cible">40 kg × <span class="o">11</span>/10/10 <span class="badge">🔥 À battre</span></span>
+    <span class="avant-l">dernière fois 40 kg × 10/10/10</span>
+    <span class="plan">3 × 8–12 · effort 7/10 · repos 2:30</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">3. Rowing machine ⓘ</span>
+    <span class="cible">45 kg × 12/12/<span class="o">11</span> <span class="badge">🔥 À battre</span></span>
+    <span class="avant-l">dernière fois 45 kg × 12/12/10</span>
+    <span class="plan">3 × 10–12 · effort 7/10 · repos 2:30</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="carte"><span class="vign"></span><div class="corps">
+    <span class="nom">4. Extension de jambes ⓘ</span>
+    <span class="cible"><span class="o">40 kg</span> × 10/10/10/10 <span class="badge">🔥 À battre</span></span>
+    <span class="avant-l">dernière fois 35 kg × 15/15/15/15</span>
+    <span class="plan">4 × 10–15 · repos 1:30</span>
+  </div><span class="crayon">✎</span></div>
+  <div class="demarrer">Démarrer</div>
+</div></section>
+
+</div>
+</body>
+</html>
