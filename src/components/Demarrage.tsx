@@ -8,7 +8,7 @@ import { CLE_DEMARRAGE, joursRepartis, NOMS_JOURS, ordreDesJours, pourObjectif, 
 import { transition, useRetour } from '../lib/nav'
 import { CLE_SANS_OBJECTIF, objectifsA, PHASES } from '../lib/objectifs'
 import { setReglage } from '../db'
-import { IconeCran } from './Disque'
+import { IconeCran } from './IconeCran'
 
 /** parcours : 1re ouverture ; programme : rouvert depuis l'accueil ; objectif : la question de l'objectif, seule. */
 export type ModeDemarrage = 'parcours' | 'programme' | 'objectif'

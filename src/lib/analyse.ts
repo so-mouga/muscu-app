@@ -62,7 +62,7 @@ export interface Analyse {
 
 /**
  * Records battus pendant la période, au plus un par exercice et par séance, hors séances allégées : on rejoue tout
- * l'historique (même mesure que partout : `suiviProgres`, la même que les crans). Le Bilan, sa phrase et son texte les lisent.
+ * l'historique (même mesure que partout : `suiviProgres`). Le Bilan, sa phrase et son texte les lisent.
  */
 export function recordsDePeriode(d: Pick<DonneesBilan, 'seances' | 'exo'>, debut: string, fin: string): Record_[] {
   const suivis = new Map<string, ReturnType<typeof suiviProgres>>()

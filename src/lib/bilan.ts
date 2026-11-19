@@ -11,7 +11,7 @@ import { moyenneRepas, objectifDuJour, texteRepas } from './nutrition'
 import { diagnostic, texteBlocage } from './blocages'
 import { recordsDePeriode } from './analyse'
 import { etatCap, texteCap, type Cap } from './caps'
-import { DEBUT_CRANS } from './crans'
+import { DEBUT_RECORDS } from './records'
 import { niveauLu, zone } from './volume'
 
 
@@ -124,8 +124,8 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
     lignes.push(`Sensation moyenne : ${niveauSensation(moy)} (${kg(arrondi(moy))}/5 sur ${sensations.length} séance${sensations.length > 1 ? 's' : ''})`)
   }
 
-  // Records battus, datés, depuis le début des crans : la même mesure que les crans et que la phrase du Bilan. On écrit « record », le mot que l'IA connaît.
-  const recs = recordsDePeriode(d, debut < DEBUT_CRANS ? DEBUT_CRANS : debut, fin)
+  // Records battus, datés, depuis les vraies séances (`DEBUT_RECORDS`) : la même mesure que la fin de séance et la phrase du Bilan.
+  const recs = recordsDePeriode(d, debut < DEBUT_RECORDS ? DEBUT_RECORDS : debut, fin)
   if (recs.length) {
     titre(`Records battus (${recs.length})`)
     for (const r of recs) lignes.push(`- ${r.exo.nom} : ${r.perf} (${jour(r.date)})`)

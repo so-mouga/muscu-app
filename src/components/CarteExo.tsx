@@ -8,7 +8,7 @@ import { useRetour } from '../lib/nav'
 import ChronoTenue from './ChronoTenue'
 import { PuceDisques } from './CalculateurDisques'
 import ReglagesMachine from './ReglagesMachine'
-import { IconeCran } from './Disque'
+import { IconeCran } from './IconeCran'
 import { vibrer } from '../lib/appareil'
 import { chargeProposee, cibleSerie, monterMaintenant, type Suggestion } from '../lib/progression'
 import type { Verdict } from '../lib/duel'
@@ -493,7 +493,7 @@ export function Editeur({ seance, plan, exo, sugg, index, total, faites, edition
       {/* Sous les nombres : où en est ce qu'on règle face à la dernière fois, et si ça vaut un record. Toujours la même hauteur. */}
       {!!duel && compact && !edition && !finisseur && (
         <div className={'duel-verdict' + (verdict ? ` ton-${verdict.ton}` : '')}>
-          {verdict?.cran && <IconeCran taille={16} />} {verdict?.texte}
+          {verdict?.record && <IconeCran taille={16} />} {verdict?.texte}
         </div>
       )}
       {reglerPalier && <ReglagesMachine exo={exo} onFermer={() => setReglerPalier(false)} />}

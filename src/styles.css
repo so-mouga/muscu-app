@@ -6666,29 +6666,7 @@ button.jour-pas {
   width: 100%;
 }
 
-/* --- Crans : un record battu = un cran, douze crans = un disque --- */
-.disque-vide {
-  stroke: var(--controle);
-}
-.disque-cran {
-  stroke: var(--texte-salle);
-}
-.disque-nouveau {
-  stroke: var(--ok);
-  transform-origin: 50px 50px;
-  animation: cran-pose var(--duree-longue) var(--sortie) both;
-}
-.disque-chiffre {
-  fill: var(--texte);
-  font-size: 24px;
-  font-weight: 800;
-}
-@keyframes cran-pose {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-}
+/* --- Records : le petit disque à encoche marque un record battu (le compteur de crans a été retiré le 19 nov. 2026) --- */
 /* Dans le cercle du repos, au-dessus du temps : blanc, ni vert (exercice fini) ni orange (le repos). */
 .cran-signal {
   display: flex;
@@ -6709,51 +6687,12 @@ button.jour-pas {
 .cran-pastille {
   color: var(--texte);
 }
-/* À la saisie : ce qui vaut un cran, sur une ligne. */
-.cran-des {
-  display: flex;
-  align-items: center;
-  gap: var(--e2);
-  min-width: 0;
-  font-size: var(--t-petit);
-  color: var(--texte-2);
-}
-.cran-des svg {
-  flex: none;
-  color: var(--texte);
-}
-.cran-des > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cran-des strong {
-  color: var(--texte);
-}
-/* Fin de séance : le disque et ce qui l'a rempli. */
-.fin-crans {
-  display: flex;
-  align-items: center;
-  gap: var(--e4);
-}
-.fin-crans .disque {
-  flex: none;
-}
-.fin-crans-titre,
-.fin-crans-gain {
+/* Fin de séance : le détail d'un record, en vert. */
+.fin-crans-titre {
   color: var(--ok);
   font-weight: 600;
 }
-.fin-crans-liste {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.fin-crans-gain {
-  font-weight: 400;
-}
-/* Accueil : la semaine et le disque sur une ligne ; la phrase du record à portée ; le disque d'une séance faite. */
+/* Accueil : la ligne de la semaine. */
 .accueil-semaine-ligne {
   display: flex;
   align-items: center;
@@ -6767,23 +6706,6 @@ button.jour-pas {
   margin-left: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.accueil-disque {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: var(--cible);
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--texte-2);
-  font-size: var(--t-petit);
-  white-space: nowrap;
-  cursor: pointer;
-}
-.accueil-disque .disque {
-  flex: none;
 }
 /* Séance du jour (13 nov. 2026) : le nom de la séance et « Autre séance » sur une ligne, les exercices en gris, ceux à battre en blanc
    avec la pastille de « Voir », la durée en petit sous la liste. */
@@ -6916,12 +6838,12 @@ button.jour-pas {
   width: 96px;
 }
 
-/* --- Animations des crans (maquette crans-animations.html, 11 nov. 2026) : une fois, au moment où ça arrive, sans rebond. --- */
+/* --- Animations du record (maquette crans-animations.html, 11 nov. 2026) : une fois, au moment où ça arrive, sans rebond. --- */
 .cran-encoche {
   transform-box: fill-box;
   transform-origin: 50% 0;
 }
-/* Le cran gagné : le disque arrive, son encoche se taille, puis les deux textes montent. Environ une demi-seconde. */
+/* Le record battu : le petit disque arrive, son encoche se taille, puis les deux textes montent. Environ une demi-seconde. */
 .cran-signal.vient .icone-cran,
 .ligne-series > .vient-cran .icone-cran {
   animation: cran-arrive var(--duree-courte) var(--sortie) both;
@@ -6950,56 +6872,10 @@ button.jour-pas {
     transform: scaleY(0);
   }
 }
-/* Le disque plein, au 12e cran : les derniers crans se posent, le disque fait un tour et passe au vert, puis le titre arrive.
-   `--apres` : le moment où le dernier cran est posé (réglé par l'écran, selon le nombre de crans du jour). */
-.fin-disque-plein {
-  --apres: 0.5s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--e1);
-  padding: var(--e2) 0;
-  text-align: center;
-}
-.fin-disque-plein > h2 {
-  margin-top: var(--e2);
-}
-.fin-disque-plein .pastille {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: var(--e1) 0;
-}
-.disque-tour {
-  transform-origin: 50px 50px;
-}
-.disque-vert {
-  stroke: var(--ok);
-}
-.fin-disque-plein > .disque-plein .disque-tour {
-  animation: disque-tour var(--duree-trace) cubic-bezier(0.3, 0, 0.2, 1) var(--apres) both;
-}
-.fin-disque-plein > .disque-plein .disque-vert {
-  animation: fondu var(--duree-longue) var(--sortie) calc(var(--apres) + var(--duree-trace) / 2) both;
-}
-.fin-disque-plein > h2,
-.fin-disque-plein > .fin-crans-titre {
-  animation: vient-monter var(--duree-longue) var(--sortie) calc(var(--apres) + var(--duree-trace)) both;
-}
-.fin-disque-plein > .fin-disque-suite {
-  animation: vient-monter var(--duree-longue) var(--sortie) calc(var(--apres) + var(--duree-trace) + var(--duree-courte)) both;
-}
-@keyframes disque-tour {
-  to {
-    transform: rotate(360deg);
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .cran-signal.vient *,
   .legende-chrono.cran-pourquoi.vient,
-  .ligne-series > .vient-cran *,
-  .fin-disque-plein *,
-  .fin-disque-plein > * {
+  .ligne-series > .vient-cran * {
     animation: none !important;
   }
 }
@@ -7043,9 +6919,6 @@ button.jour-pas {
 }
 .stepper .valeur input.vise-atteint {
   color: var(--accent);
-}
-.cran-des > svg.lucide {
-  color: var(--texte-2);
 }
 /* Le moment d'avant un finisseur (maquette repos-finisseur.html, partie B, 11 nov. 2026) : tout le repos en plein écran violet,
    le chrono dans un cercle qui bat (lent, puis vite les dix dernières secondes), puis « Prêt » jusqu'à l'appui. */
@@ -7368,7 +7241,6 @@ button.jour-pas {
 .cran-signal > span,
 .fin-heros-chiffre b,
 .fin-heros-titre,
-.fin-disque-plein > h2,
 .face-apres b {
   font-style: italic;
 }
@@ -7442,9 +7314,6 @@ button.jour-pas {
   gap: var(--e2);
   margin-top: var(--e3);
   font-size: var(--t-petit);
-}
-.fin-heros-disque .disque {
-  flex: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .fin-heros-chiffre b {

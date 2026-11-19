@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Sans compteur de crans</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#1a1817;--controle:rgba(255,255,255,.08);--texte:#f5f4f2;--t2:#a8a29e;--t3:#7d7670;--accent:#f97316;--ok:#22c55e;--piste:#2a2725}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;border:0;cursor:pointer;text-align:inherit}
+p{margin:0;line-height:1.4}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;display:flex;justify-content:center;background:var(--bg);position:relative;overflow:hidden}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 0;gap:10px}
+.etiquette{align-self:center;background:#1d2a44;color:#9cc0ff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600;text-align:center}
+.etiquette.apres{background:#16341f;color:#8fe3a8}
+.g{color:var(--t2)}.g3{color:var(--t3)}.v{color:var(--ok)}.petit{font-size:14px}.o{color:var(--accent)}
+.barre{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(255,255,255,.08);padding:8px 0 10px;text-align:center;font-size:13px;color:var(--t2);margin-top:auto}
+.barre .actif{color:var(--accent)}
+.voix{font-style:italic;font-weight:800;font-size:28px;line-height:1.05}
+.ico{width:18px;height:18px;flex:none;display:inline-block;vertical-align:-3px}
+/* Intro */
+.intro{gap:12px;justify-content:center;padding-bottom:14px}
+.intro h1{font-size:26px;font-weight:700;margin:0}
+.intro ul{margin:0;padding-left:18px}
+.intro li{margin:0 0 8px;line-height:1.35}
+.intro b{color:var(--texte)}
+/* Séance : repos */
+.avance{display:flex;justify-content:space-between;align-items:center;font-size:15px;color:var(--t2);padding-top:4px}
+.avance b{color:var(--texte);font-weight:600}
+.boutons-haut{display:flex;gap:8px}
+.boutons-haut span{flex:1;background:var(--controle);border-radius:12px;padding:9px 0;text-align:center;font-size:14px}
+.phrase-rec{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:6px}
+.phrase-rec .voix{font-size:26px;display:flex;align-items:center;gap:8px}
+.phrase-rec small{font-size:14px;color:var(--t2)}
+.cercle{align-self:center;width:230px;height:230px;border-radius:50%;border:12px solid var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(249,115,22,.18)}
+.cercle b{font-size:56px;font-weight:800;line-height:1}
+.cercle span{font-size:14px;color:var(--t2)}
+.trio{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+.trio span{background:var(--controle);border-radius:14px;min-height:50px;display:flex;align-items:center;justify-content:center;font-weight:500}
+.prochaine{background:var(--carte);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.prochaine .t{display:flex;justify-content:space-between;font-size:14px;color:var(--t2)}
+.prochaine .n{font-size:20px;font-weight:600}
+.saisie-ligne{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+/* Fin de séance */
+.tete-fin{display:flex;justify-content:space-between;align-items:baseline}
+.carte{background:var(--carte);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.trame{background:repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 14px),var(--carte)}
+.heros-exo{font-size:16px;color:var(--t2)}
+.heros-chiffre{display:flex;align-items:baseline;gap:8px}
+.heros-chiffre b{font-size:84px;font-style:italic;font-weight:800;line-height:.9}
+.heros-chiffre span{font-size:22px;font-style:italic;font-weight:700;color:var(--t2)}
+.heros-titre{font-style:italic;font-weight:800;font-size:26px}
+.heros-detail{color:var(--ok);font-weight:600}
+.heros-disque{display:flex;align-items:center;gap:10px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:15px}
+.compte small{display:block;font-size:12px;color:var(--t3);text-transform:none}
+.compte{font-size:15px}
+.liste{display:flex;flex-direction:column}
+.liste>div{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:28px;font-size:16px}
+.liste>div>span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gain{white-space:nowrap;font-weight:600;display:flex;align-items:center;gap:5px}
+.terne>span:first-child{color:var(--t2)}
+.egal{color:var(--t2);font-weight:400}
+.sens{display:flex;gap:8px}
+.sens span{flex:1;background:var(--controle);border-radius:14px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.principal{background:var(--accent);color:#1a0d02;border-radius:18px;min-height:52px;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:17px;margin-top:auto;margin-bottom:12px}
+/* Accueil */
+.date{font-size:16px;font-weight:600;display:flex;justify-content:space-between}
+.phase{display:flex;gap:10px;align-items:center;font-size:16px}
+.phase .pt{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.tableau{background:var(--carte);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.cases{display:grid;grid-template-columns:1fr 1fr 1.25fr}
+.cases>div{display:flex;flex-direction:column;gap:2px;padding-right:8px}
+.cases>div+div{border-left:1px solid rgba(255,255,255,.08);padding-left:10px}
+.cases b{font-size:18px;font-weight:700}
+.cases span{font-size:13px;color:var(--t2)}
+.semaine{display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:15px}
+.points{display:flex;gap:4px;align-items:center}
+.points i{width:11px;height:11px;border-radius:50%;background:var(--ok);display:inline-block}
+.points i.vide{background:var(--piste)}
+.carte-seance{flex:1;min-height:0;margin-bottom:6px}
+.tete-seance{display:flex;justify-content:space-between;align-items:center}
+.tete-seance h2{margin:0;font-size:22px;font-weight:600;display:flex;align-items:center;gap:10px}
+.coche{width:30px;height:30px;border-radius:50%;background:rgba(34,197,94,.16);color:var(--ok);display:flex;align-items:center;justify-content:center;font-size:16px}
+.resume{font-size:16px;color:var(--t2)}
+.resume b{color:var(--texte);font-weight:600}
+.btn{background:var(--controle);border-radius:14px;min-height:50px;display:flex;align-items:center;justify-content:center;font-weight:500;font-size:17px}
+.bas{margin-top:auto;display:flex;flex-direction:column;gap:10px}
+/* Bilan */
+.entete-bilan{display:flex;justify-content:space-between;align-items:center}
+.entete-bilan h1{margin:0;font-size:26px;font-weight:700}
+.periodes{display:flex;gap:6px}
+.periodes span{background:var(--controle);border-radius:999px;padding:7px 12px;font-size:14px}
+.periodes span.choisi{background:rgba(255,255,255,.18)}
+.tete-bilan{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.carre{width:44px;height:44px;border-radius:14px;background:var(--controle);display:flex;align-items:center;justify-content:center;flex:none}
+.ligne-bilan{font-size:15px;color:var(--t2)}
+.ligne-bilan b{color:var(--texte);font-weight:600}
+.disque-ligne{display:flex;align-items:center;gap:8px;font-size:15px}
+.raye{position:relative}
+.raye::after{content:"";position:absolute;inset:-4px -6px;border:2px dashed rgba(239,68,68,.75);border-radius:10px;pointer-events:none}
+.note-raye{font-size:12px;color:#f87171;text-align:right;margin-top:-4px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <symbol id="cran" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M10.3 2.14A10 10 0 1 0 13.7 2.14L13.2 6.4h-2.4zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></symbol>
+  <symbol id="partage" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></symbol>
+</defs></svg>
+
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Sans compteur de crans · glisse vers le bas</span>
+  <h1>Garder le record, retirer le compteur</h1>
+  <ul class="g">
+    <li><b>Ce qui reste</b> : « Record battu. », le petit disque à encoche devant chaque record, « Bats 12. », « +1 rep sur la dernière fois », le son et la vibration du record, le grand chiffre en fin de séance, « 5 records battus. » dans le Bilan.</li>
+    <li><b>Ce qui part</b> : « +1 cran », « 3 crans sur 12 · plus que 9 », le disque à 12 segments, la fenêtre du disque, l'écran « Disque plein ».</li>
+    <li><b>Le petit disque du logo devient la marque du record</b> : un record, c'est une encoche de plus. Le nom garde son sens sans compteur.</li>
+  </ul>
+  <p class="g">Quatre écrans, avant puis après. Le trait rouge montre ce qui part.</p>
+</div></section>
+
+<!-- 1. Repos après un record : avant -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">1 · Repos après un record · aujourd'hui</span>
+  <div class="avance"><span><b>Reste 4 exercices</b> · 3 séries</span><span>38 min</span></div>
+  <div class="boutons-haut"><span>Voir la séance</span><span>Machine prise</span><span>Fin de séance</span></div>
+  <div class="phrase-rec">
+    <span class="voix"><svg class="ico" style="width:24px;height:24px"><use href="#cran"/></svg>Record battu. <span class="g raye">+1 cran.</span></span>
+    <small>ton record était 10</small>
+  </div>
+  <div class="cercle"><b>1:42</b><span>repos</span></div>
+  <div class="trio"><span>−15</span><span>Passer</span><span>+15</span></div>
+  <div class="prochaine">
+    <div class="t"><span>Prochaine série</span><span>Séries, note ›</span></div>
+    <div class="n">Presse à cuisses · S3 <span class="g">60 kg × 10</span></div>
+    <div class="saisie-ligne"><svg class="ico" style="width:16px;height:16px"><use href="#cran"/></svg><span class="o">+1 rep · record <span class="raye">· +1 cran</span></span></div>
+    <div class="g petit">(la ligne de la saisie, pour comparer)</div>
+  </div>
+  <div class="barre"></div>
+</div></section>
+
+<!-- 1. Repos après un record : après -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">1 · Repos après un record · proposé</span>
+  <div class="avance"><span><b>Reste 4 exercices</b> · 3 séries</span><span>38 min</span></div>
+  <div class="boutons-haut"><span>Voir la séance</span><span>Machine prise</span><span>Fin de séance</span></div>
+  <div class="phrase-rec">
+    <span class="voix"><svg class="ico" style="width:24px;height:24px"><use href="#cran"/></svg>Record battu.</span>
+    <small>ton record était 10</small>
+  </div>
+  <div class="cercle"><b>1:42</b><span>repos</span></div>
+  <div class="trio"><span>−15</span><span>Passer</span><span>+15</span></div>
+  <div class="prochaine">
+    <div class="t"><span>Prochaine série</span><span>Séries, note ›</span></div>
+    <div class="n">Presse à cuisses · S3 <span class="g">60 kg × 10</span></div>
+    <div class="saisie-ligne"><svg class="ico" style="width:16px;height:16px"><use href="#cran"/></svg><span class="o">+1 rep · record</span></div>
+    <div class="g petit">Même son, même vibration, même encoche qui se taille.</div>
+  </div>
+  <div class="barre"></div>
+</div></section>
+
+<!-- 2. Fin de séance : avant -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">2 · Séance faite · aujourd'hui</span>
+  <div class="tete-fin"><span class="voix" style="font-size:36px">Séance faite.</span><span class="g petit">57 min · 17 séries</span></div>
+  <div class="carte trame">
+    <div class="heros-exo">Extension au-dessus de la tête poulie</div>
+    <div class="heros-chiffre"><b>35</b><span>kg</span></div>
+    <div class="heros-titre">Record battu.</div>
+    <div class="heros-detail">+6 kg sur ton record · 12 reps</div>
+    <div class="heros-disque raye"><span class="disque" data-crans="4" data-nouveaux="1" data-taille="26"></span><span><b>4 crans sur 12</b> <span class="g">· plus que 8</span></span></div>
+  </div>
+  <div class="compte"><small>Face à la dernière fois</small><b>1 record</b> <span class="g">·</span> <b class="v">2 mieux</b> <span class="g">· 3 sans progrès</span></div>
+  <div class="liste">
+    <div><span>Curl marteau poulie</span><span class="gain v">+2 reps</span></div>
+    <div><span>Développé incliné Smith</span><span class="gain v">+2,5 kg</span></div>
+    <div class="terne"><span>Tirage vertical</span><span class="gain egal">=</span></div>
+    <div class="terne"><span>+2 sans progrès</span></div>
+  </div>
+  <div class="g petit">Comment c'était ?</div>
+  <div class="sens"><span>Difficile</span><span>Bien</span><span>Au top</span></div>
+  <div class="principal">La prochaine fois ›</div>
+</div></section>
+
+<!-- 2. Fin de séance : après -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">2 · Séance faite · proposé</span>
+  <div class="tete-fin"><span class="voix" style="font-size:36px">Séance faite.</span><span class="g petit">57 min · 17 séries</span></div>
+  <div class="carte trame">
+    <div class="heros-exo">Extension au-dessus de la tête poulie</div>
+    <div class="heros-chiffre"><b>35</b><span>kg</span></div>
+    <div class="heros-titre">Record battu.</div>
+    <div class="heros-detail">+6 kg sur ton record · 12 reps</div>
+  </div>
+  <div class="compte"><small>Face à la dernière fois</small><b>1 record</b> <span class="g">·</span> <b class="v">2 mieux</b> <span class="g">· 3 sans progrès</span></div>
+  <div class="liste">
+    <div><span>Curl marteau poulie</span><span class="gain v">+2 reps</span></div>
+    <div><span>Développé incliné Smith</span><span class="gain v">+2,5 kg</span></div>
+    <div class="terne"><span>Tirage vertical</span><span class="gain egal">=</span></div>
+    <div class="terne"><span>Élévation latérale poulie</span><span class="gain egal">=</span></div>
+    <div class="terne"><span>+1 sans progrès</span></div>
+  </div>
+  <div class="g petit">Comment c'était ?</div>
+  <div class="sens"><span>Difficile</span><span>Bien</span><span>Au top</span></div>
+  <div class="principal">La prochaine fois ›</div>
+</div></section>
+
+<!-- 3. Accueil : avant -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">3 · Accueil, séance faite · aujourd'hui</span>
+  <div class="date">Jeudi 19 nov. <span class="g">☰</span></div>
+  <div class="phase"><span class="pt"></span><b style="font-weight:600">Prendre du muscle</b><span class="g">Programme · sem. 2/7</span></div>
+  <div class="tableau">
+    <div class="cases"><div><b>69,9 kg</b><span>Poids</span></div><div><b>7 h 10</b><span>Sommeil</span></div><div><b>1 640 <span style="font-size:15px;font-weight:500">/ 2 354</span></b><span>Calories</span></div></div>
+    <div class="semaine"><span class="points"><i></i><i></i><i></i><i class="vide"></i> <span class="v" style="margin-left:6px">3e semaine tenue</span></span><span class="g raye"><span class="disque" data-crans="4" data-nouveaux="0" data-taille="18" style="display:inline-block;vertical-align:-3px"></span> 4 crans ›</span></div>
+  </div>
+  <div class="carte carte-seance">
+    <div class="tete-seance"><h2><span class="coche">✓</span>Haut C faite</h2><span class="g">Autre séance ›</span></div>
+    <div class="resume">57 min · 17 séries dures · <b>1 record</b> ›</div>
+    <div class="liste">
+      <div><span>Extension au-dessus de la tête poulie</span><span class="gain"><svg class="ico" style="width:16px;height:16px"><use href="#cran"/></svg>+6 kg</span></div>
+      <div><span>Curl marteau poulie</span><span class="gain v">+2 reps</span></div>
+      <div><span>Développé incliné Smith</span><span class="gain v">+2,5 kg</span></div>
+      <div class="terne"><span>Tirage vertical</span><span class="gain egal">=</span></div>
+      <div class="terne"><span>+2 sans progrès</span></div>
+    </div>
+    <div class="bas">
+      <span class="g">Ensuite, lundi : <b style="color:var(--texte);font-weight:600">Haut A</b></span>
+      <button class="btn">Voir la séance</button>
+    </div>
+  </div>
+  <div class="barre" style="margin-top:0"><span class="actif">Accueil</span><span>Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 3. Accueil : après -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">3 · Accueil, séance faite · proposé</span>
+  <div class="date">Jeudi 19 nov. <span class="g">☰</span></div>
+  <div class="phase"><span class="pt"></span><b style="font-weight:600">Prendre du muscle</b><span class="g">Programme · sem. 2/7</span></div>
+  <div class="tableau">
+    <div class="cases"><div><b>69,9 kg</b><span>Poids</span></div><div><b>7 h 10</b><span>Sommeil</span></div><div><b>1 640 <span style="font-size:15px;font-weight:500">/ 2 354</span></b><span>Calories</span></div></div>
+    <div class="semaine"><span class="points"><i></i><i></i><i></i><i class="vide"></i> <span class="v" style="margin-left:6px">3e semaine tenue</span></span><span class="g">›</span></div>
+  </div>
+  <div class="carte carte-seance">
+    <div class="tete-seance"><h2><span class="coche">✓</span>Haut C faite</h2><span class="g">Autre séance ›</span></div>
+    <div class="resume">57 min · 17 séries dures · <b>1 record</b> ›</div>
+    <div class="liste">
+      <div><span>Extension au-dessus de la tête poulie</span><span class="gain"><svg class="ico" style="width:16px;height:16px"><use href="#cran"/></svg>+6 kg</span></div>
+      <div><span>Curl marteau poulie</span><span class="gain v">+2 reps</span></div>
+      <div><span>Développé incliné Smith</span><span class="gain v">+2,5 kg</span></div>
+      <div class="terne"><span>Tirage vertical</span><span class="gain egal">=</span></div>
+      <div class="terne"><span>+2 sans progrès</span></div>
+    </div>
+    <div class="bas">
+      <span class="g">Ensuite, lundi : <b style="color:var(--texte);font-weight:600">Haut A</b></span>
+      <button class="btn">Voir la séance</button>
+    </div>
+  </div>
+  <div class="barre" style="margin-top:0"><span class="actif">Accueil</span><span>Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 4. Bilan : avant -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette">4 · Bilan · aujourd'hui</span>
+  <div class="entete-bilan"><h1>Progrès</h1></div>
+  <div class="periodes"><span class="choisi">4 sem.</span><span>3 mois</span><span>Cycles</span><span>Dates</span></div>
+  <div class="carte">
+    <div class="tete-bilan"><span class="voix">5 records battus.</span><span class="carre"><svg class="ico"><use href="#partage"/></svg></span></div>
+    <div class="ligne-bilan"><b>7 séances sur 8</b> · 3e semaine tenue</div>
+    <div class="disque-ligne raye"><span class="disque" data-crans="4" data-nouveaux="0" data-taille="20"></span><b>4 crans sur 12</b><span class="g">· plus que 8 ›</span></div>
+  </div>
+  <div class="carte">
+    <b>À retenir</b>
+    <div class="g">Tes charges montent sur 4 exercices.</div>
+    <div class="g">Mollets un peu légers : 4 séries par semaine.</div>
+  </div>
+  <div class="barre"><span>Accueil</span><span class="actif">Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+<!-- 4. Bilan : après -->
+<section class="ecran"><div class="tel">
+  <span class="etiquette apres">4 · Bilan · proposé</span>
+  <div class="entete-bilan"><h1>Progrès</h1></div>
+  <div class="periodes"><span class="choisi">4 sem.</span><span>3 mois</span><span>Cycles</span><span>Dates</span></div>
+  <div class="carte">
+    <div class="tete-bilan"><span class="voix">5 records battus.</span><span class="carre"><svg class="ico"><use href="#partage"/></svg></span></div>
+    <div class="ligne-bilan"><b>7 séances sur 8</b> · 3e semaine tenue</div>
+  </div>
+  <div class="carte">
+    <b>À retenir</b>
+    <div class="g">Tes charges montent sur 4 exercices.</div>
+    <div class="g">Mollets un peu légers : 4 séries par semaine.</div>
+  </div>
+  <div class="barre"><span>Accueil</span><span class="actif">Progrès</span><span>Corps</span><span>Programme</span></div>
+</div></section>
+
+</div>
+
+<script>
+function disque(crans, nouveaux, taille) {
+  const r = 10, c = 12, seg = []
+  for (let i = 0; i < 12; i++) {
+    const a0 = (i * 30 + 4 - 90) * Math.PI / 180, a1 = ((i + 1) * 30 - 4 - 90) * Math.PI / 180
+    const coul = i >= crans ? 'var(--piste)' : i >= crans - nouveaux ? 'var(--ok)' : 'var(--texte)'
+    seg.push(`<path d="M${c + r * Math.cos(a0)} ${c + r * Math.sin(a0)}A${r} ${r} 0 0 1 ${c + r * Math.cos(a1)} ${c + r * Math.sin(a1)}" stroke="${coul}" stroke-width="3" fill="none" stroke-linecap="round"/>`)
+  }
+  return `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" style="flex:none;display:block">${seg.join('')}</svg>`
+}
+document.querySelectorAll('.disque').forEach((d) => (d.innerHTML = disque(+d.dataset.crans, +d.dataset.nouveaux, +d.dataset.taille)))
+</script>
+</body>
+</html>

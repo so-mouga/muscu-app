@@ -14,9 +14,7 @@ import { debloquerSon } from '../lib/appareil'
 import { transition, useRetour } from '../lib/nav'
 import JournalMatin from '../components/JournalMatin'
 import ListeExosJour, { type LigneExo } from '../components/ListeExosJour'
-import Disque from '../components/Disque'
-import FenetreDisque from '../components/FenetreDisque'
-import { cransDeSeance, etatDisque, totalCrans } from '../lib/crans'
+import { recordsDeSeance } from '../lib/records'
 import { arretCycle, contexteCycle, etatCycle, lundiDe, type ContexteCycle, planDeload, reprendreSemaine } from '../lib/cycle'
 import { deloadConseille } from '../lib/blocages'
 import Apercu from './Apercu'
@@ -135,7 +133,6 @@ export default function Accueil({
   onObjectif: () => void
 }) {
   const [choix, setChoix] = useState(false)
-  const [voirDisque, setVoirDisque] = useState(false)
   const [ouvert, setOuvert] = useState<string | null>(null)
   /** « Programmes tout prêts », en bas de « Choisir une séance » : replié d'office, un seul programme ouvert à la fois. */
   const [pretsOuverts, setPretsOuverts] = useState(false)
@@ -526,8 +523,6 @@ export default function Accueil({
     const aBattre = avecGains ? new Set(aBattreDe(m).map((x) => x.exo.id)) : undefined
     return m.exercices.map((p, i) => ({ id: `${p.exoId}-${i}`, nom: catalogue.exo(p.exoId).nom, aBattre: aBattre?.has(p.exoId) }))
   }
-  // Le disque : seulement à partir du premier cran gagné.
-  const disque = etatDisque(terminees ? totalCrans(terminees, catalogue.exo) : 0)
   // Retour après un trou : pas de reproche, on reprend où on en était.
   const joursSans = terminees ? joursSansSeance(terminees, dateISO()) : null
 
@@ -551,8 +546,8 @@ export default function Accueil({
     </>
   )
   /** Séance faite aujourd'hui : chaque exercice, avec son gain face à la fois d'avant (« = » si pareil, rien si moins bien). */
-  // Les records du jour (un record = un cran, la même mesure que l'écran « Séance faite ») : marqués dans la liste, comptés dans la ligne du haut.
-  const recordsAuj = new Set(faiteAuj && terminees ? cransDeSeance(faiteAuj, terminees, catalogue.exo).map((c) => c.exo.id) : [])
+  // Les records du jour (la même mesure que l'écran « Séance faite ») : marqués dans la liste, comptés dans la ligne du haut.
+  const recordsAuj = new Set(faiteAuj && terminees ? recordsDeSeance(faiteAuj, terminees, catalogue.exo).map((c) => c.exo.id) : [])
   const lignesAuj: LigneExo[] = faiteAuj && terminees
     ? gainsDeSeance(faiteAuj, terminees, catalogue.exo).map((g) => ({ id: g.exoId, nom: catalogue.exo(g.exoId).nom, gain: recordsAuj.has(g.exoId) && (!g.gain || g.gain === '=') ? 'record' : g.gain, record: recordsAuj.has(g.exoId) }))
     : []
@@ -605,7 +600,7 @@ export default function Accueil({
       <>
         <div className="accueil-tableau">
           <JournalMatin catalogue={catalogue} />
-          {/* Une seule ligne : la semaine (vers le Journal) et le disque (depuis le premier cran). */}
+          {/* Une seule ligne : la semaine, vers le Journal. */}
           <div className="accueil-semaine-ligne">
             <button type="button" className="accueil-semaine" onClick={onJournal} aria-label="Cette semaine : ouvrir le Journal">
               {prevusSemaine.length > 0 && (
@@ -617,15 +612,9 @@ export default function Accueil({
               )}
               <span className={tenues >= 2 ? 'semaine-texte tenue' : 'semaine-texte'}>
                 {tenues >= 2 ? `${tenues}e semaine tenue` : prevusSemaine.length ? `${nbFaites} sur ${prevusSemaine.length} cette semaine` : `${semaine.length} faite${semaine.length > 1 ? 's' : ''} cette semaine`}
-                {disque.total === 0 && ' ›'}
+                {' ›'}
               </span>
             </button>
-            {disque.total > 0 && (
-              <button type="button" className="accueil-disque" onClick={() => setVoirDisque(true)} aria-label="Ton disque : voir tes crans">
-                <Disque crans={disque.crans} taille={20} />
-                {disque.crans > 0 ? `${disque.crans} cran${disque.crans > 1 ? 's' : ''}` : `${disque.pleins} disque${disque.pleins > 1 ? 's' : ''} plein${disque.pleins > 1 ? 's' : ''}`} ›
-              </button>
-            )}
           </div>
           {progres && gainBloc && (
             <div className="accueil-progres">
@@ -785,7 +774,6 @@ export default function Accueil({
         </div>
       </>
 
-      {voirDisque && terminees && <FenetreDisque seances={terminees} exo={catalogue.exo} onFermer={() => setVoirDisque(false)} />}
       {choix && (
         <div className="modal-fond" onClick={() => setChoix(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

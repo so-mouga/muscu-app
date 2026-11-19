@@ -6,7 +6,7 @@ import { alarme, tic } from '../lib/appareil'
 import { chrono } from '../lib/calc'
 import { natif } from '../lib/natif'
 import Anneau from './Anneau'
-import { IconeCran } from './Disque'
+import { IconeCran } from './IconeCran'
 
 export interface EtatMinuteur {
   /** Horodatage de fin : le temps restant ne dépend jamais d'un décompte en mémoire. */
@@ -41,13 +41,13 @@ interface Props {
   onAgrandir?: () => void
   /** Cercle du plein écran : mot sous le temps (« exercice fini »). */
   legende?: string
-  /** Cercle du plein écran : la série d'avant vient de gagner un cran. Le texte dit pourquoi (« ton record était 10 »). */
-  cran?: string
-  /** Le cran vient d'être gagné à l'instant : le disque arrive et son encoche se taille. Faux en revenant de la liste : rien ne se rejoue. */
-  cranVient?: boolean
+  /** Cercle du plein écran : la série d'avant vient de battre son record. Le texte dit pourquoi (« ton record était 10 »). */
+  record?: string
+  /** Le record vient d'être battu à l'instant : le disque arrive et son encoche se taille. Faux en revenant de la liste : rien ne se rejoue. */
+  recordVient?: boolean
 }
 
-export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, cran, cranVient, children, revanche }: Props) {
+export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandir, legende, record, recordVient, children, revanche }: Props) {
   const [maintenant, setMaintenant] = useState(Date.now())
   const sonne = useRef<number | null>(null)
   const dernierTic = useRef<number | null>(null)
@@ -59,11 +59,11 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
     return () => clearInterval(t)
   }, [])
 
-  // Décidé une fois par repos, au moment où le cran apparaît (la série est écrite un instant après le début du repos) :
+  // Décidé une fois par repos, au moment où le record apparaît (la série est écrite un instant après le début du repos) :
   // le parent repasse à faux au bout de 1,5 s, l'animation ne doit ni se couper ni repartir.
   const animation = useRef<{ debut?: number; oui: boolean | null }>({ debut: etat.debut, oui: null })
   if (animation.current.debut !== etat.debut) animation.current = { debut: etat.debut, oui: null }
-  if (cran && animation.current.oui === null) animation.current.oui = !!cranVient
+  if (record && animation.current.oui === null) animation.current.oui = !!recordVient
   const anime = !!animation.current.oui
   const enPause = etat.pause !== undefined
   const reste = resteRepos(etat, maintenant)
@@ -135,11 +135,11 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
         <button type="button" className="moment-anneau" onClick={() => !fini && basculerPause()} aria-label={fini ? 'Repos terminé' : enPause ? 'Reprendre le repos' : `Repos, ${temps}. Mettre en pause`}>
           <i />
           <i />
-          {(cran || revanche) && !fini && !enPause && (
+          {(record || revanche) && !fini && !enPause && (
             <span className={'cran-signal' + (anime ? ' vient' : '')}>
-              {cran ? (
+              {record ? (
                 <>
-                  <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+                  <IconeCran taille={18} /> <span>Record battu</span>
                 </>
               ) : (
                 <span>Revanche prise.</span>
@@ -190,12 +190,12 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
             fluide={!enPause && !fini}
             saut={saut}
           >
-            {(cran || revanche) && !fini && !enPause ? (
+            {(record || revanche) && !fini && !enPause ? (
               <div className={'cran-signal' + (anime ? ' vient' : '')}>
                 {/* Un record passe devant une revanche : il est plus rare. */}
-                {cran ? (
+                {record ? (
                   <>
-                    <IconeCran taille={18} /> <span>Record battu · +1 cran</span>
+                    <IconeCran taille={18} /> <span>Record battu</span>
                   </>
                 ) : (
                   <span>Revanche prise.</span>
@@ -207,7 +207,7 @@ export default function Minuteur({ etat, onChange, variante = 'barre', onAgrandi
               </div>
             )}
             <div className="temps-grand">{temps}</div>
-            {legende ? <div className="legende-chrono">{legende}</div> : (cran || revanche) && !fini && <div className={'legende-chrono cran-pourquoi' + (anime ? ' vient' : '')}>{cran ?? revanche}</div>}
+            {legende ? <div className="legende-chrono">{legende}</div> : (record || revanche) && !fini && <div className={'legende-chrono cran-pourquoi' + (anime ? ' vient' : '')}>{record ?? revanche}</div>}
           </Anneau>
         </button>
         <div className="ligne boutons-grand">{boutons}</div>

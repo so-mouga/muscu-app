@@ -1,13 +1,13 @@
 import { Flame, Frown, Smile } from 'lucide-react'
 import CircuitsFaits from './CircuitsFaits'
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { Catalogue } from '../catalogue'
 import { useCaps } from './Caps'
-import Disque, { IconeCran } from './Disque'
+import { IconeCran } from './IconeCran'
 import { dureeSeance } from './RecapSeance'
 import { capFranchiDans, dureeCap, texteCap } from '../lib/caps'
 import { duree, ecartQte, kg } from '../lib/calc'
-import { cransDeSeance, etatDisque, totalCrans, type CranGagne } from '../lib/crans'
+import { recordsDeSeance, type RecordGagne } from '../lib/records'
 import { gainsDeSeance, resumeSeance } from '../lib/motivation'
 import { phaseA } from '../lib/objectifs'
 import type { Seance } from '../types'
@@ -20,7 +20,7 @@ export const OPTIONS_FORME = [
 
 /**
  * La récompense d'une séance, sur un seul écran (direction « deux temps », choisie sur maquette le 12 nov. 2026) : le record du
- * jour en grand (sinon ce qui a été mieux, sinon « Séance tenue. »), le disque, chaque exercice avec son gain face à la fois
+ * jour en grand (sinon ce qui a été mieux, sinon « Séance tenue. »), chaque exercice avec son gain face à la fois
  * d'avant, et « Comment c'était ? ». Les choix pour la prochaine fois sont sur l'écran suivant. Un seul chiffre en grand, et
  * toujours un chiffre dont on est fier : jamais « 1 série sur 17 ».
  */
@@ -46,12 +46,8 @@ export default function Recompense({
 }) {
   const n = seance.series.length
   const resume = seance.deload ? null : resumeSeance(seance, terminees, catalogue.exo)
-  // Les crans de la séance (un record battu = un cran), et où en est le disque avec eux.
-  const crans = cransDeSeance(seance, terminees, catalogue.exo)
-  const cransAvant = totalCrans(terminees.filter((s) => s.id !== seance.id), catalogue.exo)
-  const disque = etatDisque(cransAvant + crans.length)
-  const disquePlein = disque.pleins > etatDisque(cransAvant).pleins
-  const cransMontres = disque.crans || (disque.total ? 12 : 0)
+  // Les records de la séance, un par exercice au plus.
+  const records = recordsDeSeance(seance, terminees, catalogue.exo)
   // Un cap qui tombe aujourd'hui passe devant le record : il arrive quelques fois par an.
   const caps = useCaps()
   const tombe = caps?.find((c) => capFranchiDans(c, seance, terminees))
@@ -63,11 +59,11 @@ export default function Recompense({
   const ms = dureeSeance(seance)
 
   // Chaque exercice face à la fois d'avant : les records, ce qui est mieux, ce qui est pareil, puis le reste (sans reproche).
-  const cranDe = new Map(crans.map((c) => [c.exo.id, c]))
+  const recordDe = new Map(records.map((c) => [c.exo.id, c]))
   const rangs = { record: 0, mieux: 1, egal: 2, terne: 3, nouveau: 4 }
   const toutes = gainsDeSeance(seance, terminees, catalogue.exo)
     .map((g, ordre) => {
-      const c = cranDe.get(g.exoId)
+      const c = recordDe.get(g.exoId)
       const gain = g.gain && g.gain !== '=' ? g.gain : undefined
       const ton: keyof typeof rangs = c ? 'record' : gain ? 'mieux' : g.gain === '=' ? 'egal' : g.premiere ? 'nouveau' : 'terne'
       const texte = c ? (gain ?? (c.genre === 'reps' ? ecartQte(c.exo, c.serie.reps - c.ancien) : 'record')) : g.premiere ? '1re fois' : g.gain
@@ -81,11 +77,11 @@ export default function Recompense({
     else if (l.ton === 'egal' || l.ton === 'terne') compte.sans++
     else if (l.ton === 'nouveau') compte.nouveaux++
   }
-  const nbParties = [crans.length, compte.mieux, compte.sans, compte.nouveaux].filter(Boolean).length
+  const nbParties = [records.length, compte.mieux, compte.sans, compte.nouveaux].filter(Boolean).length
   const aMontrer = toutes.some((l) => l.texte) && !premiereSeance
   // Un seul record : il est en grand dans la carte, la liste ne le répète pas.
-  const seulRecord = crans.length === 1 && !tombe && !disquePlein
-  const lignes = seulRecord ? toutes.filter((l) => l.id !== crans[0].exo.id) : toutes
+  const seulRecord = records.length === 1 && !tombe
+  const lignes = seulRecord ? toutes.filter((l) => l.id !== records[0].exo.id) : toutes
   // En plein écran, rien ne défile : la liste prend la place libre (CSS), et on compte les lignes de 28 px qui y tiennent.
   const racine = useRef<HTMLDivElement>(null)
   const [max, setMax] = useState(Infinity)
@@ -118,7 +114,7 @@ export default function Recompense({
       </div>
       <CircuitsFaits seance={seance} avant={terminees} court />
 
-      {crans.length > 0 || (tombe && exoCap) ? (
+      {records.length > 0 || (tombe && exoCap) ? (
         <div className="carte fin-resume trame">
           {tombe && exoCap ? (
             // Le cap franchi : le chiffre visé en grand, d'où on partait et le temps mis, dit après coup.
@@ -132,59 +128,32 @@ export default function Recompense({
               <div className="fin-crans-titre">
                 Tu partais de {texteCap(exoCap, tombe, tombe.depart)}. {dureeCap(tombe.depuis, seance.date).replace(/^e/, 'E')}.
               </div>
-              {crans.length > 0 && (
+              {records.length > 0 && (
                 <div className="fin-heros-disque">
-                  <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={26} />
-                  <span>
-                    <strong>{disquePlein ? 'Disque plein' : `Record battu · ${disque.crans} cran${disque.crans > 1 ? 's' : ''} sur 12`}</strong>
-                  </span>
+                  <IconeCran taille={20} />
+                  <strong>
+                    {records.length} record{records.length > 1 ? 's' : ''} battu{records.length > 1 ? 's' : ''}
+                  </strong>
                 </div>
               )}
             </div>
-          ) : disquePlein ? (
-            // Le 12e cran : le seul moment qui a droit à une animation plus longue (une fois toutes les deux ou trois semaines).
-            <div className="fin-disque-plein" style={{ '--apres': `${0.25 + Math.min(crans.length, 12) * 0.25}s` } as CSSProperties}>
-              <Disque crans={12} nouveaux={Math.min(crans.length - disque.crans, 12)} taille={plein ? 104 : 132} chiffre plein />
-              <h2>Disque plein</h2>
-              <div className="fin-crans-titre">
-                {crans.length} record{crans.length > 1 ? 's' : ''} battu{crans.length > 1 ? 's' : ''} aujourd’hui
-              </div>
-              <div className="faible petit fin-disque-suite">
-                {disque.crans ? `Ton ${disque.numero}e disque a déjà ${disque.crans} cran${disque.crans > 1 ? 's' : ''}.` : `Ton ${disque.numero}e disque commence à la prochaine séance.`}
-              </div>
-              <span className="pastille fin-disque-suite">
-                <Disque crans={12} taille={16} plein /> {disque.pleins} disque{disque.pleins > 1 ? 's' : ''} plein{disque.pleins > 1 ? 's' : ''}
-              </span>
-            </div>
-          ) : (
+          ) : seulRecord ? (
             // Un record : l'exercice et son chiffre en grand. Plusieurs : leur nombre en grand, chacun dans la liste dessous, à
             // égalité (avant, le premier de la séance prenait la carte, et on lisait « 35 kg, 3 records battus »).
             <div className="fin-heros">
-              {seulRecord ? (
-                <>
-                  <div className="fin-heros-exo">{crans[0].exo.nom}</div>
-                  <div className="fin-heros-chiffre">
-                    <b>{crans[0].genre === 'charge' ? kg(crans[0].serie.charge) : crans[0].serie.reps}</b>
-                    <span>{crans[0].genre === 'charge' ? (crans[0].exo.mode === 'elastique' ? 'niveau' : 'kg') : crans[0].exo.mesure === 'temps' ? 's' : 'reps'}</span>
-                  </div>
-                  <div className="fin-heros-titre">Record battu.</div>
-                  <div className="fin-crans-titre">{detailRecord(crans[0])}</div>
-                </>
-              ) : (
-                <div className="fin-heros-chiffre">
-                  <b>{crans.length}</b>
-                  <span className="fin-heros-suite">records battus.</span>
-                </div>
-              )}
-              <div className="fin-heros-disque">
-                <Disque crans={cransMontres} nouveaux={Math.min(crans.length, cransMontres)} taille={26} />
-                <span>
-                  <strong>
-                    {disque.crans} cran{disque.crans > 1 ? 's' : ''} sur 12
-                  </strong>{' '}
-                  {/* La règle tient en une ligne le jour du tout premier cran. */}
-                  <span className="faible">· {cransAvant === 0 ? 'un record = un cran' : disque.reste === 1 ? 'plus qu’un' : `plus que ${disque.reste}`}</span>
-                </span>
+              <div className="fin-heros-exo">{records[0].exo.nom}</div>
+              <div className="fin-heros-chiffre">
+                <b>{records[0].genre === 'charge' ? kg(records[0].serie.charge) : records[0].serie.reps}</b>
+                <span>{records[0].genre === 'charge' ? (records[0].exo.mode === 'elastique' ? 'niveau' : 'kg') : records[0].exo.mesure === 'temps' ? 's' : 'reps'}</span>
+              </div>
+              <div className="fin-heros-titre">Record battu.</div>
+              <div className="fin-crans-titre">{detailRecord(records[0])}</div>
+            </div>
+          ) : (
+            <div className="fin-heros">
+              <div className="fin-heros-chiffre">
+                <b>{records.length}</b>
+                <span className="fin-heros-suite">records battus.</span>
               </div>
             </div>
           )}
@@ -200,7 +169,7 @@ export default function Recompense({
                   {nbExos} exercice{nbExos > 1 ? 's' : ''}.
                 </span>
               </div>
-              <div className="faible petit">La prochaine fois, chaque record battu taille un cran dans ton disque.</div>
+              <div className="faible petit">La prochaine fois, tu joues contre ces chiffres.</div>
             </>
           ) : seance.deload ? (
             <div className="voix grand">
@@ -228,7 +197,7 @@ export default function Recompense({
               <small>Face à la dernière fois</small>
               <span>
                 {[
-                  crans.length > 0 && <b key="r">{crans.length} record{crans.length > 1 ? 's' : ''}</b>,
+                  records.length > 0 && <b key="r">{records.length} record{records.length > 1 ? 's' : ''}</b>,
                   compte.mieux > 0 && <b key="m" className="ok-texte">{compte.mieux} mieux</b>,
                   compte.sans > 0 && <span key="s">{compte.sans} sans progrès</span>,
                   compte.nouveaux > 0 && <span key="n">{compte.nouveaux} première{compte.nouveaux > 1 ? 's' : ''} fois</span>,
@@ -278,7 +247,7 @@ export default function Recompense({
 }
 
 /** Sous le record en grand : de combien il bat l'ancien, et la série. « +6 kg sur ton record · 15 reps ». */
-function detailRecord(c: CranGagne): string {
+function detailRecord(c: RecordGagne): string {
   if (c.genre === 'reps') return `${ecartQte(c.exo, c.serie.reps - c.ancien)} · ton record était ${c.ancien}`
   const d = Math.round((c.serie.charge - c.ancien) * 100) / 100
   if (c.exo.assistance || c.exo.mode === 'elastique' || d <= 0) return `${c.exo.assistance ? 'jamais fait avec si peu d’aide' : 'charge jamais faite'} · ${c.serie.reps} reps`

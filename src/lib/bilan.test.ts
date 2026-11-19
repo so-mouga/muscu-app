@@ -157,7 +157,7 @@ describe('texte du bilan et séance allégée pour un seul jour', () => {
   it('records battus datés et caps, avec les mots que l’IA connaît', () => {
     const d = { ...donnees([seance('s0', '2026-10-27', [47.5, 47.5, 47.5]), seance('s1', '2026-11-03', [50, 50, 50]), seance('s2', '2026-11-10', [52.5, 52.5, 52.5])]), caps: [{ exoId: 'smith_incline', genre: 'charge' as const, series: 3, reps: 8, cible: 60, depart: 50, depuis: '2026-10-20' }] }
     const t = genererBilan(d, '2026-10-26', '2026-11-15')
-    // Un record = un cran : rien avant le début des crans (9 nov.), même si la période commence avant.
+    // Les records : rien avant les vraies séances (9 nov.), même si la période commence avant.
     expect(t).toContain('== Records battus (1) ==')
     expect(t).toMatch(/- Développé incliné Smith : 52,5 kg × 10 \(10 nov\.?\)/)
     expect(t).toContain('== Mes caps (une charge que je vise, sans date) ==')

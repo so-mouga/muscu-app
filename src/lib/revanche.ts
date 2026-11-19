@@ -3,7 +3,7 @@ import { enTemps } from './calc'
 
 /**
  * La revanche : la série qu'on a ratée ou la charge qu'on a dû lâcher, annoncée au moment d'y retourner (plein écran,
- * choix de l'utilisateur, 11 nov. 2026). Jamais une charge jamais faite : ça, c'est un record, et le cran s'en occupe.
+ * choix de l'utilisateur, 11 nov. 2026). Jamais une charge jamais faite : ça, c'est un record.
  */
 export type Revanche = { genre: 'reps' | 'charge'; /** Ce qu'on avait fait (reps), ou la charge où on était redescendu. */ avant: number; /** Ce qu'il faut faire aujourd'hui. */ vise: number }
 

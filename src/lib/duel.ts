@@ -15,7 +15,7 @@ export interface Verdict {
   ton: TonDuel
   texte: string
   /** Cette série battrait le record de l'exercice : le petit disque devant le texte. */
-  cran?: boolean
+  record?: boolean
 }
 
 export interface EtatDuel {
@@ -23,7 +23,7 @@ export interface EtatDuel {
   charge: number
   /** La même série, la dernière fois. */
   hier?: Serie
-  /** Ce qu'il faut à cette charge pour le cran du jour (`seuilCran`). */
+  /** Ce qu'il faut à cette charge pour battre le record du jour (`seuilRecord`). */
   seuil?: { reps: number; record?: number } | null
   revanche?: Revanche | null
 }
@@ -43,7 +43,7 @@ export function verdictSaisie(exo: Exercice, v: EtatDuel): Verdict | null {
   }
   if (seuil && reps >= seuil.reps) {
     const pourquoi = seuil.record === undefined ? (exo.assistance ? 'Jamais fait avec si peu d’aide' : 'Charge jamais faite') : `+${reps - seuil.record}${unite(exo, reps - seuil.record)}`
-    return { ton: 'gagne', cran: true, texte: `${pourquoi} · record · +1 cran` }
+    return { ton: 'gagne', record: true, texte: `${pourquoi} · record` }
   }
   if (hier) {
     const e = ecartSerie({ ...hier, charge, reps }, hier, exo)!

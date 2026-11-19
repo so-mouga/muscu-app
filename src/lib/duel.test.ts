@@ -12,20 +12,20 @@ describe('verdictSaisie', () => {
   it('égalité, moins bien, mieux, record', () => {
     expect(verdictSaisie(exo, { reps: 12, charge: 120, hier, seuil })).toEqual({ ton: 'egal', texte: 'Égalité. Encore une.' })
     expect(verdictSaisie(exo, { reps: 10, charge: 120, hier, seuil })).toEqual({ ton: 'moins', texte: '−2 reps sur la dernière fois' })
-    expect(verdictSaisie(exo, { reps: 13, charge: 120, hier, seuil })).toEqual({ ton: 'gagne', cran: true, texte: '+1 rep · record · +1 cran' })
+    expect(verdictSaisie(exo, { reps: 13, charge: 120, hier, seuil })).toEqual({ ton: 'gagne', record: true, texte: '+1 rep · record' })
   })
 
-  it('mieux que la dernière fois sans battre le record : du vert, pas un cran', () => {
+  it('mieux que la dernière fois sans battre le record : du vert, pas un record', () => {
     const v = verdictSaisie(exo, { reps: 12, charge: 120, hier: s(120, 11), seuil: { reps: 14, record: 13 } })
     expect(v).toEqual({ ton: 'mieux', texte: '+1 rep sur la dernière fois · record : 13' })
   })
 
   it('charge jamais faite : record dès la première rep', () => {
-    expect(verdictSaisie(exo, { reps: 6, charge: 125, hier, seuil: { reps: 1 } })).toEqual({ ton: 'gagne', cran: true, texte: 'Charge jamais faite · record · +1 cran' })
-    expect(verdictSaisie(assiste, { reps: 6, charge: 20, hier: s(25, 8), seuil: { reps: 1 } })?.texte).toBe('Jamais fait avec si peu d’aide · record · +1 cran')
+    expect(verdictSaisie(exo, { reps: 6, charge: 125, hier, seuil: { reps: 1 } })).toEqual({ ton: 'gagne', record: true, texte: 'Charge jamais faite · record' })
+    expect(verdictSaisie(assiste, { reps: 6, charge: 20, hier: s(25, 8), seuil: { reps: 1 } })?.texte).toBe('Jamais fait avec si peu d’aide · record')
   })
 
-  it('charge plus lourde sans cran possible (déjà gagné aujourd’hui) : mieux, en kilos', () => {
+  it('charge plus lourde sans record possible (déjà battu aujourd’hui) : mieux, en kilos', () => {
     expect(verdictSaisie(exo, { reps: 8, charge: 125, hier, seuil: null })).toEqual({ ton: 'mieux', texte: '+5 kg, −4 reps sur la dernière fois' })
   })
 

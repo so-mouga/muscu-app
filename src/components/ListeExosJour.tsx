@@ -1,5 +1,5 @@
 import { Flame } from 'lucide-react'
-import { IconeCran } from './Disque'
+import { IconeCran } from './IconeCran'
 import { useLayoutEffect, useRef, useState } from 'react'
 
 /** Hauteur d'une ligne, la même que `.exos-jour > div` dans styles.css. */
