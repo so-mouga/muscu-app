@@ -89,11 +89,38 @@ export function faitTexte(exo: Exercice, series: Serie[]): string {
     .join(' · ')
 }
 
-/** Remplacements du jour (« Machine prise ») : remplaçant → exercice prévu. Les anciennes séances n'ont que ceux à relier. */
-export const remplacesDe = (seance: Pick<Seance, 'remplacements' | 'aRelier'>) => new Map((seance.remplacements ?? seance.aRelier ?? []).map((r) => [r.b, r.a]))
+/**
+ * Remplacements du jour (« Machine prise ») : remplaçant → exercice prévu au programme. On remonte les remplacements
+ * successifs (écarté → Butterfly → autre) jusqu'à l'exercice prévu au départ (`ordrePrevu`, noté au 1er remplacement) :
+ * avant le 20 nov. 2026, le dernier remplaçant se disait « à la place de Butterfly ». Un exercice revenu à sa place
+ * prévue n'est plus un remplaçant. Les anciennes séances n'ont que ceux à relier.
+ */
+export function remplacesDe(seance: Pick<Seance, 'remplacements' | 'aRelier' | 'ordrePrevu'>): Map<string, string> {
+  const direct = new Map((seance.remplacements ?? seance.aRelier ?? []).map((r) => [r.b, r.a]))
+  const prevu = seance.ordrePrevu
+  const res = new Map<string, string>()
+  for (const b of direct.keys()) {
+    if (prevu?.includes(b)) continue
+    let a = direct.get(b)!
+    const vus = new Set([b, a])
+    while (!prevu?.includes(a) && direct.has(a) && !vus.has(direct.get(a)!)) {
+      a = direct.get(a)!
+      vus.add(a)
+    }
+    if (a !== b) res.set(b, a)
+  }
+  return res
+}
 
-/** « à la place de Rowing haltère (machine prise) », sous le nom du remplaçant : écran de fin, Journal et texte partagé. */
+/** « à la place de Rowing haltère (machine prise) », en petit sous le nom du remplaçant : écran de fin et Journal. */
 export const textePlace = (nomPrevu: string, enCours = false) => `à la place de ${nomPrevu}${enCours ? ', pour les séries qui restaient' : ''} (machine prise)`
+
+/**
+ * La même chose dans le texte partagé, en étiquettes (20 nov. 2026, demande de l'IA de l'utilisateur : entre parenthèses,
+ * elle confondait la raison avec le nom) : « remplace : Rowing haltère · raison : machine prise · ponctuel ». La raison est
+ * toujours celle-là (Remplacer est dans « Machine prise ») ; ponctuel : le programme ne change pas.
+ */
+export const remplaceTexte = (nomPrevu: string, enCours = false) => `remplace : ${nomPrevu}${enCours ? ', pour les séries qui restaient' : ''} · raison : machine prise · ponctuel`
 
 /**
  * Les exercices faits dans l'ordre où ils ont été faits (heure de leur 1re série), et, pour ceux qui ont changé de
@@ -179,7 +206,7 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
     const k = prevuEn.get(p.exoId)
     l.push('', k ? titre.replace(`${i + 1}. ${exo.nom}`, `${i + 1}. ${exo.nom} (prévu en ${k})`) : titre)
     const ancien = remplace.get(p.exoId)
-    if (ancien) l.push(`   ${textePlace(d.exo(ancien).nom, seance.series.some((x) => x.exoId === ancien))}`)
+    if (ancien) l.push(`   ${remplaceTexte(d.exo(ancien).nom, seance.series.some((x) => x.exoId === ancien))}`)
     l.push(`   aujourd’hui : ${faitTexte(exo, series)}`)
     if (avecAvant) {
       const precedente = avant.find((s) => !s.deload && s.series.some((x) => x.exoId === p.exoId))

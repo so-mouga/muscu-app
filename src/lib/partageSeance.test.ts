@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EXERCICES } from '../data/exercices'
 import type { ExoPlan, Seance, Serie } from '../types'
-import { texteSeance, type DonneesSeance } from './partageSeance'
+import { remplacesDe, texteSeance, type DonneesSeance } from './partageSeance'
 
 const plan = (exoId: string, charge: number): ExoPlan => ({ exoId, repos: 120, series: [0, 1, 2].map(() => ({ repsMin: 8, repsMax: 12, rpe: 8 })), charge, chauffes: [], finisseur: false })
 
@@ -116,9 +116,23 @@ describe('texte d’une séance à partager', () => {
   it('remplacement : le remplaçant dit ce qu’il remplace, et l’exercice prévu n’est pas « pas fait »', () => {
     const r = { ...jour, exercices: [plan('rowing_haltere', 30), plan('dev_militaire', 20), plan('dips', 0)].map((p) => (p.exoId === 'rowing_haltere' ? { ...p, exoId: 'rowing_machine' } : p)), series: jour.series.map((x) => (x.exoId === 'rowing_haltere' ? { ...x, exoId: 'rowing_machine' } : x)), remplacements: [{ a: 'rowing_haltere', b: 'rowing_machine' }], ordrePrevu: ['rowing_haltere', 'dev_militaire', 'dips'] }
     const s = texteSeance(r, { ...donnees }, true)
-    expect(s).toMatch(/1\. [^\n]+\n   à la place de Rowing haltère \(machine prise\)\n   aujourd’hui/)
+    expect(s).toMatch(/1\. [^\n]+\n   remplace : Rowing haltère · raison : machine prise · ponctuel\n   aujourd’hui/)
     expect(s).not.toContain('prévu en')
     expect(s).toContain('Pas fait aujourd’hui : Dips penchés en avant')
     expect(s).not.toMatch(/Pas fait[^\n]*Rowing haltère/)
+  })
+
+  it('remplacé deux fois : on remonte jusqu’à l’exercice prévu au programme ; revenu à sa place, plus rien', () => {
+    const prevu = ['ecarte', 'dev', 'dips']
+    // Écarté → Butterfly → Pec deck : le pec deck remplace l'écarté, pas le Butterfly.
+    const chaine = remplacesDe({ ordrePrevu: prevu, remplacements: [{ a: 'ecarte', b: 'butterfly' }, { a: 'butterfly', b: 'pec_deck' }] })
+    expect(chaine.get('pec_deck')).toBe('ecarte')
+    expect(chaine.get('butterfly')).toBe('ecarte')
+    // Écarté → Butterfly → retour à l'écarté : l'écarté n'est pas « à la place de Butterfly ».
+    const retour = remplacesDe({ ordrePrevu: prevu, remplacements: [{ a: 'ecarte', b: 'butterfly' }, { a: 'butterfly', b: 'ecarte' }] })
+    expect(retour.has('ecarte')).toBe(false)
+    expect(retour.get('butterfly')).toBe('ecarte')
+    // Ancienne séance, sans ordre prévu : on remonte quand même, sans boucler.
+    expect(remplacesDe({ aRelier: [{ a: 'a', b: 'b' }, { a: 'b', b: 'a' }] }).size).toBeLessThanOrEqual(2)
   })
 })
