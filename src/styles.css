@@ -2494,10 +2494,41 @@ body.sans-onglets .barre-demarrer {
 .grille-mois .jour:disabled {
   opacity: 0.35;
 }
-.grille-mois .jour.activite::after {
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
+/* Un jour avec une activité hors muscu : un point bleu, à côté de celui de la séance s'il y en a une. */
+.grille-mois .jour.activite::before {
+  content: '';
+  display: block !important;
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--info);
+  transform: translateX(-50%);
+}
+.grille-mois .jour.activite.fait::before,
+.grille-mois .jour.activite.prevu::before {
+  transform: translateX(3px);
+}
+.grille-mois .jour.activite.fait::after,
+.grille-mois .jour.activite.prevu::after {
+  transform: translateX(-7px);
+}
+.activite-duree {
+  font-size: var(--t-titre);
+  font-weight: 700;
+}
+.activite-effort button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.activite-effort button small {
+  font-size: var(--t-legende);
+  color: var(--texte-2);
+  font-weight: 400;
 }
 .ligne-jour {
   display: flex;

@@ -25,7 +25,8 @@ Fais-le comme une vraie personne, en notant tout ce qui t'arrête.
 - « J'ai déjà mon programme » : « Créer le mien » et les 4 programmes, sans question sur les jours.
 - La croix mène à l'accueil en gardant les réponses ; les questions ne reviennent pas d'elles-mêmes. Fermer ou recharger sans la croix : reprise à la même question.
 - Accueil sans programme : « Choisis ton programme » en orange, « Faire une séance › » ouvre une fenêtre avec « Séance libre », aucun Recompo. Onglet Programme : « Pas encore de programme », pas de « Lancer un cycle ». Sans objectif : « + Ton objectif » sous la date.
-- Réglages : bouton en haut à droite de l'accueil, pas dans la barre du bas. (Pas de profil ni d'activités hors muscu : retirés volontairement.)
+- Réglages : bouton en haut à droite de l'accueil, pas dans la barre du bas. (Pas de profil : retiré volontairement.)
+- **Activités hors muscu** : Progrès → Journal, sur un jour passé ou aujourd'hui, « + Activité » ouvre une fenêtre (type en puces, durée par 15 min, effort Facile / Moyen / Dur, note). Rien à valider : un appui à côté garde l'activité. Elle apparaît en ligne dans le jour (« Padel 1 h 30 · dur »), un point bleu dans le calendrier ; un appui la rouvre, « Supprimer cette activité » demande confirmation. Pas de « + Activité » sur l'Accueil ni sur un jour à venir. Dans le texte partagé du Bilan : colonne « activité » du jour par jour et ligne « Activités hors muscu : … » ; dans celui d'une séance : « Activité de la veille : … ».
 
 ### 2. Accueil (la séance du jour)
 - Tout tient sur un écran, sans défiler. Date, puis la **phase toujours sous la date**, à côté du cycle (un appui sur la phase ouvre Corps → Phases ; pendant une phase, c'est elle qui s'affiche même si la suivante est planifiée ; sans phase jamais réglée : « + Phase »).

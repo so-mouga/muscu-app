@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cran · Activités hors muscu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+:root{--bg:#0c0b0a;--carte:#1e1c1a;--carte2:#262422;--controle:#2e2b29;--texte:#f5f4f2;--t2:#a8a29e;--t3:#6f6964;--accent:#f97316;--ok:#4ade80;--bleu:#56b4e9}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--texte);font-family:Barlow,system-ui,sans-serif;font-size:16px;font-variant-numeric:tabular-nums}
+.defile{height:100dvh;overflow-y:auto;scroll-snap-type:y mandatory}
+.ecran{height:100dvh;scroll-snap-align:start;display:flex;justify-content:center;background:var(--bg);overflow:hidden;position:relative}
+.tel{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;padding:8px 16px 12px;gap:12px;position:relative}
+.etiquette{align-self:center;background:#16341f;color:#8fe3a8;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:600}
+.g{color:var(--t2)}.p{font-size:14px}.l{font-size:12px}
+h1{margin:0;font-size:26px;font-weight:700}
+.onglets{display:flex;gap:6px}.onglets span{padding:6px 12px;border-radius:999px;background:var(--carte);font-size:14px;color:var(--t2)}.onglets span.on{background:var(--controle);color:var(--texte)}
+.cal{background:var(--carte);border-radius:18px;padding:10px 12px;display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:13px}
+.cal b{font-size:11px;color:var(--t3);font-weight:500}
+.cal span{padding:6px 0;border-radius:10px;position:relative}
+.cal span.fait::after{content:"";position:absolute;left:50%;bottom:1px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--ok)}
+.cal span.act::before{content:"";position:absolute;left:50%;bottom:1px;width:5px;height:5px;margin-left:4px;border-radius:50%;background:var(--bleu)}
+.cal span.choisi{background:var(--controle)}
+.jour{background:var(--carte);border-radius:18px;padding:4px 14px}
+.ligne{display:flex;justify-content:space-between;align-items:center;min-height:48px;border-top:1px solid rgba(255,255,255,.06);gap:10px}
+.ligne:first-child{border-top:0}
+.ligne .t{font-size:13px;color:var(--t2)}
+.ligne .v{font-weight:600}
+.ligne .v small{color:var(--t2);font-weight:400}
+.ajout{color:var(--t2);font-size:15px}
+.fond{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.modal{position:absolute;left:0;right:0;bottom:0;background:#1a1816;border-radius:22px 22px 0 0;padding:10px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.poignee{width:40px;height:4px;border-radius:2px;background:#444;align-self:center}
+.modal h2{margin:0;font-size:20px;font-weight:600}
+.puces{display:flex;flex-wrap:wrap;gap:8px}
+.puces span{padding:9px 14px;border-radius:999px;background:var(--controle);font-size:15px}
+.puces span.on{background:var(--texte);color:#111;font-weight:600}
+.champ{display:flex;align-items:center;gap:10px}
+.champ .moins,.champ .plus{width:44px;height:44px;border-radius:14px;background:var(--controle);display:flex;align-items:center;justify-content:center;font-size:22px}
+.champ .val{flex:1;text-align:center;font-size:28px;font-weight:700}
+.champ .val small{font-size:15px;color:var(--t2);font-weight:500}
+.trois{display:flex;gap:8px}.trois div{flex:1;min-height:48px;border-radius:14px;background:var(--controle);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px}
+.trois div small{font-size:11px;color:var(--t2)}
+.trois div.on{background:var(--texte);color:#111;font-weight:600}.trois div.on small{color:#444}
+.note{background:var(--controle);border-radius:14px;padding:12px;color:var(--t3);font-size:15px}
+.primaire{background:var(--accent);color:#1a0d02;border-radius:18px;min-height:52px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:500}
+.lab{font-size:13px;color:var(--t2);margin-bottom:-6px}
+pre{margin:0;background:var(--carte);border-radius:14px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;line-height:1.5;white-space:pre-wrap;color:#d6d3d1}
+pre b{color:var(--bleu);font-weight:600}
+.intro{justify-content:center}
+.intro ul{margin:0;padding-left:18px;color:var(--t2)}.intro li{margin-bottom:8px;line-height:1.35}.intro b{color:var(--texte)}
+</style>
+</head>
+<body>
+<div class="defile">
+
+<section class="ecran"><div class="tel intro">
+  <span class="etiquette">Activités hors muscu · glisse vers le bas</span>
+  <h1>Ce que tu fais à côté, pour ton IA</h1>
+  <ul>
+    <li><b>Où</b> : dans le Journal, sur le jour, une ligne « + Activité ». Pas sur l'Accueil (il doit rester léger, et on note un padel après coup).</li>
+    <li><b>Quoi</b> : le type (puces), la durée (− / +, par 15 min), l'effort en trois choix (Facile / Moyen / Dur), une note si tu veux. Enregistré au fil de l'eau, comme partout.</li>
+    <li><b>Pour quoi</b> : elle sort dans les textes partagés (Bilan et séance). À l'écran, juste une ligne dans le jour et un point bleu dans le calendrier.</li>
+    <li><b>Pas remis</b> : les calories brûlées (fausses), un compte dans le Bilan, une activité qui compterait dans tes muscles ou tes semaines tenues.</li>
+    <li>Écrans : le jour avant, la fenêtre de saisie, le jour après, puis les deux textes partagés.</li>
+  </ul>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">1 · Journal, un jour sans activité</span>
+  <h1>Progrès</h1>
+  <div class="onglets"><span>Bilan</span><span class="on">Journal</span><span>Exercices</span></div>
+  <div class="cal">
+    <b>L</b><b>M</b><b>M</b><b>J</b><b>V</b><b>S</b><b>D</b>
+    <span class="fait">10</span><span>11</span><span class="fait">12</span><span>13</span><span class="fait">14</span><span>15</span><span>16</span>
+    <span class="fait">17</span><span class="choisi">18</span><span class="fait">19</span><span>20</span><span>21</span><span>22</span><span>23</span>
+  </div>
+  <div class="p g">Mardi 18 novembre · jour de repos</div>
+  <div class="jour">
+    <div class="ligne"><span class="t">Poids</span><span class="v">70,4 kg</span></div>
+    <div class="ligne"><span class="t">Sommeil</span><span class="v">7 h 10 <small>montre</small></span></div>
+    <div class="ligne"><span class="t">Calories</span><span class="v">2 870 kcal <small>· Tenu</small></span></div>
+    <div class="ligne"><span class="t">Pas</span><span class="v">12 480</span></div>
+    <div class="ligne"><span class="ajout">+ Activité</span><span class="ajout">›</span></div>
+  </div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">2 · La fenêtre, un appui sur « + Activité »</span>
+  <h1>Progrès</h1>
+  <div class="p g">Mardi 18 novembre · jour de repos</div>
+  <div class="fond"></div>
+  <div class="modal">
+    <div class="poignee"></div>
+    <h2>Activité · mardi 18 nov.</h2>
+    <div class="puces"><span class="on">Padel</span><span>Course</span><span>Vélo</span><span>Foot</span><span>Natation</span><span>Marche, rando</span><span>Autre…</span></div>
+    <div class="lab">Durée</div>
+    <div class="champ"><span class="moins">−</span><span class="val">1 h 30</span><span class="plus">+</span></div>
+    <div class="lab">Effort</div>
+    <div class="trois"><div>Facile<small>en parlant</small></div><div>Moyen<small>essoufflé</small></div><div class="on">Dur<small>à fond</small></div></div>
+    <div class="note">Note (facultatif) : « 2 matchs, genou un peu raide »</div>
+    <div class="primaire">Terminer</div>
+  </div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">3 · Le jour, une fois noté</span>
+  <h1>Progrès</h1>
+  <div class="onglets"><span>Bilan</span><span class="on">Journal</span><span>Exercices</span></div>
+  <div class="cal">
+    <b>L</b><b>M</b><b>M</b><b>J</b><b>V</b><b>S</b><b>D</b>
+    <span class="fait">10</span><span>11</span><span class="fait">12</span><span>13</span><span class="fait">14</span><span class="act">15</span><span>16</span>
+    <span class="fait">17</span><span class="choisi act">18</span><span class="fait">19</span><span>20</span><span>21</span><span>22</span><span>23</span>
+  </div>
+  <div class="p g">Mardi 18 novembre · jour de repos</div>
+  <div class="jour">
+    <div class="ligne"><span class="t">Poids</span><span class="v">70,4 kg</span></div>
+    <div class="ligne"><span class="t">Sommeil</span><span class="v">7 h 10 <small>montre</small></span></div>
+    <div class="ligne"><span class="t">Calories</span><span class="v">2 870 kcal <small>· Tenu</small></span></div>
+    <div class="ligne"><span class="t">Pas</span><span class="v">12 480</span></div>
+    <div class="ligne"><span class="t">Activité</span><span class="v">Padel 1 h 30 <small>· dur ›</small></span></div>
+    <div class="ligne"><span class="ajout">+ Activité</span><span class="ajout">›</span></div>
+  </div>
+  <div class="l g">Point bleu dans le calendrier : un jour avec une activité. Un appui sur la ligne la rouvre (modifier, supprimer).</div>
+</div></section>
+
+<section class="ecran"><div class="tel">
+  <span class="etiquette">4 · Texte du Bilan, pour ton IA</span>
+  <pre>Jour par jour (7 jours) :
+jour | poids | kcal | protéines | pas | nuit d’avant | séance | <b>activité</b> | notes
+lun. 17 | 70,2 | 2 910 | 152 g | 9 830 | 6 h 50 | Full body A | — | —
+mar. 18 | 70,4 | 2 870 | 148 g | 12 480 | 7 h 10 | — | <b>padel 1 h 30, dur</b> | —
+mer. 19 | 70,3 | 2 760 | 160 g | 8 120 | 6 h 20 | Full body B | — | —
+…
+
+<b>Activités hors muscu (4 semaines) : 5, 6 h 15 en tout
+· padel 3 fois (4 h 30, dur), course 2 fois (1 h 45, moyen)</b></pre>
+  <div class="l g">La note de l'activité va dans la colonne « notes » du jour.</div>
+  <span class="etiquette">5 · Texte d'une séance</span>
+  <pre>Forme : 12 480 pas la veille · nuit d’avant : 6 h 20
+Repas de la veille : 2 870 kcal …
+<b>Activité de la veille : padel 1 h 30, dur (« 2 matchs, genou un peu raide »)</b></pre>
+  <div class="l g">Seulement la veille et le jour même avant la séance : c'est ce qui peut expliquer des jambes lourdes.</div>
+</div></section>
+
+</div>
+</body>
+</html>

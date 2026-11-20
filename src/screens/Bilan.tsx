@@ -94,6 +94,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   const pesees = useLiveQuery(() => db.pesees.toArray(), [], [])
   const mesures = useLiveQuery(() => db.mesures.toArray(), [], [])
   const journal = useLiveQuery(() => db.journal.toArray(), [], [])
+  const activites = useLiveQuery(() => db.activites.toArray(), [], [])
   const cycles = useLiveQuery(() => db.cycles.toArray(), [], [])
   const prevusNotes = useLiveQuery(() => db.reglages.get(CLE_PREVUS), [])
   const caps = useCaps() ?? []
@@ -146,7 +147,7 @@ export default function Bilan({ catalogue, haut, onExo, onTousExos, onCorps, onP
   const cycleTexte = periode === 'cycle' ? cycle : cycleParDefaut && cycleParDefaut.debut <= fin ? cycleParDefaut : undefined
   // Objectifs de volume en vigueur à la fin de la période (ils peuvent avoir changé depuis).
   const cibles = catalogue.ciblesA(fin)
-  const donnees: DonneesBilan = { seances, cycles, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, caps, seancesParSemaine: catalogue.seancesParSemaine, conseilsMasques: catalogue.conseilsVolumeMasques, cycle: cycleTexte && `Cycle « ${nomCycle(cycleTexte)} » (${cycleTexte.programme.nom}), ${etatCycle(cycleTexte).fini ? 'terminé' : `semaine ${Math.max(1, etatCycle(cycleTexte).n)}/${cycleTexte.semaines}`}${cycleTexte.priorites?.length ? `, priorité : ${cycleTexte.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
+  const donnees: DonneesBilan = { seances, cycles, pesees, mesures, exo: catalogue.exo, exercices: catalogue.exercices, cibles, programme: catalogue.actif.nom, objectifs: catalogue.objectifs, journal, activites, caps, seancesParSemaine: catalogue.seancesParSemaine, conseilsMasques: catalogue.conseilsVolumeMasques, cycle: cycleTexte && `Cycle « ${nomCycle(cycleTexte)} » (${cycleTexte.programme.nom}), ${etatCycle(cycleTexte).fini ? 'terminé' : `semaine ${Math.max(1, etatCycle(cycleTexte).n)}/${cycleTexte.semaines}`}${cycleTexte.priorites?.length ? `, priorité : ${cycleTexte.priorites.map((m) => MUSCLES.find((x) => x.id === m)!.nom.toLowerCase()).join(', ')} (+${BONUS_PRIORITE} séries par semaine)` : ''}` }
   const etapesPrevues = (prevusNotes?.valeur as EtapePrevu[] | undefined) ?? []
   const prevues = prevuDeSemaine(etapesPrevues, cycles, seances, catalogue.planning.length)
   const phaseEnCours = phaseA(catalogue.objectifs, fin)

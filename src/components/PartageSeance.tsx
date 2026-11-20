@@ -21,8 +21,9 @@ export default function PartageSeance({ seance, avant, reglages, catalogue, onFe
   const veille = new Date(seance.date + 'T12:00:00')
   veille.setDate(veille.getDate() - 1)
   const journal = useLiveQuery(() => db.journal.where('date').anyOf([dateISO(veille), seance.date]).toArray(), [seance.date])
+  const activites = useLiveQuery(() => db.activites.where('date').equals(dateISO(veille)).toArray(), [seance.date])
   useRetour(true, onFermer)
-  const texte = texteSeance(seance, { exo: (id) => exoAvecReglages(catalogue.exo(id), reglages), avant, objectifs: catalogue.objectifs, cycle, mouvements, journal }, avecAvant)
+  const texte = texteSeance(seance, { exo: (id) => exoAvecReglages(catalogue.exo(id), reglages), avant, objectifs: catalogue.objectifs, cycle, mouvements, journal, activites }, avecAvant)
 
   const envoyer = async () => {
     try {

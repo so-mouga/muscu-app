@@ -1,6 +1,7 @@
 import { MUSCLES } from '../data/exercices'
 import { nomCle } from '../data/mesures'
-import type { Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
+import type { Activite, Cycle, Exercice, JourJournal, Mesure, Muscle, Pesee, Seance } from '../types'
+import { activitesDuJour, resumeActivites } from './activites'
 import { chargeQte, dateCourte, dateISO, duree, estDure, heuresMinutes, kg, lundi, niveauSensation, schemaPlan, sensationSeance, volumeParMuscle } from './calc'
 import { effort } from './partageProgramme'
 import { faitTexte } from './partageSeance'
@@ -42,6 +43,8 @@ export interface DonneesBilan {
   seancesParSemaine?: number
   /** Conseils de volume masqués : les séries sans zone. */
   conseilsMasques?: boolean
+  /** Activités hors muscu (padel, course…) : seulement pour les dire, elles n'entrent dans aucun calcul. */
+  activites?: Activite[]
 }
 
 const NOMS_NIVEAU = { entretien: 'Entretien', normal: 'Normal', priorite: 'Priorité' } as const
@@ -286,13 +289,16 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   // Avec le vrai total, le verdict n'apprend rien de plus : seuls les jours notés à la main le gardent.
   const cal = jours.filter((j) => j.calories && !j.kcalAppli)
   const pas = finis.filter((j) => j.pas !== undefined).map((j) => j.pas!)
-  if (nuits.length || cal.length || pas.length || repas) {
+  // Les activités hors muscu de la période : un résumé, elles n'entrent dans aucun calcul.
+  const activites = resumeActivites(d.activites ?? [], debut, fin)
+  if (nuits.length || cal.length || pas.length || repas || activites) {
     titre(pas.length ? 'Sommeil, pas et calories' : 'Sommeil et calories')
     if (nuits.length) {
       const m = moyenne(nuits)!
       lignes.push(`Sommeil moyen : ${heuresMinutes(m)} (${nuits.length} nuit${nuits.length > 1 ? 's' : ''} notée${nuits.length > 1 ? 's' : ''}, min ${kg(Math.min(...nuits))} h)`)
     }
     if (pas.length) lignes.push(`Pas : ${nombre(Math.round(moyenne(pas)!))} par jour en moyenne (de ${nombre(Math.min(...pas))} à ${nombre(Math.max(...pas))}, ${pas.length} jour${pas.length > 1 ? 's' : ''}, lus sur la montre ou le téléphone)`)
+    if (activites) lignes.push(`Activités hors muscu : ${activites}`)
     if (repas) lignes.push(`Repas (${repas.jours} jour${repas.jours > 1 ? 's' : ''}, lus dans l’appli de repas), en moyenne par jour : ${texteRepas(repas)}`)
     if (cal.length) {
       const n = (c: string) => cal.filter((j) => j.calories === c).length
@@ -307,11 +313,11 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
   const aujourdhui = dateISO()
   const duJournal = (date: string) => d.journal?.find((x) => x.date === date)
   const poidsLe = (date: string) => d.pesees.find((p) => p.date === date)?.poids
-  const auMoinsUnChiffre = septJours.some((date) => poidsLe(date) !== undefined || duJournal(date) || periode.some((s) => s.date === date))
+  const auMoinsUnChiffre = septJours.some((date) => poidsLe(date) !== undefined || duJournal(date) || periode.some((s) => s.date === date) || d.activites?.some((a) => a.date === date))
   if (auMoinsUnChiffre) {
     const obj = d.objectifs && objectifDuJour(d.objectifs, fin)
     titre(`Jour par jour, 7 derniers jours${obj ? ` (objectif ${nombre(obj.kcal)} kcal)` : ''}`)
-    lignes.push('jour | poids | kcal | protéines | pas | nuit d’avant | séance | notes')
+    lignes.push('jour | poids | kcal | protéines | pas | nuit d’avant | séance | activité | notes')
     const tiret = '—'
     for (const date of septJours) {
       const j = duJournal(date)
@@ -328,7 +334,8 @@ export function genererBilan(d: DonneesBilan, debut: string, fin = dateISO(), re
           j?.pas !== undefined ? nombre(j.pas) : tiret,
           j?.sommeil !== undefined ? heuresMinutes(j.sommeil) : tiret,
           ss.length ? ss.map((s) => s.nom).join(', ') : tiret,
-          j?.note ?? '',
+          activitesDuJour(d.activites ?? [], date) || tiret,
+          [j?.note, ...(d.activites ?? []).filter((a) => a.date === date && a.note?.trim()).map((a) => `${a.type.toLowerCase()} : ${a.note!.trim()}`)].filter(Boolean).join(' ; '),
         ].join(' | ')
       )
     }

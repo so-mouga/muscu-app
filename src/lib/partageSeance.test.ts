@@ -49,6 +49,12 @@ describe('texte d’une séance à partager', () => {
     expect(texteSeance(jour, { ...donnees, journal: [{ date: '2026-11-09', note: 'resto ce soir' }, { date: '2026-11-08', note: '  ' }] }, true)).not.toContain('Note de la veille')
   })
 
+  it('les activités hors muscu de la veille, avec leur note ; jamais celles du jour même', () => {
+    const t = texteSeance(jour, { ...donnees, activites: [{ id: 'a', date: '2026-11-08', type: 'Padel', duree: 90, intensite: 9, note: 'genou raide' }, { id: 'b', date: '2026-11-09', type: 'Course', duree: 30, intensite: 6 }] }, true)
+    expect(t).toContain('Activité de la veille : padel 1 h 30, dur (« genou raide »)')
+    expect(t).not.toContain('course')
+  })
+
   it('la charge max de la machine sur la ligne de l’exercice, seulement si elle est réglée', () => {
     const exoMax = (id: string) => ({ ...donnees.exo(id), ...(id === 'rowing_haltere' ? { chargeMax: 34 } : {}) })
     expect(texteSeance(jour, { ...donnees, exo: exoMax }, true)).toContain('1. Rowing haltère · 3 × 8–12 · effort 8, 8, 8/10 · repos 2:00 après chaque série · charge max de la machine : 34 kg/main')

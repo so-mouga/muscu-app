@@ -1,6 +1,7 @@
 import { circuitsFaitsDe, texteCircuit } from './circuits'
 import { mouvement, MOUVEMENTS, type MouvementEchauffement } from '../data/echauffements'
-import type { Cycle, Exercice, ExoPlan, JourJournal, Seance, Serie, TypeSerie } from '../types'
+import type { Activite, Cycle, Exercice, ExoPlan, JourJournal, Seance, Serie, TypeSerie } from '../types'
+import { texteActivite } from './activites'
 import { chargeQte, cibleTexte, dateCourte, dateISO, duree, dureeSeanceEffective, heuresMinutes, kg, sensationSeance } from './calc'
 import { etatCycle } from './cycle'
 import { historiqueDe } from './historique'
@@ -20,6 +21,8 @@ export interface DonneesSeance {
   mouvements?: MouvementEchauffement[]
   /** Journal de la veille et du jour : pas de la veille, nuit d'avant la séance. */
   journal?: JourJournal[]
+  /** Activités hors muscu : celles de la veille sont écrites (un padel la veille explique des jambes lourdes). */
+  activites?: Activite[]
 }
 
 /** La question posée en tête du texte, selon qu'il y a un conseil à juger ou non. */
@@ -151,6 +154,9 @@ export function texteSeance(seance: Seance, d: DonneesSeance, avecAvant: boolean
   // même : elle est souvent écrite le soir, après la séance.
   const noteVeille = laVeille?.note?.trim()
   if (noteVeille) l.push(`Note de la veille : ${noteVeille}`)
+  // Les activités hors muscu de la veille, avec leur note. Pas celles du jour : on ne sait pas si elles étaient avant la séance.
+  const activitesVeille = (d.activites ?? []).filter((a) => a.date === dateISO(veille))
+  if (activitesVeille.length) l.push(`Activité de la veille : ${activitesVeille.map((a) => texteActivite(a) + (a.note?.trim() ? ` (« ${a.note.trim()} »)` : '')).join(' + ')}`)
   l.push('Effort sur 10 : 8/10 = il reste environ 2 reps avant l’échec. Fourchette 8–12 : la charge monte quand toutes les séries atteignent le haut.')
 
   const faits = (seance.echauffement?.faits ?? []).map((id) => mouvement(id, d.mouvements ?? MOUVEMENTS)).filter((x) => !!x)
